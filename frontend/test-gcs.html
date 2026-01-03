@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCS API Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            background: #0e639c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #1177bb;
+        }
+        #log {
+            background: #252526;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            font-size: 12px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .success { color: #4ec9b0; }
+        .error { color: #f48771; }
+        .info { color: #569cd6; }
+    </style>
+</head>
+<body>
+    <h1>🧪 GCS API Test</h1>
+    <p>Test der GCS-Integration für toggle_menu</p>
+    
+    <div>
+        <button onclick="runTest()">▶️ Test starten</button>
+        <button onclick="clearLog()">🗑️ Log löschen</button>
+    </div>
+    
+    <div id="log"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        let token = null;
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const span = document.createElement('span');
+            span.className = type;
+            span.textContent = message + '\n';
+            logDiv.appendChild(span);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        async function runTest() {
+            clearLog();
+            log('='.repeat(60));
+            log('GCS API Test gestartet', 'info');
+            log('='.repeat(60));
+
+            try {
+                // 1. Login
+                log('\n1️⃣ Login...', 'info');
+                const loginRes = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: new URLSearchParams({
+                        username: 'admin@example.com',
+                        password: 'admin'
+                    })
+                });
+
+                if (!loginRes.ok) {
+                    log(`❌ Login fehlgeschlagen: ${loginRes.status}`, 'error');
+                    log(await loginRes.text(), 'error');
+                    return;
+                }
+
+                const loginData = await loginRes.json();
+                token = loginData.access_token;
+                log(`✅ Token erhalten: ${token.substring(0, 20)}...`, 'success');
+
+                // Test-Daten
+                const menuGuid = '3424b00f-bb4d-4759-9689-e9e08249117b';
+                log(`\n📋 Test-Menü: ${menuGuid}`, 'info');
+
+                // 2. Setze toggle_menu auf 0
+                log('\n2️⃣ Setze toggle_menu=0 (ausgeblendet)...', 'info');
+                const setRes = await fetch(`${API_BASE}/api/gcs/value`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        gruppe: menuGuid,
+                        feld: 'toggle_menu',
+                        value: 0
+                    })
+                });
+
+                log(`   Status: ${setRes.status}`, 'info');
+                if (setRes.ok) {
+                    const setData = await setRes.json();
+                    log(`   ✅ Gespeichert: ${JSON.stringify(setData, null, 2)}`, 'success');
+                } else {
+                    log(`   ❌ Fehler: ${await setRes.text()}`, 'error');
+                    return;
+                }
+
+                // 3. Lade toggle_menu
+                log('\n3️⃣ Lade toggle_menu Status...', 'info');
+                const getRes = await fetch(`${API_BASE}/api/gcs/value?gruppe=${encodeURIComponent(menuGuid)}&feld=toggle_menu`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                log(`   Status: ${getRes.status}`, 'info');
+                if (getRes.ok) {
+                    const getData = await getRes.json();
+                    log(`   ✅ Geladen:`, 'success');
+                    log(`      Gruppe: ${getData.gruppe}`, 'info');
+                    log(`      Feld: ${getData.feld}`, 'info');
+                    log(`      Wert: ${getData.value}`, 'info');
+                } else if (getRes.status === 404) {
+                    log('   ℹ️ Wert nicht gefunden (404)', 'info');
+                } else {
+                    log(`   ❌ Fehler: ${await getRes.text()}`, 'error');
+                }
+
+                // 4. Update auf 1
+                log('\n4️⃣ Update auf toggle_menu=1 (eingeblendet)...', 'info');
+                const updateRes = await fetch(`${API_BASE}/api/gcs/value`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        gruppe: menuGuid,
+                        feld: 'toggle_menu',
+                        value: 1
+                    })
+                });
+
+                if (updateRes.ok) {
+                    const updateData = await updateRes.json();
+                    log(`   ✅ Aktualisiert: ${JSON.stringify(updateData, null, 2)}`, 'success');
+                } else {
+                    log(`   ❌ Fehler: ${await updateRes.text()}`, 'error');
+                    return;
+                }
+
+                // 5. Prüfe Update
+                log('\n5️⃣ Prüfe aktualisierten Wert...', 'info');
+                const checkRes = await fetch(`${API_BASE}/api/gcs/value?gruppe=${encodeURIComponent(menuGuid)}&feld=toggle_menu`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (checkRes.ok) {
+                    const checkData = await checkRes.json();
+                    log(`   ✅ Neuer Wert: ${checkData.value}`, 'success');
+
+                    if (checkData.value == 1) {
+                        log('\n' + '='.repeat(60));
+                        log('✅ GCS API Test erfolgreich!', 'success');
+                        log('='.repeat(60));
+                    } else {
+                        log(`\n⚠️ Wert stimmt nicht: erwartet 1, erhalten ${checkData.value}`, 'error');
+                    }
+                } else {
+                    log(`   ❌ Fehler beim Laden: ${await checkRes.text()}`, 'error');
+                }
+
+            } catch (error) {
+                log(`\n❌ Fehler: ${error.message}`, 'error');
+                log(error.stack, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

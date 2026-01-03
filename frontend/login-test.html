@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDVM System - Login Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .login-container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        input[type="email"],
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="email"]:focus,
+        input[type="password"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-login {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-login:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-demo {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .btn-demo:hover {
+            background: #e67e22;
+        }
+        
+        .message {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 5px;
+            text-align: center;
+            display: none;
+        }
+        
+        .message.error {
+            background: #fee;
+            color: #c33;
+            border: 1px solid #fcc;
+        }
+        
+        .message.success {
+            background: #efe;
+            color: #3c3;
+            border: 1px solid #cfc;
+        }
+        
+        .checkbox-group {
+            margin: 15px 0;
+        }
+        
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            font-weight: normal;
+            cursor: pointer;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 8px;
+            cursor: pointer;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>🔐 PDVM System</h1>
+        <div class="subtitle">Login Test - Backend API</div>
+        
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">E-Mail:</label>
+                <input type="email" id="email" name="email" required 
+                       placeholder="beispiel@domain.de">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Passwort:</label>
+                <input type="password" id="password" name="password" required 
+                       placeholder="Passwort eingeben">
+            </div>
+            
+            <div class="checkbox-group">
+                <label>
+                    <input type="checkbox" id="showPassword">
+                    👁️ Passwort anzeigen
+                </label>
+            </div>
+            
+            <div class="button-group">
+                <button type="button" class="btn-demo" onclick="demoLogin()">
+                    🧪 Demo Login
+                </button>
+                <button type="submit" class="btn-login">
+                    🔑 Anmelden
+                </button>
+            </div>
+        </form>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Verbinde mit Backend...</p>
+        </div>
+        
+        <div class="message" id="message"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8000';
+        
+        // Show/Hide Password
+        document.getElementById('showPassword').addEventListener('change', function(e) {
+            const passwordInput = document.getElementById('password');
+            passwordInput.type = e.target.checked ? 'text' : 'password';
+        });
+        
+        // Demo Login
+        function demoLogin() {
+            document.getElementById('email').value = 'admin@example.com';
+            document.getElementById('password').value = 'admin';
+            showMessage('Demo-Zugangsdaten eingefügt', 'success');
+        }
+        
+        // Login Form Submit
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            showLoading(true);
+            hideMessage();
+            
+            try {
+                // OAuth2 Password Flow Format
+                const formData = new URLSearchParams();
+                formData.append('username', email);
+                formData.append('password', password);
+                
+                const response = await fetch(`${API_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showMessage(`✅ Login erfolgreich! Weiterleitung zur Mandanten-Auswahl...`, 'success');
+                    console.log('Login Response:', data);
+                    
+                    // Token und User-Daten speichern
+                    localStorage.setItem('access_token', data.access_token);
+                    localStorage.setItem('user_email', data.email);
+                    localStorage.setItem('user_id', data.user_id);
+                    localStorage.setItem('user_name', data.name || data.email);
+                    
+                    // Weiterleitung zur Mandanten-Auswahl
+                    setTimeout(() => {
+                        window.location.href = '/mandant-select.html';
+                    }, 1000);
+                } else {
+                    showMessage(`❌ Login fehlgeschlagen: ${data.detail || 'Unbekannter Fehler'}`, 'error');
+                }
+            } catch (error) {
+                console.error('Login Error:', error);
+                showMessage(`❌ Verbindungsfehler: ${error.message}`, 'error');
+            } finally {
+                showLoading(false);
+            }
+        });
+        
+        function showMessage(text, type) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.className = `message ${type}`;
+            messageEl.style.display = 'block';
+        }
+        
+        function hideMessage() {
+            document.getElementById('message').style.display = 'none';
+        }
+        
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+            document.getElementById('loginForm').style.display = show ? 'none' : 'block';
+        }
+        
+        // Test Backend Connection on Load
+        window.addEventListener('load', async function() {
+            try {
+                const response = await fetch(`${API_URL}/`);
+                const data = await response.json();
+                console.log('Backend Status:', data);
+            } catch (error) {
+                showMessage('⚠️ Backend nicht erreichbar. Bitte starte: cd backend && uvicorn app.main:app --reload', 'error');
+            }
+        });
+    </script>
+</body>
+</html>

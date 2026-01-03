@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - PDVM System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header / Top Bar */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .user-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .user-badge::before {
+            content: "👤";
+        }
+
+        /* Main Layout */
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Vertical Menu (Sidebar) */
+        .sidebar {
+            width: 250px;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .sidebar-header h2 {
+            font-size: 16px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .menu-items {
+            flex: 1;
+            padding: 10px;
+        }
+
+        .menu-button {
+            width: 100%;
+            padding: 15px 20px;
+            margin-bottom: 5px;
+            border: none;
+            background: white;
+            color: #333;
+            text-align: left;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .menu-button:hover {
+            background: #f0f2f5;
+            transform: translateX(5px);
+        }
+
+        .menu-button.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .menu-button::before {
+            content: "📁";
+            font-size: 20px;
+        }
+
+        .menu-separator {
+            height: 1px;
+            background: #e0e0e0;
+            margin: 10px 0;
+        }
+
+        /* Content Area */
+        .content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .welcome-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+        }
+
+        .welcome-section h2 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .welcome-section p {
+            color: #666;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        .info-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .info-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            border-left: 4px solid #667eea;
+        }
+
+        .info-card h3 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .info-card p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .info-card .value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #667eea;
+            margin-top: 10px;
+        }
+
+        /* GRUND Menu (Horizontal Bar unter Header) */
+        .grund-menu {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 0;
+            display: flex;
+            gap: 0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-left: 250px; /* Sidebar width */
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .grund-menu-item {
+            padding: 15px 25px;
+            color: white;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            white-space: nowrap;
+        }
+
+        .grund-menu-item:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .grund-menu-item:active {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .grund-menu-item.danger {
+            margin-left: auto;
+            border-right: none;
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .grund-menu-item.danger:hover {
+            background: rgba(220, 53, 69, 0.3);
+        }
+
+        /* Horizontal Menu (Bottom Bar) - REMOVED, now in header */
+        .bottom-bar {
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            padding: 10px 20px;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .bottom-menu-button {
+            padding: 10px 20px;
+            border: none;
+            background: #f0f2f5;
+            color: #333;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .bottom-menu-button:hover {
+            background: #e0e3e8;
+        }
+
+        .bottom-menu-button.danger {
+            background: #fee;
+            color: #c33;
+        }
+
+        .bottom-menu-button.danger:hover {
+            background: #fdd;
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px;
+            border-left: 4px solid #c33;
+        }
+
+        .placeholder-content {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .placeholder-content h3 {
+            color: #666;
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+
+        .placeholder-content p {
+            color: #999;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
+            <h1>PDVM System</h1>
+            <div class="user-badge">
+                <span id="userName">Laden...</span>
+            </div>
+            <div class="user-badge">
+                <span id="mandantName">Laden...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- GRUND Menu (Horizontal) -->
+    <div class="grund-menu" id="grundMenu">
+        <!-- Dynamically populated -->
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Sidebar (VERTIKAL Menu) -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>Hauptmenü</h2>
+            </div>
+            <div class="menu-items" id="vertikalMenu">
+                <div class="loading">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div class="content" id="mainContent">
+            <div class="welcome-section">
+                <h2>Willkommen im PDVM System</h2>
+                <p>Wählen Sie einen Bereich aus dem Menü, um zu beginnen.</p>
+            </div>
+
+            <div class="info-cards">
+                <div class="info-card">
+                    <h3>Angemeldet als</h3>
+                    <p id="userEmail">Laden...</p>
+                </div>
+                <div class="info-card">
+                    <h3>Aktiver Mandant</h3>
+                    <p id="mandantInfo">Laden...</p>
+                </div>
+                <div class="info-card">
+                    <h3>Menü Version</h3>
+                    <p id="menuVersion">V3</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check authentication
+        const token = localStorage.getItem('access_token');
+        const userId = localStorage.getItem('user_id');
+        const userEmail = localStorage.getItem('user_email');
+        const userName = localStorage.getItem('user_name');
+        const mandantId = localStorage.getItem('mandant_id');
+        const mandantName = localStorage.getItem('mandant_name');
+
+        if (!token || !userId || !mandantId) {
+            // Nicht angemeldet oder kein Mandant gewählt
+            window.location.href = 'login-test.html';
+        }
+
+        // Display user info
+        document.getElementById('userName').textContent = userName || userEmail;
+        document.getElementById('userEmail').textContent = userEmail;
+        document.getElementById('mandantName').textContent = mandantName;
+        document.getElementById('mandantInfo').textContent = mandantName;
+
+        // API Base URL
+        const API_BASE = 'http://localhost:8000';
+
+        // Current Menu Tracking
+        let currentMenuGuid = null;
+        let isStartMenu = false;
+
+        // Template Cache
+        const menuTemplateCache = {};
+
+        // Load Menu Template
+        async function loadMenuTemplate(templateGuid) {
+            // Check cache
+            if (menuTemplateCache[templateGuid]) {
+                console.log(`📋 Template ${templateGuid} aus Cache`);
+                return menuTemplateCache[templateGuid];
+            }
+
+            try {
+                console.log(`📥 Lade Template ${templateGuid}`);
+                const response = await fetch(`${API_BASE}/api/menu/${templateGuid}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Template ${templateGuid} konnte nicht geladen werden (${response.status})`);
+                }
+
+                const templateData = await response.json();
+                const template = templateData.menu_data || templateData.daten || templateData;
+                
+                // Cache template
+                menuTemplateCache[templateGuid] = template;
+                console.log(`✅ Template ${templateGuid} geladen und gecacht`);
+                
+                return template;
+            } catch (error) {
+                console.error(`❌ Fehler beim Laden von Template ${templateGuid}:`, error);
+                return null;
+            }
+        }
+
+        // Load Start Menu
+        async function loadStartMenu() {
+            try {
+                const response = await fetch(`${API_BASE}/api/menu/user/start`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const menuData = await response.json();
+                console.log('📊 Startmenü geladen:', menuData);
+
+                // Markiere als Startmenü
+                isStartMenu = true;
+                currentMenuGuid = menuData.uid;
+
+                await renderMenu(menuData);
+                
+                // Lade Toggle State (Startmenü = immer sichtbar)
+                await loadMenuToggleState();
+
+            } catch (error) {
+                console.error('❌ Fehler beim Laden des Menüs:', error);
+                document.getElementById('vertikalMenu').innerHTML = `
+                    <div class="error-message">
+                        <strong>Fehler beim Laden des Menüs</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+                document.getElementById('grundMenu').innerHTML = `
+                    <div class="error-message">
+                        Fehler: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Render Menu
+        async function renderMenu(menuData) {
+            // Flexible Datenstruktur: menu_data oder daten
+            const menu = menuData.menu_data || menuData.daten || menuData;
+            
+            console.log('🎨 Rendering Menü:', menu);
+            
+            // VERTIKAL Menu (Sidebar)
+            renderVertikalMenu(menu.VERTIKAL || {});
+            
+            // GRUND Menu (Horizontal Bar) - mit Template-Support
+            await renderGrundMenu(menu.GRUND || {});
+            
+            // Update menu version mit null-check
+            const versionElement = document.getElementById('menuVersion');
+            if (versionElement && menu.ROOT && menu.ROOT.VERSION) {
+                versionElement.textContent = menu.ROOT.VERSION;
+            }
+        }
+
+        // Render VERTIKAL Menu (Mehrstufig mit SUBMENUs)
+        function renderVertikalMenu(items) {
+            const container = document.getElementById('vertikalMenu');
+            container.innerHTML = '';
+
+            if (!items || Object.keys(items).length === 0) {
+                return;
+            }
+
+            // Hilfsfunktion: Kinder für ein Item finden
+            function getChildren(parentGuid) {
+                return Object.entries(items)
+                    .filter(([guid, item]) => item.parent_guid === parentGuid && item.visible !== false)
+                    .sort((a, b) => (a[1].sort_order || 0) - (b[1].sort_order || 0));
+            }
+
+            // Rekursive Funktion zum Rendern von Items
+            function renderItem(guid, item, level = 0) {
+                if (item.type === 'SEPARATOR') {
+                    const separator = document.createElement('div');
+                    separator.className = 'menu-separator';
+                    separator.style.marginLeft = (level * 15) + 'px';
+                    return separator;
+                }
+                
+                if (item.type === 'SUBMENU') {
+                    // SUBMENU-Wrapper
+                    const submenuWrapper = document.createElement('div');
+                    submenuWrapper.className = 'menu-submenu-wrapper';
+                    
+                    // SUBMENU-Button
+                    const button = document.createElement('button');
+                    button.className = 'menu-button menu-submenu-button';
+                    button.textContent = item.label;
+                    button.disabled = !item.enabled;
+                    button.style.paddingLeft = (10 + level * 15) + 'px';
+                    
+                    // Icon für expandiert/kollabiert
+                    const icon = document.createElement('span');
+                    icon.className = 'submenu-icon';
+                    icon.textContent = '▶'; // Rechts-Pfeil für kollabiert
+                    icon.style.marginRight = '8px';
+                    icon.style.display = 'inline-block';
+                    icon.style.width = '12px';
+                    icon.style.transition = 'transform 0.2s';
+                    button.insertBefore(icon, button.firstChild);
+                    
+                    // Container für Kinder (initial versteckt)
+                    const childrenContainer = document.createElement('div');
+                    childrenContainer.className = 'menu-submenu-children';
+                    childrenContainer.style.display = 'none';
+                    childrenContainer.style.overflow = 'hidden';
+                    
+                    // Toggle-Funktion
+                    button.onclick = () => {
+                        const isExpanded = childrenContainer.style.display !== 'none';
+                        childrenContainer.style.display = isExpanded ? 'none' : 'block';
+                        icon.style.transform = isExpanded ? 'rotate(0deg)' : 'rotate(90deg)';
+                    };
+                    
+                    // Kinder rendern
+                    const children = getChildren(guid);
+                    children.forEach(([childGuid, childItem]) => {
+                        const childElement = renderItem(childGuid, childItem, level + 1);
+                        if (childElement) {
+                            childrenContainer.appendChild(childElement);
+                        }
+                    });
+                    
+                    submenuWrapper.appendChild(button);
+                    submenuWrapper.appendChild(childrenContainer);
+                    
+                    return submenuWrapper;
+                }
+                
+                if (item.type === 'BUTTON') {
+                    const button = document.createElement('button');
+                    button.className = 'menu-button';
+                    button.textContent = item.label;
+                    button.disabled = !item.enabled;
+                    button.style.paddingLeft = (10 + level * 15) + 'px';
+                    
+                    button.onclick = () => handleMenuCommand(item.command, item.label);
+                    
+                    return button;
+                }
+                
+                return null;
+            }
+
+            // Top-Level Items rendern (parent_guid = null)
+            const topLevelItems = getChildren(null);
+            topLevelItems.forEach(([guid, item]) => {
+                const element = renderItem(guid, item, 0);
+                if (element) {
+                    container.appendChild(element);
+                }
+            });
+        }
+
+        // Render GRUND Menu (Horizontal Bar with Dropdowns and Templates)
+        async function renderGrundMenu(items) {
+            const container = document.getElementById('grundMenu');
+            if (!container) {
+                console.warn('⚠️  GRUND-Menü Container nicht gefunden');
+                return;
+            }
+            
+            container.innerHTML = '';
+
+            if (!items || Object.keys(items).length === 0) {
+                return; // Leeres GRUND-Menü = nichts anzeigen
+            }
+
+            // Prüfe auf SPACER mit template_guid
+            const sortedItems = Object.entries(items)
+                .sort((a, b) => (a[1].sort_order || 0) - (b[1].sort_order || 0));
+
+            // Erweitere Items mit Templates
+            const expandedItems = [];
+            for (const [guid, item] of sortedItems) {
+                if (item.type === 'SPACER' && item.template_guid) {
+                    console.log(`🔍 SPACER mit Template gefunden: ${item.label}`);
+                    // Lade Template
+                    const template = await loadMenuTemplate(item.template_guid);
+                    if (template && template.GRUND) {
+                        // Füge Template-Items ein
+                        const templateItems = Object.entries(template.GRUND)
+                            .filter(([tguid, titem]) => titem.visible !== false)
+                            .sort((a, b) => (a[1].sort_order || 0) - (b[1].sort_order || 0));
+                        console.log(`➕ Füge ${templateItems.length} Template-Items ein`);
+                        expandedItems.push(...templateItems);
+                    }
+                } else {
+                    expandedItems.push([guid, item]);
+                }
+            }
+
+            // Finde alle SUBMENUs (Top-Level ohne parent_guid)
+            const submenus = expandedItems.filter(([guid, item]) => 
+                item.type === 'SUBMENU' && !item.parent_guid && item.visible !== false
+            );
+
+            console.log(`🎨 Rendering ${submenus.length} GRUND-SUBMENUs`);
+
+            submenus.forEach(([submenuGuid, submenu]) => {
+                // Erstelle SUBMENU-Button mit Dropdown
+                const menuWrapper = document.createElement('div');
+                menuWrapper.className = 'grund-submenu-wrapper';
+                menuWrapper.style.position = 'relative';
+                menuWrapper.style.display = 'inline-block';
+
+                const button = document.createElement('button');
+                button.className = 'grund-menu-item';
+                button.textContent = submenu.label + ' ▾';
+                button.disabled = !submenu.enabled;
+                
+                // Dropdown-Container
+                const dropdown = document.createElement('div');
+                dropdown.className = 'grund-dropdown';
+                dropdown.style.display = 'none';
+                dropdown.style.position = 'absolute';
+                dropdown.style.top = '100%';
+                dropdown.style.left = '0';
+                dropdown.style.background = 'white';
+                dropdown.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                dropdown.style.borderRadius = '8px';
+                dropdown.style.minWidth = '180px';
+                dropdown.style.zIndex = '1000';
+                dropdown.style.marginTop = '5px';
+
+                // Finde Kinder dieses SUBMENUs (auch aus expandedItems!)
+                const children = expandedItems.filter(([guid, item]) => 
+                    item.parent_guid === submenuGuid && item.visible !== false
+                );
+
+                children.forEach(([guid, item]) => {
+                    if (item.type === 'SEPARATOR') {
+                        const separator = document.createElement('div');
+                        separator.style.height = '1px';
+                        separator.style.background = '#e0e0e0';
+                        separator.style.margin = '5px 0';
+                        dropdown.appendChild(separator);
+                    } else if (item.type === 'BUTTON') {
+                        const dropdownItem = document.createElement('button');
+                        dropdownItem.className = 'grund-dropdown-item';
+                        dropdownItem.style.padding = '12px 16px';
+                        dropdownItem.style.width = '100%';
+                        dropdownItem.style.border = 'none';
+                        dropdownItem.style.background = 'none';
+                        dropdownItem.style.textAlign = 'left';
+                        dropdownItem.style.cursor = 'pointer';
+                        dropdownItem.style.fontSize = '14px';
+                        dropdownItem.style.color = '#333';
+                        dropdownItem.textContent = item.label;
+                        dropdownItem.disabled = !item.enabled;
+
+                        // Spezielle Styles für logout
+                        if (item.command && item.command.handler === 'logout') {
+                            dropdownItem.style.color = '#dc3545';
+                        }
+
+                        dropdownItem.onmouseover = () => {
+                            dropdownItem.style.background = '#f5f5f5';
+                        };
+                        dropdownItem.onmouseout = () => {
+                            dropdownItem.style.background = 'none';
+                        };
+
+                        dropdownItem.onclick = () => {
+                            handleMenuCommand(item.command, item.label);
+                            dropdown.style.display = 'none';
+                        };
+
+                        dropdown.appendChild(dropdownItem);
+                    }
+                });
+
+                // Toggle Dropdown
+                button.onclick = (e) => {
+                    e.stopPropagation();
+                    // Schließe alle anderen Dropdowns
+                    document.querySelectorAll('.grund-dropdown').forEach(d => {
+                        if (d !== dropdown) d.style.display = 'none';
+                    });
+                    dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+                };
+
+                menuWrapper.appendChild(button);
+                menuWrapper.appendChild(dropdown);
+                container.appendChild(menuWrapper);
+            });
+
+            // Schließe Dropdown bei Klick außerhalb
+            document.addEventListener('click', () => {
+                document.querySelectorAll('.grund-dropdown').forEach(d => {
+                    d.style.display = 'none';
+                });
+            });
+        }
+
+        // Handle Menu Commands
+        function handleMenuCommand(command, label) {
+            if (!command) {
+                showPlaceholder(label);
+                return;
+            }
+
+            console.log('🎯 Command:', command);
+
+            switch (command.handler) {
+                case 'open_app_menu':
+                    openAppMenu(command.params.app_name);
+                    break;
+                
+                case 'open_start_menu':
+                    openStartMenu();
+                    break;
+                
+                case 'toggle_menu':
+                    toggleMenu();
+                    break;
+                
+                case 'show_help':
+                    showHelp(command.params);
+                    break;
+                
+                case 'logout':
+                    logout();
+                    break;
+                
+                default:
+                    showPlaceholder(label, `Command: ${command.handler}`);
+            }
+        }
+
+        // GCS Functions (Global Configuration System)
+        async function gcsGetValue(gruppe, feld, defaultValue = null) {
+            try {
+                const response = await fetch(`${API_BASE}/api/gcs/value?gruppe=${encodeURIComponent(gruppe)}&feld=${encodeURIComponent(feld)}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.status === 404) {
+                    // Wert existiert nicht, verwende Default
+                    console.log(`📋 GCS-Wert nicht gefunden, verwende Default: ${gruppe}.${feld} = ${defaultValue}`);
+                    return defaultValue;
+                }
+
+                if (!response.ok) {
+                    console.warn(`⚠️  GCS-Fehler ${response.status}: ${gruppe}.${feld}`);
+                    return defaultValue;
+                }
+
+                const data = await response.json();
+                return data.value !== undefined ? data.value : defaultValue;
+            } catch (error) {
+                console.error(`❌ Fehler beim Lesen von GCS ${gruppe}.${feld}:`, error);
+                return defaultValue;
+            }
+        }
+
+        async function gcsSetValue(gruppe, feld, value, stichtag = null) {
+            try {
+                const response = await fetch(`${API_BASE}/api/gcs/value`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        gruppe: gruppe,
+                        feld: feld,
+                        value: value,
+                        stichtag: stichtag
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`GCS-Wert konnte nicht gesetzt werden (${response.status})`);
+                }
+
+                console.log(`✅ GCS-Wert gesetzt: ${gruppe}.${feld} = ${value}`);
+                return true;
+            } catch (error) {
+                console.error(`❌ Fehler beim Setzen von GCS ${gruppe}.${feld}:`, error);
+                return false;
+            }
+        }
+
+        async function gcsSaveAll() {
+            try {
+                const response = await fetch(`${API_BASE}/api/gcs/save`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`GCS-Werte konnten nicht gespeichert werden (${response.status})`);
+                }
+
+                console.log('✅ GCS-Werte gespeichert');
+                return true;
+            } catch (error) {
+                console.error('❌ Fehler beim Speichern der GCS-Werte:', error);
+                return false;
+            }
+        }
+
+        // Toggle Menu (Ein/Ausblenden der Sidebar)
+        async function toggleMenu() {
+            // Im Startmenü ist toggle deaktiviert
+            if (isStartMenu) {
+                console.log('⚠️  Toggle im Startmenü nicht erlaubt');
+                return;
+            }
+
+            if (!currentMenuGuid) {
+                console.warn('⚠️  Keine Menu-GUID gesetzt');
+                return;
+            }
+
+            const sidebar = document.querySelector('.sidebar');
+            const content = document.querySelector('.content');
+            const grundMenu = document.querySelector('.grund-menu');
+
+            // Aktuellen Status ermitteln
+            const isHidden = sidebar.style.display === 'none';
+
+            // Toggle Sidebar
+            if (isHidden) {
+                // Sidebar einblenden
+                sidebar.style.display = 'flex';
+                content.style.marginLeft = '0';
+                if (grundMenu) {
+                    grundMenu.style.marginLeft = '250px';
+                }
+            } else {
+                // Sidebar ausblenden
+                sidebar.style.display = 'none';
+                content.style.marginLeft = '0';
+                if (grundMenu) {
+                    grundMenu.style.marginLeft = '0';
+                }
+            }
+
+            // Neuen Status berechnen (1 = sichtbar, 0 = versteckt)
+            const newStatus = isHidden ? 1 : 0;
+
+            // Status in GCS speichern (Gruppe = menu_guid, Feld = toggle_menu)
+            await gcsSetValue(currentMenuGuid, 'toggle_menu', newStatus);
+            await gcsSaveAll();
+
+            console.log(`🔄 Menü ${newStatus ? 'eingeblendet' : 'ausgeblendet'}`);
+        }
+
+        // Load Menu Toggle State from GCS
+        async function loadMenuToggleState() {
+            if (isStartMenu || !currentMenuGuid) {
+                // Startmenü immer sichtbar
+                const sidebar = document.querySelector('.sidebar');
+                const grundMenu = document.querySelector('.grund-menu');
+                sidebar.style.display = 'flex';
+                if (grundMenu) {
+                    grundMenu.style.marginLeft = '250px';
+                }
+                return;
+            }
+
+            try {
+                // Lade toggle_menu Status aus GCS (Gruppe = menu_guid)
+                const toggleState = await gcsGetValue(currentMenuGuid, 'toggle_menu', 1);
+                const sidebar = document.querySelector('.sidebar');
+                const content = document.querySelector('.content');
+                const grundMenu = document.querySelector('.grund-menu');
+
+                if (toggleState === 0 || toggleState === '0') {
+                    // Sidebar ausblenden
+                    sidebar.style.display = 'none';
+                    content.style.marginLeft = '0';
+                    if (grundMenu) {
+                        grundMenu.style.marginLeft = '0';
+                    }
+                } else {
+                    // Sidebar einblenden
+                    sidebar.style.display = 'flex';
+                    content.style.marginLeft = '0';
+                    if (grundMenu) {
+                        grundMenu.style.marginLeft = '250px';
+                    }
+                }
+
+                console.log(`📊 Menu Toggle State geladen: ${toggleState}`);
+            } catch (error) {
+                console.error('❌ Fehler beim Laden des Menu Toggle State:', error);
+            }
+        }
+
+        // Open Start Menu
+        async function openStartMenu() {
+            const content = document.getElementById('mainContent');
+            content.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 20px; color: #666;">Lade Startmenü...</p>
+                </div>
+            `;
+
+            try {
+                console.log('🏠 Lade Startmenü...');
+
+                // Lade Start-Menü über /api/menu/user/start
+                const menuResponse = await fetch(`${API_BASE}/api/menu/user/start`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!menuResponse.ok) {
+                    throw new Error(`Startmenü konnte nicht geladen werden (${menuResponse.status})`);
+                }
+
+                const menuData = await menuResponse.json();
+                console.log('🏠 Startmenü geladen:', menuData);
+
+                // Markiere als Startmenü (Sidebar immer sichtbar)
+                isStartMenu = true;
+                currentMenuGuid = menuData.uid;
+
+                // Ersetze VERTIKAL und GRUND mit Startmenü
+                await renderMenu(menuData);
+                
+                // Lade Toggle State (Startmenü = immer sichtbar)
+                await loadMenuToggleState();
+
+                // Zeige Startmenü-Content
+                content.innerHTML = `
+                    <div class="placeholder-content">
+                        <h3>🏠 Willkommen</h3>
+                        <p>Startmenü erfolgreich geladen!</p>
+                        <p style="margin-top: 20px; color: #999;">
+                            Wählen Sie eine App aus dem Menü, um zu beginnen.
+                        </p>
+                    </div>
+                `;
+
+            } catch (error) {
+                console.error('❌ Fehler beim Laden des Startmenüs:', error);
+                content.innerHTML = `
+                    <div class="error-message">
+                        <strong>Fehler beim Laden des Startmenüs</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Open App Menu
+        async function openAppMenu(appName) {
+            const content = document.getElementById('mainContent');
+            content.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 20px; color: #666;">Lade ${appName}-Menü...</p>
+                </div>
+            `;
+
+            try {
+                // Konvertiere app_name zu Großbuchstaben für MEINEAPPS-Lookup
+                const appNameUpper = appName.toUpperCase();
+                
+                // Hole aktuellen User mit MEINEAPPS-Daten
+                const userResponse = await fetch(`${API_BASE}/api/auth/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!userResponse.ok) {
+                    throw new Error(`Benutzer-Daten konnten nicht geladen werden (${userResponse.status})`);
+                }
+
+                const userData = await userResponse.json();
+                console.log('👤 User-Daten:', userData);
+
+                // Prüfe ob App in MEINEAPPS existiert
+                if (!userData.MEINEAPPS || !userData.MEINEAPPS[appNameUpper]) {
+                    throw new Error(`App "${appName}" nicht in MEINEAPPS gefunden`);
+                }
+
+                const appConfig = userData.MEINEAPPS[appNameUpper];
+                
+                // Prüfe ob MENU-GUID vorhanden (Großbuchstaben!)
+                if (!appConfig.MENU) {
+                    throw new Error(`Keine Menü-GUID für App "${appName}" gefunden`);
+                }
+
+                const menuGuid = appConfig.MENU;
+                console.log(`📋 Lade Menü ${menuGuid} für ${appName}`);
+
+                // Lade App-Menü
+                const menuResponse = await fetch(`${API_BASE}/api/menu/${menuGuid}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!menuResponse.ok) {
+                    throw new Error(`Menü ${menuGuid} konnte nicht geladen werden (${menuResponse.status})`);
+                }
+
+                const menuData = await menuResponse.json();
+                console.log('📊 App-Menü geladen:', menuData);
+
+                // Markiere als App-Menü (nicht Startmenü)
+                isStartMenu = false;
+                currentMenuGuid = menuData.uid;
+
+                // Ersetze VERTIKAL und GRUND mit neuem Menü
+                await renderMenu(menuData);
+                
+                // Lade Toggle State aus GCS
+                await loadMenuToggleState();
+
+                // Zeige App-spezifischen Content
+                content.innerHTML = `
+                    <div class="placeholder-content">
+                        <h3>📂 ${appName}</h3>
+                        <p>Menü erfolgreich geladen!</p>
+                        <p style="margin-top: 20px; color: #999;">
+                            Wählen Sie eine Funktion aus dem Menü.
+                        </p>
+                    </div>
+                `;
+
+            } catch (error) {
+                console.error('❌ Fehler beim Laden des App-Menüs:', error);
+                content.innerHTML = `
+                    <div class="error-message">
+                        <strong>Fehler beim Laden des App-Menüs</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Show Help
+        function showHelp(params) {
+            const helpText = params.help_text || 'Keine Hilfe verfügbar';
+            alert(`ℹ️ Hilfe\n\n${helpText}`);
+        }
+
+        // Logout
+        function logout() {
+            if (confirm('Möchten Sie sich wirklich abmelden?')) {
+                // Clear localStorage
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('user_id');
+                localStorage.removeItem('user_email');
+                localStorage.removeItem('user_name');
+                localStorage.removeItem('mandant_id');
+                localStorage.removeItem('mandant_name');
+                localStorage.removeItem('mandant_database');
+                
+                // Redirect to login
+                window.location.href = 'login-test.html';
+            }
+        }
+
+        // Show Placeholder
+        function showPlaceholder(title, subtitle = '') {
+            const content = document.getElementById('mainContent');
+            content.innerHTML = `
+                <div class="placeholder-content">
+                    <h3>${title}</h3>
+                    <p>${subtitle || 'Diese Funktion wird noch implementiert.'}</p>
+                </div>
+            `;
+        }
+
+        // Load menu on page load
+        loadStartMenu();
+    </script>
+</body>
+</html>
