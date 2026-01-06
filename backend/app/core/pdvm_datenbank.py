@@ -40,15 +40,19 @@ class PdvmDatabase:
     - mandant.db: sys_anwendungsdaten, sys_systemsteuerung, Fachdaten
     """
     
-    def __init__(self, table_name: str):
+    def __init__(self, table_name: str, system_pool: Optional[asyncpg.Pool] = None, mandant_pool: Optional[asyncpg.Pool] = None):
         """
         Initialisiert PdvmDatabase für eine bestimmte Tabelle
         
         Args:
             table_name: Name der Tabelle (z.B. 'sys_systemsteuerung', 'persondaten')
+            system_pool: Pool für pdvm_system Datenbank (REQUIRED for system tables)
+            mandant_pool: Pool für mandanten Datenbank (REQUIRED for mandant tables)
         """
         self.table_name = table_name
         self.db_name = self._find_database(table_name)
+        self._system_pool = system_pool
+        self._mandant_pool = mandant_pool
     
     def _find_database(self, table_name: str) -> str:
         """
@@ -83,11 +87,22 @@ class PdvmDatabase:
             if DatabasePool._pool_auth is None:
                 raise RuntimeError("Auth pool not initialized")
             return DatabasePool._pool_auth
-        else:
-            raise RuntimeError(
-                f"PdvmDatenbankBase for '{self.db_name}' tables requires GCS context. "
-                f"Use session-specific pools from GCS instead."
-            )
+        
+        elif self.db_name == "system":
+            if self._system_pool is None:
+                raise RuntimeError(
+                    f"System pool required for table '{self.table_name}'. "
+                    f"Must be provided via PdvmCentralSystemsteuerung."
+                )
+            return self._system_pool
+        
+        else:  # mandant
+            if self._mandant_pool is None:
+                raise RuntimeError(
+                    f"Mandant pool required for table '{self.table_name}'. "
+                    f"Must be provided via PdvmCentralSystemsteuerung."
+                )
+            return self._mandant_pool
     
     async def get_by_uid(self, uid: uuid.UUID) -> Optional[Dict[str, Any]]:
         """

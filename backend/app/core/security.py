@@ -68,7 +68,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
             "sub": user_id,  # User-ID (UUID)
             "email": payload.get("email"),
             "name": payload.get("name"),
-            "user_data": payload.get("user_data", {})  # Vollständige JSONB-Daten (MEINEAPPS, etc.)
+            "user_data": payload.get("user_data", {}),  # Vollständige JSONB-Daten (MEINEAPPS, etc.)
+            "token": token  # JWT-Token für GCS-Session-Lookup
         }
         
         return user_data

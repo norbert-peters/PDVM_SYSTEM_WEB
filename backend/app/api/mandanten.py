@@ -7,7 +7,6 @@ from typing import List
 from ..models.schemas import MandantResponse, MandantSelectRequest, MandantSelectResponse
 from ..api.auth import get_current_user
 from ..core.data_managers import MandantDataManager
-from ..core.gcs import create_gcs_session
 from ..core.database import get_database_url, DatabasePool
 from ..core.config import settings
 from ..core.connection_manager import ConnectionManager, ConnectionConfig
@@ -330,20 +329,18 @@ async def select_mandant(
         
         # GCS-Session erstellen mit beiden Pools
         print(f"🚀 Erstelle GCS-Session für '{database}' (System: {system_database})...", flush=True)
+        from app.core.pdvm_central_systemsteuerung import create_gcs_session
+        
         gcs = await create_gcs_session(
-            user_guid=user_id,
-            user_data=user_data,
-            mandant_guid=mandant_id,
-            mandant_data=mandant_data,
-            system_db_url=system_db_url,
-            mandant_db_url=mandant_db_url,
             session_token=token,
-            mandanten_access=mandanten_access,
-            berechtigungen=berechtigungen
+            user_guid=user_id,
+            mandant_guid=mandant_id,
+            system_db_url=system_db_url,
+            mandant_db_url=mandant_db_url
         )
         
         logger.info(f"✅ GCS-Session erstellt für User {user_id}, Mandant {mandant['name']}")
-        logger.info(f"   Stichtag: {gcs.stichtag}, Country: {gcs.country}, Mode: {gcs.mode}")
+        logger.info(f"   Stichtag: {gcs.stichtag}")
         
         # ========================================
         

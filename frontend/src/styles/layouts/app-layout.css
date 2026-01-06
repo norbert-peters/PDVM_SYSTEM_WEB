@@ -1,0 +1,116 @@
+/*
+ * PDVM System - App Layout Styles
+ * Haupt-Layout-Container und Grid
+ */
+
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--color-background-primary);
+}
+
+.main-container {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.main-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.content-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-lg);
+  /* Leichte Primärfarb-Tönung für mandantenspezifische Unterscheidung */
+  background: linear-gradient(135deg, 
+    var(--color-primary-50) 0%, 
+    var(--color-background-secondary) 30%,
+    var(--color-background-secondary) 100%);
+}
+
+/* ===== Responsive Grid ===== */
+.content-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: var(--spacing-md);
+  max-width: var(--bp-monitor);
+  margin: 0 auto;
+}
+
+/* Grid Spans */
+.col-span-1 { grid-column: span 1; }
+.col-span-2 { grid-column: span 2; }
+.col-span-3 { grid-column: span 3; }
+.col-span-4 { grid-column: span 4; }
+.col-span-6 { grid-column: span 6; }
+.col-span-8 { grid-column: span 8; }
+.col-span-12 { grid-column: span 12; }
+
+/* ===== Responsive Breakpoints ===== */
+
+/* Monitor (≥1920px) - Default */
+@media (min-width: 1920px) {
+  .content-wrapper {
+    padding: var(--spacing-2xl);
+  }
+  
+  .content-grid {
+    gap: var(--spacing-lg);
+  }
+}
+
+/* Laptop (1440px - 1919px) */
+@media (max-width: 1919px) and (min-width: 1440px) {
+  .content-wrapper {
+    padding: var(--spacing-lg);
+  }
+  
+  .content-grid {
+    gap: var(--spacing-md);
+  }
+}
+
+/* Tablet (1024px - 1439px) */
+@media (max-width: 1439px) and (min-width: 1024px) {
+  .content-wrapper {
+    padding: var(--spacing-md);
+  }
+  
+  .content-grid {
+    grid-template-columns: repeat(8, 1fr);
+    gap: var(--spacing-md);
+  }
+  
+  .col-span-12 { grid-column: span 8; }
+}
+
+/* Mobile (< 1024px) */
+@media (max-width: 1023px) {
+  .main-container {
+    flex-direction: column;
+  }
+  
+  .content-wrapper {
+    padding: var(--spacing-sm);
+  }
+  
+  .content-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-sm);
+  }
+  
+  .col-span-2,
+  .col-span-3,
+  .col-span-4,
+  .col-span-6,
+  .col-span-8,
+  .col-span-12 {
+    grid-column: span 4;
+  }
+}

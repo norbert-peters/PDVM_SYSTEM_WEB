@@ -1,14 +1,12 @@
 """
 GCS (Global Configuration System) API
-Neu entwickelt mit PdvmCentralSystemsteuerung
-
-Verwendet neue PDVM-Architektur für einheitlichen Datenzugriff
+Verwendet PdvmCentralSystemsteuerung aus Session
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional, Any
 from pydantic import BaseModel
 from app.core.security import get_current_user
-from app.core.pdvm_central_systemsteuerung import PdvmCentralSystemsteuerung
+from app.core.pdvm_central_systemsteuerung import get_gcs_session
 import uuid
 
 router = APIRouter()
@@ -28,22 +26,30 @@ class GCSValueResponse(BaseModel):
     value: Any
 
 
-async def get_gcs_instance(current_user: dict = Depends(get_current_user)) -> PdvmCentralSystemsteuerung:
+async def get_gcs_instance(current_user: dict = Depends(get_current_user)):
     """
-    Erstellt GCS-Instanz für aktuellen User
+    Holt PdvmCentralSystemsteuerung aus der Session
     
-    TODO: mandant_guid aus Session/Token holen
-    Aktuell: Hardcoded Test-Mandant
+    Nach Mandanten-Auswahl ist GCS mit Pools in _gcs_sessions gespeichert.
+    Diese Funktion holt die Session-Instanz für den aktuellen JWT-Token.
     """
-    user_guid = uuid.UUID(current_user.get("sub"))
+    # JWT-Token aus current_user holen
+    token = current_user.get("token")
     
-    # TODO: Aus Session holen
-    mandant_guid = uuid.UUID("f05b62ef-0f41-4fd7-ba98-408ce6adba6c")  # Test-Mandant
+    if not token:
+        raise HTTPException(
+            status_code=401,
+            detail="Kein Session-Token gefunden"
+        )
     
-    # Stichtag aus GCS selbst holen (oder default)
-    gcs = PdvmCentralSystemsteuerung(user_guid, mandant_guid)
-    stichtag = await gcs.get_stichtag()
-    gcs.stichtag = stichtag
+    # GCS aus Session holen
+    gcs = get_gcs_session(token)
+    
+    if not gcs:
+        raise HTTPException(
+            status_code=404,
+            detail="Keine GCS-Session gefunden. Bitte Mandant auswählen."
+        )
     
     return gcs
 
@@ -52,14 +58,15 @@ async def get_gcs_instance(current_user: dict = Depends(get_current_user)) -> Pd
 async def get_gcs_value(
     gruppe: str = Query(..., description="Gruppe (z.B. menu_guid, user_guid)"),
     feld: str = Query(..., description="Feld (z.B. toggle_menu, stichtag)"),
-    gcs: PdvmCentralSystemsteuerung = Depends(get_gcs_instance)
+    gcs = Depends(get_gcs_instance)
 ):
     """
     Liest einen GCS-Wert aus sys_systemsteuerung
     
     Verwendet PdvmCentralSystemsteuerung für einheitlichen Zugriff
     """
-    value = await gcs.get_static_value(gruppe, feld)
+    # get_value liefert (wert, ab_zeit) Tuple
+    value, _ = gcs.get_value(gruppe, feld, ab_zeit=gcs.stichtag)
     
     if value is None:
         raise HTTPException(
@@ -73,14 +80,18 @@ async def get_gcs_value(
 @router.post("/value")
 async def set_gcs_value(
     request: GCSValueRequest,
-    gcs: PdvmCentralSystemsteuerung = Depends(get_gcs_instance)
+    gcs = Depends(get_gcs_instance)
 ):
     """
     Setzt einen GCS-Wert in sys_systemsteuerung
     
     Verwendet PdvmCentralSystemsteuerung für einheitlichen Zugriff
     """
-    await gcs.set_static_value(request.gruppe, request.feld, request.value)
+    # set_value schreibt direkt in Gruppe/Feld-Struktur
+    gcs.set_value(request.gruppe, request.feld, request.value, ab_zeit=gcs.stichtag)
+    
+    # Persistent speichern
+    await gcs.save_all_values()
     
     return {
         "success": True,
@@ -95,13 +106,14 @@ async def set_gcs_value(
 async def delete_gcs_value(
     gruppe: str = Query(..., description="Gruppe"),
     feld: str = Query(..., description="Feld"),
-    gcs: PdvmCentralSystemsteuerung = Depends(get_gcs_instance)
+    gcs = Depends(get_gcs_instance)
 ):
     """
     Löscht einen GCS-Wert
     
     Verwendet PdvmCentralSystemsteuerung für einheitlichen Zugriff
     """
+    # delete_value entfernt Feld aus Gruppe
     await gcs.delete_value(gruppe, feld)
     
     return {
@@ -115,10 +127,10 @@ async def delete_gcs_value(
 @router.get("/menu/toggle/{menu_guid}")
 async def get_menu_toggle(
     menu_guid: str,
-    gcs: PdvmCentralSystemsteuerung = Depends(get_gcs_instance)
+    gcs = Depends(get_gcs_instance)
 ):
     """Liest toggle_menu für spezifisches Menü"""
-    toggle = await gcs.get_menu_toggle(menu_guid)
+    toggle = gcs.get_menu_toggle(menu_guid)
     return {"menu_guid": menu_guid, "toggle": toggle}
 
 
@@ -126,41 +138,41 @@ async def get_menu_toggle(
 async def set_menu_toggle(
     menu_guid: str,
     toggle: int,
-    gcs: PdvmCentralSystemsteuerung = Depends(get_gcs_instance)
+    gcs = Depends(get_gcs_instance)
 ):
     """Setzt toggle_menu für spezifisches Menü"""
-    await gcs.set_menu_toggle(menu_guid, toggle)
+    gcs.set_menu_toggle(menu_guid, toggle)
+    await gcs.save_all_values()
     return {"success": True, "menu_guid": menu_guid, "toggle": toggle}
 
 
 @router.get("/stichtag")
-async def get_stichtag(gcs: PdvmCentralSystemsteuerung = Depends(get_gcs_instance)):
+async def get_stichtag(gcs = Depends(get_gcs_instance)):
     """Liest aktuellen Stichtag des Users"""
-    stichtag = await gcs.get_stichtag()
-    return {"stichtag": stichtag}
+    return {"stichtag": gcs.get_stichtag()}
 
 
 @router.post("/stichtag")
 async def set_stichtag(
     stichtag: float,
-    gcs: PdvmCentralSystemsteuerung = Depends(get_gcs_instance)
+    gcs = Depends(get_gcs_instance)
 ):
     """Setzt Stichtag des Users"""
-    await gcs.set_stichtag(stichtag)
+    gcs.set_stichtag(stichtag)
+    await gcs.save_all_values()
     return {"success": True, "stichtag": stichtag}
 
 
 @router.post("/save")
-async def save_all_gcs_values(gcs: PdvmCentralSystemsteuerung = Depends(get_gcs_instance)):
+async def save_all_gcs_values(gcs = Depends(get_gcs_instance)):
     """
     Speichert alle GCS-Werte in die Datenbank
     
-    In der Web-Version werden Werte bereits direkt gespeichert,
-    dieser Endpoint existiert für Kompatibilität mit Desktop-Logik.
+    Verwendet PdvmCentralSystemsteuerung.save_all_values()
     """
-    # In der Web-Version ist kein explizites save_all nötig,
-    # da Werte bereits bei set_gcs_value geschrieben werden
+    guid = await gcs.save_all_values()
     return {
         "success": True,
-        "message": "GCS-Werte gespeichert (Web-Version: bereits persistent)"
+        "guid": str(guid),
+        "message": "GCS-Werte gespeichert"
     }

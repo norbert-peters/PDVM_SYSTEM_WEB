@@ -7,7 +7,7 @@ import json
 import asyncpg
 from ..core.database import get_db_connection
 from ..core.security import get_current_user
-from ..core.gcs import get_gcs_session
+from ..core.pdvm_central_systemsteuerung import get_gcs_session
 from ..core.config import settings
 from ..core.connection_manager import ConnectionManager
 

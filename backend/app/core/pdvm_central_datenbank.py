@@ -30,7 +30,9 @@ class PdvmCentralDatabase:
         table_name: str,
         guid: Optional[str] = None,
         no_save: bool = False,
-        stichtag: float = 9999365.00000
+        stichtag: float = 9999365.00000,
+        system_pool: Optional[Any] = None,
+        mandant_pool: Optional[Any] = None
     ):
         """
         Initialisiert die Business-Logic-Schicht
@@ -40,12 +42,14 @@ class PdvmCentralDatabase:
             guid: GUID des Datensatzes (falls None, muss später gesetzt werden)
             no_save: Wenn True, verhindert save_all_values() die Persistierung
             stichtag: PDVM-Datum für Zeitpunkt-basierte Sicht
+            system_pool: Connection pool für pdvm_system Datenbank
+            mandant_pool: Connection pool für mandanten Datenbank
         """
         self.table_name = table_name
         self.guid = str(guid) if guid else None
         self.no_save = no_save
         self.stichtag = stichtag
-        self.db = PdvmDatabase(table_name)
+        self.db = PdvmDatabase(table_name, system_pool=system_pool, mandant_pool=mandant_pool)
         
         # Daten-Cache (wird bei Bedarf geladen)
         self.data: Dict[str, Any] = {}
@@ -73,6 +77,27 @@ class PdvmCentralDatabase:
         logger.info(f"PdvmCentralDatabase initialisiert: {table_name}.{guid} (historisch: {self.historisch}, no_save: {no_save})")
         
         logger.info(f"PdvmCentralDatabase initialisiert: {table_name}.{guid} (historisch: {self.historisch}, no_save: {no_save})")
+    
+    def set_guid(self, guid: str):
+        """
+        Setzt GUID ohne DB-Lesen (für Setup-Phase)
+        
+        Args:
+            guid: Die zu setzende GUID (als String oder UUID)
+        """
+        self.guid = str(guid) if guid else None
+        logger.debug(f"GUID gesetzt ohne DB-Lesen: {self.guid}")
+    
+    def set_data(self, data: Dict[str, Any]):
+        """
+        Setzt Daten direkt ohne DB-Lesen (für Setup-Phase)
+        
+        Args:
+            data: Die komplette Datenstruktur (JSONB 'daten' Spalte)
+        """
+        self.data = data.copy() if data else {}
+        self._data_loaded = True
+        logger.debug(f"Daten gesetzt ohne DB-Lesen: {len(self.data)} Gruppen")
     
     async def _load_data(self):
         """Lädt Daten aus der Datenbank in den Cache."""

@@ -1,0 +1,191 @@
+/*
+ * PDVM System - Header Styles
+ * Top-Level Header mit Logo, Stichtagsbar, User-Menu
+ */
+
+.app-header {
+  height: var(--header-height);
+  background-color: var(--color-background-primary);
+  border-bottom: 1px solid var(--color-border-light);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--spacing-lg);
+  gap: var(--spacing-lg);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ===== Logo & Branding ===== */
+.header-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-lg);
+  color: var(--color-primary-700);
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: linear-gradient(135deg, var(--color-primary-50), transparent);
+  border-radius: var(--border-radius-md);
+}
+
+.header-logo img {
+  height: 40px;
+  width: auto;
+}
+
+.header-app-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+/* ===== Stichtagsbar ===== */
+.stichtags-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: linear-gradient(90deg, var(--color-primary-100), var(--color-primary-50));
+  border: 1px solid var(--color-primary-200);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-sm);
+  flex-shrink: 0;
+}
+
+.stichtags-bar-label {
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.stichtags-bar-date {
+  color: var(--color-primary-700);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.stichtags-bar-date:hover {
+  color: var(--color-primary-800);
+}
+
+/* ===== Spacer ===== */
+.header-spacer {
+  flex: 1;
+}
+
+/* ===== User Menu ===== */
+.header-user-menu {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex-shrink: 0;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  transition: background-color var(--transition-fast) var(--transition-easing);
+}
+
+.user-info:hover {
+  background-color: var(--color-neutral-100);
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--border-radius-full);
+  background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-700));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-sm);
+  background-color: var(--color-primary-500);
+  color: var(--color-text-inverse);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.user-name {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  line-height: 1.2;
+}
+
+.user-role {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  line-height: 1.2;
+}
+
+/* ===== Theme Toggle ===== */
+.theme-toggle {
+  padding: var(--spacing-sm);
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  transition: background-color var(--transition-fast) var(--transition-easing);
+  color: var(--color-text-secondary);
+}
+
+.theme-toggle:hover {
+  background-color: var(--color-neutral-100);
+  color: var(--color-text-primary);
+}
+
+.theme-toggle svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ===== Responsive ===== */
+
+/* Tablet */
+@media (max-width: 1439px) {
+  .app-header {
+    padding: 0 var(--spacing-md);
+    gap: var(--spacing-md);
+  }
+  
+  .user-details {
+    display: none;
+  }
+}
+
+/* Mobile */
+@media (max-width: 1023px) {
+  .app-header {
+    padding: 0 var(--spacing-sm);
+    gap: var(--spacing-sm);
+  }
+  
+  .header-app-title {
+    display: none;
+  }
+  
+  .stichtags-bar {
+    display: none;
+  }
+  
+  .header-logo img {
+    height: 32px;
+  }
+}

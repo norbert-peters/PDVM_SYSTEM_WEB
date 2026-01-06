@@ -4,7 +4,9 @@ import Login from './components/Login'
 import MandantSelect from './components/MandantSelect'
 import MandantCreate from './components/MandantCreate'
 import Dashboard from './components/Dashboard'
+import Welcome from './components/Welcome'
 import TableView from './components/TableView'
+import { AppLayout } from './components/layout'
 
 function App() {
   const [token, setToken] = useState<string | null>(
@@ -26,6 +28,11 @@ function App() {
   const handleMandantSelected = (selectedMandantId: string) => {
     localStorage.setItem('mandant_id', selectedMandantId)
     setMandantId(selectedMandantId)
+    // Speichere Mandant-Info für useAuth Hook
+    localStorage.setItem('currentMandant', JSON.stringify({
+      uid: selectedMandantId,
+      name: 'Mandant' // TODO: Echten Namen vom Backend holen
+    }))
   }
 
   const handleLogout = () => {
@@ -63,14 +70,17 @@ function App() {
     )
   }
 
-  // Token + Mandant → Dashboard
+  // Token + Mandant → Dashboard mit neuem Layout
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Dashboard onLogout={handleLogout} mandantId={mandantId} token={token} />} />
-        <Route path="/table/:tableName" element={<TableView token={token} />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <AppLayout>
+        <Routes>
+          <Route path="/" element={<Welcome mandantId={mandantId} />} />
+          <Route path="/dashboard" element={<Dashboard onLogout={handleLogout} mandantId={mandantId} token={token} />} />
+          <Route path="/table/:tableName" element={<TableView token={token} />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AppLayout>
     </BrowserRouter>
   )
 }
