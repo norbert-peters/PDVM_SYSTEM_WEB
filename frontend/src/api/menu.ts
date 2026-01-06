@@ -1,51 +1,121 @@
 /**
- * Menu API Client
- * API-Aufrufe für Menü-Verwaltung
+ * Menu API Service
+ * Lädt Menüs über Backend API
  */
-import { apiClient } from './client';
+
+import axios from 'axios';
+
+const API_URL = 'http://localhost:8000/api';
 
 export interface MenuItem {
-  menu_item_guid: string;
-  bezeichnung: string;
-  ebene: number;
-  prozess_guid?: string;
-  button_guid?: string;
-  menu_guid?: string;
-  app_guid?: string;
-  icon?: string;
-  sort_order?: number;
-  children?: MenuItem[];
+  guid?: string;
+  type: 'BUTTON' | 'SUBMENU' | 'SEPARATOR';
+  label: string;
+  icon: string | null;
+  tooltip: string | null;
+  enabled: boolean;
+  visible: boolean;
+  sort_order: number;
+  parent_guid: string | null;
+  template_guid: string | null;
+  command: {
+    handler: string;
+    params: Record<string, any>;
+  } | null;
 }
 
-export interface Menu {
-  menu_guid: string;
-  bezeichnung: string;
-  menu_typ?: string;
-  items?: MenuItem[];
+export interface MenuGroup {
+  [itemGuid: string]: MenuItem;
 }
 
-export const menuApi = {
-  /**
-   * Lädt das Startmenü des aktuellen Benutzers
-   */
-  getUserStartMenu: async (): Promise<Menu> => {
-    const response = await apiClient.get('/menu/user/start');
-    return response.data;
-  },
+export interface MenuData {
+  ROOT: {
+    GRUND: string;
+    ZUSATZ: string;
+    VERTIKAL: string;
+    VERSION: string;
+    [key: string]: any;
+  };
+  GRUND: MenuGroup;
+  ZUSATZ: MenuGroup;
+  VERTIKAL: MenuGroup;
+}
 
-  /**
-   * Lädt ein spezifisches Menü
-   */
-  getMenu: async (menuGuid: string): Promise<Menu> => {
-    const response = await apiClient.get(`/menu/${menuGuid}`);
-    return response.data;
-  },
+export interface MenuResponse {
+  uid: string;
+  name: string;
+  menu_data: MenuData;
+  error?: string;
+  message?: string;
+}
 
-  /**
-   * Lädt flache Menü-Items für ein Menü
-   */
-  getMenuItemsFlat: async (menuGuid: string): Promise<MenuItem[]> => {
-    const response = await apiClient.get(`/menu/items/${menuGuid}/flat`);
-    return response.data;
-  },
-};
+/**
+ * Lädt das Startmenü des Users
+ */
+export async function loadStartMenu(): Promise<MenuResponse> {
+  const token = localStorage.getItem('token');
+  
+  if (!token) {
+    throw new Error('Nicht angemeldet');
+  }
+  
+  const response = await axios.get<MenuResponse>(
+    `${API_URL}/menu/start`,
+    {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    }
+  );
+  
+  return response.data;
+}
+
+/**
+ * Lädt ein App-Menü (z.B. PERSONALWESEN, ADMINISTRATION)
+ */
+export async function loadAppMenu(appName: string): Promise<MenuResponse> {
+  const token = localStorage.getItem('token');
+  
+  if (!token) {
+    throw new Error('Nicht angemeldet');
+  }
+  
+  const response = await axios.get<MenuResponse>(
+    `${API_URL}/menu/app/${appName}`,
+    {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    }
+  );
+  
+  return response.data;
+}
+
+/**
+ * Logout - Beendet Session
+ */
+export async function logout(): Promise<void> {
+  const token = localStorage.getItem('token');
+  
+  if (!token) {
+    return;
+  }
+  
+  try {
+    await axios.post(
+      `${API_URL}/auth/logout`,
+      {},
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    );
+  } finally {
+    // Token immer löschen, auch bei Fehler
+    localStorage.removeItem('token');
+    localStorage.removeItem('selectedMandant');
+  }
+}

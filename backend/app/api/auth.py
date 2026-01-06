@@ -180,6 +180,31 @@ async def read_users_me(current_user: dict = Depends(get_current_user)):
     """Get current user info"""
     return current_user
 
+
+@router.post("/logout")
+async def logout(current_user: dict = Depends(get_current_user)):
+    """
+    Logout endpoint - Löscht GCS-Session
+    
+    Returns:
+        Success-Nachricht
+    """
+    from app.core.pdvm_central_systemsteuerung import close_gcs_session
+    
+    # Token aus current_user holen
+    token = current_user.get("token")
+    
+    if token:
+        try:
+            # GCS-Session schließen (Pools schließen, Session löschen)
+            await close_gcs_session(token)
+            logger.info(f"✅ Logout erfolgreich: User {current_user.get('sub')}")
+        except Exception as e:
+            logger.error(f"Fehler beim Logout: {e}")
+    
+    return {"success": True, "message": "Erfolgreich abgemeldet"}
+
+
 @router.get("/debug/me")
 async def debug_current_user(current_user: dict = Depends(get_current_user)):
     """Debug endpoint: Show current_user dict structure"""
