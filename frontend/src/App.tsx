@@ -7,6 +7,7 @@ import Dashboard from './components/Dashboard'
 import Welcome from './components/Welcome'
 import TableView from './components/TableView'
 import { AppLayout } from './components/layout'
+import { MenuProvider } from './contexts/MenuContext'
 
 function App() {
   const [token, setToken] = useState<string | null>(
@@ -73,14 +74,16 @@ function App() {
   // Token + Mandant → Dashboard mit neuem Layout
   return (
     <BrowserRouter>
-      <AppLayout>
-        <Routes>
-          <Route path="/" element={<Welcome mandantId={mandantId} />} />
-          <Route path="/dashboard" element={<Dashboard onLogout={handleLogout} mandantId={mandantId} token={token} />} />
-          <Route path="/table/:tableName" element={<TableView token={token} />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </AppLayout>
+      <MenuProvider>
+        <AppLayout>
+          <Routes>
+            <Route path="/" element={<Welcome mandantId={mandantId} />} />
+            <Route path="/dashboard" element={<Dashboard onLogout={handleLogout} mandantId={mandantId} token={token} />} />
+            <Route path="/table/:tableName" element={<TableView token={token} />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </AppLayout>
+      </MenuProvider>
     </BrowserRouter>
   )
 }

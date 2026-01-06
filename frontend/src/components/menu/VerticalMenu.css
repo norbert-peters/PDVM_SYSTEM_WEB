@@ -1,0 +1,92 @@
+/* VerticalMenu Styles */
+
+.vertical-menu {
+  width: 240px;
+  height: 100%;
+  background: var(--surface-primary);
+  border-right: 1px solid var(--border-color);
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.vertical-menu-container {
+  padding: 1rem 0;
+}
+
+.vertical-menu-button {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  text-align: left;
+  border-left: 3px solid transparent;
+}
+
+.vertical-menu-button:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-left-color: var(--primary-color);
+}
+
+.vertical-menu-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.vertical-menu-button .menu-icon {
+  font-size: 1.2rem;
+  width: 24px;
+  text-align: center;
+}
+
+.vertical-menu-button .menu-label {
+  flex: 1;
+}
+
+.vertical-menu-separator {
+  margin: 0.5rem 1rem;
+}
+
+.vertical-menu-separator hr {
+  border: none;
+  border-top: 1px solid var(--border-color);
+  margin: 0;
+}
+
+/* Scrollbar Styling */
+.vertical-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.vertical-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.vertical-menu::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+.vertical-menu::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* Dark Mode */
+.dark .vertical-menu {
+  background: var(--surface-primary);
+  border-right-color: var(--border-color);
+}
+
+.dark .vertical-menu-button {
+  color: var(--text-primary);
+}
+
+.dark .vertical-menu-button:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
