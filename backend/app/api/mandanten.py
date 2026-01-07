@@ -322,12 +322,15 @@ async def select_mandant(
         # User-Daten aus JWT Token (bereits vollständig mit MEINEAPPS, SETTINGS, etc.)
         user_data = current_user.get('user_data', {})
         
+        # Mandanten-Daten aus DB laden
+        mandant_data = mandant.get('daten', {})
+        
         # TODO: Mandanten_access und Berechtigungen beim Login laden
         # Für jetzt: Platzhalter-Werte
         mandanten_access = []  # Wird später beim Login geladen
         berechtigungen = {}    # Wird später beim Login geladen
         
-        # GCS-Session erstellen mit beiden Pools
+        # GCS-Session erstellen mit beiden Pools und Daten
         print(f"🚀 Erstelle GCS-Session für '{database}' (System: {system_database})...", flush=True)
         from app.core.pdvm_central_systemsteuerung import create_gcs_session
         
@@ -335,6 +338,8 @@ async def select_mandant(
             session_token=token,
             user_guid=user_id,
             mandant_guid=mandant_id,
+            user_data=user_data,  # User-Daten aus Login
+            mandant_data=mandant_data,  # Mandant-Daten aus DB
             system_db_url=system_db_url,
             mandant_db_url=mandant_db_url
         )

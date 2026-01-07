@@ -26,17 +26,17 @@ async def get_start_menu(
         Menü-Struktur mit VERTIKAL, GRUND, ZUSATZ, ROOT
     """
     try:
-        # Startmenü-GUID aus GCS holen (MEINEAPPS.START.MENU)
-        meineapps = gcs.get_user_value("MEINEAPPS")
+        # Startmenü-GUID aus BENUTZER-Instanz holen (MEINEAPPS.START.MENU)
+        # Desktop-Pattern: gcs.benutzer.get_static_value("MEINEAPPS", "START")
+        meineapps = gcs.benutzer.get_static_value("MEINEAPPS", "START")
         
-        if not isinstance(meineapps, dict) or "START" not in meineapps:
+        if not isinstance(meineapps, dict) or "MENU" not in meineapps:
             raise HTTPException(
                 status_code=404,
                 detail="Kein Startmenü definiert. Bitte Administrator kontaktieren."
             )
         
-        start_config = meineapps["START"]
-        menu_guid = start_config.get("MENU") if isinstance(start_config, dict) else None
+        menu_guid = meineapps.get("MENU")
         
         if not menu_guid:
             raise HTTPException(
@@ -85,10 +85,11 @@ async def get_app_menu(
         Menü-Struktur oder Fehler bei fehlender Berechtigung
     """
     try:
-        # App-Menü-GUID aus GCS holen (MEINEAPPS.{APP_NAME}.MENU)
-        meineapps = gcs.get_user_value("MEINEAPPS")
+        # App-Menü-GUID aus BENUTZER-Instanz holen (MEINEAPPS.{APP_NAME}.MENU)
+        # Desktop-Pattern: gcs.benutzer.get_static_value("MEINEAPPS", APP_NAME)
+        app_config = gcs.benutzer.get_static_value("MEINEAPPS", app_name)
         
-        if not isinstance(meineapps, dict) or app_name not in meineapps:
+        if not app_config or not isinstance(app_config, dict):
             logger.warning(f"❌ Keine Berechtigung für {app_name}: User {gcs.user_guid}")
             return {
                 "uid": None,
@@ -98,8 +99,7 @@ async def get_app_menu(
                 "message": f"Keine Berechtigung für {app_name}"
             }
         
-        app_config = meineapps[app_name]
-        menu_guid = app_config.get("MENU") if isinstance(app_config, dict) else None
+        menu_guid = app_config.get("MENU")
         
         if not menu_guid:
             logger.warning(f"❌ Kein Menü für {app_name}: User {gcs.user_guid}")

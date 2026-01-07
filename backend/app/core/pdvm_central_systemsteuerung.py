@@ -44,6 +44,8 @@ async def create_gcs_session(
     session_token: str,
     user_guid: uuid.UUID,
     mandant_guid: uuid.UUID,
+    user_data: Dict[str, Any],  # NEU: User-Daten aus Login
+    mandant_data: Dict[str, Any],  # NEU: Mandant-Daten aus Login
     system_db_url: str,
     mandant_db_url: str,
     stichtag: Optional[float] = None
@@ -55,6 +57,8 @@ async def create_gcs_session(
         session_token: JWT-Token als Session-Key
         user_guid: UUID des Benutzers
         mandant_guid: UUID des Mandanten
+        user_data: Komplette User-Daten aus sys_benutzer (aus Login)
+        mandant_data: Komplette Mandant-Daten aus sys_mandanten (aus Login)
         system_db_url: Connection-String zur System-DB
         mandant_db_url: Connection-String zur Mandanten-DB
         stichtag: PDVM-Datum (optional, default = aktuell)
@@ -73,10 +77,12 @@ async def create_gcs_session(
     if stichtag is None:
         stichtag = now_pdvm()
     
-    # GCS-Instanz erstellen
+    # GCS-Instanz erstellen mit User/Mandant-Daten
     gcs = PdvmCentralSystemsteuerung(
         user_guid=user_guid,
         mandant_guid=mandant_guid,
+        user_data=user_data,
+        mandant_data=mandant_data,
         stichtag=stichtag,
         system_pool=system_pool,
         mandant_pool=mandant_pool
@@ -119,18 +125,24 @@ async def close_gcs_session(session_token: str):
         logger.info(f"✅ GCS-Session geschlossen: {session_token[:8]}...")
 
 
-class PdvmCentralSystemsteuerung(PdvmCentralDatabase):
+class PdvmCentralSystemsteuerung:
     """
     Global Configuration System
     Verwaltet Benutzer- und Mandantendaten in Session
     
-    Vermeidet erneute DB-Zugriffe während Session durch Caching
+    Desktop-Pattern: Separate PdvmCentralDatenbank-Instanzen für:
+    - Benutzer (aus Login, no_change)
+    - Mandant (aus Login, no_change)
+    - Systemsteuerung (Benutzereinstellungen)
+    - Anwendungsdaten (Mandanteneinstellungen)
     """
     
     def __init__(
         self, 
         user_guid: uuid.UUID, 
-        mandant_guid: uuid.UUID, 
+        mandant_guid: uuid.UUID,
+        user_data: Dict[str, Any],  # User-Daten aus Login
+        mandant_data: Dict[str, Any],  # Mandant-Daten aus Login
         stichtag: float = 9999365.00000,
         system_pool: Optional[Any] = None,
         mandant_pool: Optional[Any] = None
@@ -141,23 +153,61 @@ class PdvmCentralSystemsteuerung(PdvmCentralDatabase):
         Args:
             user_guid: UUID des Benutzers
             mandant_guid: UUID des Mandanten
+            user_data: Komplette User-Daten aus sys_benutzer (aus Login)
+            mandant_data: Komplette Mandant-Daten aus sys_mandanten (aus Login)
             stichtag: Aktueller Stichtag (default = aktuell)
             system_pool: Connection pool für pdvm_system Datenbank
             mandant_pool: Connection pool für mandanten Datenbank
         """
-        # WICHTIG: no_save=False damit Änderungen gespeichert werden können
-        super().__init__(
-            "sys_systemsteuerung", 
-            user_guid, 
-            no_save=False, 
+        self.user_guid = user_guid
+        self.mandant_guid = mandant_guid
+        self.stichtag = stichtag
+        self._system_pool = system_pool
+        self._mandant_pool = mandant_pool
+        
+        # ===== DESKTOP-PATTERN: Separate Instanzen =====
+        
+        # 1. Benutzer-Instanz (no_save=True, Daten aus Login)
+        self.benutzer = PdvmCentralDatabase(
+            "sys_benutzer",
+            guid=str(user_guid),
+            no_save=True,  # Read-only
             stichtag=stichtag,
             system_pool=system_pool,
             mandant_pool=mandant_pool
         )
-        self.user_guid = user_guid
-        self.mandant_guid = mandant_guid
-        self._system_pool = system_pool
-        self._mandant_pool = mandant_pool
+        self.benutzer.set_data(user_data)  # Daten aus Login setzen
+        
+        # 2. Mandant-Instanz (no_save=True, Daten aus Login)
+        self.mandant = PdvmCentralDatabase(
+            "sys_mandanten",
+            guid=str(mandant_guid),
+            no_save=True,  # Read-only
+            stichtag=stichtag,
+            system_pool=system_pool,
+            mandant_pool=mandant_pool
+        )
+        self.mandant.set_data(mandant_data)  # Daten aus Login setzen
+        
+        # 3. Systemsteuerung-Instanz (Benutzereinstellungen, read/write)
+        self.systemsteuerung = PdvmCentralDatabase(
+            "sys_systemsteuerung",
+            guid=str(user_guid),
+            no_save=False,  # Speicherbar
+            stichtag=stichtag,
+            system_pool=system_pool,
+            mandant_pool=mandant_pool
+        )
+        
+        # 4. Anwendungsdaten-Instanz (Mandanteneinstellungen, read/write)
+        self.anwendungsdaten = PdvmCentralDatabase(
+            "sys_anwendungsdaten",
+            guid=str(mandant_guid),
+            no_save=False,  # Speicherbar
+            stichtag=stichtag,
+            system_pool=system_pool,
+            mandant_pool=mandant_pool
+        )
     
     # === Stichtag ===
     
