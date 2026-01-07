@@ -218,7 +218,7 @@ export const useTheme = (): ThemeContextValue => {
         })
         .catch(err => {
           console.error('❌ Failed to load theme preference, using default:', err);
-          return loadTheme(currentMandant.uid);
+          return loadTheme(currentMandant.uid, 'light');
         });
     }
   }, [currentMandant]);

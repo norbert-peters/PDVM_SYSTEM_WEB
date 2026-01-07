@@ -210,24 +210,6 @@ class PdvmCentralSystemsteuerung:
             system_pool=system_pool,
             mandant_pool=mandant_pool
         )
-        
-        # 5. Theme-Instanz (Farbschema aus sys_layout, read-only)
-        # THEME_GUID aus Mandant-CONFIG holen
-        theme_guid = self.mandant.get_static_value("CONFIG", "THEME_GUID")
-        
-        if theme_guid:
-            self.theme = PdvmCentralDatabase(
-                "sys_layout",
-                guid=str(theme_guid),
-                no_save=True,  # Read-only
-                stichtag=stichtag,
-                system_pool=system_pool,
-                mandant_pool=mandant_pool
-            )
-            logger.info(f"✅ Theme geladen: {theme_guid}")
-        else:
-            logger.warning("⚠️ Keine THEME_GUID im Mandant-CONFIG gefunden")
-            self.theme = None
     
     # === Delegierte Methoden für Kompatibilität ===
     

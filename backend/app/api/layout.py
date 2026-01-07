@@ -16,6 +16,76 @@ router = APIRouter(tags=["layout"])
 logger = logging.getLogger(__name__)
 
 
+def get_default_colors(theme: str) -> Dict[str, Any]:
+    """Gibt Standard-Farben für light/dark Theme zurück"""
+    if theme == 'dark':
+        return {
+            "primary": {"500": "#3b82f6", "600": "#2563eb"},
+            "secondary": {"500": "#8b5cf6", "600": "#7c3aed"},
+            "neutral": {"500": "#6b7280", "600": "#4b5563"},
+            "success": "#10b981",
+            "warning": "#f59e0b",
+            "error": "#ef4444",
+            "info": "#3b82f6",
+            "background": {
+                "primary": "#1e1e1e",
+                "secondary": "#2d2d2d",
+                "tertiary": "#3d3d3d"
+            },
+            "text": {
+                "primary": "#ffffff",
+                "secondary": "#b0b0b0",
+                "disabled": "#6b7280",
+                "inverse": "#000000"
+            },
+            "border": {
+                "light": "#404040",
+                "medium": "#525252",
+                "dark": "#737373"
+            }
+        }
+    else:  # light theme
+        return {
+            "primary": {"500": "#3b82f6", "600": "#2563eb"},
+            "secondary": {"500": "#8b5cf6", "600": "#7c3aed"},
+            "neutral": {"500": "#6b7280", "600": "#4b5563"},
+            "success": "#10b981",
+            "warning": "#f59e0b",
+            "error": "#ef4444",
+            "info": "#3b82f6",
+            "background": {
+                "primary": "#ffffff",
+                "secondary": "#f3f4f6",
+                "tertiary": "#e5e7eb"
+            },
+            "text": {
+                "primary": "#111827",
+                "secondary": "#4b5563",
+                "disabled": "#9ca3af",
+                "inverse": "#ffffff"
+            },
+            "border": {
+                "light": "#e5e7eb",
+                "medium": "#d1d5db",
+                "dark": "#9ca3af"
+            }
+        }
+
+
+def get_default_typography() -> Dict[str, Any]:
+    """Gibt Standard-Typografie zurück"""
+    return {
+        "fontFamily": {
+            "primary": "Inter, system-ui, sans-serif",
+            "secondary": "Georgia, serif",
+            "mono": "JetBrains Mono, monospace"
+        },
+        "fontSize": {"scale": 1.0},
+        "fontWeight": {"normal": 400, "medium": 500, "bold": 700},
+        "lineHeight": {"tight": 1.25, "normal": 1.5, "relaxed": 1.75}
+    }
+
+
 @router.get("/{mandant_uid}")
 async def get_mandant_layouts(
     mandant_uid: str,
@@ -159,15 +229,34 @@ async def get_mandant_theme(
         Layout-Konfiguration für das Theme
     """
     try:
-        # Prüfe ob GCS-Theme-Instanz verfügbar
-        if not gcs.theme:
-            raise HTTPException(
-                status_code=404,
-                detail="Kein Theme für diesen Mandanten konfiguriert"
-            )
+        # Hole THEME_GUID aus Mandant-CONFIG
+        theme_guid = gcs.mandant.get_static_value("CONFIG", "THEME_GUID")
         
-        # Theme-Daten aus GCS-Instanz holen
-        theme_data = gcs.theme.data
+        if not theme_guid:
+            # Kein Theme konfiguriert -> Gib Standard-Theme zurück
+            logger.warning(f"⚠️ Kein Theme für Mandant {mandant_uid} konfiguriert - verwende Standard")
+            return {
+                "mandant_uid": str(mandant_uid),
+                "theme": theme,
+                "colors": get_default_colors(theme),
+                "typography": get_default_typography(),
+                "customizations": {},
+                "assets": {}
+            }
+        
+        # Lade Theme-Daten aus sys_layout
+        from app.core.pdvm_central_datenbank import PdvmCentralDatabase
+        theme_instance = PdvmCentralDatabase(
+            "sys_layout",
+            guid=str(theme_guid),
+            no_save=True,
+            stichtag=gcs.stichtag,
+            system_pool=gcs._system_pool,
+            mandant_pool=gcs._mandant_pool
+        )
+        
+        # Theme-Daten holen
+        theme_data = theme_instance.data
         
         # Hole gewünschte Theme-Gruppe (light oder dark)
         if theme not in theme_data:
