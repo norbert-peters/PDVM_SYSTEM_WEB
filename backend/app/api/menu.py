@@ -5,6 +5,7 @@ Verwendet PdvmDatabase für sys_menudaten (in pdvm_system DB)
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Dict, Any
 import logging
+import uuid
 from ..core.security import get_current_user
 from ..core.pdvm_datenbank import PdvmDatabase
 from ..api.gcs import get_gcs_instance
@@ -47,7 +48,7 @@ async def get_start_menu(
         
         # Menü aus sys_menudaten laden (via PdvmDatabase mit system_pool)
         menu_db = PdvmDatabase("sys_menudaten", system_pool=gcs._system_pool)
-        menu = await menu_db.get_by_uid(menu_guid)
+        menu = await menu_db.get_by_uid(uuid.UUID(menu_guid))
         
         if not menu:
             raise HTTPException(
@@ -114,7 +115,7 @@ async def get_app_menu(
         
         # Menü aus sys_menudaten laden
         menu_db = PdvmDatabase("sys_menudaten", system_pool=gcs._system_pool)
-        menu = await menu_db.get_by_uid(menu_guid)
+        menu = await menu_db.get_by_uid(uuid.UUID(menu_guid))
         
         if not menu:
             raise HTTPException(
