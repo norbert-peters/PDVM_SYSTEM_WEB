@@ -81,55 +81,6 @@ class PdvmCentralDatabase:
         self._data_loaded = True
         logger.debug(f"Daten gesetzt ohne DB-Lesen: {len(self.data)} Gruppen")
     
-    async def _load_data(self):
-        """Lädt Daten aus der Datenbank in den Cache."""
-        if not self.guid:
-            raise ValueError("GUID muss gesetzt sein um Daten zu laden")
-        
-        try:
-            guid_uuid = uuid.UUID(self.guid)
-            row = await self.db.get_row(guid_uuid)
-            
-            if row and row.get('daten'):
-                self.data = row['daten']
-                self.historisch = row.get('historisch', 0) == 1
-            else:
-                # Neuer Datensatz - leere Struktur
-                self.data = {}
-            
-            self._data_loaded = True
-            logger.debug(f"Daten geladen für GUID {self.guid}: {len(self.data)} Gruppen")
-        
-        except Exception as e:
-            logger.error(f"Fehler beim Laden der Daten für {self.guid}: {e}")
-            self.data = {}
-            self._data_loaded = False
-    
-    def _ensure_data_loaded(self):
-        """
-        Stellt sicher, dass Daten geladen sind.
-        
-        WICHTIG: Für nicht-historische Tabellen ohne GUID wird ein leeres Dict initialisiert
-        statt zu laden (ermöglicht Workflow: Init ohne GUID → set_value() → save_all_values())
-        """
-        if not self._data_loaded:
-            # SONDERFALL: Nicht-historisch ohne GUID → Leeres Dict initialisieren
-            if not self.guid and not self.historisch:
-                logger.info(f"✅ Initialisiere leeres Dict für nicht-historische Tabelle ohne GUID: {self.table_name}")
-                self.data = {}
-                self._data_loaded = True
-            else:
-                # Normal: Daten aus DB laden
-                import asyncio
-                try:
-                    loop = asyncio.get_event_loop()
-                    if loop.is_running():
-                        asyncio.create_task(self._load_data())
-                    else:
-                        loop.run_until_complete(self._load_data())
-                except RuntimeError:
-                    asyncio.run(self._load_data())
-    
     def _get_current_timestamp(self) -> float:
         """
         Erstellt aktuellen Zeitstempel für historische Daten.
@@ -142,26 +93,13 @@ class PdvmCentralDatabase:
     
     def set_guid(self, guid: str):
         """
-        Setzt neue GUID und lädt entsprechende Daten.
+        Setzt GUID ohne DB-Lesen (für Setup-Phase)
         
         Args:
-            guid: Neue GUID
+            guid: Die zu setzende GUID (als String oder UUID)
         """
-        if self.guid != guid:
-            self.guid = guid
-            self._data_loaded = False
-            self.data = {}
-            if guid:
-                import asyncio
-                try:
-                    loop = asyncio.get_event_loop()
-                    if loop.is_running():
-                        asyncio.create_task(self._load_data())
-                    else:
-                        loop.run_until_complete(self._load_data())
-                except RuntimeError:
-                    asyncio.run(self._load_data())
-            logger.debug(f"GUID gewechselt zu: {guid}")
+        self.guid = str(guid) if guid else None
+        logger.debug(f"GUID gesetzt ohne DB-Lesen: {self.guid}")
     
     def set_data(self, daten: Dict[str, Any], guid: str = None):
         """
@@ -214,7 +152,7 @@ class PdvmCentralDatabase:
         Returns:
             Tuple[Any, Optional[float]]: (wert, abdatum) oder (wert, None) wenn nicht historisch
         """
-        self._ensure_data_loaded()
+
         
         if gruppe not in self.data:
             return None, None
@@ -289,7 +227,7 @@ class PdvmCentralDatabase:
         if self.historisch:
             raise ValueError("❌ get_static_value kann nicht auf historische Tabellen angewendet werden")
             
-        self._ensure_data_loaded()
+
         
         if gruppe not in self.data:
             logger.warning(f"⚠️ Gruppe '{gruppe}' nicht gefunden - erstelle leer")
@@ -318,7 +256,7 @@ class PdvmCentralDatabase:
         Returns:
             Dict[str, Any]: Dictionary mit {feld: wert} für alle Felder
         """
-        self._ensure_data_loaded()
+
         
         if gruppe not in self.data:
             logger.warning(f"⚠️ Gruppe nicht gefunden: {gruppe}")
@@ -350,7 +288,7 @@ class PdvmCentralDatabase:
             wert: Der zu setzende Wert
             ab_zeit: Zeitpunkt für historische Daten (None = jetzt)
         """
-        self._ensure_data_loaded()
+
         
         # Gruppe sicherstellen
         if gruppe not in self.data:
@@ -386,7 +324,7 @@ class PdvmCentralDatabase:
         Returns:
             Dict: Vollständige Datenstruktur
         """
-        self._ensure_data_loaded()
+
         return self.data.copy()
     
     async def save_all_values(self) -> Optional[str]:
@@ -452,7 +390,7 @@ class PdvmCentralDatabase:
             gruppe: Name der Gruppe
             gruppe_data: Dictionary mit allen Feldern der Gruppe
         """
-        self._ensure_data_loaded()
+
         
         if not isinstance(gruppe_data, dict):
             raise ValueError(f"gruppe_data muss ein Dictionary sein, nicht {type(gruppe_data)}")
@@ -467,7 +405,7 @@ class PdvmCentralDatabase:
         Args:
             gruppe: Name der zu löschenden Gruppe
         """
-        self._ensure_data_loaded()
+
         
         if gruppe in self.data:
             del self.data[gruppe]
@@ -481,7 +419,7 @@ class PdvmCentralDatabase:
             gruppe: Name der Gruppe
             feld: Name des zu löschenden Feldes
         """
-        self._ensure_data_loaded()
+
         
         if gruppe in self.data and isinstance(self.data[gruppe], dict):
             if feld in self.data[gruppe]:
@@ -495,7 +433,7 @@ class PdvmCentralDatabase:
         Returns:
             List[str]: Liste der Gruppennamen
         """
-        self._ensure_data_loaded()
+
         return list(self.data.keys())
     
     def get_fields(self, gruppe: str) -> List[str]:
@@ -508,7 +446,7 @@ class PdvmCentralDatabase:
         Returns:
             List[str]: Liste der Feldnamen
         """
-        self._ensure_data_loaded()
+
         
         if gruppe not in self.data:
             return []
