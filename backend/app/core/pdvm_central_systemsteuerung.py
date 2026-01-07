@@ -194,22 +194,57 @@ class PdvmCentralSystemsteuerung:
         # 3. Systemsteuerung-Instanz (Benutzereinstellungen, read/write)
         self.systemsteuerung = PdvmCentralDatabase(
             "sys_systemsteuerung",
-            guid=str(user_guid),
+            guid=None,  # Keine GUID → kein DB-Lesen
             no_save=False,  # Speicherbar
             stichtag=stichtag,
             system_pool=system_pool,
             mandant_pool=mandant_pool
         )
+        # Daten aus DB laden via PdvmDatabase
+        import asyncio
+        async def load_systemsteuerung():
+            row = await self.systemsteuerung.db.get_row(uuid.UUID(user_guid))
+            if row and row.get('daten'):
+                self.systemsteuerung.set_data(row['daten'])
+            else:
+                self.systemsteuerung.set_data({})
+            self.systemsteuerung.set_guid(str(user_guid))
+        
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                asyncio.create_task(load_systemsteuerung())
+            else:
+                loop.run_until_complete(load_systemsteuerung())
+        except RuntimeError:
+            asyncio.run(load_systemsteuerung())
         
         # 4. Anwendungsdaten-Instanz (Mandanteneinstellungen, read/write)
         self.anwendungsdaten = PdvmCentralDatabase(
             "sys_anwendungsdaten",
-            guid=str(mandant_guid),
+            guid=None,  # Keine GUID → kein DB-Lesen
             no_save=False,  # Speicherbar
             stichtag=stichtag,
             system_pool=system_pool,
             mandant_pool=mandant_pool
         )
+        # Daten aus DB laden via PdvmDatabase
+        async def load_anwendungsdaten():
+            row = await self.anwendungsdaten.db.get_row(uuid.UUID(mandant_guid))
+            if row and row.get('daten'):
+                self.anwendungsdaten.set_data(row['daten'])
+            else:
+                self.anwendungsdaten.set_data({})
+            self.anwendungsdaten.set_guid(str(mandant_guid))
+        
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                asyncio.create_task(load_anwendungsdaten())
+            else:
+                loop.run_until_complete(load_anwendungsdaten())
+        except RuntimeError:
+            asyncio.run(load_anwendungsdaten())
         
         # 5. Layout-Instanz (Farbschema aus sys_layout, read-only)
         # THEME_GUID aus Mandant-CONFIG holen
@@ -218,12 +253,30 @@ class PdvmCentralSystemsteuerung:
         if theme_guid:
             self.layout = PdvmCentralDatabase(
                 "sys_layout",
-                guid=str(theme_guid),
+                guid=None,  # Keine GUID → kein DB-Lesen
                 no_save=True,  # Read-only
                 stichtag=stichtag,
                 system_pool=system_pool,
                 mandant_pool=mandant_pool
             )
+            # Daten aus DB laden via PdvmDatabase
+            async def load_layout():
+                row = await self.layout.db.get_row(uuid.UUID(theme_guid))
+                if row and row.get('daten'):
+                    self.layout.set_data(row['daten'])
+                else:
+                    self.layout.set_data({})
+                self.layout.set_guid(str(theme_guid))
+            
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    asyncio.create_task(load_layout())
+                else:
+                    loop.run_until_complete(load_layout())
+            except RuntimeError:
+                asyncio.run(load_layout())
+            
             logger.info(f"✅ Layout geladen: {theme_guid}")
         else:
             logger.warning("⚠️ Keine THEME_GUID im Mandant-CONFIG gefunden")
