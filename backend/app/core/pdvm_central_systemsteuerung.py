@@ -206,9 +206,19 @@ class PdvmCentralSystemsteuerung:
             row = await self.systemsteuerung.db.get_row(uuid.UUID(user_guid))
             if row and row.get('daten'):
                 self.systemsteuerung.set_data(row['daten'])
+                self.systemsteuerung.set_guid(str(user_guid))
             else:
-                self.systemsteuerung.set_data({})
-            self.systemsteuerung.set_guid(str(user_guid))
+                # Datensatz existiert nicht → mit Defaults erstellen
+                logger.info(f"📝 sys_systemsteuerung für User {user_guid} nicht gefunden - erstelle mit Defaults")
+                self.systemsteuerung.set_guid(str(user_guid))
+                # Default: THEME_MODE = light
+                self.systemsteuerung.set_value(str(user_guid), "THEME_MODE", "light", stichtag)
+                # Speichern in DB
+                try:
+                    await self.systemsteuerung.save_all_values()
+                    logger.info(f"✅ sys_systemsteuerung für User {user_guid} erstellt")
+                except Exception as e:
+                    logger.error(f"❌ Fehler beim Erstellen von sys_systemsteuerung: {e}")
         
         try:
             loop = asyncio.get_event_loop()
@@ -233,9 +243,19 @@ class PdvmCentralSystemsteuerung:
             row = await self.anwendungsdaten.db.get_row(uuid.UUID(mandant_guid))
             if row and row.get('daten'):
                 self.anwendungsdaten.set_data(row['daten'])
+                self.anwendungsdaten.set_guid(str(mandant_guid))
             else:
-                self.anwendungsdaten.set_data({})
-            self.anwendungsdaten.set_guid(str(mandant_guid))
+                # Datensatz existiert nicht → mit Defaults erstellen
+                logger.info(f"📝 sys_anwendungsdaten für Mandant {mandant_guid} nicht gefunden - erstelle mit Defaults")
+                self.anwendungsdaten.set_guid(str(mandant_guid))
+                # Default: CONFIG Gruppe leer (THEME_GUID muss später gesetzt werden)
+                self.anwendungsdaten.set_value("CONFIG", "THEME_GUID", "", stichtag)
+                # Speichern in DB
+                try:
+                    await self.anwendungsdaten.save_all_values()
+                    logger.info(f"✅ sys_anwendungsdaten für Mandant {mandant_guid} erstellt")
+                except Exception as e:
+                    logger.error(f"❌ Fehler beim Erstellen von sys_anwendungsdaten: {e}")
         
         try:
             loop = asyncio.get_event_loop()
