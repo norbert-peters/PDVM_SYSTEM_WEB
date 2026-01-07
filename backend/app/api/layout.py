@@ -122,8 +122,8 @@ async def get_theme_preference(
     try:
         logger.info(f"📖 Lade Theme-Präferenz: user={gcs.user_guid}")
         
-        # Lese über systemsteuerung-Instanz (direkter Aufruf)
-        theme_mode, _ = gcs.systemsteuerung.get_value(str(gcs.user_guid), "THEME_MODE", gcs.stichtag)
+        # Lese über systemsteuerung-Instanz (get_static_value für nicht-historische Daten)
+        theme_mode = gcs.systemsteuerung.get_static_value(str(gcs.user_guid), "THEME_MODE")
         
         logger.info(f"💡 Gelesener Theme-Modus: {theme_mode}")
         
