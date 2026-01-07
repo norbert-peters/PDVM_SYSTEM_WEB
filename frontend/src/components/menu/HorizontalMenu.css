@@ -1,8 +1,8 @@
 /* HorizontalMenu Styles */
 
 .horizontal-menu {
-  background: var(--surface-primary);
-  border-bottom: 1px solid var(--border-color);
+  background: var(--color-background-primary);
+  border-bottom: 1px solid var(--color-border-medium);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
@@ -25,7 +25,7 @@
   padding: 0.5rem 1rem;
   background: transparent;
   border: none;
-  color: var(--text-primary);
+  color: var(--color-text-primary);
   font-size: 0.9rem;
   cursor: pointer;
   border-radius: 4px;
@@ -34,7 +34,7 @@
 }
 
 .horizontal-menu-button:hover:not(:disabled) {
-  background: var(--surface-hover);
+  background: var(--color-background-secondary);
 }
 
 .horizontal-menu-button:disabled {
@@ -43,7 +43,7 @@
 }
 
 .horizontal-menu-button.open {
-  background: var(--surface-hover);
+  background: var(--color-background-secondary);
 }
 
 .menu-icon {
@@ -65,8 +65,8 @@
   top: 100%;
   left: 0;
   min-width: 200px;
-  background: var(--surface-primary);
-  border: 1px solid var(--border-color);
+  background: var(--color-background-primary);
+  border: 1px solid var(--color-border-medium);
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 1000;
@@ -94,25 +94,15 @@
 .horizontal-menu-separator {
   width: 1px;
   height: 24px;
-  background: var(--border-color);
+  background: var(--color-border-medium);
   margin: 0 0.5rem;
 }
 
-/* Dark Mode */
-.dark .horizontal-menu {
-  background: var(--surface-primary);
-  border-bottom-color: var(--border-color);
-}
-
-.dark .horizontal-menu-button {
-  color: var(--text-primary);
-}
-
-.dark .horizontal-menu-dropdown {
-  background: var(--surface-primary);
-  border-color: var(--border-color);
-}
-
 .horizontal-menu-dropdown .horizontal-menu-button:hover {
-  background: var(--surface-hover);
+  background: var(--color-background-secondary);
+}
+
+/* Dark Mode - uses same CSS variables */
+.dark .horizontal-menu {
+  /* Variables already updated by theme system */
 }
