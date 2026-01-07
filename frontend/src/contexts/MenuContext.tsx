@@ -2,7 +2,7 @@
  * MenuContext - Global Menu State Management
  */
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode } from 'react';
 import type { MenuData } from '../api/menu';
 import { loadStartMenu, loadAppMenu } from '../api/menu';
 

@@ -56,7 +56,7 @@ async function handleOpenAppMenu(item: MenuItem, context: MenuHandlerContext): P
  * Handler: logout
  * Beendet Session und geht zurück zum Login
  */
-async function handleLogout(item: MenuItem, context: MenuHandlerContext): Promise<void> {
+async function handleLogout(_item: MenuItem, context: MenuHandlerContext): Promise<void> {
   try {
     await apiLogout();
     
@@ -74,7 +74,7 @@ async function handleLogout(item: MenuItem, context: MenuHandlerContext): Promis
  * Handler: open_start_menu
  * Lädt Startmenü neu
  */
-async function handleOpenStartMenu(item: MenuItem, context: MenuHandlerContext): Promise<void> {
+async function handleOpenStartMenu(_item: MenuItem, context: MenuHandlerContext): Promise<void> {
   try {
     const menuResponse = await loadStartMenu();
     
@@ -90,7 +90,7 @@ async function handleOpenStartMenu(item: MenuItem, context: MenuHandlerContext):
  * Handler: show_help
  * Zeigt Hilfe-Dialog (TODO: Implementierung)
  */
-async function handleShowHelp(item: MenuItem, context: MenuHandlerContext): Promise<void> {
+async function handleShowHelp(item: MenuItem, _context: MenuHandlerContext): Promise<void> {
   const helpText = item.command?.params?.help_text || 'Hilfe';
   const helpType = item.command?.params?.help_type || 'dialog';
   
