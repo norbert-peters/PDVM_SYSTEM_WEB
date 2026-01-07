@@ -94,8 +94,8 @@ async def save_theme_preference(
     try:
         logger.info(f"📝 Speichere Theme-Präferenz: user={gcs.user_guid}, theme={theme_mode}")
         
-        # Speichere über PdvmCentralSystemsteuerung (set_user_value)
-        gcs.set_user_value("THEME_MODE", theme_mode)
+        # Speichere über systemsteuerung-Instanz (direkter Aufruf)
+        gcs.systemsteuerung.set_value(str(gcs.user_guid), "THEME_MODE", theme_mode, gcs.stichtag)
         
         # Persistent speichern
         await gcs.save_all_values()
@@ -122,8 +122,8 @@ async def get_theme_preference(
     try:
         logger.info(f"📖 Lade Theme-Präferenz: user={gcs.user_guid}")
         
-        # Lese über PdvmCentralSystemsteuerung (get_user_value)
-        theme_mode = gcs.get_user_value("THEME_MODE")
+        # Lese über systemsteuerung-Instanz (direkter Aufruf)
+        theme_mode, _ = gcs.systemsteuerung.get_value(str(gcs.user_guid), "THEME_MODE", gcs.stichtag)
         
         logger.info(f"💡 Gelesener Theme-Modus: {theme_mode}")
         
