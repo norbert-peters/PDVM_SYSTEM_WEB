@@ -229,10 +229,8 @@ async def get_mandant_theme(
         Layout-Konfiguration für das Theme
     """
     try:
-        # Hole THEME_GUID aus Mandant-CONFIG
-        theme_guid = gcs.mandant.get_static_value("CONFIG", "THEME_GUID")
-        
-        if not theme_guid:
+        # Prüfe ob GCS-Layout-Instanz verfügbar
+        if not gcs.layout:
             # Kein Theme konfiguriert -> Gib Standard-Theme zurück
             logger.warning(f"⚠️ Kein Theme für Mandant {mandant_uid} konfiguriert - verwende Standard")
             return {
@@ -244,28 +242,14 @@ async def get_mandant_theme(
                 "assets": {}
             }
         
-        # Lade Theme-Daten aus sys_layout
-        from app.core.pdvm_central_datenbank import PdvmCentralDatabase
-        theme_instance = PdvmCentralDatabase(
-            "sys_layout",
-            guid=str(theme_guid),
-            no_save=True,
-            stichtag=gcs.stichtag,
-            system_pool=gcs._system_pool,
-            mandant_pool=gcs._mandant_pool
-        )
+        # Hole Theme-Gruppe direkt aus gcs.layout
+        theme_group = gcs.layout.get_gruppe(theme)
         
-        # Theme-Daten holen
-        theme_data = theme_instance.data
-        
-        # Hole gewünschte Theme-Gruppe (light oder dark)
-        if theme not in theme_data:
+        if not theme_group:
             raise HTTPException(
                 status_code=404,
                 detail=f"Theme-Gruppe '{theme}' nicht gefunden"
             )
-        
-        theme_group = theme_data[theme]
         
         # Erstelle Response
         response = {
@@ -273,11 +257,11 @@ async def get_mandant_theme(
             "theme": theme,
             "colors": theme_group.get('colors', {}),
             "typography": theme_group.get('typography', {}),
-            "customizations": gruppe_data.get('customizations', {}),
-            "assets": gruppe_data.get('assets', {})
+            "customizations": theme_group.get('customizations', {}),
+            "assets": theme_group.get('assets', {})
         }
         
-        logger.info(f"✅ Theme geladen: {mandant_data.get('name')} → {theme}")
+        logger.info(f"✅ Theme geladen: {theme}")
         return response
         
     except HTTPException:
