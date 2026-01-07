@@ -117,7 +117,7 @@ class PdvmDatabase:
         pool = self.get_pool()
         async with pool.acquire() as conn:
             row = await conn.fetchrow(f"""
-                SELECT uid, daten, name, historisch, source_hash, sec_id, gilt_bis, 
+                SELECT uid, daten, name, historisch, sec_id, gilt_bis, 
                        created_at, modified_at, daten_backup
                 FROM {self.table_name}
                 WHERE uid = $1

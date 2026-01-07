@@ -227,6 +227,29 @@ class PdvmCentralSystemsteuerung:
             logger.warning("⚠️ Keine THEME_GUID im Mandant-CONFIG gefunden")
             self.theme = None
     
+    # === Delegierte Methoden für Kompatibilität ===
+    
+    def get_value(self, gruppe: str, feld: str, ab_zeit: Optional[float] = None):
+        """
+        Delegiert an systemsteuerung.get_value()
+        Für Kompatibilität mit bestehender Layout-API
+        """
+        return self.systemsteuerung.get_value(gruppe, feld, ab_zeit or self.stichtag)
+    
+    def set_value(self, gruppe: str, feld: str, wert: Any, ab_zeit: Optional[float] = None):
+        """
+        Delegiert an systemsteuerung.set_value()
+        Für Kompatibilität mit bestehender Layout-API
+        """
+        self.systemsteuerung.set_value(gruppe, feld, wert, ab_zeit or self.stichtag)
+    
+    async def save_all_values(self):
+        """
+        Delegiert an systemsteuerung.save_all_values()
+        Für Kompatibilität mit GCS-API
+        """
+        return await self.systemsteuerung.save_all_values()
+    
     # === Stichtag ===
     
     def get_stichtag(self) -> float:
@@ -365,5 +388,5 @@ class PdvmCentralSystemsteuerung:
     
     def clear_edit_data(self):
         """Löscht alle EDIT-Daten"""
-        if "EDIT" in self.data:
-            del self.data["EDIT"]
+        if "EDIT" in self.systemsteuerung.data:
+            del self.systemsteuerung.data["EDIT"]

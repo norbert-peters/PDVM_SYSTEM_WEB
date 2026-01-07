@@ -144,11 +144,12 @@ async def get_theme_preference(
 async def get_mandant_theme(
     mandant_uid: str,
     theme: str,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    gcs = Depends(get_gcs_instance)
 ):
     """
     Lädt spezifisches Theme für einen Mandanten
-    NEUE STRUKTUR: Liest THEME_GUID aus Mandant-Config, lädt Theme und extrahiert Gruppe
+    NEUE STRUKTUR: Nutzt GCS-Theme-Instanz
     
     Args:
         mandant_uid: UUID des Mandanten
@@ -158,45 +159,24 @@ async def get_mandant_theme(
         Layout-Konfiguration für das Theme
     """
     try:
-        # 1. Lade Mandant aus auth DB um THEME_GUID zu bekommen
-        from ..core.database import DatabasePool
-        
-        pool = DatabasePool._pool_auth
-        async with pool.acquire() as conn:
-            mandant_row = await conn.fetchrow("""
-                SELECT uid, daten
-                FROM sys_mandanten
-                WHERE uid = $1
-            """, mandant_uid)
-        
-        if not mandant_row:
+        # Prüfe ob GCS-Theme-Instanz verfügbar
+        if not gcs.theme:
             raise HTTPException(
                 status_code=404,
-                detail=f"Mandant {mandant_uid} nicht gefunden"
+                detail="Kein Theme für diesen Mandanten konfiguriert"
             )
         
-        mandant_data = mandant_row['daten']
-        if isinstance(mandant_data, str):
-            mandant_data = json.loads(mandant_data)
+        # Theme-Daten aus GCS-Instanz holen
+        theme_data = gcs.theme.data
         
-        # 2. Hole THEME_GUID aus config
-        theme_guid = mandant_data.get('config', {}).get('THEME_GUID')
-        
-        if not theme_guid:
+        # Hole gewünschte Theme-Gruppe (light oder dark)
+        if theme not in theme_data:
             raise HTTPException(
                 status_code=404,
-                detail=f"THEME_GUID nicht in Mandant-Config gefunden"
+                detail=f"Theme-Gruppe '{theme}' nicht gefunden"
             )
         
-        # 3. Lade Theme-Datensatz aus sys_layout
-        db = PdvmDatabaseService(database="pdvm_system", table="sys_layout")
-        theme_record = await db.get_by_uid(theme_guid)
-        
-        if not theme_record:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Theme {theme_guid} nicht gefunden"
-            )
+        theme_group = theme_data[theme]
         
         # 4. Extrahiere Gruppe (light/dark) aus daten-JSON
         theme_data = theme_record.get('daten', {})
