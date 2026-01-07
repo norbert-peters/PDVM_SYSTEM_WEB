@@ -58,24 +58,6 @@ class PdvmCentralDatabase:
         # Historisch-Status ermitteln
         self.historisch = False  # TODO: Aus Tabellen-Config holen
         
-        # Automatische Initialisierung falls GUID vorhanden
-        if self.guid:
-            # Sync-Wrapper für async _load_data
-            import asyncio
-            try:
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    # Im laufenden Loop: Task erstellen statt await
-                    asyncio.create_task(self._load_data())
-                else:
-                    # Kein Loop: run_until_complete
-                    loop.run_until_complete(self._load_data())
-            except RuntimeError:
-                # Kein Event Loop: Neuen erstellen
-                asyncio.run(self._load_data())
-        
-        logger.info(f"PdvmCentralDatabase initialisiert: {table_name}.{guid} (historisch: {self.historisch}, no_save: {no_save})")
-        
         logger.info(f"PdvmCentralDatabase initialisiert: {table_name}.{guid} (historisch: {self.historisch}, no_save: {no_save})")
     
     def set_guid(self, guid: str):

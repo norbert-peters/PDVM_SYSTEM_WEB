@@ -178,26 +178,12 @@ async def get_mandant_theme(
         
         theme_group = theme_data[theme]
         
-        # 4. Extrahiere Gruppe (light/dark) aus daten-JSON
-        theme_data = theme_record.get('daten', {})
-        if isinstance(theme_data, str):
-            theme_data = json.loads(theme_data)
-            
-        gruppe_data = theme_data.get(theme)
-        
-        if not gruppe_data:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Gruppe '{theme}' nicht im Theme gefunden"
-            )
-        
-        # 5. Erstelle Response mit mandant_uid und mandant_name
+        # Erstelle Response
         response = {
-            "mandant_uid": mandant_uid,
-            "mandant_name": mandant_data.get('name', 'Unknown'),
+            "mandant_uid": str(mandant_uid),
             "theme": theme,
-            "colors": gruppe_data.get('colors', {}),
-            "typography": gruppe_data.get('typography', {}),
+            "colors": theme_group.get('colors', {}),
+            "typography": theme_group.get('typography', {}),
             "customizations": gruppe_data.get('customizations', {}),
             "assets": gruppe_data.get('assets', {})
         }

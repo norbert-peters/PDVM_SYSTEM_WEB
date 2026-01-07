@@ -170,24 +170,26 @@ class PdvmCentralSystemsteuerung:
         # 1. Benutzer-Instanz (no_save=True, Daten aus Login)
         self.benutzer = PdvmCentralDatabase(
             "sys_benutzer",
-            guid=str(user_guid),
+            guid=None,  # Keine GUID → kein DB-Lesen
             no_save=True,  # Read-only
             stichtag=stichtag,
             system_pool=system_pool,
             mandant_pool=mandant_pool
         )
         self.benutzer.set_data(user_data)  # Daten aus Login setzen
+        self.benutzer.set_guid(str(user_guid))  # GUID nachträglich setzen
         
         # 2. Mandant-Instanz (no_save=True, Daten aus Login)
         self.mandant = PdvmCentralDatabase(
             "sys_mandanten",
-            guid=str(mandant_guid),
+            guid=None,  # Keine GUID → kein DB-Lesen
             no_save=True,  # Read-only
             stichtag=stichtag,
             system_pool=system_pool,
             mandant_pool=mandant_pool
         )
         self.mandant.set_data(mandant_data)  # Daten aus Login setzen
+        self.mandant.set_guid(str(mandant_guid))  # GUID nachträglich setzen
         
         # 3. Systemsteuerung-Instanz (Benutzereinstellungen, read/write)
         self.systemsteuerung = PdvmCentralDatabase(
@@ -326,33 +328,6 @@ class PdvmCentralSystemsteuerung:
     def set_expert_mode(self, expert_mode: bool):
         """Setzt expert_mode des Users in user_guid Gruppe"""
         self.set_value(str(self.user_guid), "EXPERT_MODE", expert_mode, ab_zeit=self.stichtag)
-    
-    # === Allgemeine Wert-Zugriffe ===
-    
-    def get_user_value(self, feld: str) -> Any:
-        """
-        Liest Wert aus user_guid-Gruppe
-        
-        Args:
-            feld: Feldname (z.B. "version", "window_width", "THEME_MODE")
-        
-        Returns:
-            Wert oder None
-        """
-        # get_value liefert (wert, ab_zeit) Tuple
-        wert, _ = self.get_value(str(self.user_guid), feld, ab_zeit=self.stichtag)
-        return wert
-    
-    def set_user_value(self, feld: str, wert: Any):
-        """
-        Schreibt Wert in user_guid-Gruppe
-        
-        Args:
-            feld: Feldname (z.B. "THEME_MODE")
-            wert: Zu setzender Wert
-        """
-        # set_value mit Stichtag - PdvmDatabase entscheidet basierend auf historisch Flag
-        self.set_value(str(self.user_guid), feld, wert, ab_zeit=self.stichtag)
     
     # === View-Einstellungen ===
     
