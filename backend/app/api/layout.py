@@ -243,7 +243,7 @@ async def get_mandant_theme(
             }
         
         # Hole Theme-Gruppe direkt aus gcs.layout
-        theme_group = gcs.layout.get_gruppe(theme)
+        theme_group = gcs.layout.get_value_by_group(theme)
         
         if not theme_group:
             raise HTTPException(
