@@ -12,6 +12,7 @@ import { useMenu } from '../../contexts/MenuContext';
 import { HorizontalMenu } from '../menu/HorizontalMenu';
 import { VerticalMenu } from '../menu/VerticalMenu';
 import { executeMenuCommand } from '../../utils/menuHandlers';
+import { loadThemeColors, applyCSSVariables } from '../../api/theme';
 import type { MenuItem } from '../../api/menu';
 
 interface AppLayoutProps {
@@ -36,6 +37,21 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
     if (!menu.currentMenu && !menu.loading) {
       menu.loadStart();
     }
+  }, []);
+  
+  // Lade Theme-Farben nach Mount
+  useEffect(() => {
+    const loadTheme = async () => {
+      try {
+        const themeData = await loadThemeColors();
+        applyCSSVariables(themeData.colors);
+        console.log('✅ Theme-Farben geladen:', themeData.theme_guid);
+      } catch (error) {
+        console.error('❌ Fehler beim Laden der Theme-Farben:', error);
+      }
+    };
+    
+    loadTheme();
   }, []);
   
   // Menu Handler Context
