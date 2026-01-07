@@ -65,12 +65,13 @@
   top: 100%;
   left: 0;
   min-width: 200px;
-  background: var(--surface-primary);
+  background: #ffffff;
   border: 1px solid var(--border-color);
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 1000;
   margin-top: 0.25rem;
+  overflow: hidden;
 }
 
 .horizontal-menu-dropdown .horizontal-menu-button {
@@ -108,6 +109,22 @@
 }
 
 .dark .horizontal-menu-dropdown {
-  background: var(--surface-secondary);
-  border-color: var(--border-color);
+  background: #1e1e1e;
+  border-color: #444;
+}
+
+.horizontal-menu-dropdown .horizontal-menu-button:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.dark .horizontal-menu-dropdown .horizontal-menu-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.horizontal-menu-dropdown .horizontal-menu-button:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.dark .horizontal-menu-dropdown .horizontal-menu-button:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
