@@ -109,22 +109,10 @@
 }
 
 .dark .horizontal-menu-dropdown {
-  background: #1e1e1e;
-  border-color: #444;
+  background: var(--surface-primary);
+  border-color: var(--border-color);
 }
 
 .horizontal-menu-dropdown .horizontal-menu-button:hover {
-  background: rgba(0, 0, 0, 0.05);
-}
-
-.dark .horizontal-menu-dropdown .horizontal-menu-button:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.horizontal-menu-dropdown .horizontal-menu-button:hover {
-  background: rgba(0, 0, 0, 0.05);
-}
-
-.dark .horizontal-menu-dropdown .horizontal-menu-button:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--surface-hover);
 }
