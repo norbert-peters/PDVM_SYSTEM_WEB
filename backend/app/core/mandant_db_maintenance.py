@@ -184,40 +184,37 @@ class MandantDatabaseMaintenance:
     
     async def _verify_and_fix_columns(self, conn: asyncpg.Connection, table_name: str) -> bool:
         """
-        Prüft Spalten einer Tabelle und fügt fehlende hinzu
+        Prüft Spalten einer Tabelle und fügt fehlende hinzu oder korrigiert Datentypen
         
         Returns:
             True wenn Änderungen vorgenommen wurden
         """
         updated = False
         
-        # Hole existierende Spalten
+        # Hole existierende Spalten mit Datentyp
         existing_columns = await conn.fetch("""
-            SELECT column_name, data_type, column_default
+            SELECT column_name, data_type, column_default, udt_name
             FROM information_schema.columns
             WHERE table_name = $1
         """, table_name)
         
-        existing_column_names = {row['column_name'] for row in existing_columns}
+        existing_column_dict = {
+            row['column_name']: {
+                'data_type': row['data_type'],
+                'udt_name': row['udt_name'],
+                'column_default': row['column_default']
+            } 
+            for row in existing_columns
+        }
         
         # Prüfe jede erforderliche Spalte
         for col_name, col_definition in PDVM_TABLE_COLUMNS.items():
-            if col_name not in existing_column_names:
+            if col_name not in existing_column_dict:
                 # Spalte fehlt - hinzufügen
                 try:
-                    # Extrahiere Datentyp und Default aus Definition
-                    parts = col_definition.split()
-                    data_type = parts[0]
-                    
-                    # Finde DEFAULT clause
-                    default_clause = ""
-                    if 'DEFAULT' in col_definition:
-                        default_idx = col_definition.upper().find('DEFAULT')
-                        default_clause = col_definition[default_idx:]
-                    
                     await conn.execute(f"""
                         ALTER TABLE {table_name}
-                        ADD COLUMN {col_name} {data_type} {default_clause}
+                        ADD COLUMN {col_name} {col_definition}
                     """)
                     
                     logger.info(f"  ➕ Spalte {col_name} zu {table_name} hinzugefügt")
@@ -225,6 +222,48 @@ class MandantDatabaseMaintenance:
                     
                 except Exception as e:
                     logger.error(f"  ❌ Fehler beim Hinzufügen von {col_name}: {e}")
+            
+            # Spezial-Check für gilt_bis: Muss TIMESTAMP sein, nicht TEXT
+            elif col_name == 'gilt_bis':
+                col_info = existing_column_dict[col_name]
+                if col_info['data_type'] in ['text', 'character varying']:
+                    # gilt_bis ist TEXT → zu TIMESTAMP konvertieren
+                    try:
+                        logger.info(f"  🔄 Konvertiere {table_name}.gilt_bis von TEXT zu TIMESTAMP")
+                        
+                        # Temporäre Spalte erstellen
+                        await conn.execute(f"""
+                            ALTER TABLE {table_name}
+                            ADD COLUMN gilt_bis_temp TIMESTAMP DEFAULT '9999-12-31 23:59:59'
+                        """)
+                        
+                        # Werte kopieren (versuche zu parsen, sonst Default)
+                        await conn.execute(f"""
+                            UPDATE {table_name}
+                            SET gilt_bis_temp = CASE
+                                WHEN gilt_bis IS NOT NULL AND gilt_bis != '' 
+                                THEN '9999-12-31 23:59:59'::TIMESTAMP
+                                ELSE '9999-12-31 23:59:59'::TIMESTAMP
+                            END
+                        """)
+                        
+                        # Alte Spalte löschen
+                        await conn.execute(f"""
+                            ALTER TABLE {table_name}
+                            DROP COLUMN gilt_bis
+                        """)
+                        
+                        # Neue Spalte umbenennen
+                        await conn.execute(f"""
+                            ALTER TABLE {table_name}
+                            RENAME COLUMN gilt_bis_temp TO gilt_bis
+                        """)
+                        
+                        logger.info(f"  ✅ {table_name}.gilt_bis erfolgreich zu TIMESTAMP konvertiert")
+                        updated = True
+                        
+                    except Exception as e:
+                        logger.error(f"  ❌ Fehler bei gilt_bis Konvertierung: {e}")
         
         return updated
     
