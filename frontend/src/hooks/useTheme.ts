@@ -212,9 +212,12 @@ export const useTheme = (): ThemeContextValue => {
       // Lade gespeicherte Theme-Präferenz
       layoutApi.getThemePreference()
         .then(savedTheme => {
-          console.log('💾 Gespeicherte Theme-Präferenz:', savedTheme);
-          setThemeName(savedTheme);
-          return loadTheme(currentMandant.uid, savedTheme);
+          console.log('💾 Gespeicherte Theme-Präferenz (type:', typeof savedTheme, '):', savedTheme);
+          
+          // Sicherstellen dass savedTheme ein String ist
+          const themeString = typeof savedTheme === 'string' ? savedTheme : 'light';
+          setThemeName(themeString as 'light' | 'dark');
+          return loadTheme(currentMandant.uid, themeString as 'light' | 'dark');
         })
         .catch(err => {
           console.error('❌ Failed to load theme preference, using default:', err);
