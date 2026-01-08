@@ -297,6 +297,35 @@ async def select_mandant(
             )
         
         # ========================================
+        # DATENBANK-WARTUNG VOR GCS-INITIALISIERUNG
+        # Prüft und korrigiert:
+        # - Fehlende Tabellen aus CONFIGS.FEATURES/SYS_TABLES
+        # - Fehlende Spalten (daten_backup, gilt_bis, etc.)
+        # - gilt_bis Werte für alte Datensätze
+        # ========================================
+        try:
+            print(f"\n🔧 Starte Datenbank-Wartung...", flush=True)
+            logger.info(f"🔧 Starte Datenbank-Wartung für Mandant {mandant_id}")
+            
+            from ..core.mandant_db_maintenance import run_mandant_maintenance
+            from ..core.database import get_mandant_pool
+            
+            # Erstelle temporären Pool für Wartung
+            mandant_pool = await get_mandant_pool(mandant_db_url)
+            
+            # Führe Wartung aus
+            maintenance_stats = await run_mandant_maintenance(mandant_pool, mandant_id)
+            
+            logger.info(f"✅ Wartung abgeschlossen: {maintenance_stats}")
+            print(f"✅ Wartung: {maintenance_stats['tables_created']} Tabellen erstellt, "
+                  f"{maintenance_stats['records_updated']} Datensätze korrigiert", flush=True)
+            
+        except Exception as maintenance_error:
+            # Wartung fehlgeschlagen - logge Warnung aber fahre fort
+            logger.warning(f"⚠️ Datenbank-Wartung fehlgeschlagen: {maintenance_error}")
+            print(f"⚠️ Wartung fehlgeschlagen: {maintenance_error}", flush=True)
+        
+        # ========================================
         # GCS-SESSION ERSTELLEN
         # (Jetzt können wir sicher sein, dass die Tabellen existieren)
         # ========================================

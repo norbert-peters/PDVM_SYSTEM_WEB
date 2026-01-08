@@ -21,10 +21,10 @@ BEGIN
             historisch INTEGER DEFAULT 0,
             source_hash TEXT,
             sec_id UUID,
-            gilt_bis TEXT DEFAULT ''9999365.00000'',
+            gilt_bis TIMESTAMP DEFAULT ''9999-12-31 23:59:59'',
             created_at TIMESTAMP DEFAULT NOW(),
             modified_at TIMESTAMP DEFAULT NOW(),
-            daten_backup JSONB
+            daten_backup JSONB DEFAULT ''{}''::jsonb
         );
         
         CREATE INDEX IF NOT EXISTS idx_%I_sec_id ON %I(sec_id);

@@ -197,8 +197,7 @@ class PdvmDatabase:
         daten: Dict, 
         name: str = "", 
         historisch: int = 0, 
-        sec_id: Optional[uuid.UUID] = None,
-        gilt_bis: str = "9999365.00000"
+        sec_id: Optional[uuid.UUID] = None
     ) -> Dict[str, Any]:
         """
         Erstellt einen neuen Datensatz
@@ -209,18 +208,18 @@ class PdvmDatabase:
             name: Anzeigename
             historisch: 0 = aktuell, 1 = historische Daten
             sec_id: Security Profile UUID
-            gilt_bis: Gültigkeitsdatum (PDVM-Format)
             
         Returns:
             Erstellter Datensatz
         """
         pool = self.get_pool()
         async with pool.acquire() as conn:
+            # gilt_bis wird automatisch auf '9999-12-31 23:59:59' gesetzt (DB-Default)
             await conn.execute(f"""
                 INSERT INTO {self.table_name} 
-                (uid, daten, name, historisch, sec_id, gilt_bis)
-                VALUES ($1, $2, $3, $4, $5, $6)
-            """, uid, json.dumps(daten), name, historisch, sec_id, gilt_bis)
+                (uid, daten, name, historisch, sec_id)
+                VALUES ($1, $2, $3, $4, $5)
+            """, uid, json.dumps(daten), name, historisch, sec_id)
             
             return await self.get_by_uid(uid)
     
@@ -245,28 +244,33 @@ class PdvmDatabase:
         """
         pool = self.get_pool()
         async with pool.acquire() as conn:
+            # gilt_bis wird immer auf höchstes Datum gesetzt
             if name is not None and historisch is not None:
                 await conn.execute(f"""
                     UPDATE {self.table_name}
-                    SET daten = $1, name = $2, historisch = $3, modified_at = NOW()
+                    SET daten = $1, name = $2, historisch = $3, 
+                        gilt_bis = '9999-12-31 23:59:59', modified_at = NOW()
                     WHERE uid = $4
                 """, json.dumps(daten), name, historisch, uid)
             elif name is not None:
                 await conn.execute(f"""
                     UPDATE {self.table_name}
-                    SET daten = $1, name = $2, modified_at = NOW()
+                    SET daten = $1, name = $2, 
+                        gilt_bis = '9999-12-31 23:59:59', modified_at = NOW()
                     WHERE uid = $3
                 """, json.dumps(daten), name, uid)
             elif historisch is not None:
                 await conn.execute(f"""
                     UPDATE {self.table_name}
-                    SET daten = $1, historisch = $2, modified_at = NOW()
+                    SET daten = $1, historisch = $2, 
+                        gilt_bis = '9999-12-31 23:59:59', modified_at = NOW()
                     WHERE uid = $3
                 """, json.dumps(daten), historisch, uid)
             else:
                 await conn.execute(f"""
                     UPDATE {self.table_name}
-                    SET daten = $1, modified_at = NOW()
+                    SET daten = $1, 
+                        gilt_bis = '9999-12-31 23:59:59', modified_at = NOW()
                     WHERE uid = $2
                 """, json.dumps(daten), uid)
             
