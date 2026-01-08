@@ -116,9 +116,11 @@ class PdvmDatabase:
         """
         pool = self.get_pool()
         async with pool.acquire() as conn:
+            # Nur die Spalten lesen die garantiert existieren
+            # daten_backup wird bei Wartung hinzugefügt falls fehlend
             row = await conn.fetchrow(f"""
                 SELECT uid, daten, name, historisch, sec_id, gilt_bis, 
-                       created_at, modified_at, daten_backup
+                       created_at, modified_at
                 FROM {self.table_name}
                 WHERE uid = $1
             """, uid)
@@ -131,8 +133,6 @@ class PdvmDatabase:
             # Parse JSONB fields (asyncpg gibt als String zurück)
             if result['daten'] and isinstance(result['daten'], str):
                 result['daten'] = json.loads(result['daten'])
-            if result['daten_backup'] and isinstance(result['daten_backup'], str):
-                result['daten_backup'] = json.loads(result['daten_backup'])
             
             return result
     
