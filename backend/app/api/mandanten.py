@@ -273,35 +273,13 @@ async def select_mandant(
         # mandant_db_url wurde bereits oben über ConnectionManager geladen!
         # Keine manuelle URL-Erstellung mehr nötig
         
-        from ..core.pdvm_datenbank import PdvmDatabase
-        try:
-            print(f"\n🔍 Prüfe Tabellen für Mandant '{mandant['name']}'...", flush=True)
-            logger.info(f"🔍 Prüfe Tabellen für Mandant '{mandant['name']}'...")
-            
-            # Übergebe mandant_db_url und mandant_record (keine DB-Lookups mehr nötig!)
-            await PdvmDatabase.ensure_mandant_tables(
-                mandant_id=mandant_id,
-                mandant_db_url=mandant_db_url,
-                mandant_record=mandant
-            )
-            
-            print(f"✅ Tabellen-Prüfung abgeschlossen", flush=True)
-            logger.info(f"✅ Tabellen-Prüfung abgeschlossen")
-        except Exception as table_error:
-            import traceback
-            logger.error(f"❌ Fehler bei Tabellen-Prüfung: {table_error}")
-            logger.error(traceback.format_exc())
-            raise HTTPException(
-                status_code=500,
-                detail=f"Fehler beim Initialisieren der Tabellen: {str(table_error)}"
-            )
-        
         # ========================================
         # DATENBANK-WARTUNG VOR GCS-INITIALISIERUNG
         # Prüft und korrigiert:
-        # - Fehlende Tabellen aus CONFIGS.FEATURES/SYS_TABLES
-        # - Fehlende Spalten (daten_backup, gilt_bis, etc.)
-        # - gilt_bis Werte für alte Datensätze
+        # - Fehlende Tabellen aus CONFIGS.FEATURES/SYS_TABLES (NEU ANLEGEN mit Standard-Schema)
+        # - Existierende Tabellen: Fehlende Spalten (daten_backup, gilt_bis, etc.)
+        # - Existierende Tabellen: Falsche Datentypen korrigieren (gilt_bis TEXT → TIMESTAMP)
+        # - gilt_bis Werte für alte Datensätze korrigieren
         # ========================================
         try:
             print(f"\n🔧 Starte Datenbank-Wartung...", flush=True)
@@ -313,8 +291,12 @@ async def select_mandant(
             mandant_pool = await asyncpg.create_pool(mandant_db_url, min_size=1, max_size=2)
             
             try:
-                # Führe Wartung aus
-                maintenance_stats = await run_mandant_maintenance(mandant_pool, mandant_id)
+                # Führe Wartung aus - übergebe mandant['daten'] mit CONFIGS
+                maintenance_stats = await run_mandant_maintenance(
+                    mandant_pool, 
+                    mandant_id,
+                    mandant['daten']  # Login-Daten enthält CONFIGS.FEATURES/SYS_TABLES
+                )
                 
                 logger.info(f"✅ Wartung abgeschlossen: {maintenance_stats}")
                 print(f"✅ Wartung: {maintenance_stats['tables_created']} Tabellen erstellt, "

@@ -47,23 +47,30 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       showError: (msg) => menu.setError(msg),
     });
   };
+  
+  // DEBUG: Log menu state
+  console.log('🔍 AppLayout - Menu State:', {
+    hasMenu: !!menu.currentMenu,
+    hasVERTIKAL: !!menu.currentMenu?.VERTIKAL,
+    vertikalKeys: menu.currentMenu?.VERTIKAL ? Object.keys(menu.currentMenu.VERTIKAL).length : 0,
+    currentApp: menu.currentApp
+  });
 
   return (
     <div className="app-layout">
       <Header />
       
-      {/* Horizontales Menü (GRUND + ZUSATZ) */}
+      {/* Horizontales Menü (GRUND) */}
       {menu.currentMenu && (
         <HorizontalMenu
           grundMenu={menu.currentMenu.GRUND || {}}
-          zusatzMenu={menu.currentMenu.ZUSATZ || {}}
           onMenuClick={handleMenuClick}
         />
       )}
       
       <div className="main-container">
         {/* Vertikales Menü (Sidebar) */}
-        {menu.currentMenu && menu.currentMenu.VERTIKAL && (
+        {menu.currentMenu && menu.currentMenu.VERTIKAL && Object.keys(menu.currentMenu.VERTIKAL).length > 0 && (
           <VerticalMenu
             vertikalMenu={menu.currentMenu.VERTIKAL}
             onMenuClick={handleMenuClick}

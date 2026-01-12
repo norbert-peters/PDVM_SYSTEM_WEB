@@ -55,8 +55,87 @@
 
 .vertical-menu-separator hr {
   border: none;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid currentColor;
+  opacity: 0.3;
   margin: 0;
+}
+
+/* Submenu Dropdown Styles */
+.vertical-menu-submenu {
+  position: relative;
+  width: 100%;
+}
+
+.vertical-menu-button.has-children {
+  position: relative;
+}
+
+.vertical-menu-button.has-children .submenu-arrow {
+  margin-left: auto;
+  font-size: 0.7rem;
+  transition: transform 0.2s;
+}
+
+.vertical-menu-button.open {
+  background: var(--surface-hover);
+  border-left-color: var(--primary-color);
+}
+
+.vertical-menu-button.open .submenu-arrow {
+  transform: rotate(90deg);
+}
+
+.vertical-menu-dropdown {
+  position: absolute;
+  left: 100%;
+  top: 0;
+  min-width: 220px;
+  max-width: 400px;
+  background: var(--surface-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  margin-left: 0.25rem;
+  padding: 0.25rem 0;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.vertical-menu-dropdown .vertical-menu-button {
+  padding: 0.75rem 1rem;
+  width: 100%;
+  border-left: none;
+  border-radius: 0;
+}
+
+.vertical-menu-dropdown .vertical-menu-button:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-left-color: transparent;
+}
+
+.vertical-menu-dropdown .vertical-menu-submenu {
+  position: relative;
+  width: 100%;
+}
+
+.vertical-menu-dropdown .vertical-menu-submenu.nested {
+  position: relative;
+}
+
+.vertical-menu-dropdown .vertical-menu-dropdown.nested-dropdown {
+  left: 100%;
+  top: 0;
+  margin-left: 0.25rem;
+  margin-top: 0;
+}
+
+/* Dark Mode Dropdown */
+.dark .vertical-menu-dropdown {
+  background: var(--surface-primary);
+  border-color: var(--border-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 /* Scrollbar Styling */

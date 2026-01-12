@@ -15,6 +15,7 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime
 import asyncpg
 from app.core.database import DatabasePool
+from app.core.pdvm_table_schema import PDVM_TABLE_COLUMNS, PDVM_TABLE_INDEXES
 
 
 class PdvmDatabase:
@@ -391,27 +392,34 @@ class PdvmDatabase:
                     continue
                 
                 try:
-                    # Standard PDVM-Tabellenschema
+                    # Standard PDVM-Tabellenschema (einheitlich für ALLE Tabellen)
+                    columns = ', '.join([f"{col} {definition}" for col, definition in PDVM_TABLE_COLUMNS.items()])
+                    
                     create_sql = f"""
                     CREATE TABLE {table_name} (
-                        uid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                        daten JSONB,
-                        name VARCHAR(255),
-                        historisch INTEGER DEFAULT 0,
-                        sec_id UUID,
-                        gilt_bis VARCHAR(20) DEFAULT '9999365.00000',
-                        modified_at TIMESTAMP DEFAULT NOW(),
-                        created_at TIMESTAMP DEFAULT NOW()
-                    );
-                    
-                    CREATE INDEX idx_{table_name}_name ON {table_name}(name);
-                    CREATE INDEX idx_{table_name}_daten ON {table_name} USING GIN (daten);
-                    CREATE INDEX idx_{table_name}_historisch ON {table_name}(historisch);
+                        {columns}
+                    )
                     """
                     
                     await conn.execute(create_sql)
+                    
+                    # Indizes erstellen
+                    for idx_col in PDVM_TABLE_INDEXES:
+                        if idx_col == 'daten':
+                            # GIN Index für JSONB
+                            await conn.execute(f"""
+                                CREATE INDEX IF NOT EXISTS idx_{table_name}_{idx_col} 
+                                ON {table_name} USING GIN({idx_col})
+                            """)
+                        else:
+                            # Standard B-Tree Index
+                            await conn.execute(f"""
+                                CREATE INDEX IF NOT EXISTS idx_{table_name}_{idx_col} 
+                                ON {table_name}({idx_col})
+                            """)
+                    
                     created_count += 1
-                    logger.info(f"✅ Tabelle '{table_name}' erfolgreich erstellt")
+                    logger.info(f"✅ Tabelle '{table_name}' mit Standard-Schema erstellt")
                 
                 except Exception as e:
                     logger.error(f"❌ Fehler beim Erstellen von '{table_name}': {e}")

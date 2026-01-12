@@ -55,6 +55,15 @@ export function MenuProvider({ children }: MenuProviderProps) {
       setCurrentApp(null);
     } catch (err: any) {
       const errorMsg = err.response?.data?.detail || err.message || 'Fehler beim Laden des Startmenüs';
+      
+      // Bei 404 (keine GCS-Session) oder 401 (nicht autorisiert) -> automatischer Logout
+      if (err.response?.status === 404 || err.response?.status === 401) {
+        console.warn('GCS-Session verloren - automatischer Logout');
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+        return;
+      }
+      
       setError(errorMsg);
       console.error('loadStart error:', err);
     } finally {
@@ -90,6 +99,15 @@ export function MenuProvider({ children }: MenuProviderProps) {
       
     } catch (err: any) {
       const errorMsg = err.response?.data?.detail || err.message || 'Fehler beim Laden des Menüs';
+      
+      // Bei 404 (keine GCS-Session) oder 401 (nicht autorisiert) -> automatischer Logout
+      if (err.response?.status === 404 || err.response?.status === 401) {
+        console.warn('GCS-Session verloren - automatischer Logout');
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+        return;
+      }
+      
       setError(errorMsg);
       console.error('loadApp error:', err);
     } finally {

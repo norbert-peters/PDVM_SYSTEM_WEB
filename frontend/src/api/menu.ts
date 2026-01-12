@@ -9,7 +9,7 @@ const API_URL = 'http://localhost:8000/api';
 
 export interface MenuItem {
   guid?: string;
-  type: 'BUTTON' | 'SUBMENU' | 'SEPARATOR';
+  type: 'BUTTON' | 'SUBMENU' | 'SEPARATOR' | 'SPACER';
   label: string;
   icon: string | null;
   tooltip: string | null;
@@ -31,13 +31,11 @@ export interface MenuGroup {
 export interface MenuData {
   ROOT: {
     GRUND: string;
-    ZUSATZ: string;
     VERTIKAL: string;
     VERSION: string;
     [key: string]: any;
   };
   GRUND: MenuGroup;
-  ZUSATZ: MenuGroup;
   VERTIKAL: MenuGroup;
 }
 

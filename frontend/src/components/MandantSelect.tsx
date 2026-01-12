@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { mandantenAPI, apiClient } from '../api/client'
+import { useAuth } from '../contexts/AuthContext'
 
 interface MandantSelectProps {
-  token: string
   onMandantSelected: (mandantId: string) => void
+  onCreateNew?: () => void
 }
 
 interface Mandant {
@@ -13,9 +14,11 @@ interface Mandant {
   description: string
 }
 
-export default function MandantSelect({ token, onMandantSelected }: MandantSelectProps) {
+export default function MandantSelect({ onMandantSelected, onCreateNew }: MandantSelectProps) {
+  const { token } = useAuth()
   const [mandanten, setMandanten] = useState<Mandant[]>([])
   const [loading, setLoading] = useState(true)
+
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -95,6 +98,17 @@ export default function MandantSelect({ token, onMandantSelected }: MandantSelec
                   {mandant.name}
                 </button>
               ))}
+              
+              {onCreateNew && (
+                <div style={styles.separator}>
+                  <button 
+                    onClick={onCreateNew}
+                    style={styles.createButton}
+                  >
+                    + Neuen Mandanten anlegen
+                  </button>
+                </div>
+              )}
             </div>
           </>
         )}
@@ -147,6 +161,11 @@ const styles = {
     flexDirection: 'column' as const,
     gap: '0.75rem',
   },
+  separator: {
+    borderTop: '1px solid #eee',
+    paddingTop: '0.75rem',
+    marginTop: '0.5rem',
+  },
   button: {
     padding: '1rem',
     backgroundColor: '#007bff',
@@ -157,5 +176,17 @@ const styles = {
     cursor: 'pointer',
     transition: 'background-color 0.2s',
     textAlign: 'left' as const,
+    width: '100%',
+  },
+  createButton: {
+    padding: '0.8rem',
+    backgroundColor: 'transparent',
+    color: '#666',
+    border: '2px dashed #ddd',
+    borderRadius: '4px',
+    fontSize: '0.9rem',
+    cursor: 'pointer',
+    textAlign: 'center' as const,
+    width: '100%',
   },
 }

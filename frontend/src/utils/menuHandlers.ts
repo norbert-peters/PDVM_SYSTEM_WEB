@@ -44,6 +44,10 @@ async function handleOpenAppMenu(item: MenuItem, context: MenuHandlerContext): P
     }
     
     // Menü erfolgreich geladen
+    console.log('🎯 App-Menü geladen für', appName, ':', menuResponse.menu_data);
+    console.log('   GRUND:', Object.keys(menuResponse.menu_data?.GRUND || {}).length, 'Items');
+    console.log('   VERTIKAL:', Object.keys(menuResponse.menu_data?.VERTIKAL || {}).length, 'Items');
+    
     context.setCurrentMenu(menuResponse.menu_data);
     context.setCurrentApp(appName);
     
@@ -56,17 +60,17 @@ async function handleOpenAppMenu(item: MenuItem, context: MenuHandlerContext): P
  * Handler: logout
  * Beendet Session und geht zurück zum Login
  */
-async function handleLogout(_item: MenuItem, context: MenuHandlerContext): Promise<void> {
+async function handleLogout(_item: MenuItem, _context: MenuHandlerContext): Promise<void> {
   try {
     await apiLogout();
     
-    // Zurück zum Login
-    context.navigate('/login');
+    // Hard Reload zum Login (löscht kompletten React-State)
+    window.location.href = '/login';
     
   } catch (error: any) {
     console.error('Logout-Fehler:', error);
     // Auch bei Fehler zum Login (Token ist gelöscht)
-    context.navigate('/login');
+    window.location.href = '/login';
   }
 }
 

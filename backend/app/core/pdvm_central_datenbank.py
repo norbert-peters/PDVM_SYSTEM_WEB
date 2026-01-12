@@ -32,10 +32,13 @@ class PdvmCentralDatabase:
         no_save: bool = False,
         stichtag: float = 9999365.00000,
         system_pool: Optional[Any] = None,
-        mandant_pool: Optional[Any] = None
+        mandant_pool: Optional[Any] = None,
+        _skip_load: bool = False
     ):
         """
         Initialisiert die Business-Logic-Schicht
+        
+        WICHTIG: Nutze load() statt __init__ wenn Daten aus DB geladen werden sollen!
         
         Args:
             table_name: Name der Tabelle
@@ -44,6 +47,7 @@ class PdvmCentralDatabase:
             stichtag: PDVM-Datum für Zeitpunkt-basierte Sicht
             system_pool: Connection pool für pdvm_system Datenbank
             mandant_pool: Connection pool für mandanten Datenbank
+            _skip_load: INTERN - verhindert Auto-Load in Factory-Methode
         """
         self.table_name = table_name
         self.guid = str(guid) if guid else None
@@ -60,26 +64,65 @@ class PdvmCentralDatabase:
         
         logger.info(f"PdvmCentralDatabase initialisiert: {table_name}.{guid} (historisch: {self.historisch}, no_save: {no_save})")
     
-    def set_guid(self, guid: str):
+    @classmethod
+    async def load(
+        cls,
+        table_name: str,
+        guid: str,
+        no_save: bool = False,
+        stichtag: float = 9999365.00000,
+        system_pool: Optional[Any] = None,
+        mandant_pool: Optional[Any] = None
+    ) -> 'PdvmCentralDatabase':
         """
-        Setzt GUID ohne DB-Lesen (für Setup-Phase)
+        Factory-Methode: Erstellt Instanz UND lädt Daten aus Datenbank.
+        
+        STANDARD-PATTERN für Datenzugriff:
+        ```python
+        menu = await PdvmCentralDatabase.load("sys_menudaten", menu_guid, system_pool=pool)
+        grund = menu.get_value_by_group("GRUND")
+        ```
         
         Args:
-            guid: Die zu setzende GUID (als String oder UUID)
+            table_name: Name der Tabelle
+            guid: GUID des zu ladenden Datensatzes
+            (weitere wie __init__)
+            
+        Returns:
+            PdvmCentralDatabase: Instanz mit geladenen Daten
         """
-        self.guid = str(guid) if guid else None
-        logger.debug(f"GUID gesetzt ohne DB-Lesen: {self.guid}")
-    
-    def set_data(self, data: Dict[str, Any]):
-        """
-        Setzt Daten direkt ohne DB-Lesen (für Setup-Phase)
+        # Erstelle Instanz ohne Auto-Load
+        instance = cls(
+            table_name=table_name,
+            guid=guid,
+            no_save=no_save,
+            stichtag=stichtag,
+            system_pool=system_pool,
+            mandant_pool=mandant_pool,
+            _skip_load=True
+        )
         
-        Args:
-            data: Die komplette Datenstruktur (JSONB 'daten' Spalte)
-        """
-        self.data = data.copy() if data else {}
-        self._data_loaded = True
-        logger.debug(f"Daten gesetzt ohne DB-Lesen: {len(self.data)} Gruppen")
+        # Lade Daten aus DB
+        try:
+            guid_uuid = uuid.UUID(guid)
+            row = await instance.db.get_by_uid(guid_uuid)
+            
+            if row and "daten" in row:
+                instance.data = row["daten"]
+                instance._data_loaded = True
+                logger.info(f"✅ Daten geladen für {table_name}.{guid}: {len(instance.data)} Gruppen")
+            else:
+                logger.warning(f"⚠️ Keine Daten gefunden für {table_name}.{guid} - leere Instanz")
+                instance.data = {}
+                instance._data_loaded = True
+                
+        except Exception as e:
+            logger.error(f"❌ Fehler beim Laden von {table_name}.{guid}: {e}")
+            instance.data = {}
+            instance._data_loaded = False
+            raise
+        
+        return instance
     
     def _get_current_timestamp(self) -> float:
         """
@@ -123,20 +166,25 @@ class PdvmCentralDatabase:
             # Daten direkt setzen
             if isinstance(daten, dict):
                 self.data = daten.copy()
-                logger.debug(f"Dict-Daten direkt gesetzt: {len(self.data)} Gruppen")
+                gruppen_liste = list(self.data.keys())
+                logger.info(f"✅ Daten gesetzt: {len(self.data)} Gruppen: {gruppen_liste}")
+                
+                # Debug-Info für jede Gruppe
+                for gruppe_name in gruppen_liste:
+                    gruppe_data = self.data[gruppe_name]
+                    if isinstance(gruppe_data, dict):
+                        logger.debug(f"   └─ Gruppe '{gruppe_name}': {len(gruppe_data)} Felder")
+                    else:
+                        logger.warning(f"   └─ Gruppe '{gruppe_name}': KEIN Dictionary! Type: {type(gruppe_data)}")
             else:
-                logger.error(f"Ungültiger Datentyp in set_data: {type(daten)}")
+                logger.error(f"❌ Ungültiger Datentyp in set_data: {type(daten)}")
                 self.data = {}
             
             # Markiere Daten als geladen
             self._data_loaded = True
             
-            logger.debug(f"set_data erfolgreich: GUID={self.guid}, Gruppen={list(self.data.keys())}")
-            
         except Exception as e:
-            logger.error(f"Fehler in set_data: {e}")
-            self.data = {}
-            self._data_loaded = False
+            logger.error(f"❌ Fehler in set_data: {e}")
             self.data = {}
             self._data_loaded = False
     
@@ -256,10 +304,12 @@ class PdvmCentralDatabase:
         Returns:
             Dict[str, Any]: Dictionary mit {feld: wert} für alle Felder
         """
-
+        logger.debug(f"🔍 get_value_by_group('{gruppe}') aufgerufen")
+        logger.debug(f"   Verfügbare Gruppen: {list(self.data.keys())}")
         
         if gruppe not in self.data:
             logger.warning(f"⚠️ Gruppe nicht gefunden: {gruppe}")
+            logger.warning(f"   Verfügbare Gruppen: {list(self.data.keys())}")
             return {}
         
         gruppe_data = self.data[gruppe]
@@ -267,6 +317,8 @@ class PdvmCentralDatabase:
         if not isinstance(gruppe_data, dict):
             logger.warning(f"⚠️ Gruppe '{gruppe}' ist kein Dictionary: {type(gruppe_data)}")
             return {}
+        
+        logger.info(f"✅ Gruppe '{gruppe}' gefunden mit {len(gruppe_data)} Feldern")
         
         # Konvertiere Legacy 'wert'-Struktur wenn nötig
         result = {}

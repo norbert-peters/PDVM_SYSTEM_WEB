@@ -8,39 +8,22 @@ import Welcome from './components/Welcome'
 import TableView from './components/TableView'
 import { AppLayout } from './components/layout'
 import { MenuProvider } from './contexts/MenuContext'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
 
-function App() {
-  const [token, setToken] = useState<string | null>(
-    localStorage.getItem('token')
-  )
-  const [mandantId, setMandantId] = useState<string | null>(
-    localStorage.getItem('mandant_id')
-  )
+function AppContent() {
+  const { token, mandantId, login, logout, selectMandant } = useAuth()
   const [showCreateMandant, setShowCreateMandant] = useState(false)
 
+  // NOTE: state 'token' and 'mandantId' now come from context
+  
   const handleLogin = (newToken: string) => {
-    localStorage.setItem('token', newToken)
-    setToken(newToken)
-    // Mandant wird in MandantSelect ausgewählt
-    localStorage.removeItem('mandant_id')
-    setMandantId(null)
+    login(newToken)
   }
 
   const handleMandantSelected = (selectedMandantId: string) => {
-    localStorage.setItem('mandant_id', selectedMandantId)
-    setMandantId(selectedMandantId)
-    // Speichere Mandant-Info für useAuth Hook
-    localStorage.setItem('currentMandant', JSON.stringify({
-      uid: selectedMandantId,
-      name: 'Mandant' // TODO: Echten Namen vom Backend holen
-    }))
-  }
-
-  const handleLogout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('mandant_id')
-    setToken(null)
-    setMandantId(null)
+    // Fetch generic mandant info or just ID - context needs Mandant object
+    // For now we construct basic object, ideally we should get it from MandantSelect
+    selectMandant({ uid: selectedMandantId, name: 'Mandant' }) 
   }
 
   // Kein Token → Login
@@ -56,7 +39,7 @@ function App() {
           token={token}
           onSuccess={() => {
             setShowCreateMandant(false)
-            // Nach Erstellung zurück zur Auswahl
+            // Nach Erstellung zurück zur Auswahl (passiert automatisch wenn kein Mandant gewählt)
           }}
           onCancel={() => setShowCreateMandant(false)}
         />
@@ -64,7 +47,6 @@ function App() {
     }
     return (
       <MandantSelect
-        token={token}
         onMandantSelected={handleMandantSelected}
         onCreateNew={() => setShowCreateMandant(true)}
       />
@@ -78,13 +60,21 @@ function App() {
         <AppLayout>
           <Routes>
             <Route path="/" element={<Welcome mandantId={mandantId} />} />
-            <Route path="/dashboard" element={<Dashboard onLogout={handleLogout} mandantId={mandantId} token={token} />} />
+            <Route path="/dashboard" element={<Dashboard onLogout={logout} mandantId={mandantId} token={token} />} />
             <Route path="/table/:tableName" element={<TableView token={token} />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </AppLayout>
       </MenuProvider>
     </BrowserRouter>
+  )
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   )
 }
 

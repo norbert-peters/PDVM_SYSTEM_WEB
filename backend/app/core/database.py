@@ -209,21 +209,31 @@ async def get_db_connection(db_name: str = "mandant"):
     Returns:
         asyncpg.Connection
     """
-    if db_name == "system" or db_name == "pdvm_system":
-        url = settings.DATABASE_URL_SYSTEM
-    elif db_name == "auth":
+    if db_name == "auth":
         url = settings.DATABASE_URL_AUTH
-    elif db_name == "mandant":
-        url = settings.DATABASE_URL_MANDANT
-    else:
-        raise ValueError(f"Unknown database: {db_name}")
+        return await asyncpg.connect(url)
+
+    # Für andere DBs: URL von Auth ableiten
+    from urllib.parse import urlparse, urlunparse
+    parsed = urlparse(settings.DATABASE_URL_AUTH)
     
+    target_db = None
+    if db_name == "system" or db_name == "pdvm_system":
+        target_db = "pdvm_system"
+    elif db_name == "mandant":
+        target_db = "mandant"
+    else:
+        # Versuche direkten DB-Namen
+        target_db = db_name
+        
+    url = urlunparse((parsed.scheme, parsed.netloc, f'/{target_db}', '', '', ''))
     return await asyncpg.connect(url)
 
 
 def get_database_url(db_name: str = "mandant") -> str:
     """
     Get database connection string by name.
+    Derived from AUTH connection to ensure single source of config.
     
     Args:
         db_name: Database name ('system', 'auth', 'mandant')
@@ -231,12 +241,19 @@ def get_database_url(db_name: str = "mandant") -> str:
     Returns:
         PostgreSQL connection string
     """
-    if db_name == "system" or db_name == "pdvm_system":
-        return settings.DATABASE_URL_SYSTEM
-    elif db_name == "auth":
+    if db_name == "auth":
         return settings.DATABASE_URL_AUTH
+
+    from urllib.parse import urlparse, urlunparse
+    parsed = urlparse(settings.DATABASE_URL_AUTH)
+    
+    target_db = None
+    if db_name == "system" or db_name == "pdvm_system":
+        target_db = "pdvm_system"
     elif db_name == "mandant":
-        return settings.DATABASE_URL_MANDANT
+        target_db = "mandant"
     else:
-        raise ValueError(f"Unknown database: {db_name}")
+        target_db = db_name
+        
+    return urlunparse((parsed.scheme, parsed.netloc, f'/{target_db}', '', '', ''))
 

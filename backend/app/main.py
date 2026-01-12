@@ -17,9 +17,36 @@ app = FastAPI(
 # Startup/Shutdown events
 @app.on_event("startup")
 async def startup():
-    """Initialize database pools on startup"""
+    """Initialize database pools and run maintenance on startup"""
     await DatabasePool.create_pool()
     print("✅ Database pools initialized")
+    
+    # System-Datenbank-Wartung beim Start
+    try:
+        import asyncpg
+        from app.core.connection_manager import ConnectionManager
+        from app.core.mandant_db_maintenance import run_system_maintenance
+        
+        print("🔧 Starte System-Datenbank-Wartung...")
+        
+        # Hole system_db URL
+        system_config = await ConnectionManager.get_system_config("pdvm_system")
+        system_db_url = system_config.to_url()
+        
+        # Erstelle temporären Pool für Wartung
+        system_pool = await asyncpg.create_pool(system_db_url, min_size=1, max_size=2)
+        
+        try:
+            maintenance_stats = await run_system_maintenance(system_pool)
+            print(f"✅ System-Wartung: {len(maintenance_stats['tables_created'])} Tabellen erstellt, "
+                  f"{len(maintenance_stats['tables_updated'])} aktualisiert, "
+                  f"{maintenance_stats['records_updated']} Datensätze korrigiert")
+        finally:
+            await system_pool.close()
+            
+    except Exception as e:
+        print(f"⚠️ System-Wartung fehlgeschlagen: {e}")
+        # Nicht kritisch - Server läuft trotzdem
 
 @app.on_event("shutdown")
 async def shutdown():

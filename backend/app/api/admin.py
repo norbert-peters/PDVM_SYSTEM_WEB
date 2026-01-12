@@ -45,7 +45,8 @@ async def require_admin(current_user: dict = Depends(get_current_user)):
 @router.get("/databases", response_model=List[DatabaseInfo])
 async def list_databases(admin: dict = Depends(require_admin)):
     """List all databases in PostgreSQL instance"""
-    parsed = urlparse(settings.DATABASE_URL_SYSTEM)
+    # Use AUTH URL as base for server connection
+    parsed = urlparse(settings.DATABASE_URL_AUTH)
     admin_url = urlunparse((parsed.scheme, parsed.netloc, '/postgres', '', '', ''))
     
     try:
@@ -100,7 +101,8 @@ async def create_mandant_database(
             detail="Mandantenname enthält ungültige Zeichen"
         )
     
-    parsed = urlparse(settings.DATABASE_URL_SYSTEM)
+    # Use AUTH URL as base
+    parsed = urlparse(settings.DATABASE_URL_AUTH)
     admin_url = urlunparse((parsed.scheme, parsed.netloc, '/postgres', '', '', ''))
     
     try:
@@ -175,14 +177,12 @@ async def create_table(
             detail="Tabellenname enthält ungültige Zeichen"
         )
     
-    # Get database URL
-    if table_data.database == "system":
-        db_url = settings.DATABASE_URL_SYSTEM
-    elif table_data.database == "auth":
-        db_url = settings.DATABASE_URL_AUTH
-    elif table_data.database == "mandant":
-        db_url = settings.DATABASE_URL_MANDANT
-    else:
+    # Get database URL (derive from AUTH)
+    from app.core.database import get_database_url
+    
+    try:
+        db_url = get_database_url(table_data.database)
+    except ValueError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Ungültige Datenbank. Erlaubt: system, auth, mandant"
@@ -234,14 +234,12 @@ async def list_tables(
 ):
     """List all tables in specified database"""
     
-    # Get database URL
-    if database == "system":
-        db_url = settings.DATABASE_URL_SYSTEM
-    elif database == "auth":
-        db_url = settings.DATABASE_URL_AUTH
-    elif database == "mandant":
-        db_url = settings.DATABASE_URL_MANDANT
-    else:
+    # Get database URL (derive from AUTH)
+    from app.core.database import get_database_url
+    
+    try:
+        db_url = get_database_url(database)
+    except ValueError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Ungültige Datenbank"
@@ -286,7 +284,7 @@ async def delete_database(
             detail="Nur Mandantendatenbanken können gelöscht werden"
         )
     
-    parsed = urlparse(settings.DATABASE_URL_SYSTEM)
+    parsed = urlparse(settings.DATABASE_URL_AUTH)
     admin_url = urlunparse((parsed.scheme, parsed.netloc, '/postgres', '', '', ''))
     
     try:

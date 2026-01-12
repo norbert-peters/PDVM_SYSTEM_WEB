@@ -63,22 +63,28 @@ export default function Dashboard({ onLogout, mandantId, token }: DashboardProps
         'TESTBEREICH': '🧪'
       }
       
-      // VERTIKAL-Menü extrahieren (Hauptnavigation mit App-Links)
+      // VERTIKAL-Menü extrahieren (Hierarchische Navigation)
       if (menuData.menu_data?.VERTIKAL) {
+        console.log('🔍 VERTIKAL-Menü Daten:', menuData.menu_data.VERTIKAL)
+        
         Object.entries(menuData.menu_data.VERTIKAL).forEach(([key, value]: [string, any]) => {
-          // Nur BUTTON-Typen anzeigen (keine Separatoren)
-          if (value.type === 'BUTTON' && value.visible && !value.parent_guid) {
+          // Alle Top-Level Items (ohne parent_guid) anzeigen - SUBMENU, BUTTON, etc.
+          if (value.visible && !value.parent_guid && value.type !== 'SEPARATOR' && value.type !== 'SPACER') {
             const appName = value.command?.params?.app_name
             verticalItems.push({
               id: key,
               label: value.label,
-              icon: iconMap[appName] || '📁',
+              icon: iconMap[appName] || (value.type === 'SUBMENU' ? '📁' : '📄'),
               action: value.command?.handler,
               table: appName,
               type: value.type
             })
           }
         })
+        
+        console.log('✅ VERTIKAL Items extrahiert:', verticalItems)
+      } else {
+        console.log('⚠️ Keine VERTIKAL-Menü Daten vorhanden')
       }
       
       // GRUND-Menü extrahieren (Basis-Funktionen)

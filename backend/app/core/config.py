@@ -18,12 +18,10 @@ class Settings(BaseSettings):
     DATABASE_URL_AUTH: str = "postgresql://postgres:Polari$55@localhost:5432/auth"
 
     # =========================================================================
-    # DEPRECATED - Nur noch für Migrations/Setup-Scripts
+    # DEPRECATED - Removed in Cleanup
     # =========================================================================
-    # Diese URLs werden NICHT mehr im laufenden Betrieb verwendet!
-    # Alle Connection-Daten kommen aus sys_mandanten via ConnectionManager
-    DATABASE_URL_SYSTEM: str = "postgresql://postgres:Polari$55@localhost:5432/pdvm_system"
-    DATABASE_URL_MANDANT: str = "postgresql://postgres:Polari$55@localhost:5432/mandant"
+    # DATABASE_URL_SYSTEM and DATABASE_URL_MANDANT were removed.
+    # Connections are now derived from DATABASE_URL_AUTH or sys_mandanten.
 
     # Auth
     SECRET_KEY: str = "your-secret-key-change-this"
@@ -35,5 +33,6 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+        extra = "ignore"
 
 settings = Settings()

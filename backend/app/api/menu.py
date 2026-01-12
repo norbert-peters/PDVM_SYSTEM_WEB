@@ -1,17 +1,56 @@
 """
 Menu API - Lädt und verwaltet PDVM Menüs über GCS
-Verwendet PdvmDatabase für sys_menudaten (in pdvm_system DB)
+Verwendet PdvmCentralDatabase für sys_menudaten (in pdvm_system DB)
 """
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Dict, Any
 import logging
 import uuid
 from ..core.security import get_current_user
-from ..core.pdvm_datenbank import PdvmDatabase
+from ..core.pdvm_central_datenbank import PdvmCentralDatabase
 from ..api.gcs import get_gcs_instance
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+async def expand_templates(gruppe_items: Dict[str, Any], gruppe_name: str, system_pool) -> Dict[str, Any]:
+    """
+    Expandiert Template-Menüs (SPACER mit template_guid) in einer Gruppe.
+    
+    Args:
+        gruppe_items: Dictionary mit Menu-Items einer Gruppe
+        gruppe_name: Name der Gruppe (GRUND, ZUSATZ, VERTIKAL) für Template-Zugriff
+        system_pool: Connection pool für sys_menudaten
+        
+    Returns:
+        Expandierte Items mit eingefügten Templates
+    """
+    result = gruppe_items.copy()
+    
+    # Finde SPACER mit template_guid
+    for item_guid, item in list(gruppe_items.items()):
+        if item.get("type") == "SPACER" and item.get("template_guid"):
+            template_guid = item["template_guid"]
+            
+            try:
+                # Lade Template-Menü mit PdvmCentralDatabase.load()
+                template_menu = await PdvmCentralDatabase.load("sys_menudaten", template_guid, system_pool=system_pool)
+                
+                # Hole Items derselben Gruppe
+                template_items = template_menu.get_value_by_group(gruppe_name)
+                
+                # Füge Template-Items ein (ohne Duplikate)
+                for tmpl_guid, tmpl_item in template_items.items():
+                    if tmpl_guid not in result:
+                        result[tmpl_guid] = tmpl_item
+                
+                logger.info(f"✅ Template {template_guid} in {gruppe_name} expandiert: {len(template_items)} Items")
+                
+            except Exception as e:
+                logger.warning(f"⚠️ Template {template_guid} konnte nicht geladen werden: {e}")
+    
+    return result
 
 
 @router.get("/start")
@@ -22,12 +61,20 @@ async def get_start_menu(
     """
     Lädt das Startmenü des Benutzers aus GCS.MEINEAPPS.START.MENU
     
+    Einfache Pipeline:
+    1. Menü-GUID aus GCS holen
+    2. Menü in PdvmCentralDatabase laden
+    3. Pro Gruppe: get_value_by_group() → Template expandieren → Fertig
+    
     Returns:
-        Menü-Struktur mit VERTIKAL, GRUND, ZUSATZ, ROOT
+        {
+            "GRUND": {...},
+            "ZUSATZ": {...},
+            "VERTIKAL": {...}
+        }
     """
     try:
-        # Startmenü-GUID aus BENUTZER-Instanz holen (MEINEAPPS.START.MENU)
-        # Desktop-Pattern: gcs.benutzer.get_static_value("MEINEAPPS", "START")
+        # 1. Startmenü-GUID aus GCS.BENUTZER.MEINEAPPS.START.MENU
         meineapps = gcs.benutzer.get_static_value("MEINEAPPS", "START")
         
         if not isinstance(meineapps, dict) or "MENU" not in meineapps:
@@ -37,29 +84,29 @@ async def get_start_menu(
             )
         
         menu_guid = meineapps.get("MENU")
-        
         if not menu_guid:
-            raise HTTPException(
-                status_code=404,
-                detail="Keine Startmenü-GUID gefunden"
-            )
+            raise HTTPException(status_code=404, detail="Keine Startmenü-GUID gefunden")
         
         logger.info(f"📋 Lade Startmenü: {menu_guid} für User {gcs.user_guid}")
         
-        # Menü aus sys_menudaten laden (via PdvmDatabase mit system_pool)
-        menu_db = PdvmDatabase("sys_menudaten", system_pool=gcs._system_pool)
-        menu = await menu_db.get_by_uid(uuid.UUID(menu_guid))
+        # 2. Menü laden - Daten werden automatisch in Instanz geladen
+        menu = await PdvmCentralDatabase.load("sys_menudaten", menu_guid, system_pool=gcs._system_pool)
         
-        if not menu:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Startmenü {menu_guid} nicht gefunden"
-            )
+        # 3. Gruppen einzeln holen und Template expandieren
+        grund = menu.get_value_by_group("GRUND")
+        vertikal = menu.get_value_by_group("VERTIKAL")
+        
+        # Template-Expansion (mit Gruppen-Namen für korrekte Template-Zuordnung)
+        grund = await expand_templates(grund, "GRUND", gcs._system_pool) if grund else {}
+        vertikal = await expand_templates(vertikal, "VERTIKAL", gcs._system_pool) if vertikal else {}
         
         return {
-            "uid": str(menu["uid"]),
-            "name": menu.get("name", "Startmenü"),
-            "menu_data": menu.get("daten", {})
+            "uid": menu_guid,
+            "name": "Startmenü",
+            "menu_data": {
+                "GRUND": grund,
+                "VERTIKAL": vertikal
+            }
         }
         
     except HTTPException:
@@ -113,20 +160,31 @@ async def get_app_menu(
         
         logger.info(f"📋 Lade App-Menü: {app_name} → {menu_guid}")
         
-        # Menü aus sys_menudaten laden
-        menu_db = PdvmDatabase("sys_menudaten", system_pool=gcs._system_pool)
-        menu = await menu_db.get_by_uid(uuid.UUID(menu_guid))
+        # Menü laden mit PdvmCentralDatabase.load()
+        menu = await PdvmCentralDatabase.load("sys_menudaten", menu_guid, system_pool=gcs._system_pool)
         
-        if not menu:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Menü {menu_guid} für {app_name} nicht gefunden"
-            )
+        # Gruppen einzeln holen und Template expandieren
+        grund = menu.get_value_by_group("GRUND")
+        vertikal = menu.get_value_by_group("VERTIKAL")
+        
+        # Template-Expansion
+        grund = await expand_templates(grund, "GRUND", gcs._system_pool) if grund else {}
+        vertikal = await expand_templates(vertikal, "VERTIKAL", gcs._system_pool) if vertikal else {}
+        
+        # DEBUG: Zeige was zurückgegeben wird
+        logger.info(f"📤 API Response für {app_name}:")
+        logger.info(f"   GRUND: {len(grund)} Items")
+        logger.info(f"   VERTIKAL: {len(vertikal)} Items")
+        if vertikal:
+            logger.info(f"   VERTIKAL Keys: {list(vertikal.keys())[:5]}...")  # Erste 5 Keys
         
         return {
-            "uid": str(menu["uid"]),
-            "name": menu.get("name", app_name),
-            "menu_data": menu.get("daten", {})
+            "uid": menu_guid,
+            "name": app_name,
+            "menu_data": {
+                "GRUND": grund,
+                "VERTIKAL": vertikal
+            }
         }
         
     except HTTPException:
