@@ -17,12 +17,6 @@ class Settings(BaseSettings):
     # Alle anderen Datenbanken werden dynamisch aus sys_mandanten geladen!
     DATABASE_URL_AUTH: str = "postgresql://postgres:Polari$55@localhost:5432/auth"
 
-    # =========================================================================
-    # DEPRECATED - Removed in Cleanup
-    # =========================================================================
-    # DATABASE_URL_SYSTEM and DATABASE_URL_MANDANT were removed.
-    # Connections are now derived from DATABASE_URL_AUTH or sys_mandanten.
-
     # Auth
     SECRET_KEY: str = "your-secret-key-change-this"
     ALGORITHM: str = "HS256"
