@@ -92,9 +92,10 @@ async def get_start_menu(
         # 2. Menü laden - Daten werden automatisch in Instanz geladen
         menu = await PdvmCentralDatabase.load("sys_menudaten", menu_guid, system_pool=gcs._system_pool)
         
-        # 3. Gruppen einzeln holen und Template expandieren
+        # 3. Gruppen einzeln holen
         grund = menu.get_value_by_group("GRUND")
         vertikal = menu.get_value_by_group("VERTIKAL")
+        root = menu.get_value_by_group("ROOT")
         
         # Template-Expansion (mit Gruppen-Namen für korrekte Template-Zuordnung)
         grund = await expand_templates(grund, "GRUND", gcs._system_pool) if grund else {}
@@ -104,6 +105,7 @@ async def get_start_menu(
             "uid": menu_guid,
             "name": "Startmenü",
             "menu_data": {
+                "ROOT": root,
                 "GRUND": grund,
                 "VERTIKAL": vertikal
             }
@@ -163,9 +165,10 @@ async def get_app_menu(
         # Menü laden mit PdvmCentralDatabase.load()
         menu = await PdvmCentralDatabase.load("sys_menudaten", menu_guid, system_pool=gcs._system_pool)
         
-        # Gruppen einzeln holen und Template expandieren
+        # Gruppen einzeln holen
         grund = menu.get_value_by_group("GRUND")
         vertikal = menu.get_value_by_group("VERTIKAL")
+        root = menu.get_value_by_group("ROOT")
         
         # Template-Expansion
         grund = await expand_templates(grund, "GRUND", gcs._system_pool) if grund else {}
@@ -173,6 +176,7 @@ async def get_app_menu(
         
         # DEBUG: Zeige was zurückgegeben wird
         logger.info(f"📤 API Response für {app_name}:")
+        logger.info(f"   ROOT: {root}")
         logger.info(f"   GRUND: {len(grund)} Items")
         logger.info(f"   VERTIKAL: {len(vertikal)} Items")
         if vertikal:
@@ -182,6 +186,7 @@ async def get_app_menu(
             "uid": menu_guid,
             "name": app_name,
             "menu_data": {
+                "ROOT": root,
                 "GRUND": grund,
                 "VERTIKAL": vertikal
             }
