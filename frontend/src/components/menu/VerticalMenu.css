@@ -60,7 +60,7 @@
   margin: 0;
 }
 
-/* Submenu Dropdown Styles */
+/* Submenu Dropdown Styles (Accordion Behavior) */
 .vertical-menu-submenu {
   position: relative;
   width: 100%;
@@ -86,25 +86,29 @@
 }
 
 .vertical-menu-dropdown {
-  position: absolute;
-  left: 100%;
+  /* Accordion Style: No absolute positioning */
+  position: relative; 
+  left: 0;
   top: 0;
-  min-width: 220px;
-  max-width: 400px;
-  background: var(--surface-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
-  margin-left: 0.25rem;
-  padding: 0.25rem 0;
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
+  width: 100%;
+  background: var(--surface-secondary, rgba(0, 0, 0, 0.03));
+  border: none;
+  box-shadow: none;
+  padding-left: 1rem; /* Indentation for nested levels */
+  display: block;
+}
+
+.vertical-menu-dropdown.nested-dropdown {
+  padding-left: 1rem; /* Additional indentation for deeper levels */
+}
+
+/* Adjust nested buttons */
+.vertical-menu-dropdown .vertical-menu-button {
+  font-size: 0.9rem;
+  padding: 0.6rem 1rem 0.6rem 2.5rem;
 }
 
 .vertical-menu-dropdown .vertical-menu-button {
-  padding: 0.75rem 1rem;
   width: 100%;
   border-left: none;
   border-radius: 0;
@@ -125,10 +129,14 @@
 }
 
 .vertical-menu-dropdown .vertical-menu-dropdown.nested-dropdown {
-  left: 100%;
+  left: 0;
   top: 0;
-  margin-left: 0.25rem;
+  margin-left: 0;
   margin-top: 0;
+}
+
+.vertical-menu-dropdown .vertical-menu-dropdown .vertical-menu-button {
+  padding-left: 3.5rem;
 }
 
 /* Dark Mode Dropdown */

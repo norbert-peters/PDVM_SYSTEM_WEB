@@ -44,27 +44,41 @@ export const MenuRenderer: React.FC<MenuRendererProps> = ({
       const newSubmenus = new Set(openSubmenus);
       
       if (!wasOpen) {
-        // Öffne dieses Submenu (Parent bleibt offen)
+        // 1. Schließe alle Siblings (Items auf gleicher Ebene)
+        const siblings = Object.entries(menuData).filter(([id, i]) => 
+          i.parent_guid === item.parent_guid && id !== guid
+        );
+        
+        // Rekursive Funktion zum Schließen eines Items und seiner Kinder
+        const closeItemRecursively = (targetGuid: string) => {
+          if (newSubmenus.has(targetGuid)) {
+            newSubmenus.delete(targetGuid);
+            // Suche Kinder
+            Object.entries(menuData).forEach(([childGuid, childItem]) => {
+              if (childItem.parent_guid === targetGuid) {
+                closeItemRecursively(childGuid);
+              }
+            });
+          }
+        };
+
+        siblings.forEach(([siblingGuid]) => closeItemRecursively(siblingGuid));
+
+        // 2. Öffne dieses Submenu
         newSubmenus.add(guid);
         console.log(`🔼 Öffne Submenu: ${item.label}`);
       } else {
         // Schließe dieses Submenu und alle seine Kinder
-        const toClose = new Set([guid]);
-        
-        // Finde alle Kinder rekursiv
-        const findChildren = (parentGuid: string) => {
+        const closeItemRecursively = (targetGuid: string) => {
+          newSubmenus.delete(targetGuid);
           Object.entries(menuData).forEach(([childGuid, childItem]) => {
-            if (childItem.parent_guid === parentGuid) {
-              toClose.add(childGuid);
-              findChildren(childGuid);
+            if (childItem.parent_guid === targetGuid) {
+              closeItemRecursively(childGuid);
             }
           });
         };
-        findChildren(guid);
-        
-        // Entferne alle gefundenen aus openSubmenus
-        toClose.forEach(g => newSubmenus.delete(g));
-        console.log(`🔽 Schließe Submenu: ${item.label} + ${toClose.size - 1} Kinder`);
+        closeItemRecursively(guid);
+        console.log(`🔽 Schließe Submenu: ${item.label}`);
       }
       
       setOpenSubmenus(newSubmenus);

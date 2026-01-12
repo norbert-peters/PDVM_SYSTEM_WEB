@@ -29,14 +29,15 @@ export interface MenuGroup {
 }
 
 export interface MenuData {
-  ROOT: {
-    GRUND: string;
-    VERTIKAL: string;
-    VERSION: string;
+  ROOT?: {
+    NAME?: string;
+    GRUND?: string;
+    VERTIKAL?: string;
     [key: string]: any;
   };
-  GRUND: MenuGroup;
-  VERTIKAL: MenuGroup;
+  GRUND?: MenuGroup;
+  VERTIKAL?: MenuGroup;
+  [key: string]: any;
 }
 
 export interface MenuResponse {

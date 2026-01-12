@@ -71,7 +71,7 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 1000;
   margin-top: 0.25rem;
-  overflow: hidden;
+  /* overflow: hidden;  <-- REMOVED to allow nested dropdowns */
 }
 
 .horizontal-menu-dropdown .horizontal-menu-button {
