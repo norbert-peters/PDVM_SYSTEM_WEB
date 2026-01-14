@@ -4,6 +4,9 @@ export interface User {
   uid: string;
   username: string;
   name?: string;
+  vorname?: string;
+  nachname?: string;
+  modeName?: string;
   benutzer?: string;
   email?: string;
 }
@@ -11,9 +14,11 @@ export interface User {
 export interface Mandant {
   uid: string;
   name: string;
+  town?: string;
+  street?: string;
 }
 
-interface AuthContextType {
+export interface AuthContextValue {
   token: string | null;
   currentUser: User | null;
   currentMandant: Mandant | null;
@@ -24,7 +29,28 @@ interface AuthContextType {
   mandantId: string | null;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+function parseUserFromStoredUserData(userData: any): User {
+  const userNode = userData?.USER ?? {};
+  const settingsNode = userData?.SETTINGS ?? {};
+
+  const vorname: string | undefined = userNode?.VORNAME ?? userData?.vorname;
+  const nachname: string | undefined = userNode?.NAME ?? userData?.nachname;
+  const modeName: string | undefined = settingsNode?.MODE_NAME ?? userData?.modeName;
+
+  return {
+    uid: userData.uid || userData.benutzer_uid,
+    username: userData.username || userData.benutzer,
+    // legacy / fallback
+    name: userData.name,
+    vorname,
+    nachname,
+    modeName,
+    benutzer: userData.benutzer,
+    email: userData.email,
+  };
+}
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
@@ -38,13 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (userDataStr) {
       try {
         const userData = JSON.parse(userDataStr);
-        setCurrentUser({
-          uid: userData.uid || userData.benutzer_uid,
-          username: userData.username || userData.benutzer,
-          name: userData.name,
-          benutzer: userData.benutzer,
-          email: userData.email
-        });
+        setCurrentUser(parseUserFromStoredUserData(userData));
       } catch (e) {
         console.error('Failed to parse user data', e);
       }
@@ -75,13 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const userDataStr = localStorage.getItem('user_data');
     if (userDataStr) {
       const userData = JSON.parse(userDataStr);
-      setCurrentUser({
-         uid: userData.uid || userData.benutzer_uid,
-         username: userData.username || userData.benutzer,
-         name: userData.name,
-         benutzer: userData.benutzer,
-         email: userData.email
-      });
+      setCurrentUser(parseUserFromStoredUserData(userData));
     }
 
     // Login clears mandant selection

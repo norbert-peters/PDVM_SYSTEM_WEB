@@ -21,9 +21,9 @@ const Welcome: React.FC<WelcomeProps> = ({ mandantId }) => {
       <p>
         Mandant: {currentMandant?.name} ({mandantId})
       </p>
-      <div style={{ marginTop: '2rem', padding: '1rem', background: '#f0f0f0', borderRadius: '8px' }}>
+      <div className="surface-secondary" style={{ marginTop: '2rem', padding: '1rem', borderRadius: 'var(--border-radius-md)' }}>
         <h3>System-Status</h3>
-        <ul>
+        <ul style={{ listStyleType: 'none', paddingLeft: 0 }}>
           <li>✅ Anmeldung erfolgreich</li>
           <li>✅ Mandant ausgewählt</li>
           <li>✅ Neues Layout aktiv</li>

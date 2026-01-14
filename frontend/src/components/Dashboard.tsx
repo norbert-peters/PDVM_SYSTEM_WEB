@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { apiClient, menuAPI } from '../api/client'
+import { apiClient } from '../api/client'
 import MandantCreate from './MandantCreate'
 import MandantSetup from './MandantSetup'
 import './Dashboard.css'

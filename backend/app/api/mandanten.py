@@ -369,6 +369,8 @@ async def select_mandant(
         return {
             "mandant_id": str(mandant["uid"]),
             "mandant_name": mandant["name"],
+            "mandant_town": mandant_data.get("ROOT", {}).get("MANDANT_TOWN"),
+            "mandant_street": mandant_data.get("ROOT", {}).get("MANDANT_STREET"),
             "database": database,
             "message": f"Mandant '{mandant['name']}' erfolgreich ausgewählt"
         }

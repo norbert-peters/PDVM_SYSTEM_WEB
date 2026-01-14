@@ -2,12 +2,16 @@
 GCS (Global Configuration System) API
 Verwendet PdvmCentralSystemsteuerung aus Session
 """
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from typing import Optional, Any
 from pydantic import BaseModel
 from app.core.security import get_current_user
 from app.core.pdvm_central_systemsteuerung import get_gcs_session
 import uuid
+
+from datetime import datetime
+
+from app.core.pdvm_datetime import pdvm_to_datetime, datetime_to_pdvm, pdvm_format_display
 
 router = APIRouter()
 
@@ -149,18 +153,67 @@ async def set_menu_toggle(
 @router.get("/stichtag")
 async def get_stichtag(gcs = Depends(get_gcs_instance)):
     """Liest aktuellen Stichtag des Users"""
-    return {"stichtag": gcs.get_stichtag()}
+
+    st = float(gcs.get_stichtag())
+    dt = pdvm_to_datetime(st)
+    iso = dt.isoformat() if dt else None
+    display = pdvm_format_display(st) if dt else ""
+
+    return {
+        "stichtag": st,
+        "iso": iso,
+        "display": display,
+    }
+
+
+class SetStichtagRequest(BaseModel):
+    stichtag: Optional[float] = None
+    iso: Optional[str] = None
 
 
 @router.post("/stichtag")
 async def set_stichtag(
-    stichtag: float,
+    request: Optional[SetStichtagRequest] = Body(default=None),
+    stichtag: Optional[float] = Query(default=None, description="PDVM float (legacy/query)"),
     gcs = Depends(get_gcs_instance)
 ):
     """Setzt Stichtag des Users"""
-    gcs.set_stichtag(stichtag)
+
+    new_stichtag: Optional[float] = None
+
+    # 1) Legacy query param
+    if stichtag is not None:
+        new_stichtag = float(stichtag)
+
+    # 2) JSON body
+    if request is not None:
+        if request.stichtag is not None:
+            new_stichtag = float(request.stichtag)
+        elif request.iso:
+            try:
+                # Python akzeptiert kein 'Z' direkt in fromisoformat
+                iso_normalized = request.iso.replace("Z", "+00:00")
+                dt = datetime.fromisoformat(iso_normalized)
+                # Konvertierung in PDVM float (naive/local wie im System) – tzinfo wird ignoriert
+                if getattr(dt, "tzinfo", None) is not None:
+                    dt = dt.replace(tzinfo=None)
+                new_stichtag = float(datetime_to_pdvm(dt))
+            except Exception:
+                raise HTTPException(status_code=400, detail="Ungültiges ISO-Datum für Stichtag")
+
+    if new_stichtag is None:
+        raise HTTPException(status_code=400, detail="stichtag (float) oder iso (string) muss gesetzt sein")
+
+    gcs.set_stichtag(new_stichtag)
     await gcs.save_all_values()
-    return {"success": True, "stichtag": stichtag}
+
+    dt = pdvm_to_datetime(new_stichtag)
+    return {
+        "success": True,
+        "stichtag": float(new_stichtag),
+        "iso": dt.isoformat() if dt else None,
+        "display": pdvm_format_display(float(new_stichtag)) if dt else "",
+    }
 
 
 @router.post("/save")

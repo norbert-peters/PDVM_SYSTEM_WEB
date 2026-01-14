@@ -5,6 +5,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from './Header';
+import { StichtagsBar } from './StichtagsBar';
 import { Sidebar } from './Sidebar';
 import { HorizontalNav } from './HorizontalNav';
 import { useTheme } from '../../hooks/useTheme';
@@ -59,6 +60,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   return (
     <div className="app-layout">
       <Header />
+
+      {/* Stichtagsbar als eigene Layout-Zeile unter dem Header */}
+      <div className="stichtags-row">
+        <StichtagsBar />
+      </div>
       
       {/* Horizontales Menü (GRUND) */}
       {menu.currentMenu && (

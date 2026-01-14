@@ -1,0 +1,215 @@
+.pdvm-datetime-picker {
+  position: relative;
+  display: inline-block;
+  font-family: inherit;
+
+  /* Default Popover Breite (sollte mit TS-Default 320 übereinstimmen) */
+  --pdvm-datetime-popover-width: 320px;
+}
+
+.pdvm-datetime-input-wrapper {
+  display: flex;
+  align-items: center;
+  
+  /* V2 Block: block_input_std */
+  border: var(--block-input-std-border, 1px solid var(--color-border-medium));
+  background-color: var(--block-input-std-bg-color, var(--color-background-primary));
+  border-radius: var(--block-input-std-radius, 4px);
+  
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.pdvm-datetime-input-wrapper:hover {
+  border-color: var(--color-primary-500);
+  /* Optional: Could define a hover state in block in future */
+  background-color: var(--color-background-secondary);
+}
+
+.pdvm-datetime-input-wrapper.readonly {
+  cursor: default;
+  background-color: var(--color-background-secondary);
+  border-color: transparent;
+}
+
+.pdvm-datetime-text {
+  flex-grow: 1;
+  font-size: 0.9rem;
+  
+  /* V2 Block: block_input_std text color */
+  color: var(--block-input-std-text-color, var(--color-text-primary));
+  
+  min-width: 140px;
+}
+
+.pdvm-datetime-icon {
+  margin-left: 8px;
+  color: var(--color-text-secondary);
+  font-size: 1rem;
+}
+
+.pdvm-datetime-clear-btn {
+  margin-left: 8px;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  border-radius: 999px;
+  cursor: pointer;
+  flex: 0 0 auto;
+  line-height: 1;
+}
+
+.pdvm-datetime-clear-btn:hover {
+  background: var(--color-background-secondary, #f5f5f5);
+  color: var(--color-text-primary, #222);
+}
+
+.pdvm-datetime-input-wrapper.readonly .pdvm-datetime-clear-btn {
+  display: none;
+}
+
+/* POPOVER / MODAL STYLES */
+.pdvm-datetime-popover {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  background-color: var(--color-background-primary);
+  border: 1px solid var(--color-border-medium);
+  border-radius: var(--border-radius-md, 8px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1050; /* High z-index to float above other content */
+  width: var(--pdvm-datetime-popover-width);
+  padding: 16px;
+}
+
+.pdvm-datetime-popover--start {
+  left: 0;
+  right: auto;
+}
+
+.pdvm-datetime-popover--end {
+  left: auto;
+  right: 0;
+}
+
+.pdvm-datetime-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.pdvm-datetime-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* NATIVE INPUT STYLING (inside popover) */
+.pdvm-datetime-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pdvm-datetime-field-label {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.pdvm-datetime-native-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--color-border-medium);
+  border-radius: 4px;
+  font-size: 0.95rem;
+  background-color: var(--color-background-secondary);
+  color: var(--color-text-primary);
+  /* Accent color for calendar icon etc. (browser support varies) */
+  accent-color: var(--color-primary-500); 
+}
+
+.pdvm-datetime-native-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+}
+
+/* FOOTER BUTTONS */
+.pdvm-datetime-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+}
+
+.pdvm-btn {
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s;
+}
+
+.pdvm-btn-now {
+  margin-right: auto;
+  background: var(--color-background-secondary, #f5f5f5);
+  color: var(--color-text-primary, #222);
+  border: 1px solid var(--color-border-medium, #ddd);
+}
+
+.pdvm-btn-now:hover {
+  background: var(--color-background-primary, #fff);
+}
+
+.pdvm-btn-clear {
+  background: transparent;
+  color: var(--color-text-secondary, #666);
+}
+
+.pdvm-btn-clear:hover {
+  background: var(--surface-hover, #f0f0f0);
+}
+
+.pdvm-btn-cancel {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.pdvm-btn-cancel:hover {
+  background: var(--surface-hover, #f0f0f0);
+}
+
+.pdvm-btn-save {
+  background: var(--primary-color, #2196f3);
+  color: white;
+}
+
+.pdvm-btn-save:hover {
+  background: var(--primary-color-dark, #1976d2);
+}
+
+/* BACKDROP (optional, if we want modality) */
+.pdvm-datetime-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1049;
+  background: transparent; /* Invisible backdrop to catch clicks outside */
+}

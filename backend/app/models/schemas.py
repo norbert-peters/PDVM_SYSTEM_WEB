@@ -73,6 +73,8 @@ class MandantSelectResponse(BaseModel):
     """Mandant selection response"""
     mandant_id: str
     mandant_name: str
+    mandant_town: Optional[str] = None
+    mandant_street: Optional[str] = None
     database: str
     message: str
 

@@ -1,76 +1,29 @@
 /**
- * useTheme Hook
- * Verwaltet Theme-Loading und dynamische CSS-Injection
+ * useTheme Hook V2
+ * Component-Based Theming System
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { layoutApi } from '../api/layout';
-
-export interface ThemeColors {
-  primary: Record<string, string>;
-  secondary: Record<string, string>;
-  neutral: Record<string, string>;
-  success: string;
-  warning: string;
-  error: string;
-  info: string;
-  background: {
-    primary: string;
-    secondary: string;
-    tertiary: string;
-  };
-  text: {
-    primary: string;
-    secondary: string;
-    disabled: string;
-    inverse: string;
-  };
-  border: {
-    light: string;
-    medium: string;
-    dark: string;
-  };
-}
-
-export interface ThemeTypography {
-  fontFamily: {
-    primary: string;
-    secondary: string;
-    mono: string;
-  };
-  fontSize: Record<string, string | number>;
-  fontWeight: Record<string, number>;
-  lineHeight: Record<string, number>;
-}
-
-export interface Theme {
-  mandant_uid: string;
-  mandant_name: string;
-  theme: 'light' | 'dark';
-  colors: ThemeColors;
-  typography: ThemeTypography;
-  customizations: Record<string, any>;
-  assets: Record<string, any>;
-}
+import { layoutApi, ActiveThemeResponse } from '../api/layout';
 
 export interface ThemeContextValue {
-  currentTheme: Theme | null;
+  currentTheme: ActiveThemeResponse | null;
   themeName: 'light' | 'dark';
   systemTheme: 'light' | 'dark';
   useSystemTheme: boolean;
   isLoading: boolean;
   error: string | null;
-  loadTheme: (mandantUid: string, theme?: 'light' | 'dark') => Promise<void>;
+  loadTheme: (mode?: 'light' | 'dark') => Promise<void>;
   toggleTheme: () => void;
   setUseSystemTheme: (value: boolean) => void;
 }
 
 export const useTheme = (): ThemeContextValue => {
   const { currentMandant } = useAuth();
-  const [currentTheme, setCurrentTheme] = useState<Theme | null>(null);
+  const [currentTheme, setCurrentTheme] = useState<ActiveThemeResponse | null>(null);
   const [themeName, setThemeName] = useState<'light' | 'dark'>('light');
   const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>('light');
-  const [useSystemTheme, setUseSystemTheme] = useState(true);
+  const [useSystemTheme, setUseSystemTheme] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -88,148 +41,103 @@ export const useTheme = (): ThemeContextValue => {
     return () => mediaQuery.removeEventListener('change', updateSystemTheme);
   }, []);
 
-  // CSS Injection
-  const injectThemeCSS = useCallback((theme: Theme) => {
+  // V2 Block Injector
+  const injectThemeBlocks = useCallback((themeData: ActiveThemeResponse) => {
     const root = document.documentElement;
-    
-    console.log('🎨 Injecting theme:', theme.mandant_name, theme.theme);
-    console.log('Primary colors:', theme.colors.primary);
-    
-    // Set data attributes
-    root.setAttribute('data-theme', theme.theme);
-    root.setAttribute('data-mandant', theme.mandant_uid);
+    console.log(`🎨 Injecting V2 Theme: ${themeData.theme_variant} (${themeData.mode})`);
 
-    // Inject colors
-    const injectColorScale = (prefix: string, colors: Record<string, any>) => {
-      Object.entries(colors).forEach(([subKey, value]) => {
-        if (typeof value === 'object' && value !== null) {
-          // Nested object (e.g., primary.500)
-          Object.entries(value).forEach(([nestedKey, nestedValue]) => {
-            const varName = `--color-${prefix}-${nestedKey}`;
-            root.style.setProperty(varName, nestedValue as string);
-            console.log(`  ${varName}: ${nestedValue}`);
-          });
-        } else {
-          // Flat value
-          const varName = `--color-${prefix}-${subKey}`;
-          root.style.setProperty(varName, value as string);
-          console.log(`  ${varName}: ${value}`);
-        }
-      });
-    };
-
-    injectColorScale('primary', theme.colors.primary);
-    injectColorScale('secondary', theme.colors.secondary);
-    injectColorScale('neutral', theme.colors.neutral);
-    
-    root.style.setProperty('--color-success', theme.colors.success);
-    root.style.setProperty('--color-warning', theme.colors.warning);
-    root.style.setProperty('--color-error', theme.colors.error);
-    root.style.setProperty('--color-info', theme.colors.info);
-
-    injectColorScale('background', theme.colors.background);
-    injectColorScale('text', theme.colors.text);
-    injectColorScale('border', theme.colors.border);
-
-    // Inject typography
-    root.style.setProperty('--font-primary', theme.typography.fontFamily.primary);
-    root.style.setProperty('--font-secondary', theme.typography.fontFamily.secondary);
-    root.style.setProperty('--font-mono', theme.typography.fontFamily.mono);
-
-    const fontScale = theme.typography.fontSize.scale as number || 1.0;
-    root.style.setProperty('--font-scale', fontScale.toString());
-
-    // Inject customizations
-    if (theme.customizations?.borderRadius) {
-      Object.entries(theme.customizations.borderRadius).forEach(([key, value]) => {
-        root.style.setProperty(`--border-radius-${key}`, value as string);
-      });
+    const blocks = themeData.blocks;
+    if (!blocks) {
+        console.warn("⚠️ No blocks found in theme data!");
+        return;
     }
 
-    console.log(`✅ Theme injected: ${theme.mandant_name} (${theme.theme})`);
+    Object.keys(blocks).forEach(blockName => {
+        const block = blocks[blockName];
+        
+        // Example: blockName="block_header_std"
+        // CSS Variable Prefix: --block-header-std
+        const prefix = blockName.replace(/_/g, '-');
+
+        Object.keys(block).forEach(prop => {
+            const val = block[prop];
+            // prop: "bg_color" -> "bg-color"
+            const cssProp = prop.replace(/_/g, '-');
+            
+            const varName = `--${prefix}-${cssProp}`;
+            root.style.setProperty(varName, val);
+        });
+    });
+
+    // Global Mode Class
+    if (themeData.mode === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
   }, []);
 
   // Load Theme
-  const loadTheme = useCallback(async (mandantUid: string, theme?: 'light' | 'dark') => {
+  const loadTheme = useCallback(async (mode?: 'light' | 'dark') => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const themeToLoad = theme || (useSystemTheme ? systemTheme : themeName);
-      console.log(`🎨 Loading theme: ${mandantUid} → ${themeToLoad}`);
+      const modeToLoad = mode || (useSystemTheme ? systemTheme : themeName);
+      console.log(`🎨 Loading theme V2 (Mode: ${modeToLoad})...`);
       
-      const response = await layoutApi.getMandantTheme(mandantUid, themeToLoad);
+      const response = await layoutApi.getActiveTheme(modeToLoad);
       console.log('📦 Theme response:', response);
       
-      // Backend gibt direkt die Theme-Daten zurück, nicht verschachtelt
-      const themeData: Theme = {
-        mandant_uid: response.mandant_uid,
-        mandant_name: response.mandant_name,
-        theme: response.theme,
-        colors: response.colors as any,
-        typography: response.typography as any,
-        customizations: response.customizations,
-        assets: response.assets,
-      };
+      setCurrentTheme(response);
+      setThemeName(response.mode);
+      
+      // Inject CSS Variables
+      injectThemeBlocks(response);
 
-      console.log('✅ Theme data prepared:', themeData.mandant_name, themeData.theme);
-      setCurrentTheme(themeData);
-      setThemeName(themeData.theme);
-      injectThemeCSS(themeData);
     } catch (err: any) {
-      console.error('❌ Failed to load theme:', err);
+      console.error('❌ Failed to load theme V2:', err);
       setError(err.message || 'Failed to load theme');
     } finally {
       setIsLoading(false);
     }
-  }, [themeName, systemTheme, useSystemTheme, injectThemeCSS]);
+  }, [themeName, systemTheme, useSystemTheme, injectThemeBlocks]);
 
   // Toggle Theme
   const toggleTheme = useCallback(async () => {
-    if (!currentTheme) return;
-
-    const newTheme = themeName === 'light' ? 'dark' : 'light';
-    setThemeName(newTheme);
+    const newMode = themeName === 'light' ? 'dark' : 'light';
+    setThemeName(newMode);
     setUseSystemTheme(false);
     
-    // Speichere Präferenz in Backend
+    // 1. Save Preference
     try {
-      await layoutApi.saveThemePreference(newTheme);
-      console.log(`✅ Theme-Präferenz gespeichert: ${newTheme}`);
+      await layoutApi.saveThemePreference(newMode);
     } catch (err) {
-      console.error('⚠️ Fehler beim Speichern der Theme-Präferenz:', err);
+      console.warn('Could not save preference', err);
     }
-    
-    // Lade neues Theme
-    loadTheme(currentTheme.mandant_uid, newTheme);
-  }, [currentTheme, themeName, loadTheme]);
 
-  // Auto-load theme when mandant changes
+    // 2. Reload Theme
+    loadTheme(newMode);
+  }, [themeName, loadTheme]);
+
+  // Initial Load / Mandant Change
   useEffect(() => {
     if (currentMandant?.uid) {
-      console.log('🔍 Loading theme for mandant:', currentMandant.uid, currentMandant.name);
-      
-      // Lade gespeicherte Theme-Präferenz
-      layoutApi.getThemePreference()
+        // Load default/saved theme
+         layoutApi.getThemePreference()
         .then(savedTheme => {
-          console.log('💾 Gespeicherte Theme-Präferenz (type:', typeof savedTheme, '):', savedTheme);
-          
-          // Sicherstellen dass savedTheme ein String ist
-          const themeString = typeof savedTheme === 'string' ? savedTheme : 'light';
-          setThemeName(themeString as 'light' | 'dark');
-          return loadTheme(currentMandant.uid, themeString as 'light' | 'dark');
+            const mode = (typeof savedTheme === 'string' && savedTheme) ? savedTheme as 'light'|'dark' : 'light';
+            setThemeName(mode);
+            loadTheme(mode);
         })
-        .catch(err => {
-          console.error('❌ Failed to load theme preference, using default:', err);
-          return loadTheme(currentMandant.uid, 'light');
-        });
+        .catch(() => loadTheme('light'));
     }
-  }, [currentMandant]);
+  }, [currentMandant]); // Reduced dependency to avoid loops
 
-  // Update theme when system theme changes (if useSystemTheme is true)
+  // System Theme Sync
   useEffect(() => {
-    if (useSystemTheme && currentTheme) {
-      loadTheme(currentTheme.mandant_uid, systemTheme);
+    if (useSystemTheme) {
+      loadTheme(systemTheme);
     }
   }, [systemTheme, useSystemTheme]);
 

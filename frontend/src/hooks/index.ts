@@ -5,4 +5,4 @@
 export { useAuth } from './useAuth';
 export { useTheme } from './useTheme';
 export type { User, Mandant, AuthContextValue } from './useAuth';
-export type { Theme, ThemeColors, ThemeTypography, ThemeContextValue } from './useTheme';
+export type { ThemeContextValue } from './useTheme';

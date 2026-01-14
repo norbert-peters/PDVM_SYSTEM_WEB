@@ -202,6 +202,39 @@ class PdvmCentralSystemsteuerung:
         )
         # Daten aus DB laden via PdvmDatabase
         import asyncio
+        from app.core.pdvm_datetime import now_pdvm
+
+        def _apply_stichtag_to_all_instances(new_stichtag: float) -> None:
+            """Hält Stichtag über alle GCS-Instanzen konsistent."""
+            self.stichtag = float(new_stichtag)
+            for inst in (self.benutzer, self.mandant, self.systemsteuerung, self.anwendungsdaten, self.layout):
+                if inst is not None:
+                    inst.stichtag = float(new_stichtag)
+
+        async def _ensure_stichtag_initialized() -> None:
+            """Lädt/persistiert STICHTAG aus sys_systemsteuerung und setzt self.stichtag."""
+            try:
+                stored, _ = self.systemsteuerung.get_value(str(self.user_guid), "STICHTAG", ab_zeit=self.stichtag)
+            except Exception:
+                stored = None
+
+            if stored is not None:
+                try:
+                    _apply_stichtag_to_all_instances(float(stored))
+                    return
+                except Exception:
+                    pass
+
+            # Kein persistierter Stichtag -> jetzt verwenden und sofort speichern
+            new_st = float(self.stichtag) if self.stichtag not in (None, 0, 9999365.00000) else float(now_pdvm())
+            _apply_stichtag_to_all_instances(new_st)
+            self.systemsteuerung.set_value(str(self.user_guid), "STICHTAG", new_st, self.stichtag)
+            try:
+                await self.systemsteuerung.save_all_values()
+                logger.info(f"✅ STICHTAG initialisiert und gespeichert: {new_st}")
+            except Exception as e:
+                logger.error(f"❌ Fehler beim Persistieren von STICHTAG: {e}")
+
         async def load_systemsteuerung():
             row = await self.systemsteuerung.db.get_row(uuid.UUID(user_guid))
             if row and row.get('daten'):
@@ -219,6 +252,9 @@ class PdvmCentralSystemsteuerung:
                     logger.info(f"✅ sys_systemsteuerung für User {user_guid} erstellt")
                 except Exception as e:
                     logger.error(f"❌ Fehler beim Erstellen von sys_systemsteuerung: {e}")
+
+            # STICHTAG sicherstellen (laden oder initialisieren + persistieren)
+            await _ensure_stichtag_initialized()
         
         try:
             loop = asyncio.get_event_loop()
@@ -325,6 +361,30 @@ class PdvmCentralSystemsteuerung:
         """
         return await self.systemsteuerung.save_all_values()
     
+    # === Theme-Einstellungen ===
+    
+    def get_user_theme_group(self, mode: str) -> str:
+        """
+        Ermittelt die Layout-Gruppe basierend auf User-Präferenz
+        
+        Args:
+            mode: 'light' oder 'dark'
+            
+        Returns:
+            Name der Gruppe im sys_layout (z.B. "Orange_Dark")
+        """
+        # Mapping Key: THEME_LIGHT oder THEME_DARK
+        config_key = f"THEME_{mode.upper()}"
+        
+        # Versuche Wert aus sys_benutzer.CONFIG zu lesen
+        val = self.benutzer.get_static_value("CONFIG", config_key)
+        
+        # Fallback: Wenn leer, return mode selbst (für "light"/"dark" Standard)
+        if not val:
+            return mode
+            
+        return str(val)
+
     # === Stichtag ===
     
     def get_stichtag(self) -> float:
@@ -334,8 +394,8 @@ class PdvmCentralSystemsteuerung:
         Returns:
             PDVM-Datum (z.B. 2025356.00000)
         """
-        wert, _ = self.get_value(str(self.user_guid), "STICHTAG", ab_zeit=self.stichtag)
-        return wert if wert is not None else 9999365.00000
+        # Stichtag ist in der GCS führend; wird bei Init aus sys_systemsteuerung geladen.
+        return float(self.stichtag) if self.stichtag is not None else 9999365.00000
     
     def set_stichtag(self, new_stichtag: float):
         """
@@ -344,8 +404,14 @@ class PdvmCentralSystemsteuerung:
         Args:
             new_stichtag: PDVM-Datum
         """
-        self.set_value(str(self.user_guid), "STICHTAG", new_stichtag, ab_zeit=self.stichtag)
-        self.stichtag = new_stichtag
+        # Persistierbarer Stichtag (Gruppe=user_guid, Feld=STICHTAG)
+        self.set_value(str(self.user_guid), "STICHTAG", float(new_stichtag), ab_zeit=self.stichtag)
+        self.stichtag = float(new_stichtag)
+
+        # Stichtag über alle Instanzen synchronisieren
+        for inst in (self.benutzer, self.mandant, self.systemsteuerung, self.anwendungsdaten, self.layout):
+            if inst is not None:
+                inst.stichtag = float(new_stichtag)
     
     # === Menu-Einstellungen ===
     

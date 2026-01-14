@@ -9,6 +9,7 @@ import TableView from './components/TableView'
 import { AppLayout } from './components/layout'
 import { MenuProvider } from './contexts/MenuContext'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import type { Mandant } from './contexts/AuthContext'
 
 function AppContent() {
   const { token, mandantId, login, logout, selectMandant } = useAuth()
@@ -20,10 +21,8 @@ function AppContent() {
     login(newToken)
   }
 
-  const handleMandantSelected = (selectedMandantId: string) => {
-    // Fetch generic mandant info or just ID - context needs Mandant object
-    // For now we construct basic object, ideally we should get it from MandantSelect
-    selectMandant({ uid: selectedMandantId, name: 'Mandant' }) 
+  const handleMandantSelected = (mandant: Mandant) => {
+    selectMandant(mandant)
   }
 
   // Kein Token → Login

@@ -1,23 +1,148 @@
 """
-PDVM DateTime - Optimierte Web-Version
+PDVM DateTime - Zentrale Klasse für Zeitkonvertierung und -formatierung
 
-Das PDVM-Zeitformat verwendet YYYYDDD.Zeitanteil (float):
-- YYYY: Jahr (4 Stellen)
-- DDD: Tag im Jahr (001-366)
-- Zeitanteil: Dezimalbruch für die Zeit als Anteil eines Tages (5 Nachkommastellen)
+Das PDVM-Zeitformat (aus der Desktop-Anwendung übernommen) verwendet intern oft floats
+der Form YYYYDDD.Fraction, wobei:
+- YYYY = Jahr (4-stellig)
+- DDD  = Tag im Jahr (1-366)
+- Fraction = Tagesanteil (0.0 bis 0.99999...), wobei 0.5 = 12:00 Uhr mittags entspricht.
 
-Beispiel: 2025356.15203
-- Jahr: 2025
-- Tag im Jahr: 356 (22. Dezember)
-- Zeit: 15:20:32 (als Dezimalbruch: 0.15203)
+Diese Klasse bietet Konvertierungsmethoden zwischen:
+- Nativem Python `datetime` (für DB und API)
+- PDVM-Float (für Legacy-Kompatibilität und Berechnungen)
+- Formatierten Strings (für UI-Darstellung)
 
-Basierend auf Desktop-Version (pdvm_datetime.py)
-Portiert und optimiert für Web-System
-Norbert Peters, Dezember 2025
+Autor: Norbert Peters
+Portiert: 2026
 """
 
-from datetime import datetime, timedelta
-from typing import Optional, Tuple, Union
+from datetime import datetime, timedelta, date, time as py_time
+from typing import Optional, Union, Tuple
+import math
+
+# Konstanten für PDVM-Spezialwerte
+SENTINEL_MIN = 1001.0       # 01.01.0001 (Minimalwert / Leer)
+SENTINEL_MAX = 9999365.99999 # Max mögliches Datum
+
+class PdvmDateTime:
+    """
+    Statische Helper-Klasse für DateTime Operationen im PDVM Kontext.
+    In der Web-Applikation verzichten wir auf den komplexen State der Desktop-Instanz
+    und nutzen stattdessen reine Funktions-Bibliotheken, da der State
+    im Frontend (React) oder in der DB liegt.
+    """
+
+    @staticmethod
+    def now() -> datetime:
+        """Liefert das aktuelle Datum/Zeit (lokal)."""
+        return datetime.now()
+
+    @staticmethod
+    def now_as_float() -> float:
+        """Liefert JETZT als PDVM-Float."""
+        return PdvmDateTime.datetime_to_float(datetime.now())
+
+    @staticmethod
+    def float_to_datetime(pdvm_val: Optional[float]) -> Optional[datetime]:
+        """
+        Konvertiert PDVM-Float (YYYYDDD.Zeit) -> Python datetime.
+        """
+        if pdvm_val is None or pdvm_val == 0:
+            return None
+        
+        # Sentinel Check
+        if abs(pdvm_val - SENTINEL_MIN) < 0.0001:
+            return datetime(1, 1, 1) # Repräsentiert "Leer"
+
+        try:
+            val_str = f"{pdvm_val:.10f}"
+            date_part = val_str.split('.')[0]
+            time_part = val_str.split('.')[1]
+            
+            # Pad or trim date part if needed (e.g. if formatting yields less digits, though with YYYYDDD it should be ok)
+            if len(date_part) < 5: 
+                return None 
+
+            yyyy = int(date_part[:4])
+            ddd = int(date_part[4:])
+            
+            # Basis: 1. Jan des Jahres
+            base_date = datetime(yyyy, 1, 1)
+            # Addiere Tage (DDD - 1, da 1. Jan = Tag 1 ist)
+            target_date = base_date + timedelta(days=ddd - 1)
+
+            # Zeit berechnen: Fraction * 24 * 3600
+            # Fraction ist '0.' + time_part
+            fraction = float(f"0.{time_part}")
+            total_seconds = fraction * 86400 # 24 * 60 * 60
+            
+            # Runden um Fließkomma-Ungenauigkeiten zu minimieren
+            total_seconds = round(total_seconds)
+            
+            final_dt = target_date + timedelta(seconds=total_seconds)
+            return final_dt
+
+        except Exception as e:
+            # Fallback oder Logging im Fehlerfall
+            # print(f"Error converting float {pdvm_val} to datetime: {e}")
+            return None
+
+    @staticmethod
+    def datetime_to_float(dt: Optional[datetime]) -> float:
+        """
+        Konvertiert Python datetime -> PDVM-Float (YYYYDDD.Zeit).
+        """
+        if dt is None:
+            return SENTINEL_MIN
+            
+        if dt.year == 1 and dt.month == 1 and dt.day == 1:
+            return SENTINEL_MIN
+
+        # YYYYDDD berechnen
+        yyyy = dt.year
+        # Tag des Jahres (1-366)
+        ddd = dt.timetuple().tm_yday
+        
+        date_part = (yyyy * 1000) + ddd
+        
+        # Zeitanteil berechnen
+        seconds_since_midnight = (dt.hour * 3600) + (dt.minute * 60) + dt.second + (dt.microsecond / 1000000.0)
+        fraction = seconds_since_midnight / 86400.0
+        
+        return float(date_part) + fraction
+
+    @staticmethod
+    def to_iso_string(dt: Optional[datetime]) -> Optional[str]:
+        """Konvertiert datetime -> ISO 8601 String für Frontend API."""
+        if dt is None:
+            return None
+        return dt.isoformat()
+
+    @staticmethod
+    def from_iso_string(iso_str: Optional[str]) -> Optional[datetime]:
+        """Konvertiert ISO 8601 String -> datetime."""
+        if not iso_str:
+            return None
+        try:
+            return datetime.fromisoformat(iso_str)
+        except ValueError:
+            return None
+
+    @staticmethod
+    def format_frontend_de(dt: Optional[datetime], include_seconds: bool = True) -> str:
+        """
+        Formatiert für deutsche Anzeige im UI (z.B. für Tooltips oder Readonly).
+        Frontend nutzt meist eigene Formatierung, aber für Server-generierte Texte nützlich.
+        """
+        if dt is None:
+            return ""
+        
+        fmt = "%d.%m.%Y %H:%M"
+        if include_seconds:
+            fmt += ":%S"
+        
+        return dt.strftime(fmt)
+
 import calendar
 
 

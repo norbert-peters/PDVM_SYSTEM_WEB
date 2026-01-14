@@ -12,6 +12,11 @@ export interface LoginResponse {
   token_type: string
   user_id: string
   email: string
+  name?: string
+  password_change_required?: boolean
+  auto_select_mandant?: string | null
+  user_data?: Record<string, any>
+  mandanten?: Array<Record<string, any>>
 }
 
 export interface PdvmRecord {
@@ -19,6 +24,12 @@ export interface PdvmRecord {
   name: string
   daten: { [key: string]: any }
   modified_at?: string
+}
+
+export interface GcsStichtagResponse {
+  stichtag: number
+  iso: string | null
+  display: string
 }
 
 // Create axios instance with default config
@@ -136,6 +147,19 @@ export const mandantenAPI = {
   },
 }
 
+// GCS API
+export const gcsAPI = {
+  getStichtag: async (): Promise<GcsStichtagResponse> => {
+    const response = await api.get('/gcs/stichtag')
+    return response.data
+  },
+
+  setStichtagIso: async (iso: string): Promise<{ success: boolean } & GcsStichtagResponse> => {
+    const response = await api.post('/gcs/stichtag', { iso })
+    return response.data
+  },
+}
+
 // Export axios instance for backward compatibility
 export const apiClient = api
 
@@ -145,4 +169,5 @@ export default {
   tables: tablesAPI,
   menu: menuAPI,
   mandanten: mandantenAPI,
+  gcs: gcsAPI,
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import apiClient from '../api/client';
+import { apiClient } from '../api/client';
 import './ServiceManager.css';
 
 interface Service {

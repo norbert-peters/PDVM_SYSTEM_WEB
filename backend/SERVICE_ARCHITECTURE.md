@@ -60,7 +60,7 @@ CREATE TABLE tabelle (
     historisch INTEGER DEFAULT 0,     -- 0=aktiv, 1+=historisch
     source_hash TEXT,                  -- Änderungsverfolgung
     sec_id UUID,                       -- Security/Verknüpfung
-    gilt_bis TEXT DEFAULT '9999365.00000',  -- Gültigkeitsdatum
+    gilt_bis TIMESTAMP DEFAULT '31.12.9999-59:59',  -- Gültigkeitsdatum default offen
     created_at TIMESTAMP DEFAULT NOW(),
     modified_at TIMESTAMP DEFAULT NOW(),
     daten_backup JSONB                 -- Backup bei Änderungen

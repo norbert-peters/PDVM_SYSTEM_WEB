@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
-import { mandantenAPI, apiClient } from '../api/client'
+import { mandantenAPI } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
+import type { Mandant as SelectedMandant } from '../contexts/AuthContext'
 
 interface MandantSelectProps {
-  onMandantSelected: (mandantId: string) => void
+  onMandantSelected: (mandant: SelectedMandant) => void
   onCreateNew?: () => void
 }
 
@@ -37,7 +38,7 @@ export default function MandantSelect({ onMandantSelected, onCreateNew }: Mandan
         mandantenList = JSON.parse(cachedMandanten)
       } else {
         // Fallback: Load from API if cache miss
-        mandantenList = await mandantenAPI.getAll(token)
+        mandantenList = await mandantenAPI.getAll(token || '')
         localStorage.setItem('mandanten', JSON.stringify(mandantenList))
       }
       
@@ -63,13 +64,15 @@ export default function MandantSelect({ onMandantSelected, onCreateNew }: Mandan
       setError(null)
       
       // Backend-Aufruf: Mandant auswählen + Tabellen anlegen
-      await apiClient.post('/mandanten/select', { mandant_id: mandantId })
-      
-      // Lokal speichern
-      localStorage.setItem('mandant_id', mandantId)
-      
-      // Callback aufrufen
-      onMandantSelected(mandantId)
+      const selected = await mandantenAPI.selectMandant(mandantId)
+
+      // Callback aufrufen (AuthContext persistiert in localStorage)
+      onMandantSelected({
+        uid: selected.mandant_id ?? mandantId,
+        name: selected.mandant_name ?? 'Mandant',
+        town: selected.mandant_town ?? undefined,
+        street: selected.mandant_street ?? undefined,
+      })
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Fehler beim Auswählen des Mandanten')
       setLoading(false)

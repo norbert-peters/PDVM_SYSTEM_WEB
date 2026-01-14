@@ -1,5 +1,5 @@
 import { useState, FormEvent } from 'react'
-import { authAPI, mandantenAPI } from '../api/client'
+import { authAPI } from '../api/client'
 
 interface LoginProps {
   onLogin: (token: string, autoSelectMandantId?: string) => void
@@ -21,7 +21,14 @@ export default function Login({ onLogin }: LoginProps) {
       
       // Cache user_data and mandanten from login response
       if (response.user_data) {
-        localStorage.setItem('user_data', JSON.stringify(response.user_data))
+        // user_data from backend is the JSONB payload; enrich it with stable meta fields for UI
+        localStorage.setItem('user_data', JSON.stringify({
+          uid: response.user_id,
+          username: email,
+          name: response.name,
+          email: response.email,
+          ...response.user_data,
+        }))
       }
       if (response.mandanten) {
         localStorage.setItem('mandanten', JSON.stringify(response.mandanten))

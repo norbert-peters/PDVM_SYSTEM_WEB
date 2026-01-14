@@ -86,6 +86,57 @@ def get_default_typography() -> Dict[str, Any]:
     }
 
 
+@router.get("/active")
+async def get_active_theme(
+    mode: Optional[str] = None,
+    gcs = Depends(get_gcs_instance),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Lädt das aktive Theme-Block-Set für den User.
+    Kombiniert Mandanten-Vorgabe (Theme Package) und User-Präferenz (Variant).
+    
+    Args:
+        mode: 'light' oder 'dark'. Wenn None, wird User-Präferenz aus GCS geladen.
+    """
+    logger.info(f"🎨 Lade aktives Theme für User {gcs.user_guid} (Mode override: {mode})")
+    
+    try:
+        # 1. Modus bestimmen
+        if not mode:
+            # Versuche gespeicherten Modus, sonst Default 'light'
+            mode = gcs.systemsteuerung.get_static_value(str(gcs.user_guid), "THEME_MODE") or "light"
+        
+        # 2. Ziel-Gruppe ermitteln (z.B. "Orange_Dark") via neuer Logic in GCS
+        target_group = gcs.get_user_theme_group(mode)
+        logger.info(f"Target Group: {target_group} (für Mode {mode})")
+        
+        # 3. Daten aus gcs.layout holen
+        # Das Layout-Package wurde bereits beim GCS-Start basierend auf Mandant CONFIG geladen
+        if not gcs.layout:
+            logger.error("❌ gcs.layout ist None!")
+            raise HTTPException(status_code=500, detail="Systemfehler: Layout-Container nicht initialisiert")
+            
+        # Hole alle Blöcke der Zielgruppe
+        layout_blocks = gcs.layout.get_value_by_group(target_group)
+        
+        if not layout_blocks:
+            logger.warning(f"⚠️ Keine Blöcke gefunden für Gruppe '{target_group}' im Layout {gcs.layout.guid}")
+            # Fallback oder leeres Set zurückgeben?
+            # Wir geben Warnung zurück, Frontend muss Fallback nutzen
+        
+        return {
+            "theme_package_id": gcs.layout.guid,
+            "theme_variant": target_group,
+            "mode": mode,
+            "blocks": layout_blocks
+        }
+        
+    except Exception as e:
+        logger.error(f"Fehler bei get_active_theme: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/{mandant_uid}")
 async def get_mandant_layouts(
     mandant_uid: str,

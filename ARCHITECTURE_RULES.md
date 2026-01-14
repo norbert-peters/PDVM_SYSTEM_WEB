@@ -61,3 +61,27 @@ items = row["daten"]["GRUND"]  # Umgeht Historisierung und Logik!
 
 ## 3. Legacy Code
 Code, der als `DEPRECATED` markiert ist (insb. in `config.py`), darf nicht für neue Features verwendet werden. Bei Berührung mit solchem Code ist Refactoring (Anpassung an neue Regeln) vorzuziehen.
+
+---
+
+## 4. Spezifikations-Konformität (Domain Specs)
+
+Bei der Implementierung von Kern-Funktionalitäten ist die Einhaltung der dedizierten Spezifikationen verpflichtend. Diese Dokumente sind die "Single Source of Truth" für das jeweilige Subsystem.
+
+### 4.1 PDVM DateTime (`docs/specs/PDVM_DATETIME_SPEC.md`)
+**Regel:** Keine native `datetime`-Nutzung für Business-Logik.
+*   Das System verwendet eine **3-Ebenen-Matrix** für zeitbezogene Werte (Original, AB-Datum, Formatierung).
+*   Alle Zeitstempel müssen als `float` (PDVM-Format) gespeichert und verarbeitet werden.
+*   Jedes Widget, das Zeitdaten darstellt oder manipuliert (z.B. `PdvmDateTimePicker`), muss diese Spezifikation implementieren.
+
+### 4.2 Theming System V2 (`docs/specs/THEMING_SYSTEM.md`)
+**Regel:** Keine hardcodierten Farben oder Styles in CSS/Komponenten.
+*   Styling erfolgt ausschließlich über **Style Blocks** (z.B. `block_header_std`, `block_input_std`).
+*   Verwendung von `--block-*` CSS-Variablen ist Pflicht für konfigurierbare Komponenten.
+*   Die Fallback-Kette (Block -> Variable -> Default) muss eingehalten werden.
+
+### 4.3 Menu System (`docs/specs/MENU_SYSTEM.md`)
+**Regel:** Menü-Struktur folgt strikter Hierarchie und Berechtigung.
+*   Dynamischer Aufbau basierend auf `sys_menudaten` und User-Rechten.
+*   Trennung von Navigation (Sidebar) und App-Steuerung (Header).
+*   Keine manuelle Manipulation der Menü-Struktur im Frontend Code.

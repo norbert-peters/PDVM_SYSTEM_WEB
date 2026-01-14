@@ -15,7 +15,27 @@ export interface LayoutResponse {
   assets: Record<string, any>;
 }
 
+export interface ThemeBlock {
+  [key: string]: string;
+}
+
+export interface ActiveThemeResponse {
+  theme_package_id: string;
+  theme_variant: string;
+  mode: 'light' | 'dark';
+  blocks: Record<string, ThemeBlock>;
+}
+
 export const layoutApi = {
+  /**
+    * Lädt das aktive Theme (V2 Blocks)
+    */
+  getActiveTheme: async (mode?: 'light' | 'dark'): Promise<ActiveThemeResponse> => {
+      const params = mode ? { mode } : {};
+      const response = await apiClient.get('/layout/active', { params });
+      return response.data;
+  },
+
   /**
    * Lädt alle Layouts für einen Mandanten
    */
