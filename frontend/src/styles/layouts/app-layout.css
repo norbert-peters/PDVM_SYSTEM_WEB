@@ -123,10 +123,37 @@
   color: white;
   border-radius: var(--border-radius-md);
   border-left: 4px solid var(--color-error-dark);
+  position: relative;
 }
 
 .menu-error strong {
   display: block;
   margin-bottom: var(--spacing-xs);
   font-weight: 600;
+}
+
+.menu-error-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.menu-error-close:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.menu-error-close:active {
+  transform: translateY(1px);
 }

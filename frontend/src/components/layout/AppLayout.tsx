@@ -3,7 +3,7 @@
  * Haupt-Layout-Container mit Header, Sidebar und Content
  */
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Header } from './Header';
 import { StichtagsBar } from './StichtagsBar';
 import { Sidebar } from './Sidebar';
@@ -23,6 +23,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const menu = useMenu();
   
   // Theme loading in background - don't block rendering
@@ -38,9 +39,21 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       menu.loadStart();
     }
   }, []);
+
+  // Wenn sich die Route ändert, alten Fehler-Toast zurücksetzen
+  useEffect(() => {
+    if (menu.error) {
+      menu.setError(null);
+    }
+  }, [location.pathname]);
   
   // Menu Handler Context
   const handleMenuClick = async (item: MenuItem) => {
+    // Nächste Aktion -> Fehlermeldung ausblenden
+    if (menu.error) {
+      menu.setError(null);
+    }
+
     await executeMenuCommand(item, {
       setCurrentMenu: menu.setCurrentMenu,
       setCurrentApp: menu.setCurrentApp,
@@ -101,6 +114,14 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             {/* Fehler-Anzeige */}
             {menu.error && (
               <div className="menu-error">
+                <button
+                  type="button"
+                  className="menu-error-close"
+                  aria-label="Fehlermeldung schließen"
+                  onClick={() => menu.setError(null)}
+                >
+                  ×
+                </button>
                 <strong>Fehler:</strong> {menu.error}
               </div>
             )}

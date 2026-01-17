@@ -108,6 +108,10 @@ class PdvmCentralDatabase:
             row = await instance.db.get_by_uid(guid_uuid)
             
             if row and "daten" in row:
+                try:
+                    instance.historisch = int(row.get("historisch") or 0) == 1
+                except Exception:
+                    instance.historisch = False
                 instance.data = row["daten"]
                 instance._data_loaded = True
                 logger.info(f"✅ Daten geladen für {table_name}.{guid}: {len(instance.data)} Gruppen")

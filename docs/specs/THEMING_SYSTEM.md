@@ -154,6 +154,32 @@ Die folgende Tabelle definiert die implementierten Standard-Blöcke (V2), ihre V
 | **`block_surface_main`** | Main Content Area | `.app-main`, `.surface-card` | `bg_color` | `var(--color-background-primary)` |
 | | | | `text_color` | `var(--color-text-primary)` |
 
+| **`block_view_toolbar`** | View Header/Toolbar | `.pdvm-view-toolbar` | `bg_color` | `var(--block-surface-main-bg-color)` |
+| | | | `text_color` | `var(--color-text-primary)` |
+| | | | `border` | `1px solid var(--color-border-light)` |
+| | | | `radius` | `var(--border-radius-md)` |
+
+| **`block_view_panel`** | View Panels (Spalten/Gruppierung) | `.pdvm-view-panel` | `bg_color` | `var(--color-background-secondary)` |
+| | | | `text_color` | `var(--color-text-primary)` |
+| | | | `border` | `1px solid var(--color-border-light)` |
+| | | | `radius` | `var(--border-radius-md)` |
+
+| **`block_view_table`** | View Table Surface | `.pdvm-view-table` | `bg_color` | `var(--block-surface-main-bg-color)` |
+| | | | `border` | `1px solid var(--color-border-light)` |
+| | | | `radius` | `var(--border-radius-md)` |
+
+| **`block_view_table_header`** | Table Header Row | `.pdvm-view-table thead` | `bg_color` | `var(--block-surface-main-bg-color)` |
+| | | | `text_color` | `var(--color-text-primary)` |
+| | | | `border_bottom` | `1px solid var(--color-border-light)` |
+
+| **`block_view_table_row_selected`** | Selected Row | `.pdvm-view-row-selected` | `bg_color` | `rgba(0, 120, 212, 0.10)` |
+
+| **`block_view_group_row`** | Group Header Row | `.pdvm-view-group-row` | `bg_color` | `rgba(0,0,0,0.03)` |
+| | | | `text_color` | `var(--color-text-primary)` |
+
+| **`block_view_total_row`** | Grand Total Row | `.pdvm-view-total-row` | `bg_color` | `rgba(0,0,0,0.05)` |
+| | | | `text_color` | `var(--color-text-primary)` |
+
 ### 5.2 Component Blocks
 
 | Block Name | UI Element | CSS Klasse | Properties | Default Fallback |
@@ -171,12 +197,44 @@ Die folgende Tabelle definiert die implementierten Standard-Blöcke (V2), ihre V
 | | | | `border` | `1px solid var(--color-primary-600)` |
 | | | | `radius` | `var(--border-radius-md)` |
 
+| **`block_view_btn_std`** | View Buttons (Spalten/Reset/Gruppierung) | `.pdvm-view-btn` | `bg_color` | `var(--color-background-primary)` |
+| | | | `text_color` | `var(--color-text-primary)` |
+| | | | `border` | `1px solid var(--color-border-medium)` |
+| | | | `radius` | `var(--border-radius-md)` |
+| | | | `hover_bg` | `rgba(0,0,0,0.06)` |
+
+| **`block_view_input_std`** | View Filter/Input | `.pdvm-view-input` | `bg_color` | `var(--color-background-primary)` |
+| | | | `text_color` | `var(--color-text-primary)` |
+| | | | `border` | `1px solid var(--color-border-medium)` |
+| | | | `radius` | `var(--border-radius-md)` |
+
 ### 5.3 Implementation Details
 
 1. **Injection:** Der `useTheme` Hook konvertiert Block-Namen wie `block_header_std` in CSS Variablen wie `--block-header-std-bg-color`.
 2. **Usage:** CSS verwendet `var(--block-name-prop, FALLBACK)`.
 3. **Fallback:** Die Fallbacks referenzieren semantische Variablen aus `variables.css` (z.B. `--color-primary-500`), welche wiederum über das Legacy-Color-Mapping (Gruppe `colors`) befüllt werden.
 4. **Resilience:** Wenn ein Theme keine Blöcke definiert, greift das System auf die globalen Farben zurück, solange die CSS-Dateien korrekte Fallbacks definiert haben.
+
+### 5.5 View: Block-Zuordnung (Neu)
+
+Für die generische View (`PdvmViewPage` / später `PdvmView`) werden folgende Blöcke empfohlen:
+
+1. **Toolbar**
+  - `block_view_toolbar` für den Headerbereich (Titel + Buttons)
+  - `block_view_btn_std` für Buttons
+
+2. **Panels** (Spalten/Gruppierung)
+  - `block_view_panel` für Panel-Hintergrund
+  - `block_view_input_std` für Filter- und Zahleninputs
+
+3. **Table**
+  - `block_view_table` für den Table-Container
+  - `block_view_table_header` für Header + Filter-Row
+  - `block_view_table_row_selected` für selektierte Zeilen
+  - `block_view_group_row` für Gruppen-Header
+  - `block_view_total_row` für Gesamtsumme
+
+Hinweis: Aktuell verwendet die View noch Inline-Styles (MVP). Der nächste Schritt ist, diese Bereiche auf CSS-Klassen (`.pdvm-view-*`) umzustellen, damit die oben genannten Blocks direkt greifen.
 
 ### 5.4 Widget Mapping (Komplexe Komponenten)
 

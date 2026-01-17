@@ -103,6 +103,21 @@ async function handleShowHelp(item: MenuItem, _context: MenuHandlerContext): Pro
 }
 
 /**
+ * Handler: go_view
+ * Öffnet eine View per GUID (Route /view/:viewGuid)
+ */
+async function handleGoView(item: MenuItem, context: MenuHandlerContext): Promise<void> {
+  const viewGuid = item.command?.params?.view_guid || item.command?.params?.guid;
+
+  if (!viewGuid) {
+    context.showError('Kein view_guid im Command gefunden');
+    return;
+  }
+
+  context.navigate(`/view/${viewGuid}`);
+}
+
+/**
  * Handler Registry
  * Mappt handler-Namen zu Funktionen
  */
@@ -111,6 +126,7 @@ const HANDLERS: Record<string, MenuHandler> = {
   'logout': handleLogout,
   'open_start_menu': handleOpenStartMenu,
   'show_help': handleShowHelp,
+  'go_view': handleGoView,
 };
 
 /**

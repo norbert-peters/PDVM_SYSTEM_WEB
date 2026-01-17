@@ -6,6 +6,7 @@ import MandantCreate from './components/MandantCreate'
 import Dashboard from './components/Dashboard'
 import Welcome from './components/Welcome'
 import TableView from './components/TableView'
+import PdvmViewPage from './components/views/PdvmViewPage'
 import { AppLayout } from './components/layout'
 import { MenuProvider } from './contexts/MenuContext'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
@@ -61,6 +62,7 @@ function AppContent() {
             <Route path="/" element={<Welcome mandantId={mandantId} />} />
             <Route path="/dashboard" element={<Dashboard onLogout={logout} mandantId={mandantId} token={token} />} />
             <Route path="/table/:tableName" element={<TableView token={token} />} />
+            <Route path="/view/:viewGuid" element={<PdvmViewPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </AppLayout>

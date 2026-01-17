@@ -155,7 +155,14 @@ class PdvmDatabase:
             'name': row['name']
         }
     
-    async def get_all(self, where: str = "", params: tuple = (), order_by: str = "created_at DESC") -> List[Dict[str, Any]]:
+    async def get_all(
+        self,
+        where: str = "",
+        params: tuple = (),
+        order_by: str = "created_at DESC",
+        limit: Optional[int] = None,
+        offset: int = 0,
+    ) -> List[Dict[str, Any]]:
         """
         Lädt alle Datensätze (mit optionaler WHERE-Klausel)
         
@@ -163,6 +170,7 @@ class PdvmDatabase:
             where: WHERE-Bedingung (z.B. "historisch = 0")
             params: Parameter für WHERE ($1, $2, ...)
             order_by: ORDER BY Klausel
+            limit: Optionales LIMIT (Performance-Schutz)
             
         Returns:
             Liste von Datensätzen
@@ -179,6 +187,27 @@ class PdvmDatabase:
                 query += f" WHERE {where}"
             
             query += f" ORDER BY {order_by}"
+
+            if limit is not None:
+                try:
+                    limit_int = int(limit)
+                except Exception:
+                    raise ValueError("limit must be an int")
+                if limit_int <= 0:
+                    raise ValueError("limit must be > 0")
+                query += f" LIMIT {limit_int}"
+
+            if offset:
+                try:
+                    offset_int = int(offset)
+                except Exception:
+                    raise ValueError("offset must be an int")
+                if offset_int < 0:
+                    raise ValueError("offset must be >= 0")
+                if limit is None:
+                    # OFFSET ohne LIMIT ist erlaubt, aber kann sehr teuer sein.
+                    pass
+                query += f" OFFSET {offset_int}"
             
             rows = await conn.fetch(query, *params)
             
@@ -190,6 +219,60 @@ class PdvmDatabase:
                     row_dict['daten'] = json.loads(row_dict['daten'])
                 result.append(row_dict)
             
+            return result
+
+    async def get_modified_since(
+        self,
+        modified_after: datetime,
+        where: str = "",
+        params: tuple = (),
+        order_by: str = "modified_at ASC",
+        limit: Optional[int] = None,
+    ) -> List[Dict[str, Any]]:
+        """Lädt Datensätze, die nach einem bestimmten Zeitpunkt geändert wurden.
+
+        Ziel: Delta-Refresh für Session-Cache (statt Vollscan).
+        """
+        if not isinstance(modified_after, datetime):
+            raise ValueError("modified_after must be a datetime")
+
+        pool = self.get_pool()
+        async with pool.acquire() as conn:
+            # Parameter-Reihenfolge: existing params + modified_after
+            # WHERE-Klausel sicher zusammensetzen
+            clauses: List[str] = []
+            if where:
+                clauses.append(f"({where})")
+
+            # modified_at > $n
+            clauses.append(f"modified_at > ${len(params) + 1}")
+            full_where = " AND ".join(clauses)
+
+            query = f"""
+                SELECT uid, daten, name, historisch, sec_id, gilt_bis,
+                       created_at, modified_at
+                FROM {self.table_name}
+                WHERE {full_where}
+                ORDER BY {order_by}
+            """
+
+            if limit is not None:
+                try:
+                    limit_int = int(limit)
+                except Exception:
+                    raise ValueError("limit must be an int")
+                if limit_int <= 0:
+                    raise ValueError("limit must be > 0")
+                query += f" LIMIT {limit_int}"
+
+            rows = await conn.fetch(query, *(params + (modified_after,)))
+
+            result: List[Dict[str, Any]] = []
+            for row in rows:
+                row_dict = dict(row)
+                if row_dict.get('daten') and isinstance(row_dict['daten'], str):
+                    row_dict['daten'] = json.loads(row_dict['daten'])
+                result.append(row_dict)
             return result
     
     async def create(

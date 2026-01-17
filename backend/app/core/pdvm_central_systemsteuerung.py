@@ -164,6 +164,31 @@ class PdvmCentralSystemsteuerung:
         self.stichtag = stichtag
         self._system_pool = system_pool
         self._mandant_pool = mandant_pool
+
+        # Session-Cache: Base-Rows für Views (DB-Rohdaten), damit Stichtag-Wechsel nicht jedes Mal DB lesen muss.
+        # Key: (table_name, include_historisch, limit)
+        self._view_base_rows_cache: Dict[tuple[str, bool, int], Any] = {}
+
+        # Session-Cache: Tabellen-Cache (raw rows by uid + modified_at delta refresh)
+        # Key: (table_name, include_historisch)
+        # Value: {
+        #   by_uid: {uid: raw_row_dict},
+        #   max_modified_at: datetime|None,
+        #   version: int,
+        #   max_rows: int,
+        #   last_refresh_ts: float,
+        #   truncated: bool,
+        # }
+        self._pdvm_table_cache: Dict[tuple[str, bool], Any] = {}
+
+        # Session-Cache: Matrix-Result (UID-Reihenfolge / Group-Meta) pro View-State
+        # Key: string (stable hash)
+        self._view_matrix_result_cache: Dict[str, Any] = {}
+
+        # Session-Cache: Dropdown-Datasets (sys_dropdowndaten)
+        # Key: (table_name, dataset_uid, language)
+        # Value: {ts, default_language, maps:{field->{key:label}}, options:{field->[...]} }
+        self._pdvm_dropdown_cache: Dict[tuple[str, str, str], Any] = {}
         
         # ===== DESKTOP-PATTERN: Separate Instanzen =====
         
@@ -408,6 +433,13 @@ class PdvmCentralSystemsteuerung:
         self.set_value(str(self.user_guid), "STICHTAG", float(new_stichtag), ab_zeit=self.stichtag)
         self.stichtag = float(new_stichtag)
 
+        # Cache invalidieren (Basisdaten können bleiben, aber das stichtag-projizierte Ergebnis muss neu berechnet werden).
+        # Aktuell cachen wir nur DB-Rohdaten; invalidate ist defensiv für zukünftige abgeleitete Caches.
+        try:
+            self._view_base_rows_cache = self._view_base_rows_cache or {}
+        except Exception:
+            self._view_base_rows_cache = {}
+
         # Stichtag über alle Instanzen synchronisieren
         for inst in (self.benutzer, self.mandant, self.systemsteuerung, self.anwendungsdaten, self.layout):
             if inst is not None:
@@ -483,6 +515,15 @@ class PdvmCentralSystemsteuerung:
     def set_view_controls(self, view_guid: str, controls: Dict):
         """Setzt Controls-Konfiguration für View in view_guid Gruppe"""
         self.set_value(view_guid, "controls", controls, ab_zeit=self.stichtag)
+
+    def get_view_table_state(self, view_guid: str) -> Optional[Dict]:
+        """Liest Table-State (Sort/Filter) für View aus view_guid Gruppe."""
+        wert, _ = self.get_value(view_guid, "table_state", ab_zeit=self.stichtag)
+        return wert
+
+    def set_view_table_state(self, view_guid: str, table_state: Dict):
+        """Setzt Table-State (Sort/Filter) für View in view_guid Gruppe."""
+        self.set_value(view_guid, "table_state", table_state, ab_zeit=self.stichtag)
     
     # === EDIT-Modus (temporäre Daten) ===
     

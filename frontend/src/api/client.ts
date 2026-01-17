@@ -32,6 +32,67 @@ export interface GcsStichtagResponse {
   display: string
 }
 
+export interface ViewDefinitionResponse {
+  uid: string
+  name: string
+  daten: Record<string, any>
+  root: Record<string, any>
+}
+
+export interface ViewBaseRow {
+  uid: string
+  name: string
+  daten: Record<string, any>
+  historisch: number
+  modified_at?: string | null
+}
+
+export interface ViewBaseResponse {
+  view_guid: string
+  table: string
+  rows: ViewBaseRow[]
+}
+
+export interface ViewStateResponse {
+  view_guid: string
+  controls_source: Record<string, any>
+  controls_effective: Array<Record<string, any>>
+  table_state_source: Record<string, any>
+  table_state_effective: Record<string, any>
+  meta: Record<string, any>
+}
+
+export interface ViewStateUpdateRequest {
+  controls_source?: Record<string, any>
+  table_state_source?: Record<string, any>
+}
+
+export interface ViewMatrixRequest {
+  controls_source?: Record<string, any>
+  table_state_source?: Record<string, any>
+  include_historisch?: boolean
+  limit?: number
+  offset?: number
+}
+
+export type ViewMatrixRow =
+  | ({ kind: 'group'; key: string; raw: any; count: number; sum?: number | null })
+  | ({ kind: 'data'; group_key?: string } & ViewBaseRow)
+
+export interface ViewMatrixResponse {
+  view_guid: string
+  table: string
+  stichtag: number
+  controls_source: Record<string, any>
+  controls_effective: Array<Record<string, any>>
+  table_state_source: Record<string, any>
+  table_state_effective: Record<string, any>
+  rows: ViewMatrixRow[]
+  totals?: { count: number; sum?: number | null } | null
+  dropdowns?: Record<string, any>
+  meta: Record<string, any>
+}
+
 // Create axios instance with default config
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -160,6 +221,43 @@ export const gcsAPI = {
   },
 }
 
+// Views API
+export const viewsAPI = {
+  getDefinition: async (viewGuid: string): Promise<ViewDefinitionResponse> => {
+    const response = await api.get(`/views/${viewGuid}`)
+    return response.data
+  },
+
+  getBase: async (viewGuid: string, limit: number = 200): Promise<ViewBaseResponse> => {
+    const response = await api.get(`/views/${viewGuid}/base`, {
+      params: { limit },
+    })
+    return response.data
+  },
+
+  getState: async (viewGuid: string): Promise<ViewStateResponse> => {
+    const response = await api.get(`/views/${viewGuid}/state`)
+    return response.data
+  },
+
+  putState: async (viewGuid: string, controlsSource: Record<string, any>): Promise<ViewStateResponse> => {
+    const response = await api.put(`/views/${viewGuid}/state`, {
+      controls_source: controlsSource,
+    } satisfies ViewStateUpdateRequest)
+    return response.data
+  },
+
+  putStateFull: async (viewGuid: string, payload: ViewStateUpdateRequest): Promise<ViewStateResponse> => {
+    const response = await api.put(`/views/${viewGuid}/state`, payload)
+    return response.data
+  },
+
+  postMatrix: async (viewGuid: string, payload: ViewMatrixRequest): Promise<ViewMatrixResponse> => {
+    const response = await api.post(`/views/${viewGuid}/matrix`, payload)
+    return response.data
+  },
+}
+
 // Export axios instance for backward compatibility
 export const apiClient = api
 
@@ -170,4 +268,5 @@ export default {
   menu: menuAPI,
   mandanten: mandantenAPI,
   gcs: gcsAPI,
+  views: viewsAPI,
 }
