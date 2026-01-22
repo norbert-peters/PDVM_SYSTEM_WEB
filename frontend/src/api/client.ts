@@ -75,6 +75,10 @@ export interface ViewMatrixRequest {
   offset?: number
 }
 
+export interface ViewTableOverrideOptions {
+  table?: string | null
+}
+
 export type ViewMatrixRow =
   | ({ kind: 'group'; key: string; raw: any; count: number; sum?: number | null })
   | ({ kind: 'data'; group_key?: string } & ViewBaseRow)
@@ -91,6 +95,99 @@ export interface ViewMatrixResponse {
   totals?: { count: number; sum?: number | null } | null
   dropdowns?: Record<string, any>
   meta: Record<string, any>
+}
+
+export interface FrameDefinitionResponse {
+  uid: string
+  name: string
+  daten: Record<string, any>
+  root: Record<string, any>
+}
+
+export interface DialogDefinitionResponse {
+  uid: string
+  name: string
+  daten: Record<string, any>
+  root: Record<string, any>
+  root_table: string
+  view_guid?: string | null
+  edit_type: string
+  selection_mode?: 'single' | 'multi' | string
+  open_edit_mode?: 'button' | 'double_click' | 'auto' | string
+  frame_guid?: string | null
+  frame?: FrameDefinitionResponse | null
+  meta: Record<string, any>
+}
+
+export interface DialogRow {
+  uid: string
+  name: string
+}
+
+export interface DialogRowsRequest {
+  limit?: number
+  offset?: number
+}
+
+export interface DialogRowsResponse {
+  dialog_guid: string
+  table: string
+  rows: DialogRow[]
+  meta: Record<string, any>
+}
+
+export interface DialogRecordResponse {
+  uid: string
+  name: string
+  daten: Record<string, any>
+  historisch: number
+  modified_at?: string | null
+}
+
+export interface DialogRecordUpdateRequest {
+  daten: Record<string, any>
+}
+
+export interface DialogLastCallResponse {
+  key: string
+  last_call: string | null
+}
+
+export interface DialogTableOverrideOptions {
+  dialog_table?: string | null
+}
+
+export interface LookupRow {
+  uid: string
+  name: string
+}
+
+export interface LookupResponse {
+  table: string
+  rows: LookupRow[]
+  meta: Record<string, any>
+}
+
+export interface MenuRecordResponse {
+  uid: string
+  name: string
+  daten: Record<string, any>
+}
+
+export interface MenuRecordUpdateRequest {
+  daten: Record<string, any>
+}
+
+export interface MenuCommandDefinition {
+  handler: string
+  label?: string
+  params?: Array<Record<string, any>>
+}
+
+export interface MenuCommandCatalog {
+  commands: MenuCommandDefinition[]
+  language: string
+  default_language: string
 }
 
 // Create axios instance with default config
@@ -235,8 +332,13 @@ export const viewsAPI = {
     return response.data
   },
 
-  getState: async (viewGuid: string): Promise<ViewStateResponse> => {
-    const response = await api.get(`/views/${viewGuid}/state`)
+  getState: async (viewGuid: string, opts?: { table?: string; edit_type?: string }): Promise<ViewStateResponse> => {
+    const response = await api.get(`/views/${viewGuid}/state`, {
+      params: {
+        ...(opts?.table ? { table: opts.table } : null),
+        ...(opts?.edit_type ? { edit_type: opts.edit_type } : null),
+      } as any,
+    })
     return response.data
   },
 
@@ -247,13 +349,112 @@ export const viewsAPI = {
     return response.data
   },
 
-  putStateFull: async (viewGuid: string, payload: ViewStateUpdateRequest): Promise<ViewStateResponse> => {
-    const response = await api.put(`/views/${viewGuid}/state`, payload)
+  putStateFull: async (
+    viewGuid: string,
+    payload: ViewStateUpdateRequest,
+    opts?: { table?: string; edit_type?: string },
+  ): Promise<ViewStateResponse> => {
+    const response = await api.put(`/views/${viewGuid}/state`, payload, {
+      params: {
+        ...(opts?.table ? { table: opts.table } : null),
+        ...(opts?.edit_type ? { edit_type: opts.edit_type } : null),
+      } as any,
+    })
     return response.data
   },
 
-  postMatrix: async (viewGuid: string, payload: ViewMatrixRequest): Promise<ViewMatrixResponse> => {
-    const response = await api.post(`/views/${viewGuid}/matrix`, payload)
+  postMatrix: async (
+    viewGuid: string,
+    payload: ViewMatrixRequest,
+    opts?: ViewTableOverrideOptions & { edit_type?: string },
+  ): Promise<ViewMatrixResponse> => {
+    const response = await api.post(`/views/${viewGuid}/matrix`, payload, {
+      params: {
+        ...(opts?.table ? { table: opts.table } : null),
+        ...(opts?.edit_type ? { edit_type: opts.edit_type } : null),
+      } as any,
+    })
+    return response.data
+  },
+}
+
+// Dialogs API
+export const dialogsAPI = {
+  getDefinition: async (dialogGuid: string, opts?: DialogTableOverrideOptions): Promise<DialogDefinitionResponse> => {
+    const response = await api.get(`/dialogs/${dialogGuid}`, {
+      params: opts?.dialog_table ? { dialog_table: opts.dialog_table } : undefined,
+    })
+    return response.data
+  },
+
+  postRows: async (dialogGuid: string, payload: DialogRowsRequest, opts?: DialogTableOverrideOptions): Promise<DialogRowsResponse> => {
+    const response = await api.post(`/dialogs/${dialogGuid}/rows`, payload, {
+      params: opts?.dialog_table ? { dialog_table: opts.dialog_table } : undefined,
+    })
+    return response.data
+  },
+
+  getRecord: async (dialogGuid: string, recordUid: string, opts?: DialogTableOverrideOptions): Promise<DialogRecordResponse> => {
+    const response = await api.get(`/dialogs/${dialogGuid}/record/${recordUid}`, {
+      params: opts?.dialog_table ? { dialog_table: opts.dialog_table } : undefined,
+    })
+    return response.data
+  },
+
+  updateRecord: async (
+    dialogGuid: string,
+    recordUid: string,
+    payload: DialogRecordUpdateRequest,
+    opts?: DialogTableOverrideOptions
+  ): Promise<DialogRecordResponse> => {
+    const response = await api.put(`/dialogs/${dialogGuid}/record/${recordUid}`, payload, {
+      params: opts?.dialog_table ? { dialog_table: opts.dialog_table } : undefined,
+    })
+    return response.data
+  },
+
+  putLastCall: async (
+    dialogGuid: string,
+    recordUid: string | null,
+    opts?: DialogTableOverrideOptions
+  ): Promise<DialogLastCallResponse> => {
+    const response = await api.put(
+      `/dialogs/${dialogGuid}/last-call`,
+      {
+        record_uid: recordUid,
+      },
+      {
+        params: opts?.dialog_table ? { dialog_table: opts.dialog_table } : undefined,
+      }
+    )
+    return response.data
+  },
+}
+
+export const systemdatenAPI = {
+  getMenuCommands: async (opts?: { language?: string; dataset_uid?: string }): Promise<MenuCommandCatalog> => {
+    const response = await api.get('/systemdaten/menu-commands', {
+      params: opts,
+    })
+    return response.data
+  },
+}
+
+export const lookupsAPI = {
+  get: async (table: string, opts?: { q?: string; limit?: number; offset?: number }): Promise<LookupResponse> => {
+    const response = await api.get(`/lookups/${table}`, { params: opts })
+    return response.data
+  },
+}
+
+export const menuEditorAPI = {
+  getMenu: async (menuGuid: string): Promise<MenuRecordResponse> => {
+    const response = await api.get(`/menu-editor/${menuGuid}`)
+    return response.data
+  },
+
+  updateMenu: async (menuGuid: string, payload: MenuRecordUpdateRequest): Promise<MenuRecordResponse> => {
+    const response = await api.put(`/menu-editor/${menuGuid}`, payload)
     return response.data
   },
 }

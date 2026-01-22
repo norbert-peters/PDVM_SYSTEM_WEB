@@ -10,6 +10,7 @@ Wichtig: Keine SQL im Router. Zugriff über app.core.view_service.
 from __future__ import annotations
 
 import uuid
+import re
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -28,6 +29,76 @@ from app.core.view_table_state_service import merge_table_state, normalize_table
 from app.core.view_matrix_service import build_view_matrix
 
 router = APIRouter()
+
+
+_EDIT_TYPE_RE = re.compile(r"^[a-z0-9_]+$")
+
+
+def _normalize_edit_type(value: Optional[str]) -> str:
+    et = str(value or "").strip().lower() or "view"
+    if not _EDIT_TYPE_RE.match(et):
+        raise HTTPException(status_code=400, detail="Ungültige edit_type (nur [a-z0-9_] erlaubt)")
+    return et
+
+
+def _normalize_table_name(value: Optional[str]) -> str:
+    return str(value or "").strip().lower()
+
+
+def _view_state_group(*, view_guid: str, table: str, edit_type: str) -> str:
+    # Composite-Key (linear/stabil): view_guid + table + edit_type
+    # user_guid ist implizit, da sys_systemsteuerung pro User geladen ist.
+    return f"{view_guid}::{_normalize_table_name(table)}::{_normalize_edit_type(edit_type)}"
+
+
+def _truthy(value: Any) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, bool):
+        return bool(value)
+    if isinstance(value, (int, float)):
+        try:
+            return float(value) != 0.0
+        except Exception:
+            return False
+    s = str(value).strip().lower()
+    return s in {"1", "true", "yes", "y", "on"}
+
+
+def _normalize_table_override(value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None
+    t = str(value).strip()
+    if not t:
+        return None
+    import re
+
+    if not re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", t):
+        raise HTTPException(status_code=400, detail="Ungültige table (nur [A-Za-z0-9_] erlaubt)")
+    return t
+
+
+def _allow_table_override(*, root: Dict[str, Any], root_table: str, table_override: str) -> bool:
+    """Allow table override only in explicitly safe contexts.
+
+    Baseline rule stays strict (ROOT.NO_DATA=true), but we allow common system use-cases:
+    - explicit opt-in via ROOT.ALLOW_TABLE_OVERRIDE=true
+    - system-table to system-table override (sys_* -> sys_*)
+    """
+    no_data = _truthy((root or {}).get("NO_DATA") or (root or {}).get("no_data"))
+    if no_data:
+        return True
+
+    allow_flag = _truthy((root or {}).get("ALLOW_TABLE_OVERRIDE") or (root or {}).get("allow_table_override"))
+    if allow_flag:
+        return True
+
+    rt = str(root_table or "").strip().lower()
+    to = str(table_override or "").strip().lower()
+    if rt.startswith("sys_") and to.startswith("sys_"):
+        return True
+
+    return False
 
 
 async def get_gcs_instance(current_user: dict = Depends(get_current_user)):
@@ -119,6 +190,7 @@ async def get_view_base(
     view_guid: str,
     limit: int = Query(default=200, ge=1, le=2000),
     include_historisch: bool = Query(default=True),
+    table: Optional[str] = Query(default=None),
     gcs=Depends(get_gcs_instance),
 ):
     try:
@@ -131,12 +203,23 @@ async def get_view_base(
     except KeyError:
         raise HTTPException(status_code=404, detail=f"View nicht gefunden: {view_guid}")
 
-    table = str((definition.get("root") or {}).get("TABLE") or "").strip()
-    if not table:
+    root = definition.get("root") or {}
+    root_table = str((root or {}).get("TABLE") or "").strip()
+    if not root_table:
         raise HTTPException(status_code=400, detail="View ROOT.TABLE ist leer")
 
+    table_override = _normalize_table_override(table)
+    no_data = _truthy((root or {}).get("NO_DATA") or (root or {}).get("no_data"))
+    if table_override and not _allow_table_override(root=root, root_table=root_table, table_override=table_override):
+        raise HTTPException(
+            status_code=400,
+            detail="table override ist nur erlaubt, wenn ROOT.NO_DATA=true oder ROOT.ALLOW_TABLE_OVERRIDE=true (oder sys_* -> sys_*)",
+        )
+
+    effective_table = table_override or root_table
+
     # Stichtag-Projektion nur für Felder, die die View wirklich nutzt (Controls aus sys_viewdaten)
-    origin = extract_controls_origin(definition.get("daten") or {})
+    origin = extract_controls_origin(definition.get("daten") or {}, root_table=effective_table, no_data=no_data)
     control_fields = []
     try:
         for c in origin.values():
@@ -149,7 +232,7 @@ async def get_view_base(
 
     rows = await load_view_base_rows(
         gcs,
-        table_name=table,
+        table_name=effective_table,
         limit=limit,
         include_historisch=include_historisch,
         control_fields=control_fields,
@@ -157,13 +240,18 @@ async def get_view_base(
 
     return {
         "view_guid": view_guid,
-        "table": table,
+        "table": effective_table,
         "rows": rows,
     }
 
 
 @router.get("/{view_guid}/state", response_model=ViewStateResponse)
-async def get_view_state(view_guid: str, gcs=Depends(get_gcs_instance)):
+async def get_view_state(
+    view_guid: str,
+    table: Optional[str] = Query(default=None),
+    edit_type: Optional[str] = Query(default=None),
+    gcs=Depends(get_gcs_instance),
+):
     try:
         view_uuid = uuid.UUID(view_guid)
     except Exception:
@@ -174,12 +262,27 @@ async def get_view_state(view_guid: str, gcs=Depends(get_gcs_instance)):
     except KeyError:
         raise HTTPException(status_code=404, detail=f"View nicht gefunden: {view_guid}")
 
-    origin = extract_controls_origin(definition.get("daten") or {})
-    source = gcs.get_view_controls(view_guid) or {}
+    root = definition.get("root") or {}
+    root_table = str((root or {}).get("TABLE") or "").strip()
+    no_data = _truthy((root or {}).get("NO_DATA") or (root or {}).get("no_data"))
+
+    table_override = _normalize_table_override(table)
+    if table_override and not _allow_table_override(root=root, root_table=root_table, table_override=table_override):
+        raise HTTPException(
+            status_code=400,
+            detail="table override ist nur erlaubt, wenn ROOT.NO_DATA=true oder ROOT.ALLOW_TABLE_OVERRIDE=true (oder sys_* -> sys_*)",
+        )
+
+    effective_table = table_override or root_table
+    et = _normalize_edit_type(edit_type)
+    state_group = _view_state_group(view_guid=view_guid, table=effective_table, edit_type=et)
+
+    origin = extract_controls_origin(definition.get("daten") or {}, root_table=effective_table, no_data=no_data)
+    source = gcs.get_view_controls(state_group) or {}
     if not isinstance(source, dict):
         source = {}
 
-    table_state_src = gcs.get_view_table_state(view_guid) or {}
+    table_state_src = gcs.get_view_table_state(state_group) or {}
     if not isinstance(table_state_src, dict):
         table_state_src = {}
 
@@ -201,7 +304,13 @@ async def get_view_state(view_guid: str, gcs=Depends(get_gcs_instance)):
 
 
 @router.put("/{view_guid}/state", response_model=ViewStateResponse)
-async def put_view_state(view_guid: str, request: ViewStateUpdateRequest, gcs=Depends(get_gcs_instance)):
+async def put_view_state(
+    view_guid: str,
+    request: ViewStateUpdateRequest,
+    table: Optional[str] = Query(default=None),
+    edit_type: Optional[str] = Query(default=None),
+    gcs=Depends(get_gcs_instance),
+):
     try:
         view_uuid = uuid.UUID(view_guid)
     except Exception:
@@ -212,18 +321,33 @@ async def put_view_state(view_guid: str, request: ViewStateUpdateRequest, gcs=De
     except KeyError:
         raise HTTPException(status_code=404, detail=f"View nicht gefunden: {view_guid}")
 
-    origin = extract_controls_origin(definition.get("daten") or {})
+    root = definition.get("root") or {}
+    root_table = str((root or {}).get("TABLE") or "").strip()
+    no_data = _truthy((root or {}).get("NO_DATA") or (root or {}).get("no_data"))
 
-    # Backward compatible: wenn controls_source nicht gesendet wird, behalten wir den bestehenden Wert.
+    table_override = _normalize_table_override(table)
+    if table_override and not _allow_table_override(root=root, root_table=root_table, table_override=table_override):
+        raise HTTPException(
+            status_code=400,
+            detail="table override ist nur erlaubt, wenn ROOT.NO_DATA=true oder ROOT.ALLOW_TABLE_OVERRIDE=true (oder sys_* -> sys_*)",
+        )
+
+    effective_table = table_override or root_table
+    et = _normalize_edit_type(edit_type)
+    state_group = _view_state_group(view_guid=view_guid, table=effective_table, edit_type=et)
+
+    origin = extract_controls_origin(definition.get("daten") or {}, root_table=effective_table, no_data=no_data)
+
+    # Wenn controls_source nicht gesendet wird, behalten wir den bestehenden Wert.
     source = request.controls_source
     if source is None:
-        source = gcs.get_view_controls(view_guid) or {}
+        source = gcs.get_view_controls(state_group) or {}
     if not isinstance(source, dict):
         raise HTTPException(status_code=400, detail="controls_source muss ein Dict sein")
 
     table_state_src = request.table_state_source
     if table_state_src is None:
-        table_state_src = gcs.get_view_table_state(view_guid) or {}
+        table_state_src = gcs.get_view_table_state(state_group) or {}
     if not isinstance(table_state_src, dict):
         raise HTTPException(status_code=400, detail="table_state_source muss ein Dict sein")
 
@@ -235,8 +359,8 @@ async def put_view_state(view_guid: str, request: ViewStateUpdateRequest, gcs=De
     meta["table_state"] = table_state_meta
 
     # Persistenz ausschließlich in sys_systemsteuerung
-    gcs.set_view_controls(view_guid, normalized_source)
-    gcs.set_view_table_state(view_guid, table_state_normalized)
+    gcs.set_view_controls(state_group, normalized_source)
+    gcs.set_view_table_state(state_group, table_state_normalized)
     await gcs.save_all_values()
 
     return {
@@ -250,8 +374,16 @@ async def put_view_state(view_guid: str, request: ViewStateUpdateRequest, gcs=De
 
 
 @router.post("/{view_guid}/matrix", response_model=ViewMatrixResponse)
-async def post_view_matrix(view_guid: str, request: ViewMatrixRequest, gcs=Depends(get_gcs_instance)):
+async def post_view_matrix(
+    view_guid: str,
+    request: ViewMatrixRequest,
+    table: Optional[str] = Query(default=None),
+    edit_type: Optional[str] = Query(default=None),
+    gcs=Depends(get_gcs_instance),
+):
     try:
+        table_override = _normalize_table_override(table)
+        et = _normalize_edit_type(edit_type)
         result = await build_view_matrix(
             gcs,
             view_guid,
@@ -260,6 +392,8 @@ async def post_view_matrix(view_guid: str, request: ViewMatrixRequest, gcs=Depen
             include_historisch=bool(request.include_historisch),
             limit=int(request.limit),
             offset=int(request.offset),
+            table_override=table_override,
+            edit_type=et,
         )
         return result
     except ValueError as e:

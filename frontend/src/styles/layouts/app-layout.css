@@ -6,7 +6,9 @@
 .app-layout {
   display: flex;
   flex-direction: column;
+  height: 100vh;
   min-height: 100vh;
+  overflow: hidden;
   background-color: var(--color-background-primary);
 }
 
@@ -14,6 +16,7 @@
   display: flex;
   flex: 1;
   overflow: hidden;
+  min-height: 0;
 }
 
 .main-content {
@@ -21,17 +24,34 @@
   flex-direction: column;
   flex: 1;
   overflow: hidden;
+  min-height: 0;
+  min-width: 0;
 }
 
 .content-wrapper {
   flex: 1;
   overflow-y: auto;
   padding: var(--spacing-lg);
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
   /* Leichte Primärfarb-Tönung für mandantenspezifische Unterscheidung */
   background: linear-gradient(135deg, 
     var(--color-primary-50) 0%, 
     var(--color-background-secondary) 30%,
     var(--color-background-secondary) 100%);
+}
+
+/* Dialogs manage their own internal scroll */
+.content-wrapper--no-scroll {
+  overflow: hidden;
+  padding: 0;
+}
+
+/* Views (Standalone) sollen wie im Dialog intern scrollen */
+.content-wrapper--no-scroll-view {
+  overflow: hidden;
 }
 
 /* ===== Responsive Grid ===== */
@@ -124,6 +144,39 @@
   border-radius: var(--border-radius-md);
   border-left: 4px solid var(--color-error-dark);
   position: relative;
+}
+
+/* ===== Info Display (Restore) ===== */
+.menu-info {
+  margin: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: rgba(0, 120, 212, 0.10);
+  color: var(--color-text-primary);
+  border-radius: var(--border-radius-md);
+  border-left: 4px solid rgba(0, 120, 212, 0.65);
+  position: relative;
+}
+
+.menu-info-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--color-text-primary);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.menu-info-close:hover {
+  background: rgba(0, 0, 0, 0.10);
 }
 
 .menu-error strong {

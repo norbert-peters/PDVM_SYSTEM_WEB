@@ -31,6 +31,7 @@ TABLE_DATABASE_MAP = {
     "sys_error_acknowledgments": "mandant",
     "persondaten": "mandant",
     "finanzdaten": "mandant",
+        "sys_systemdaten": "system",
 }
 
 class DatabasePool:

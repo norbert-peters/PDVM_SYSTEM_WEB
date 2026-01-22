@@ -48,6 +48,15 @@ export interface MenuResponse {
   message?: string;
 }
 
+export type MenuType = 'start' | 'app'
+
+export interface LastNavigationState {
+  menu_type: MenuType
+  app_name?: string | null
+  command?: { handler: string; params: Record<string, any> } | null
+  updated_at?: string | null
+}
+
 /**
  * Lädt das Startmenü des Users
  */
@@ -117,4 +126,24 @@ export async function logout(): Promise<void> {
     localStorage.removeItem('token');
     localStorage.removeItem('selectedMandant');
   }
+}
+
+export async function getLastNavigation(): Promise<LastNavigationState> {
+  const token = localStorage.getItem('token');
+  if (!token) throw new Error('Nicht angemeldet');
+
+  const response = await axios.get<LastNavigationState>(`${API_URL}/menu/last-navigation`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  return response.data
+}
+
+export async function putLastNavigation(payload: LastNavigationState): Promise<LastNavigationState> {
+  const token = localStorage.getItem('token');
+  if (!token) throw new Error('Nicht angemeldet');
+
+  const response = await axios.put<LastNavigationState>(`${API_URL}/menu/last-navigation`, payload, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  return response.data
 }

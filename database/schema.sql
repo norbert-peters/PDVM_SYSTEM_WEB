@@ -61,15 +61,13 @@ CREATE INDEX idx_sys_benutzer_daten ON sys_benutzer USING GIN(daten);
 -- sys_mandanten (Clients/Tenants)
 SELECT create_pdvm_table('sys_mandanten');
 
--- ========================================
--- SYSTEM TABLES (sys_*)
--- ========================================
 SELECT create_pdvm_table('sys_beschreibungen');
 SELECT create_pdvm_table('sys_dialogdaten');
 SELECT create_pdvm_table('sys_dropdowndaten');
 SELECT create_pdvm_table('sys_framedaten');
 SELECT create_pdvm_table('sys_layout');
 SELECT create_pdvm_table('sys_menudaten');
+SELECT create_pdvm_table('sys_systemdaten');
 SELECT create_pdvm_table('sys_viewdaten');
 SELECT create_pdvm_table('sys_systemsteuerung');
 SELECT create_pdvm_table('sys_error_log');

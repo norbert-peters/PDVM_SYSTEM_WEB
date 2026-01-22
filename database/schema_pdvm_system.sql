@@ -46,5 +46,6 @@ SELECT create_pdvm_table('sys_viewdaten');
 SELECT create_pdvm_table('sys_menudaten');
 SELECT create_pdvm_table('sys_layout');
 SELECT create_pdvm_table('sys_dropdowndaten');
+SELECT create_pdvm_table('sys_systemdaten');
 
 COMMENT ON DATABASE pdvm_system IS 'PDVM System Database - UI configuration and system metadata';

@@ -74,7 +74,8 @@ class PdvmDatabase:
             "sys_dialogdaten",
             "sys_viewdaten",
             "sys_framedaten",
-            "sys_layout"
+            "sys_layout",
+            "sys_systemdaten",
         ]:
             return "system"
         

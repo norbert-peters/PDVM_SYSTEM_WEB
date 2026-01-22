@@ -1,0 +1,258 @@
+/*
+ * PDVM View - Embed Layout (Dialog)
+ * Ziel: View-Header/Settings/Record-Navi + Tabellenkopf fix,
+ *       darunter scrollbare Liste mit Pager am Ende.
+ */
+
+.pdvm-view {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+
+  /* Für sticky Header + Filterzeile (Offset der 2. Zeile) */
+  --pdvm-view-thead-row-height: 42px;
+
+  flex: 1;
+  min-height: 0;
+}
+
+/* Standalone-Route: Parent muss flexen, damit die View Höhe bekommt */
+.pdvm-view-page {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.pdvm-view--embedded {
+  /* Eingebettet im Dialog: NUR die View scrollt intern (Body), nicht der Dialog */
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+.pdvm-view__fixed {
+  flex-shrink: 0;
+  padding: 10px 12px;
+  background: var(--color-background-primary);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+}
+
+.pdvm-view__headerRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+
+.pdvm-view__title {
+  min-width: 0;
+}
+
+.pdvm-view__settingsToggle {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: var(--color-background-primary);
+  cursor: pointer;
+}
+
+.pdvm-view__settingsToggle:hover {
+  background: var(--color-background-secondary);
+}
+
+
+.pdvm-view__settings {
+  margin-top: 10px;
+  width: 100%;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+  background: var(--color-background-primary);
+  overflow: hidden;
+}
+
+.pdvm-view__settingsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  background: var(--color-background-primary);
+}
+
+.pdvm-view__settingsBody {
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.02);
+  max-height: min(38vh, 420px);
+  overflow: auto;
+}
+
+.pdvm-view__settingsEmpty {
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.pdvm-view__settingsSection {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+  background: var(--color-background-primary);
+  padding: 10px;
+}
+
+.pdvm-view__settingsSection + .pdvm-view__settingsSection {
+  margin-top: 10px;
+}
+
+.pdvm-view__settingsTitle {
+  font-size: 12px;
+  font-weight: 800;
+  opacity: 0.75;
+  margin: 0;
+}
+
+.pdvm-view__settingsButtons {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.pdvm-view__settingsButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: auto;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.pdvm-view__settingsButton:hover:not(:disabled) {
+  background: var(--color-background-secondary);
+}
+
+.pdvm-view__settingsButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.pdvm-view__settingsButton--active {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.pdvm-view__title {
+  min-width: 0;
+}
+
+.pdvm-view__name {
+  font-size: 18px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.pdvm-view__meta {
+  font-size: 12px;
+  opacity: 0.75;
+  margin-top: 4px;
+  word-break: break-word;
+}
+
+.pdvm-view__drawer {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.02);
+  max-height: 34vh;
+  overflow: auto;
+}
+
+.pdvm-view__recordNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.pdvm-view__recordNavLeft {
+  display: flex;
+  gap: 8px;
+}
+
+.pdvm-view__navButton {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: var(--color-background-primary);
+}
+
+.pdvm-view__navButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.pdvm-view__scroll {
+  margin-top: 10px;
+}
+
+/* Der View-Body ist der Scroll-Container (standalone + embedded) */
+.pdvm-view__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+
+  /* Scrollbar sitzt hier -> Radius muss hier hin, damit alle Ecken rund sind */
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+  background: var(--block-surface-std-background, white);
+}
+
+.pdvm-view__tableWrap {
+  /* Clipping/Radius ist am Scroll-Container `.pdvm-view__scroll` */
+  background: transparent;
+}
+
+.pdvm-view__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.pdvm-view__table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--block-surface-std-background, white);
+}
+
+/* Stabiler Offset für die Filterzeile unter dem Spaltenkopf */
+.pdvm-view__table thead tr:first-child th {
+  height: var(--pdvm-view-thead-row-height);
+}
+
+.pdvm-view__table thead tr.pdvm-view__filterRow th {
+  position: sticky;
+  top: var(--pdvm-view-thead-row-height);
+  z-index: 2;
+}
+
+.pdvm-view__pager {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px;
+  background: var(--color-background-primary);
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+}

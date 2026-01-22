@@ -20,3 +20,7 @@
 /* @import './styles/components/forms.css'; */
 /* @import './styles/components/cards.css'; */
 
+/* ===== Component Styles (aktiv) ===== */
+@import './styles/components/tabs.css';
+@import './styles/components/dialog.css';
+

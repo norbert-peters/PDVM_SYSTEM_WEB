@@ -1,0 +1,101 @@
+.pdvm-jsoneditor {
+  width: 100%;
+}
+
+.pdvm-jsoneditor__frame {
+  position: relative;
+  width: 100%;
+  min-height: 420px;
+  height: 520px;
+  border-radius: var(--block-view-table-radius, 10px);
+  overflow: hidden;
+  border: var(--block-view-table-border, 1px solid var(--color-border-light));
+  background: var(--block-view-table-bg-color, var(--color-background-primary));
+}
+
+/* Column-0 marker: a clear left edge */
+.pdvm-jsoneditor__frame::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: rgba(0, 0, 0, 0.14);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.pdvm-jsoneditor__container {
+  position: absolute;
+  inset: 0;
+}
+
+/* Base jsoneditor resets */
+.pdvm-jsoneditor__frame .jsoneditor {
+  border: none;
+  height: 100%;
+}
+
+/* Make it readable on dark background */
+.pdvm-jsoneditor__frame .jsoneditor,
+.pdvm-jsoneditor__frame .jsoneditor-outer {
+  background: var(--block-view-table-bg-color, var(--color-background-primary));
+}
+
+.pdvm-jsoneditor__frame .jsoneditor-tree {
+  background: var(--block-view-table-bg-color, var(--color-background-primary));
+}
+
+.pdvm-jsoneditor__frame .jsoneditor-menu {
+  background: var(--block-view-toolbar-bg-color, var(--color-background-secondary));
+  border-bottom: var(--block-view-toolbar-border, 1px solid var(--color-border-light));
+}
+
+.pdvm-jsoneditor__frame .jsoneditor-search {
+  background: var(--block-view-input-std-bg-color, #ffffff);
+  border: var(--block-view-input-std-border, 1px solid var(--color-border-medium));
+  color: var(--block-view-input-std-text-color, #111111);
+}
+
+.pdvm-jsoneditor__frame .jsoneditor-field,
+.pdvm-jsoneditor__frame .jsoneditor-value,
+.pdvm-jsoneditor__frame .jsoneditor-readonly {
+  color: var(--color-neutral-900);
+}
+
+/* Ace editor (text mode) */
+.pdvm-jsoneditor__frame .ace_editor {
+  background: var(--block-view-table-bg-color, var(--color-background-primary));
+  color: var(--color-neutral-900);
+}
+
+.pdvm-jsoneditor__frame .ace_gutter {
+  background: var(--color-background-secondary);
+  color: rgba(0, 0, 0, 0.55);
+}
+
+.pdvm-jsoneditor__frame .ace_active-line {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.pdvm-jsoneditor__frame .ace_cursor {
+  color: #000000;
+}
+
+/* Ace search highlighting (text mode)
+   JSONEditor uses Ace markers for search results, but on dark themes the default can be too subtle.
+*/
+.pdvm-jsoneditor__frame .ace_marker-layer .ace_selected-word,
+.pdvm-jsoneditor__frame .ace_marker-layer .ace_find_highlight,
+.pdvm-jsoneditor__frame .ace_marker-layer .ace_highlight-marker,
+.pdvm-jsoneditor__frame .ace_marker-layer .ace_search_highlight {
+  background: rgba(255, 235, 59, 0.70);
+  border: 1px solid rgba(255, 193, 7, 0.85);
+  border-radius: 3px;
+}
+
+/* Selection should remain clearly visible too */
+.pdvm-jsoneditor__frame .ace_marker-layer .ace_selection {
+  background: rgba(33, 150, 243, 0.25);
+}

@@ -113,13 +113,22 @@ def _is_empty_for_type(type_norm: str, raw: Any) -> bool:
 
 def _row_has_any_value(row: Dict[str, Any], controls_origin: Dict[str, Dict[str, Any]]) -> bool:
     # SYSTEM-Spalten nicht berücksichtigen (haben immer Werte)
+    # Wenn eine View keine (oder nur SYSTEM-)Controls definiert, sollen Datensätze
+    # trotzdem sichtbar bleiben (z.B. Views mit ROOT.NO_DATA=true).
+    checked_non_system = False
     for c in controls_origin.values():
         if str(c.get("gruppe") or "").upper() == "SYSTEM":
             continue
+        checked_non_system = True
         raw = _get_value_from_row(row, c)
         type_norm = _normalize_type(c)
         if not _is_empty_for_type(type_norm, raw):
             return True
+
+    # Keine relevanten Controls vorhanden → nicht als "leer" behandeln.
+    if not checked_non_system:
+        return True
+
     return False
 
 
@@ -246,24 +255,57 @@ async def build_view_matrix(
     limit: int = 200,
     offset: int = 0,
     max_base_rows: int = MAX_BASE_ROWS_DEFAULT,
+    table_override: Optional[str] = None,
+    edit_type: str = "view",
 ) -> Dict[str, Any]:
     """Erstellt eine projektierte Matrix für eine View (serverseitig)."""
 
     view_uuid = __import__("uuid").UUID(view_guid)
     definition = await load_view_definition(gcs, view_uuid)
 
-    table = str((definition.get("root") or {}).get("TABLE") or "").strip()
+    root = definition.get("root") or {}
+    table = str((root or {}).get("TABLE") or "").strip()
     if not table:
         raise ValueError("View ROOT.TABLE ist leer")
 
-    origin = extract_controls_origin(definition.get("daten") or {})
+    def _truthy(value: Any) -> bool:
+        if value is None:
+            return False
+        if isinstance(value, bool):
+            return bool(value)
+        if isinstance(value, (int, float)):
+            try:
+                return float(value) != 0.0
+            except Exception:
+                return False
+        s = str(value).strip().lower()
+        return s in {"1", "true", "yes", "y", "on"}
+
+    no_data = _truthy((root or {}).get("NO_DATA") or (root or {}).get("no_data"))
+    if table_override:
+        allow_flag = _truthy((root or {}).get("ALLOW_TABLE_OVERRIDE") or (root or {}).get("allow_table_override"))
+        rt = str(table or "").strip().lower()
+        to = str(table_override or "").strip().lower()
+        allow_sys_to_sys = rt.startswith("sys_") and to.startswith("sys_")
+        if not (no_data or allow_flag or allow_sys_to_sys):
+            raise ValueError("table_override ist nur erlaubt, wenn ROOT.NO_DATA=true oder ROOT.ALLOW_TABLE_OVERRIDE=true (oder sys_* -> sys_*)")
+        table = str(table_override).strip()
+        if not table:
+            raise ValueError("table_override ist leer")
+
+    # Persistenz-Key (linear/stabil): view_guid + effective_table + edit_type
+    # user_guid ist implizit, da sys_systemsteuerung pro User geladen ist.
+    et = str(edit_type or "").strip().lower() or "view"
+    state_group = f"{view_guid}::{str(table).strip().lower()}::{et}"
+
+    origin = extract_controls_origin(definition.get("daten") or {}, root_table=table, no_data=no_data)
 
     # State: source overrides (optional) or persisted
-    src_controls = controls_source if controls_source is not None else (gcs.get_view_controls(view_guid) or {})
+    src_controls = controls_source if controls_source is not None else (gcs.get_view_controls(state_group) or {})
     if not isinstance(src_controls, dict):
         src_controls = {}
 
-    src_table_state = table_state_source if table_state_source is not None else (gcs.get_view_table_state(view_guid) or {})
+    src_table_state = table_state_source if table_state_source is not None else (gcs.get_view_table_state(state_group) or {})
     if not isinstance(src_table_state, dict):
         src_table_state = {}
 

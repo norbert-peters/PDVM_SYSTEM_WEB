@@ -1,0 +1,94 @@
+/*
+ * PDVM System - Tabs (V2 Theme Block)
+ * Block name suggestion in sys_layout: block_tabs_std
+ * This creates CSS vars like: --block-tabs-std-*
+ */
+
+.pdvm-tabs {
+  /* Layout */
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.pdvm-tabs__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+
+  padding: var(--block-tabs-std-bar-padding, 6px);
+
+  background: var(--block-tabs-std-bar-bg-color, transparent);
+  border-bottom: var(--block-tabs-std-bar-border-bottom, 1px solid var(--color-border-light));
+}
+
+.pdvm-tabs__list {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.pdvm-tabs__tab {
+  appearance: none;
+  border: 1px solid transparent;
+  border-bottom: 0;
+
+  padding: var(--block-tabs-std-tab-padding, 8px 12px);
+  border-top-left-radius: var(--block-tabs-std-tab-radius, var(--border-radius-md));
+  border-top-right-radius: var(--block-tabs-std-tab-radius, var(--border-radius-md));
+
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+
+  cursor: pointer;
+
+  background: var(--block-tabs-std-tab-bg-color, transparent);
+  color: var(--block-tabs-std-tab-text-color, var(--color-text-secondary));
+}
+
+.pdvm-tabs__tab:hover {
+  background: var(--block-tabs-std-tab-hover-bg-color, rgba(0, 0, 0, 0.04));
+}
+
+:root[data-theme="dark"] .pdvm-tabs__tab:hover {
+  background: var(--block-tabs-std-tab-hover-bg-color, rgba(255, 255, 255, 0.06));
+}
+
+.pdvm-tabs__tab--active {
+  background: var(--block-tabs-std-tab-active-bg-color, var(--color-background-primary));
+  color: var(--block-tabs-std-tab-active-text-color, var(--color-text-primary));
+
+  border-color: var(--block-tabs-std-tab-active-border-color, var(--color-border-light));
+
+  /* visually connect with panel */
+  position: relative;
+  top: 1px;
+}
+
+.pdvm-tabs__actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.pdvm-tabs__meta {
+  font-size: 12px;
+  color: var(--block-tabs-std-meta-text-color, var(--color-text-secondary));
+  opacity: var(--block-tabs-std-meta-opacity, 0.85);
+}
+
+.pdvm-tabs__panel {
+  background: var(--block-tabs-std-panel-bg-color, var(--color-background-secondary));
+  border: var(--block-tabs-std-panel-border, 1px solid var(--color-border-light));
+  border-radius: var(--block-tabs-std-panel-radius, var(--border-radius-md));
+
+  padding: var(--block-tabs-std-panel-padding, var(--spacing-md));
+}
+
+/* If the active tab is "attached", keep panel corners crisp */
+.pdvm-tabs__panel {
+  border-top-left-radius: var(--block-tabs-std-panel-top-radius, var(--border-radius-md));
+  border-top-right-radius: var(--block-tabs-std-panel-top-radius, var(--border-radius-md));
+}

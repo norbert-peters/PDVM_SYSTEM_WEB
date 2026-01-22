@@ -236,6 +236,27 @@ Für die generische View (`PdvmViewPage` / später `PdvmView`) werden folgende B
 
 Hinweis: Aktuell verwendet die View noch Inline-Styles (MVP). Der nächste Schritt ist, diese Bereiche auf CSS-Klassen (`.pdvm-view-*`) umzustellen, damit die oben genannten Blocks direkt greifen.
 
+### 5.6 Dialog: `edit_json` (Toolbar + JSON Editor)
+
+Der `edit_json` Tab nutzt bewusst vorhandene Standard-Blöcke, damit Kontrast/Look im Hell- und Dunkelmodus sauber über das Theme steuerbar bleibt.
+
+**Toolbar (Buttons + Suchfeld)**
+- Buttons: `block_view_btn_std` (CSS: `.pdvm-dialog__toolBtn`)
+  - Verwendete Properties: `bg_color`, `text_color`, `border`, `radius`, `hover_bg`
+- Primary Action (Speichern): `block_btn_primary` (CSS: `.pdvm-dialog__toolBtn--primary`)
+  - Verwendete Properties: `bg_color`, `text_color`, `hover_bg`, `radius`
+- Suchfeld: `block_view_input_std` (CSS: `.pdvm-dialog__toolInput`)
+  - Verwendete Properties: `bg_color`, `text_color`, `border`, `radius`
+
+**Editor-Surface (JSONEditor / Ace in Textmodus)**
+- Editor-Rahmen/Surface: `block_view_table` (CSS: `.pdvm-jsoneditor__frame`)
+  - Verwendete Properties: `bg_color`, `border`, `radius`
+- Editor-Menüleiste (intern von `jsoneditor`): `block_view_toolbar` (CSS: `.jsoneditor-menu`)
+  - Verwendete Properties: `bg_color`, `border`
+
+**Hinweis (Such-Highlight im Textmodus)**
+Die Markierung der Treffer in der Textansicht erfolgt über Ace-Marker-Klassen (z.B. `.ace_selected-word`, `.ace_find_highlight`). Die Farben sind in der Komponente bewusst als klare Kontrast-Farben gesetzt (gelb für Treffer), da die Marker in manchen Ace-Themes sonst zu subtil sind.
+
 ### 5.4 Widget Mapping (Komplexe Komponenten)
 
 Komplexe Widgets setzen sich oft aus mehreren Blöcken zusammen. Hier wird definiert, welche Blöcke für welche Teilelemente verwendet werden.

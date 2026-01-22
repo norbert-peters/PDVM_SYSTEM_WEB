@@ -77,6 +77,24 @@ async def create_gcs_session(
     if stichtag is None:
         stichtag = now_pdvm()
     
+    # Normalize GUID types early (caller often passes strings)
+    try:
+        user_guid = uuid.UUID(str(user_guid))
+    except Exception:
+        raise ValueError("Ungültige user_guid")
+    try:
+        mandant_guid = uuid.UUID(str(mandant_guid))
+    except Exception:
+        raise ValueError("Ungültige mandant_guid")
+
+    # Replace any existing session with the same token (defensive)
+    try:
+        existing = _gcs_sessions.get(session_token)
+        if existing is not None:
+            await close_gcs_session(session_token)
+    except Exception:
+        pass
+
     # GCS-Instanz erstellen mit User/Mandant-Daten
     gcs = PdvmCentralSystemsteuerung(
         user_guid=user_guid,
@@ -87,6 +105,9 @@ async def create_gcs_session(
         system_pool=system_pool,
         mandant_pool=mandant_pool
     )
+
+    # Linear init: ensure DB-backed instances are loaded before the session is used.
+    await gcs.initialize_from_db()
     
     # In Session-Store ablegen
     _gcs_sessions[session_token] = gcs
@@ -225,70 +246,6 @@ class PdvmCentralSystemsteuerung:
             system_pool=system_pool,
             mandant_pool=mandant_pool
         )
-        # Daten aus DB laden via PdvmDatabase
-        import asyncio
-        from app.core.pdvm_datetime import now_pdvm
-
-        def _apply_stichtag_to_all_instances(new_stichtag: float) -> None:
-            """Hält Stichtag über alle GCS-Instanzen konsistent."""
-            self.stichtag = float(new_stichtag)
-            for inst in (self.benutzer, self.mandant, self.systemsteuerung, self.anwendungsdaten, self.layout):
-                if inst is not None:
-                    inst.stichtag = float(new_stichtag)
-
-        async def _ensure_stichtag_initialized() -> None:
-            """Lädt/persistiert STICHTAG aus sys_systemsteuerung und setzt self.stichtag."""
-            try:
-                stored, _ = self.systemsteuerung.get_value(str(self.user_guid), "STICHTAG", ab_zeit=self.stichtag)
-            except Exception:
-                stored = None
-
-            if stored is not None:
-                try:
-                    _apply_stichtag_to_all_instances(float(stored))
-                    return
-                except Exception:
-                    pass
-
-            # Kein persistierter Stichtag -> jetzt verwenden und sofort speichern
-            new_st = float(self.stichtag) if self.stichtag not in (None, 0, 9999365.00000) else float(now_pdvm())
-            _apply_stichtag_to_all_instances(new_st)
-            self.systemsteuerung.set_value(str(self.user_guid), "STICHTAG", new_st, self.stichtag)
-            try:
-                await self.systemsteuerung.save_all_values()
-                logger.info(f"✅ STICHTAG initialisiert und gespeichert: {new_st}")
-            except Exception as e:
-                logger.error(f"❌ Fehler beim Persistieren von STICHTAG: {e}")
-
-        async def load_systemsteuerung():
-            row = await self.systemsteuerung.db.get_row(uuid.UUID(user_guid))
-            if row and row.get('daten'):
-                self.systemsteuerung.set_data(row['daten'])
-                self.systemsteuerung.set_guid(str(user_guid))
-            else:
-                # Datensatz existiert nicht → mit Defaults erstellen
-                logger.info(f"📝 sys_systemsteuerung für User {user_guid} nicht gefunden - erstelle mit Defaults")
-                self.systemsteuerung.set_guid(str(user_guid))
-                # Default: THEME_MODE = light
-                self.systemsteuerung.set_value(str(user_guid), "THEME_MODE", "light", stichtag)
-                # Speichern in DB
-                try:
-                    await self.systemsteuerung.save_all_values()
-                    logger.info(f"✅ sys_systemsteuerung für User {user_guid} erstellt")
-                except Exception as e:
-                    logger.error(f"❌ Fehler beim Erstellen von sys_systemsteuerung: {e}")
-
-            # STICHTAG sicherstellen (laden oder initialisieren + persistieren)
-            await _ensure_stichtag_initialized()
-        
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                asyncio.create_task(load_systemsteuerung())
-            else:
-                loop.run_until_complete(load_systemsteuerung())
-        except RuntimeError:
-            asyncio.run(load_systemsteuerung())
         
         # 4. Anwendungsdaten-Instanz (Mandanteneinstellungen, read/write)
         self.anwendungsdaten = PdvmCentralDatabase(
@@ -299,69 +256,133 @@ class PdvmCentralSystemsteuerung:
             system_pool=system_pool,
             mandant_pool=mandant_pool
         )
-        # Daten aus DB laden via PdvmDatabase
-        async def load_anwendungsdaten():
-            row = await self.anwendungsdaten.db.get_row(uuid.UUID(mandant_guid))
-            if row and row.get('daten'):
-                self.anwendungsdaten.set_data(row['daten'])
-                self.anwendungsdaten.set_guid(str(mandant_guid))
-            else:
-                # Datensatz existiert nicht → mit Defaults erstellen
-                logger.info(f"📝 sys_anwendungsdaten für Mandant {mandant_guid} nicht gefunden - erstelle mit Defaults")
-                self.anwendungsdaten.set_guid(str(mandant_guid))
-                # Default: CONFIG Gruppe leer (THEME_GUID muss später gesetzt werden)
-                self.anwendungsdaten.set_value("CONFIG", "THEME_GUID", "", stichtag)
-                # Speichern in DB
-                try:
-                    await self.anwendungsdaten.save_all_values()
-                    logger.info(f"✅ sys_anwendungsdaten für Mandant {mandant_guid} erstellt")
-                except Exception as e:
-                    logger.error(f"❌ Fehler beim Erstellen von sys_anwendungsdaten: {e}")
         
+        # 5. Layout wird in initialize_from_db() geladen (linear)
+        self.layout = None
+
+    @staticmethod
+    def _truthy(value: Any) -> bool:
+        if value is None:
+            return False
+        if isinstance(value, bool):
+            return bool(value)
+        if isinstance(value, (int, float)):
+            try:
+                return float(value) != 0.0
+            except Exception:
+                return False
+        s = str(value).strip().lower()
+        return s in {"1", "true", "yes", "y", "on"}
+
+    async def initialize_from_db(self) -> None:
+        """Lineare Initialisierung: lädt systemsteuerung/anwendungsdaten/layout aus DB.
+
+        WICHTIG: Keine create_task() / parallel init. Nach Rückkehr ist der GCS konsistent.
+        """
+        from app.core.pdvm_datetime import now_pdvm
+
+        user_guid_str = str(self.user_guid)
+        mandant_guid_str = str(self.mandant_guid)
+
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                asyncio.create_task(load_anwendungsdaten())
-            else:
-                loop.run_until_complete(load_anwendungsdaten())
-        except RuntimeError:
-            asyncio.run(load_anwendungsdaten())
-        
-        # 5. Layout-Instanz (Farbschema aus sys_layout, read-only)
-        # THEME_GUID aus Mandant-CONFIG holen
-        theme_guid = self.mandant.get_static_value("CONFIG", "THEME_GUID")
-        
-        if theme_guid:
-            self.layout = PdvmCentralDatabase(
-                "sys_layout",
-                guid=None,  # Keine GUID → kein DB-Lesen
-                no_save=True,  # Read-only
-                stichtag=stichtag,
-                system_pool=system_pool,
-                mandant_pool=mandant_pool
-            )
-            # Daten aus DB laden via PdvmDatabase
-            async def load_layout():
-                row = await self.layout.db.get_row(uuid.UUID(theme_guid))
-                if row and row.get('daten'):
-                    self.layout.set_data(row['daten'])
+            user_uuid = uuid.UUID(user_guid_str)
+        except Exception:
+            raise ValueError("Ungültige user_guid")
+
+        try:
+            mandant_uuid = uuid.UUID(mandant_guid_str)
+        except Exception:
+            raise ValueError("Ungültige mandant_guid")
+
+        def _apply_stichtag_to_all_instances(new_stichtag: float) -> None:
+            self.stichtag = float(new_stichtag)
+            for inst in (self.benutzer, self.mandant, self.systemsteuerung, self.anwendungsdaten, self.layout):
+                if inst is not None:
+                    inst.stichtag = float(new_stichtag)
+
+        # --- sys_systemsteuerung (User) ---
+        row = await self.systemsteuerung.db.get_row(user_uuid)
+        if row and row.get("daten"):
+            self.systemsteuerung.set_data(row["daten"])
+            self.systemsteuerung.set_guid(user_guid_str)
+        else:
+            logger.info(f"📝 sys_systemsteuerung für User {user_guid_str} nicht gefunden - erstelle mit Defaults")
+            self.systemsteuerung.set_guid(user_guid_str)
+            self.systemsteuerung.set_data({})
+            self.systemsteuerung.set_value(user_guid_str, "THEME_MODE", "light", self.stichtag)
+            await self.systemsteuerung.save_all_values()
+            logger.info(f"✅ sys_systemsteuerung für User {user_guid_str} erstellt")
+
+        # STICHTAG: load or initialize
+        stored = None
+        try:
+            stored, _ = self.systemsteuerung.get_value(user_guid_str, "STICHTAG", ab_zeit=self.stichtag)
+        except Exception:
+            stored = None
+
+        if stored is not None:
+            try:
+                _apply_stichtag_to_all_instances(float(stored))
+            except Exception:
+                stored = None
+
+        if stored is None:
+            new_st = float(self.stichtag) if self.stichtag not in (None, 0, 9999365.00000) else float(now_pdvm())
+            _apply_stichtag_to_all_instances(new_st)
+            self.systemsteuerung.set_value(user_guid_str, "STICHTAG", new_st, self.stichtag)
+            try:
+                await self.systemsteuerung.save_all_values()
+                logger.info(f"✅ STICHTAG initialisiert und gespeichert: {new_st}")
+            except Exception as e:
+                logger.error(f"❌ Fehler beim Persistieren von STICHTAG: {e}")
+
+        # --- sys_anwendungsdaten (Mandant) ---
+        row = await self.anwendungsdaten.db.get_row(mandant_uuid)
+        if row and row.get("daten"):
+            self.anwendungsdaten.set_data(row["daten"])
+            self.anwendungsdaten.set_guid(mandant_guid_str)
+        else:
+            logger.info(f"📝 sys_anwendungsdaten für Mandant {mandant_guid_str} nicht gefunden - erstelle mit Defaults")
+            self.anwendungsdaten.set_guid(mandant_guid_str)
+            self.anwendungsdaten.set_data({})
+            self.anwendungsdaten.set_value("CONFIG", "THEME_GUID", "", self.stichtag)
+            await self.anwendungsdaten.save_all_values()
+            logger.info(f"✅ sys_anwendungsdaten für Mandant {mandant_guid_str} erstellt")
+
+        # --- sys_layout (Theme) ---
+        theme_guid = None
+        try:
+            cfg = (self.mandant.data or {}).get("CONFIG") if isinstance(self.mandant.data, dict) else None
+            if isinstance(cfg, dict):
+                theme_guid = cfg.get("THEME_GUID")
+        except Exception:
+            theme_guid = None
+
+        theme_guid_str = str(theme_guid).strip() if theme_guid is not None else ""
+        if theme_guid_str:
+            try:
+                theme_uuid = uuid.UUID(theme_guid_str)
+            except Exception:
+                theme_uuid = None
+
+            if theme_uuid is not None:
+                self.layout = PdvmCentralDatabase(
+                    "sys_layout",
+                    guid=None,
+                    no_save=True,
+                    stichtag=float(self.stichtag),
+                    system_pool=self._system_pool,
+                    mandant_pool=self._mandant_pool,
+                )
+                row = await self.layout.db.get_row(theme_uuid)
+                if row and row.get("daten"):
+                    self.layout.set_data(row["daten"])
                 else:
                     self.layout.set_data({})
-                self.layout.set_guid(str(theme_guid))
-            
-            try:
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    asyncio.create_task(load_layout())
-                else:
-                    loop.run_until_complete(load_layout())
-            except RuntimeError:
-                asyncio.run(load_layout())
-            
-            logger.info(f"✅ Layout geladen: {theme_guid}")
+                self.layout.set_guid(theme_guid_str)
+                logger.info(f"✅ Layout geladen: {theme_guid_str}")
         else:
             logger.warning("⚠️ Keine THEME_GUID im Mandant-CONFIG gefunden")
-            self.layout = None
     
     # === Delegierte Methoden für Kompatibilität ===
     

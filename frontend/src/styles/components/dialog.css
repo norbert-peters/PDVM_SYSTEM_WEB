@@ -1,0 +1,156 @@
+/*
+ * PDVM System - Dialog Layout
+ * Ziel: Header + Tabs bleiben stehen; nur Panel/Listen scrollen.
+ */
+
+.pdvm-dialog {
+  display: flex;
+  flex-direction: column;
+
+  padding: var(--spacing-md);
+  box-sizing: border-box;
+
+  /* Wichtig für verschachtelte Flex/Overflow-Kombos */
+  min-height: 0;
+  height: 100%;
+
+  /* Verhindert, dass der Dialog selbst die Seite „aufbläst“ */
+  overflow: hidden;
+}
+
+.pdvm-dialog__header {
+  /* Header bleibt stehen, weil nur Panel scrollt */
+  margin-bottom: var(--spacing-sm);
+}
+
+.pdvm-dialog__tabs {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pdvm-dialog__panel {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+
+  /* Panel muss flexen, damit PanelScroll die Höhe bekommt */
+  display: flex;
+  flex-direction: column;
+}
+
+.pdvm-dialog__panelScroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+
+  /* Damit Kinder (z.B. embedded View) die Höhe sauber bekommen */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Wenn eine View eingebettet ist, soll NUR die View intern scrollen */
+.pdvm-dialog__panelScroll--noScroll {
+  overflow: hidden;
+}
+
+/* Wenn eine View eingebettet ist, soll die View intern scrollen */
+
+/* View-Tab: nur die Liste scrollt (inkl. sticky table header) */
+.pdvm-dialog__view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+
+  min-height: 0;
+  flex: 1;
+}
+
+.pdvm-dialog__viewList {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-md);
+  background: var(--color-background-primary);
+}
+
+.pdvm-dialog__viewList thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+
+  background: var(--color-background-primary);
+}
+
+/* Toolbar controls (edit_json) */
+.pdvm-dialog__toolBtn {
+  height: 30px;
+  padding: 0 10px;
+  border-radius: var(--block-view-btn-std-radius, var(--border-radius-md));
+  border: var(--block-view-btn-std-border, 1px solid var(--color-border-medium));
+  background: var(--block-view-btn-std-bg-color, var(--color-background-primary));
+  color: var(--block-view-btn-std-text-color, var(--color-neutral-900));
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  box-shadow: var(--shadow-sm);
+  user-select: none;
+}
+
+.pdvm-dialog__toolBtn:hover {
+  background: var(--block-view-btn-std-hover-bg, rgba(0, 0, 0, 0.06));
+}
+
+.pdvm-dialog__toolBtn:active {
+  transform: translateY(1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.pdvm-dialog__toolBtn:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px rgba(33, 150, 243, 0.25),
+    var(--shadow-sm);
+}
+
+.pdvm-dialog__toolBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pdvm-dialog__toolBtn--primary {
+  border-radius: var(--block-btn-primary-radius, var(--border-radius-md));
+  border: var(--block-btn-primary-border, 1px solid var(--color-primary-600));
+  background: var(--block-btn-primary-bg-color, var(--color-primary-500));
+  color: var(--block-btn-primary-text-color, var(--color-text-inverse));
+}
+
+.pdvm-dialog__toolBtn--primary:hover {
+  background: var(--block-btn-primary-hover-bg, var(--color-primary-600));
+}
+
+.pdvm-dialog__toolBtn--active {
+  border-color: var(--color-border-dark);
+  background: var(--block-view-btn-std-hover-bg, rgba(0, 0, 0, 0.08));
+  font-weight: 700;
+}
+
+.pdvm-dialog__toolInput {
+  height: 30px;
+  padding: 0 10px;
+  border-radius: var(--block-view-input-std-radius, var(--border-radius-md));
+  border: var(--block-view-input-std-border, 1px solid var(--color-border-medium));
+  background: var(--block-view-input-std-bg-color, #ffffff);
+  color: var(--block-view-input-std-text-color, #111111);
+  min-width: 180px;
+}
+
+.pdvm-dialog__toolInput:focus {
+  outline: none;
+  border-color: rgba(80, 160, 255, 0.7);
+}

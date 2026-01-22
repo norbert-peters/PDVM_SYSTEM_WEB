@@ -12,7 +12,7 @@ Wichtig:
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Optional
 
 
 USER_KEYS = {
@@ -44,24 +44,90 @@ def _is_plain_object(value: Any) -> bool:
     return isinstance(value, dict)
 
 
-def extract_controls_origin(view_daten: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+def _truthy(value: Any) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, bool):
+        return bool(value)
+    if isinstance(value, (int, float)):
+        try:
+            return float(value) != 0.0
+        except Exception:
+            return False
+    s = str(value).strip().lower()
+    return s in {"1", "true", "yes", "y", "on"}
+
+
+def _pick_section_key(daten: Dict[str, Any], wanted: str) -> Optional[str]:
+    if not isinstance(daten, dict):
+        return None
+    lw = str(wanted).lower()
+    for k in daten.keys():
+        if str(k).lower() == lw:
+            return str(k)
+    return None
+
+
+def extract_controls_origin(
+    view_daten: Dict[str, Any],
+    *,
+    root_table: Optional[str] = None,
+    no_data: bool = False,
+) -> Dict[str, Dict[str, Any]]:
     """Extrahiert Controls aus sys_viewdaten.daten.
 
-    Erwartet Struktur: ROOT + Sektionen (z.B. PERSONDATEN) mit control_guid -> control-data.
+    Neu (PDVM-Regel):
+    - Sektion = TABLENAME (uppercase) + Default-Sektion "**System"
+    - ROOT.NO_DATA bedeutet: table-Sektion NICHT berücksichtigen, aber weiterhin über View rendern
+
+    Fallback: Wenn die neuen Sektionen nicht vorhanden sind, wird legacy (alle Sektionen außer ROOT) verwendet.
     """
     origin: Dict[str, Dict[str, Any]] = {}
 
-    for section_key, section_val in (view_daten or {}).items():
+    daten = view_daten or {}
+
+    # Determine if new semantics apply
+    table_group = str(root_table or "").strip().upper() if root_table else ""
+    system_section_key = _pick_section_key(daten, "**System")
+    table_section_key = _pick_section_key(daten, table_group) if table_group else None
+    has_new_sections = bool(system_section_key or table_section_key)
+
+    if has_new_sections:
+        allowed_sections: List[str] = []
+        if system_section_key:
+            allowed_sections.append(system_section_key)
+
+        # allow other "**" sections (future-proof), except ROOT
+        for k in daten.keys():
+            ks = str(k)
+            if ks == "ROOT":
+                continue
+            if ks.startswith("**") and ks not in allowed_sections:
+                allowed_sections.append(ks)
+
+        if not bool(no_data) and table_section_key:
+            allowed_sections.append(table_section_key)
+
+        for section_key in allowed_sections:
+            section_val = daten.get(section_key)
+            if not _is_plain_object(section_val):
+                continue
+            for control_guid, control_val in section_val.items():
+                if not _is_plain_object(control_val):
+                    continue
+                origin[str(control_guid)] = dict(control_val)
+
+        return origin
+
+    # Legacy behavior
+    for section_key, section_val in daten.items():
         if section_key == "ROOT":
             continue
         if not _is_plain_object(section_val):
             continue
-
         for control_guid, control_val in section_val.items():
             if not _is_plain_object(control_val):
                 continue
-
-            # System-Basisdaten (Origin) unverändert übernehmen
             origin[str(control_guid)] = dict(control_val)
 
     return origin

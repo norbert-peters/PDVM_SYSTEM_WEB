@@ -11,6 +11,8 @@ import {
 } from '../../api/client'
 import { formatPdvmDateDE } from '../../utils/pdvmDateTime'
 
+import './PdvmViewPage.css'
+
 type SortDirection = 'asc' | 'desc' | null
 type TableState = {
   sort: { control_guid: string | null; direction: SortDirection }
@@ -35,6 +37,33 @@ type ViewControl = {
   sortable?: boolean
   searchable?: boolean
   configs?: any
+}
+
+function fallbackUidNameControls(): ViewControl[] {
+  return [
+    {
+      control_guid: '__system_uid',
+      gruppe: 'SYSTEM',
+      feld: 'uid',
+      label: 'UID',
+      type: 'string',
+      show: true,
+      display_order: 0,
+      sortable: false,
+      searchable: false,
+    },
+    {
+      control_guid: '__system_name',
+      gruppe: 'SYSTEM',
+      feld: 'name',
+      label: 'Name',
+      type: 'string',
+      show: true,
+      display_order: 1,
+      sortable: false,
+      searchable: false,
+    },
+  ]
 }
 
 function isPlainObject(value: unknown): value is Record<string, any> {
@@ -210,8 +239,32 @@ function applyDraftToControls(base: ViewControl[], draftControlsSource: Record<s
 
 export default function PdvmViewPage() {
   const { viewGuid } = useParams<{ viewGuid: string }>()
+
+  if (!viewGuid) {
+    return <div style={{ padding: 12 }}>Fehler: viewGuid fehlt</div>
+  }
+
+  return (
+    <div className="pdvm-view-page">
+      <PdvmViewPageContent viewGuid={viewGuid} editType="view" />
+    </div>
+  )
+}
+
+export function PdvmViewPageContent({
+  viewGuid,
+  tableOverride,
+  editType,
+  embedded,
+}: {
+  viewGuid: string
+  tableOverride?: string | null
+  editType?: string | null
+  embedded?: boolean
+}) {
   const [expertMode, setExpertMode] = useState(false)
   const [showColumns, setShowColumns] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const queryClient = useQueryClient()
 
   const [pageOffset, setPageOffset] = useState(0)
@@ -229,11 +282,30 @@ export default function PdvmViewPage() {
   const [selectedUids, setSelectedUids] = useState<Set<string>>(() => new Set())
   const selectionAnchorIndexRef = useRef<number | null>(null)
 
+  const closeSettings = () => {
+    setSettingsOpen(false)
+    setShowColumns(false)
+    setShowGrouping(false)
+  }
+
+  // Optional: ESC schließt die Einstellungsbar
+  useEffect(() => {
+    if (!settingsOpen) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeSettings()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [settingsOpen])
+
   const defQuery = useQuery({
     queryKey: ['view', 'definition', viewGuid],
-    queryFn: () => viewsAPI.getDefinition(viewGuid!),
+    queryFn: () => viewsAPI.getDefinition(viewGuid),
     enabled: !!viewGuid,
   })
+
+  const effectiveEditType = String(editType || 'view').trim().toLowerCase() || 'view'
+  const effectiveTableOverride = tableOverride ? String(tableOverride).trim() : ''
 
   // Stichtag-Änderung -> Base-Daten neu laden (stichtag beeinflusst historische Werte)
   useEffect(() => {
@@ -246,17 +318,24 @@ export default function PdvmViewPage() {
   }, [viewGuid, queryClient])
 
   const stateQuery = useQuery({
-    queryKey: ['view', 'state', viewGuid],
-    queryFn: () => viewsAPI.getState(viewGuid!),
+    queryKey: ['view', 'state', viewGuid, effectiveTableOverride, effectiveEditType],
+    queryFn: () =>
+      viewsAPI.getState(viewGuid, {
+        table: effectiveTableOverride || undefined,
+        edit_type: effectiveEditType,
+      }),
     enabled: !!viewGuid && !!defQuery.data,
   })
 
   const saveStateMutation = useMutation({
     mutationFn: async (payload: { controls_source: Record<string, any>; table_state_source: TableState }) => {
-      return viewsAPI.putStateFull(viewGuid!, payload)
+      return viewsAPI.putStateFull(viewGuid, payload, {
+        table: effectiveTableOverride || undefined,
+        edit_type: effectiveEditType,
+      })
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(['view', 'state', viewGuid], data)
+      queryClient.setQueryData(['view', 'state', viewGuid, effectiveTableOverride, effectiveEditType], data)
       // Halte Draft und Autosave-Tracking konsistent
       setDraftControlsSource(data.controls_source || {})
       setDraftTableStateSource((data.table_state_source as any) || { sort: { control_guid: null, direction: null }, filters: {} })
@@ -354,26 +433,36 @@ export default function PdvmViewPage() {
   const isDirty = !!draftControlsSource && !!draftTableStateSource && draftJson !== lastSavedJsonRef.current
 
   const controls = useMemo(() => {
+    const fallback = fallbackUidNameControls()
     if (stateQuery.data) {
-      return applyDraftToControls(controlsFromState(stateQuery.data), draftControlsSource)
+      const base = applyDraftToControls(controlsFromState(stateQuery.data), draftControlsSource)
         .filter((c) => c.show)
         .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+
+      return base.length > 0 ? base : fallback
     }
 
     if (!defQuery.data) return []
-    return applyDraftToControls(extractControls(defQuery.data), draftControlsSource)
+    const base = applyDraftToControls(extractControls(defQuery.data), draftControlsSource)
       .filter((c) => c.show)
       .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+
+    return base.length > 0 ? base : fallback
   }, [defQuery.data, stateQuery.data, draftControlsSource])
 
   const allControls = useMemo(() => {
+    const fallback = fallbackUidNameControls()
     if (stateQuery.data) {
-      return applyDraftToControls(controlsFromState(stateQuery.data), draftControlsSource)
-        .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+      const base = applyDraftToControls(controlsFromState(stateQuery.data), draftControlsSource).sort(
+        (a, b) => (a.display_order || 0) - (b.display_order || 0)
+      )
+      return base.length > 0 ? base : fallback
     }
     if (!defQuery.data) return []
-    return applyDraftToControls(extractControls(defQuery.data), draftControlsSource)
-      .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+    const base = applyDraftToControls(extractControls(defQuery.data), draftControlsSource).sort(
+      (a, b) => (a.display_order || 0) - (b.display_order || 0)
+    )
+    return base.length > 0 ? base : fallback
   }, [defQuery.data, stateQuery.data, draftControlsSource])
 
   const matrixKey = useMemo(() => {
@@ -391,15 +480,22 @@ export default function PdvmViewPage() {
   }, [matrixKey])
 
   const matrixQuery = useQuery<ViewMatrixResponse>({
-    queryKey: ['view', 'matrix', viewGuid, matrixKey, pageOffset, pageLimit],
+    queryKey: ['view', 'matrix', viewGuid, effectiveTableOverride, effectiveEditType, matrixKey, pageOffset, pageLimit],
     queryFn: () =>
-      viewsAPI.postMatrix(viewGuid!, {
-        controls_source: draftControlsSource || undefined,
-        table_state_source: (draftTableStateSource as any) || undefined,
-        include_historisch: true,
-        limit: pageLimit,
-        offset: pageOffset,
-      }),
+      viewsAPI.postMatrix(
+        viewGuid,
+        {
+          controls_source: draftControlsSource || undefined,
+          table_state_source: (draftTableStateSource as any) || undefined,
+          include_historisch: true,
+          limit: pageLimit,
+          offset: pageOffset,
+        },
+        {
+          ...(effectiveTableOverride ? { table: effectiveTableOverride } : null),
+          edit_type: effectiveEditType,
+        } as any,
+      ),
     enabled: !!viewGuid && !!defQuery.data && !!stateQuery.data && !!draftControlsSource && !!draftTableStateSource,
   })
 
@@ -571,535 +667,475 @@ export default function PdvmViewPage() {
     setCollapsedGroupKeys(new Set())
   }
 
+  const meta = (matrixQuery.data?.meta || {}) as any
+  const totalAfterFilter = Number(meta.total_after_filter || 0)
+  const hasMore = !!meta.has_more
+  const hasMultiplePages = pageOffset > 0 || hasMore
+
+  const resolveSelectedIndex = (): number | null => {
+    if (selectionAnchorIndexRef.current !== null) return selectionAnchorIndexRef.current
+    const arr = Array.from(selectedUids)
+    if (arr.length !== 1) return null
+    const uid = arr[0]
+    const idx = dataRowsInOrder.findIndex((r) => r.uid === uid)
+    return idx >= 0 ? idx : null
+  }
+
+  const selectRowByIndex = (nextIndex: number) => {
+    const r = dataRowsInOrder[nextIndex]
+    if (!r) return
+    selectionAnchorIndexRef.current = nextIndex
+    setSelectedUids(new Set([r.uid]))
+  }
+
+  const selectedIndex = resolveSelectedIndex()
+  const canPrevRecord = selectedIndex !== null && selectedIndex > 0
+  const canNextRecord = selectedIndex !== null && selectedIndex < dataRowsInOrder.length - 1
+
   return (
-    <div style={{ padding: 12 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-        <div>
-          <div style={{ fontSize: 18, fontWeight: 700 }}>{defQuery.data?.name || 'View'}</div>
-          <div style={{ fontSize: 12, opacity: 0.7 }}>
-            GUID: {viewGuid} · Tabelle: {matrixQuery.data?.table || defQuery.data?.root?.TABLE || ''}
+    <div
+      className={`pdvm-view ${embedded ? 'pdvm-view--embedded' : ''}`}
+      style={!embedded ? { padding: 12 } : undefined}
+    >
+      <div className="pdvm-view__fixed">
+        <div className="pdvm-view__headerRow">
+          <div className="pdvm-view__title">
+            <h3 className="pdvm-view__name">{defQuery.data?.name || 'View'}</h3>
+            <div className="pdvm-view__meta">
+              VIEW_GUID: {viewGuid} · Tabelle: {matrixQuery.data?.table || defQuery.data?.root?.TABLE || ''} · Treffer: {totalAfterFilter}
+              {meta?.table_truncated ? <span style={{ marginLeft: 8, color: 'darkorange', fontWeight: 800 }}>(gekürzt)</span> : null}
+            </div>
           </div>
+
+          <button
+            type="button"
+            className="pdvm-view__settingsToggle"
+            aria-label={settingsOpen ? 'Einstellungen schließen' : 'Einstellungen öffnen'}
+            title={settingsOpen ? 'Einstellungen schließen' : 'Einstellungen öffnen'}
+            onClick={() => {
+              setSettingsOpen((v) => {
+                const next = !v
+                if (!next) closeSettings()
+                return next
+              })
+            }}
+          >
+            ⚙
+          </button>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button
-            type="button"
-            onClick={() => setShowColumns((v) => !v)}
-            style={{
-              padding: '8px 10px',
-              borderRadius: 8,
-              border: '1px solid rgba(0,0,0,0.15)',
-              background: showColumns ? 'rgba(0,0,0,0.08)' : 'white',
-              cursor: 'pointer',
-            }}
-          >
-            Spalten
-          </button>
+        {settingsOpen ? (
+          <div className="pdvm-view__settings" aria-label="View Einstellungen">
+            <div className="pdvm-view__settingsHeader">
+              <div className="pdvm-view__settingsTitle">Einstellungen</div>
+              <div className="pdvm-view__settingsButtons">
+                <button
+                  type="button"
+                  className={`pdvm-view__settingsButton ${showColumns ? 'pdvm-view__settingsButton--active' : ''}`}
+                  onClick={() => setShowColumns((v) => !v)}
+                >
+                  <span>Spalten</span>
+                  <span style={{ opacity: 0.65 }}>{showColumns ? '▾' : '▸'}</span>
+                </button>
 
-          <button
-            type="button"
-            onClick={resetFilterSort}
-            disabled={!draftTableStateSource}
-            style={{
-              padding: '8px 10px',
-              borderRadius: 8,
-              border: '1px solid rgba(0,0,0,0.15)',
-              background: 'white',
-              cursor: draftTableStateSource ? 'pointer' : 'not-allowed',
-              opacity: draftTableStateSource ? 1 : 0.6,
-            }}
-            title="Setzt alle Filter und Sortierung zurück"
-          >
-            Filter/Sort zurücksetzen
-          </button>
+                <button
+                  type="button"
+                  className={`pdvm-view__settingsButton ${showGrouping ? 'pdvm-view__settingsButton--active' : ''}`}
+                  onClick={() => setShowGrouping((v) => !v)}
+                  disabled={!draftTableStateSource}
+                  title="Gruppierung konfigurieren"
+                >
+                  <span>Gruppierung</span>
+                  <span style={{ opacity: 0.65 }}>{showGrouping ? '▾' : '▸'}</span>
+                </button>
 
-          <button
-            type="button"
-            onClick={() => setShowGrouping((v) => !v)}
-            disabled={!draftTableStateSource}
-            style={{
-              padding: '8px 10px',
-              borderRadius: 8,
-              border: '1px solid rgba(0,0,0,0.15)',
-              background: showGrouping ? 'rgba(0,0,0,0.08)' : 'white',
-              cursor: draftTableStateSource ? 'pointer' : 'not-allowed',
-              opacity: draftTableStateSource ? 1 : 0.6,
-            }}
-            title="Gruppierung konfigurieren"
-          >
-            Gruppierung
-          </button>
+                <button
+                  type="button"
+                  className="pdvm-view__settingsButton"
+                  onClick={resetFilterSort}
+                  disabled={!draftTableStateSource}
+                  title="Setzt alle Filter und Sortierung zurück"
+                >
+                  <span>Filter/Sort reset</span>
+                  <span style={{ opacity: 0.65 }}>↺</span>
+                </button>
 
-          <button
-            type="button"
-            onClick={() => setExpertMode((v) => !v)}
-            style={{
-              padding: '8px 10px',
-              borderRadius: 8,
-              border: '1px solid rgba(0,0,0,0.15)',
-              background: expertMode ? 'rgba(0,0,0,0.08)' : 'white',
-              cursor: 'pointer',
-            }}
-          >
-            {expertMode ? 'ExpertMode: Rohdaten' : 'NormalMode: formatiert'}
-          </button>
+                <button
+                  type="button"
+                  className={`pdvm-view__settingsButton ${expertMode ? 'pdvm-view__settingsButton--active' : ''}`}
+                  onClick={() => setExpertMode((v) => !v)}
+                >
+                  <span>{expertMode ? 'Expert: Rohdaten' : 'Normal: formatiert'}</span>
+                  <span style={{ opacity: 0.65 }}>⚙</span>
+                </button>
+
+                <button type="button" className="pdvm-view__settingsButton" onClick={closeSettings}>
+                  <span>Schließen</span>
+                  <span style={{ opacity: 0.65 }}>✕</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="pdvm-view__settingsBody">
+              {!showColumns && !(showGrouping && draftTableStateSource) ? (
+                <div className="pdvm-view__settingsEmpty">Bitte oben einen Einstellungsbereich auswählen.</div>
+              ) : null}
+
+              {showGrouping && draftTableStateSource ? (
+                <div className="pdvm-view__settingsSection">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                    <div style={{ fontWeight: 800 }}>Gruppierung</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <button type="button" onClick={expandAllGroups} disabled={!groupKeys.length} className="pdvm-view__navButton">
+                        Alle aufklappen
+                      </button>
+                      <button type="button" onClick={collapseAllGroups} disabled={!groupKeys.length} className="pdvm-view__navButton">
+                        Alle zuklappen
+                      </button>
+                      <button type="button" onClick={resetGrouping} className="pdvm-view__navButton">
+                        Zurücksetzen
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+                      <input
+                        type="checkbox"
+                        checked={!!draftTableStateSource.group?.enabled}
+                        onChange={(e) => {
+                          setDraftTableStateSource({
+                            ...draftTableStateSource,
+                            group: {
+                              ...(draftTableStateSource.group || { enabled: false, by: null, sum_control_guid: null }),
+                              enabled: e.target.checked,
+                            },
+                          })
+                        }}
+                      />
+                      <span>Gruppierung aktiv</span>
+                    </label>
+
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+                      <span>Gruppe nach</span>
+                      <select
+                        value={draftTableStateSource.group?.by || ''}
+                        onChange={(e) => {
+                          const v = e.target.value || null
+                          setDraftTableStateSource({
+                            ...draftTableStateSource,
+                            group: {
+                              ...(draftTableStateSource.group || { enabled: false, by: null, sum_control_guid: null }),
+                              by: v,
+                            },
+                          })
+                        }}
+                        style={{ padding: '6px 8px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.15)', background: 'white' }}
+                      >
+                        <option value="">(keine)</option>
+                        {allControls.map((c) => (
+                          <option key={c.control_guid} value={c.control_guid}>
+                            {c.label || `${c.gruppe}.${c.feld}`}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+                      <span>Summe</span>
+                      <select
+                        value={draftTableStateSource.group?.sum_control_guid || ''}
+                        onChange={(e) => {
+                          const v = e.target.value || null
+                          setDraftTableStateSource({
+                            ...draftTableStateSource,
+                            group: {
+                              ...(draftTableStateSource.group || { enabled: false, by: null, sum_control_guid: null }),
+                              sum_control_guid: v,
+                            },
+                          })
+                        }}
+                        style={{ padding: '6px 8px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.15)', background: 'white' }}
+                      >
+                        <option value="">(keine)</option>
+                        {allControls
+                          .filter((c) => ['number', 'float', 'int'].includes((c.type || '').toLowerCase()))
+                          .map((c) => (
+                            <option key={c.control_guid} value={c.control_guid}>
+                              {c.label || `${c.gruppe}.${c.feld}`}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                  </div>
+                </div>
+              ) : null}
+
+              {showColumns ? (
+                <div className="pdvm-view__settingsSection">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                    <div style={{ fontWeight: 800 }}>Spalten anzeigen</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 12, opacity: 0.75 }}>
+                        {saveStateMutation.isPending
+                          ? 'Autosave…'
+                          : saveStateMutation.error
+                            ? 'Fehler'
+                            : isDirty
+                              ? 'Änderungen…'
+                              : lastSavedJsonRef.current
+                                ? 'Gespeichert'
+                                : ''}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!draftControlsSource || !draftTableStateSource) return
+                          mutateSaveState({ controls_source: draftControlsSource, table_state_source: draftTableStateSource })
+                        }}
+                        disabled={!draftControlsSource || saveStateMutation.isPending || !isDirty}
+                        className="pdvm-view__navButton"
+                      >
+                        Jetzt speichern
+                      </button>
+                    </div>
+                  </div>
+
+                  {!stateQuery.data ? (
+                    <div style={{ marginTop: 8, fontSize: 12, opacity: 0.75 }}>
+                      {stateQuery.error ? (
+                        <span style={{ color: 'crimson', opacity: 1 }}>
+                          Fehler beim Laden des States:{' '}
+                          {String((stateQuery.error as any)?.response?.data?.detail || (stateQuery.error as any)?.message || stateQuery.error)}
+                        </span>
+                      ) : (
+                        'State lädt… (falls noch kein State existiert, wird er automatisch aus den Defaults gemerged)'
+                      )}
+                    </div>
+                  ) : null}
+
+                  {stateQuery.data ? (
+                    <div
+                      style={{
+                        marginTop: 10,
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                        gap: 10,
+                      }}
+                    >
+                      {allControls.map((c, idx) => {
+                      const source = draftControlsSource || stateQuery.data.controls_source || {}
+                      const srcEntry = (source as any)[c.control_guid] || {}
+                      const checked = srcEntry.show !== undefined ? !!srcEntry.show : c.show !== false
+                      const order =
+                        srcEntry.display_order !== undefined
+                          ? Number(srcEntry.display_order || 0)
+                          : Number(c.display_order || 0)
+                      const widthStr =
+                        srcEntry.width !== undefined && srcEntry.width !== null
+                          ? String(srcEntry.width)
+                          : c.width !== undefined
+                            ? String(c.width)
+                            : ''
+
+                      const move = (direction: -1 | 1) => {
+                        const neighborIndex = idx + direction
+                        if (neighborIndex < 0 || neighborIndex >= allControls.length) return
+                        const other = allControls[neighborIndex]
+
+                        const otherSrc = (source as any)[other.control_guid] || {}
+                        const otherOrder =
+                          otherSrc.display_order !== undefined
+                            ? Number(otherSrc.display_order || 0)
+                            : Number(other.display_order || 0)
+
+                        const next = { ...(source as any) }
+                        next[c.control_guid] = {
+                          ...(next[c.control_guid] || {}),
+                          show: checked,
+                          display_order: otherOrder,
+                        }
+                        next[other.control_guid] = {
+                          ...(next[other.control_guid] || {}),
+                          show: otherSrc.show !== undefined ? !!otherSrc.show : other.show !== false,
+                          display_order: order,
+                        }
+                        setDraftControlsSource(next)
+                      }
+
+                      return (
+                        <div
+                          key={c.control_guid}
+                          style={{
+                            border: '1px solid rgba(0,0,0,0.10)',
+                            borderRadius: 10,
+                            padding: 10,
+                            background: 'white',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 8,
+                          }}
+                        >
+                          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13 }}>
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => {
+                                const next = { ...(source as any) }
+                                next[c.control_guid] = {
+                                  ...(next[c.control_guid] || {}),
+                                  show: e.target.checked,
+                                  display_order: order,
+                                }
+                                setDraftControlsSource(next)
+                              }}
+                            />
+                            <span style={{ lineHeight: 1.2, wordBreak: 'break-word' }}>{c.label || `${c.gruppe}.${c.feld}`}</span>
+                          </label>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <button type="button" onClick={() => move(-1)} title="Nach oben" disabled={idx === 0} className="pdvm-view__navButton">
+                              ↑
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => move(1)}
+                              title="Nach unten"
+                              disabled={idx === allControls.length - 1}
+                              className="pdvm-view__navButton"
+                            >
+                              ↓
+                            </button>
+
+                            <input
+                              type="number"
+                              value={Number.isFinite(order) ? order : 0}
+                              onChange={(e) => {
+                                const n = Number(e.target.value)
+                                const nextOrder = Number.isFinite(n) ? n : 0
+                                const next = { ...(source as any) }
+                                next[c.control_guid] = {
+                                  ...(next[c.control_guid] || {}),
+                                  show: checked,
+                                  display_order: nextOrder,
+                                }
+                                setDraftControlsSource(next)
+                              }}
+                              title="Reihenfolge"
+                              style={{ width: 70, padding: '4px 6px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.15)' }}
+                            />
+
+                            <input
+                              type="number"
+                              value={widthStr}
+                              onChange={(e) => {
+                                const raw = e.target.value
+                                const next = { ...(source as any) }
+
+                                if (raw === '') {
+                                  next[c.control_guid] = {
+                                    ...(next[c.control_guid] || {}),
+                                    show: checked,
+                                    display_order: order,
+                                  }
+                                  if (next[c.control_guid] && 'width' in next[c.control_guid]) {
+                                    delete next[c.control_guid].width
+                                  }
+                                } else {
+                                  const n = Number(raw)
+                                  const nextWidth = Number.isFinite(n) ? n : undefined
+                                  next[c.control_guid] = {
+                                    ...(next[c.control_guid] || {}),
+                                    show: checked,
+                                    display_order: order,
+                                    width: nextWidth,
+                                  }
+                                }
+
+                                setDraftControlsSource(next)
+                              }}
+                              title="Breite (px) – leer = auto"
+                              placeholder="auto"
+                              min={40}
+                              style={{ width: 78, padding: '4px 6px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.15)' }}
+                            />
+                          </div>
+
+                          {draftTableStateSource ? (
+                            <div>
+                              <input
+                                type="text"
+                                value={draftTableStateSource.filters?.[c.control_guid] || ''}
+                                onChange={(e) => {
+                                  const next = {
+                                    ...draftTableStateSource,
+                                    filters: {
+                                      ...(draftTableStateSource.filters || {}),
+                                      [c.control_guid]: e.target.value,
+                                    },
+                                  }
+                                  setDraftTableStateSource(next)
+                                }}
+                                placeholder="Filter enthält…"
+                                style={{ width: '100%', padding: '6px 8px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.12)', fontSize: 12 }}
+                              />
+                            </div>
+                          ) : null}
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : null}
+
+                  {saveStateMutation.error ? (
+                    <div style={{ marginTop: 8, color: 'crimson', fontSize: 12 }}>Fehler beim Speichern der Spalten</div>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
+        <div className="pdvm-view__recordNav">
+          <div className="pdvm-view__recordNavLeft">
+            <button
+              type="button"
+              className="pdvm-view__navButton"
+              onClick={() => {
+                if (selectedIndex === null) return
+                selectRowByIndex(Math.max(0, selectedIndex - 1))
+              }}
+              disabled={!canPrevRecord}
+            >
+              Vorherige
+            </button>
+            <button
+              type="button"
+              className="pdvm-view__navButton"
+              onClick={() => {
+                if (selectedIndex === null) return
+                selectRowByIndex(Math.min(dataRowsInOrder.length - 1, selectedIndex + 1))
+              }}
+              disabled={!canNextRecord}
+            >
+              Nächste
+            </button>
+          </div>
+
+          <div style={{ fontSize: 12, opacity: 0.75 }}>
+            Seite: {Math.floor(pageOffset / pageLimit) + 1}
+            {hasMultiplePages ? '' : ' (nur 1 Seite)'}
+          </div>
         </div>
       </div>
 
-      {showGrouping && draftTableStateSource && (
-        <div
-          style={{
-            marginTop: 10,
-            padding: 12,
-            border: '1px solid rgba(0,0,0,0.12)',
-            borderRadius: 10,
-            background: 'rgba(0,0,0,0.02)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <div style={{ fontWeight: 700 }}>Gruppierung</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                onClick={expandAllGroups}
-                disabled={!groupKeys.length}
-                style={{
-                  padding: '6px 10px',
-                  borderRadius: 8,
-                  border: '1px solid rgba(0,0,0,0.15)',
-                  background: 'white',
-                  cursor: groupKeys.length ? 'pointer' : 'not-allowed',
-                  opacity: groupKeys.length ? 1 : 0.6,
-                }}
-              >
-                Alle aufklappen
-              </button>
-              <button
-                type="button"
-                onClick={collapseAllGroups}
-                disabled={!groupKeys.length}
-                style={{
-                  padding: '6px 10px',
-                  borderRadius: 8,
-                  border: '1px solid rgba(0,0,0,0.15)',
-                  background: 'white',
-                  cursor: groupKeys.length ? 'pointer' : 'not-allowed',
-                  opacity: groupKeys.length ? 1 : 0.6,
-                }}
-              >
-                Alle zuklappen
-              </button>
-              <button
-                type="button"
-                onClick={resetGrouping}
-                style={{
-                  padding: '6px 10px',
-                  borderRadius: 8,
-                  border: '1px solid rgba(0,0,0,0.15)',
-                  background: 'white',
-                  cursor: 'pointer',
-                }}
-              >
-                Zurücksetzen
-              </button>
-            </div>
-          </div>
+      <div className="pdvm-view__scroll">
+        {matrixQuery.isLoading ? <div style={{ padding: 8 }}>Daten laden…</div> : null}
+        {matrixQuery.error ? <div style={{ padding: 8, color: 'crimson' }}>Fehler beim Laden der Daten</div> : null}
 
-          <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-              <input
-                type="checkbox"
-                checked={!!draftTableStateSource.group?.enabled}
-                onChange={(e) => {
-                  setDraftTableStateSource({
-                    ...draftTableStateSource,
-                    group: {
-                      ...(draftTableStateSource.group || { enabled: false, by: null, sum_control_guid: null }),
-                      enabled: e.target.checked,
-                    },
-                  })
-                }}
-              />
-              <span>Gruppierung aktiv</span>
-            </label>
-
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-              <span>Gruppe nach</span>
-              <select
-                value={draftTableStateSource.group?.by || ''}
-                onChange={(e) => {
-                  const v = e.target.value || null
-                  setDraftTableStateSource({
-                    ...draftTableStateSource,
-                    group: {
-                      ...(draftTableStateSource.group || { enabled: false, by: null, sum_control_guid: null }),
-                      by: v,
-                    },
-                  })
-                }}
-                style={{
-                  padding: '6px 8px',
-                  borderRadius: 8,
-                  border: '1px solid rgba(0,0,0,0.15)',
-                  background: 'white',
-                }}
-              >
-                <option value="">(keine)</option>
-                {allControls.map((c) => (
-                  <option key={c.control_guid} value={c.control_guid}>
-                    {c.label || `${c.gruppe}.${c.feld}`}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-              <span>Summe</span>
-              <select
-                value={draftTableStateSource.group?.sum_control_guid || ''}
-                onChange={(e) => {
-                  const v = e.target.value || null
-                  setDraftTableStateSource({
-                    ...draftTableStateSource,
-                    group: {
-                      ...(draftTableStateSource.group || { enabled: false, by: null, sum_control_guid: null }),
-                      sum_control_guid: v,
-                    },
-                  })
-                }}
-                style={{
-                  padding: '6px 8px',
-                  borderRadius: 8,
-                  border: '1px solid rgba(0,0,0,0.15)',
-                  background: 'white',
-                }}
-              >
-                <option value="">(keine)</option>
-                {allControls
-                  .filter((c) => ['number', 'float', 'int'].includes((c.type || '').toLowerCase()))
-                  .map((c) => (
-                    <option key={c.control_guid} value={c.control_guid}>
-                      {c.label || `${c.gruppe}.${c.feld}`}
-                    </option>
-                  ))}
-              </select>
-            </label>
-          </div>
-        </div>
-      )}
-
-      {showColumns && (
-        <div
-          style={{
-            marginTop: 10,
-            padding: 12,
-            border: '1px solid rgba(0,0,0,0.12)',
-            borderRadius: 10,
-            background: 'rgba(0,0,0,0.02)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <div style={{ fontWeight: 700 }}>Spalten anzeigen</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 12, opacity: 0.75 }}>
-                {saveStateMutation.isPending
-                  ? 'Autosave…'
-                  : saveStateMutation.error
-                    ? 'Fehler'
-                    : isDirty
-                      ? 'Änderungen…'
-                      : lastSavedJsonRef.current
-                        ? 'Gespeichert'
-                        : ''}
-              </span>
-
-              <button
-                type="button"
-                onClick={() => {
-                  if (!draftControlsSource || !draftTableStateSource) return
-                  mutateSaveState({ controls_source: draftControlsSource, table_state_source: draftTableStateSource })
-                }}
-                disabled={!draftControlsSource || saveStateMutation.isPending || !isDirty}
-                style={{
-                  padding: '6px 10px',
-                  borderRadius: 8,
-                  border: '1px solid rgba(0,0,0,0.15)',
-                  background: 'white',
-                  cursor: draftControlsSource ? 'pointer' : 'not-allowed',
-                  opacity: saveStateMutation.isPending ? 0.6 : 1,
-                }}
-              >
-                Jetzt speichern
-              </button>
-            </div>
-          </div>
-
-          {!stateQuery.data && (
-            <div style={{ marginTop: 8, fontSize: 12, opacity: 0.75 }}>
-              State lädt… (falls noch kein State existiert, wird er automatisch aus den Defaults gemerged)
-            </div>
-          )}
-
-          {stateQuery.data && (
-            <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 10 }}>
-              {allControls.map((c, idx) => {
-                const source = draftControlsSource || stateQuery.data.controls_source || {}
-                const srcEntry = (source as any)[c.control_guid] || {}
-                const checked = srcEntry.show !== undefined ? !!srcEntry.show : c.show !== false
-                const order = srcEntry.display_order !== undefined ? Number(srcEntry.display_order || 0) : Number(c.display_order || 0)
-                const widthStr =
-                  srcEntry.width !== undefined && srcEntry.width !== null
-                    ? String(srcEntry.width)
-                    : c.width !== undefined
-                      ? String(c.width)
-                      : ''
-
-                const move = (direction: -1 | 1) => {
-                  const neighborIndex = idx + direction
-                  if (neighborIndex < 0 || neighborIndex >= allControls.length) return
-                  const other = allControls[neighborIndex]
-
-                  const otherSrc = (source as any)[other.control_guid] || {}
-                  const otherOrder =
-                    otherSrc.display_order !== undefined
-                      ? Number(otherSrc.display_order || 0)
-                      : Number(other.display_order || 0)
-
-                  const next = { ...(source as any) }
-                  next[c.control_guid] = {
-                    ...(next[c.control_guid] || {}),
-                    show: checked,
-                    display_order: otherOrder,
-                  }
-                  next[other.control_guid] = {
-                    ...(next[other.control_guid] || {}),
-                    show: otherSrc.show !== undefined ? !!otherSrc.show : other.show !== false,
-                    display_order: order,
-                  }
-                  setDraftControlsSource(next)
-                }
-
-                return (
-                  <div
-                    key={c.control_guid}
-                    style={{
-                      border: '1px solid rgba(0,0,0,0.10)',
-                      borderRadius: 10,
-                      padding: 10,
-                      background: 'white',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 8,
-                    }}
-                  >
-                    {/* Zeile 1: Checkbox + Bezeichnung */}
-                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13 }}>
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={(e) => {
-                          const next = { ...(source as any) }
-                          next[c.control_guid] = {
-                            ...(next[c.control_guid] || {}),
-                            show: e.target.checked,
-                            display_order: order,
-                          }
-                          setDraftControlsSource(next)
-                        }}
-                      />
-                      <span style={{ lineHeight: 1.2, wordBreak: 'break-word' }}>{c.label || `${c.gruppe}.${c.feld}`}</span>
-                    </label>
-
-                    {/* Zeile 2: Order/Width-Controls */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                      <button
-                        type="button"
-                        onClick={() => move(-1)}
-                        title="Nach oben"
-                        style={{
-                          padding: '4px 8px',
-                          borderRadius: 8,
-                          border: '1px solid rgba(0,0,0,0.15)',
-                          background: 'white',
-                          cursor: idx === 0 ? 'not-allowed' : 'pointer',
-                          opacity: idx === 0 ? 0.5 : 1,
-                        }}
-                        disabled={idx === 0}
-                      >
-                        ↑
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => move(1)}
-                        title="Nach unten"
-                        style={{
-                          padding: '4px 8px',
-                          borderRadius: 8,
-                          border: '1px solid rgba(0,0,0,0.15)',
-                          background: 'white',
-                          cursor: idx === allControls.length - 1 ? 'not-allowed' : 'pointer',
-                          opacity: idx === allControls.length - 1 ? 0.5 : 1,
-                        }}
-                        disabled={idx === allControls.length - 1}
-                      >
-                        ↓
-                      </button>
-
-                      <input
-                        type="number"
-                        value={Number.isFinite(order) ? order : 0}
-                        onChange={(e) => {
-                          const n = Number(e.target.value)
-                          const nextOrder = Number.isFinite(n) ? n : 0
-                          const next = { ...(source as any) }
-                          next[c.control_guid] = {
-                            ...(next[c.control_guid] || {}),
-                            show: checked,
-                            display_order: nextOrder,
-                          }
-                          setDraftControlsSource(next)
-                        }}
-                        title="Reihenfolge"
-                        style={{
-                          width: 70,
-                          padding: '4px 6px',
-                          borderRadius: 8,
-                          border: '1px solid rgba(0,0,0,0.15)',
-                        }}
-                      />
-
-                      <input
-                        type="number"
-                        value={widthStr}
-                        onChange={(e) => {
-                          const raw = e.target.value
-                          const next = { ...(source as any) }
-
-                          if (raw === '') {
-                            // Width zurücksetzen (auto)
-                            next[c.control_guid] = {
-                              ...(next[c.control_guid] || {}),
-                              show: checked,
-                              display_order: order,
-                            }
-                            if (next[c.control_guid] && 'width' in next[c.control_guid]) {
-                              delete next[c.control_guid].width
-                            }
-                          } else {
-                            const n = Number(raw)
-                            const nextWidth = Number.isFinite(n) ? n : undefined
-                            next[c.control_guid] = {
-                              ...(next[c.control_guid] || {}),
-                              show: checked,
-                              display_order: order,
-                              width: nextWidth,
-                            }
-                          }
-
-                          setDraftControlsSource(next)
-                        }}
-                        title="Breite (px) – leer = auto"
-                        placeholder="auto"
-                        min={40}
-                        style={{
-                          width: 78,
-                          padding: '4px 6px',
-                          borderRadius: 8,
-                          border: '1px solid rgba(0,0,0,0.15)',
-                        }}
-                      />
-                    </div>
-
-                    {/* Zeile 3: Filter */}
-                    {draftTableStateSource && (
-                      <div>
-                        <input
-                          type="text"
-                          value={draftTableStateSource.filters?.[c.control_guid] || ''}
-                          onChange={(e) => {
-                            const next = {
-                              ...draftTableStateSource,
-                              filters: {
-                                ...(draftTableStateSource.filters || {}),
-                                [c.control_guid]: e.target.value,
-                              },
-                            }
-                            setDraftTableStateSource(next)
-                          }}
-                          placeholder="Filter enthält…"
-                          style={{
-                            width: '100%',
-                            padding: '6px 8px',
-                            borderRadius: 8,
-                            border: '1px solid rgba(0,0,0,0.12)',
-                            fontSize: 12,
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
-
-          {saveStateMutation.error && (
-            <div style={{ marginTop: 8, color: 'crimson', fontSize: 12 }}>Fehler beim Speichern der Spalten</div>
-          )}
-        </div>
-      )}
-
-      <div style={{ marginTop: 12 }}>
-        {matrixQuery.isLoading && <div style={{ padding: 8 }}>Daten laden…</div>}
-        {matrixQuery.error && <div style={{ padding: 8, color: 'crimson' }}>Fehler beim Laden der Daten</div>}
-
-        {matrixQuery.data && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 8 }}>
-            <div style={{ fontSize: 12, opacity: 0.75 }}>
-              Treffer: {Number((matrixQuery.data.meta as any)?.total_after_filter || 0)}
-              {(matrixQuery.data.meta as any)?.table_truncated && (
-                <span style={{ marginLeft: 8, color: 'darkorange', fontWeight: 700 }}>
-                  (gekürzt)
-                </span>
-              )}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <button
-                type="button"
-                onClick={() => setPageOffset((o) => Math.max(0, o - pageLimit))}
-                disabled={pageOffset <= 0}
-                style={{
-                  padding: '6px 10px',
-                  borderRadius: 8,
-                  border: '1px solid rgba(0,0,0,0.15)',
-                  background: 'white',
-                  cursor: pageOffset > 0 ? 'pointer' : 'not-allowed',
-                  opacity: pageOffset > 0 ? 1 : 0.6,
-                }}
-              >
-                Vorherige
-              </button>
-              <button
-                type="button"
-                onClick={() => setPageOffset((o) => o + pageLimit)}
-                disabled={!((matrixQuery.data.meta as any)?.has_more)}
-                style={{
-                  padding: '6px 10px',
-                  borderRadius: 8,
-                  border: '1px solid rgba(0,0,0,0.15)',
-                  background: 'white',
-                  cursor: (matrixQuery.data.meta as any)?.has_more ? 'pointer' : 'not-allowed',
-                  opacity: (matrixQuery.data.meta as any)?.has_more ? 1 : 0.6,
-                }}
-              >
-                Nächste
-              </button>
-            </div>
-          </div>
-        )}
-
-        <div style={{ overflow: 'auto', border: '1px solid rgba(0,0,0,0.12)', borderRadius: 10 }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', background: 'var(--block-surface-std-background, white)' as any }}>
+        <div className="pdvm-view__tableWrap">
+          <table className="pdvm-view__table" style={{ background: 'var(--block-surface-std-background, white)' as any }}>
             <thead>
               <tr>
                 {controls.map((c) => (
@@ -1155,7 +1191,7 @@ export default function PdvmViewPage() {
 
               {/* Filter-Row direkt unter Header (nur sichtbare Controls) */}
               {draftTableStateSource && (
-                <tr>
+                <tr className="pdvm-view__filterRow">
                   {controls.map((c) => (
                     <th
                       key={`${c.control_guid}:filter`}
@@ -1166,9 +1202,6 @@ export default function PdvmViewPage() {
                         fontWeight: 400,
                         borderBottom: '1px solid rgba(0,0,0,0.08)',
                         background: 'var(--block-surface-std-background, white)' as any,
-                        position: 'sticky',
-                        top: 37,
-                        zIndex: 1,
                       }}
                     >
                       <input
@@ -1244,6 +1277,16 @@ export default function PdvmViewPage() {
                   <tr
                     key={row.uid}
                     onClick={(e) => handleRowClick(row.uid, item.baseIndex, e)}
+                    onDoubleClick={() => {
+                      // Activate row (used by dialogs for OPEN_EDIT=double_click)
+                      selectionAnchorIndexRef.current = item.baseIndex
+                      setSelectedUids(new Set([row.uid]))
+                      window.dispatchEvent(
+                        new CustomEvent('pdvm:view-row-activated', {
+                          detail: { view_guid: viewGuid, uid: row.uid, action: 'double_click' },
+                        })
+                      )
+                    }}
                     style={{
                       borderBottom: '1px solid rgba(0,0,0,0.08)',
                       background: isSelected ? 'rgba(0, 120, 212, 0.10)' : undefined,
@@ -1306,6 +1349,25 @@ export default function PdvmViewPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="pdvm-view__pager">
+          <button
+            type="button"
+            className="pdvm-view__navButton"
+            onClick={() => setPageOffset((o) => Math.max(0, o - pageLimit))}
+            disabled={!hasMultiplePages || pageOffset <= 0}
+          >
+            Zurück
+          </button>
+          <button
+            type="button"
+            className="pdvm-view__navButton"
+            onClick={() => setPageOffset((o) => o + pageLimit)}
+            disabled={!hasMultiplePages || !hasMore}
+          >
+            Weiter
+          </button>
         </div>
       </div>
     </div>

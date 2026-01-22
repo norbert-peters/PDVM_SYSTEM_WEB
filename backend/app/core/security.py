@@ -3,6 +3,7 @@ Authentication and Security
 JWT tokens, password hashing
 """
 from datetime import datetime, timedelta
+import uuid
 from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -33,7 +34,17 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     else:
         expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     
-    to_encode.update({"exp": expire})
+    # Make tokens unique per login/session.
+    # Without iat/jti, two logins within the same second can produce identical JWTs,
+    # which can accidentally reuse in-memory GCS sessions.
+    now = datetime.utcnow()
+    to_encode.update(
+        {
+            "exp": expire,
+            "iat": int(now.timestamp()),
+            "jti": str(uuid.uuid4()),
+        }
+    )
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     
     return encoded_jwt

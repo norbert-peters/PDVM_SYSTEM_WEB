@@ -7,6 +7,8 @@ import Dashboard from './components/Dashboard'
 import Welcome from './components/Welcome'
 import TableView from './components/TableView'
 import PdvmViewPage from './components/views/PdvmViewPage'
+import PdvmDialogPage from './components/dialogs/PdvmDialogPage'
+import MenuHome from './components/menu/MenuHome'
 import { AppLayout } from './components/layout'
 import { MenuProvider } from './contexts/MenuContext'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
@@ -60,9 +62,11 @@ function AppContent() {
         <AppLayout>
           <Routes>
             <Route path="/" element={<Welcome mandantId={mandantId} />} />
+            <Route path="/menu-home" element={<MenuHome />} />
             <Route path="/dashboard" element={<Dashboard onLogout={logout} mandantId={mandantId} token={token} />} />
             <Route path="/table/:tableName" element={<TableView token={token} />} />
             <Route path="/view/:viewGuid" element={<PdvmViewPage />} />
+            <Route path="/dialog/:dialogGuid" element={<PdvmDialogPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </AppLayout>

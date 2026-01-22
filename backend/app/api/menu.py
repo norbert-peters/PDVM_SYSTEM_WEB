@@ -3,15 +3,77 @@ Menu API - Lädt und verwaltet PDVM Menüs über GCS
 Verwendet PdvmCentralDatabase für sys_menudaten (in pdvm_system DB)
 """
 from fastapi import APIRouter, Depends, HTTPException
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import logging
 import uuid
+import json
+from pydantic import BaseModel, Field
 from ..core.security import get_current_user
 from ..core.pdvm_central_datenbank import PdvmCentralDatabase
 from ..api.gcs import get_gcs_instance
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+_SYS_FIELD_LAST_NAVIGATION = "LAST_NAVIGATION"
+
+
+class MenuCommandModel(BaseModel):
+    handler: str = Field(..., min_length=1)
+    params: Dict[str, Any] = Field(default_factory=dict)
+
+
+class MenuLastNavigationState(BaseModel):
+    menu_type: str = Field(..., description="start|app")
+    app_name: Optional[str] = None
+    command: Optional[MenuCommandModel] = None
+    updated_at: Optional[str] = None
+
+
+def _parse_jsonish(raw: Any) -> Dict[str, Any]:
+    if raw is None:
+        return {}
+    if isinstance(raw, dict):
+        return raw
+    try:
+        parsed = json.loads(str(raw))
+        return parsed if isinstance(parsed, dict) else {}
+    except Exception:
+        return {}
+
+
+def _validate_last_nav_payload(data: Dict[str, Any]) -> Dict[str, Any]:
+    menu_type = str((data or {}).get("menu_type") or "").strip().lower()
+    if menu_type not in {"start", "app"}:
+        raise HTTPException(status_code=400, detail="menu_type muss 'start' oder 'app' sein")
+
+    app_name = data.get("app_name")
+    app_name = str(app_name).strip() if app_name is not None else None
+    if menu_type == "app" and not app_name:
+        raise HTTPException(status_code=400, detail="app_name ist erforderlich wenn menu_type='app'")
+
+    cmd = data.get("command")
+    if cmd is not None and not isinstance(cmd, dict):
+        raise HTTPException(status_code=400, detail="command muss ein Objekt sein")
+
+    if isinstance(cmd, dict):
+        handler = str(cmd.get("handler") or "").strip()
+        if not handler:
+            raise HTTPException(status_code=400, detail="command.handler fehlt")
+        params = cmd.get("params")
+        if params is None:
+            params = {}
+        if not isinstance(params, dict):
+            raise HTTPException(status_code=400, detail="command.params muss ein Objekt sein")
+        cmd = {"handler": handler, "params": params}
+
+    out: Dict[str, Any] = {
+        "menu_type": menu_type,
+        "app_name": app_name,
+        "command": cmd,
+        "updated_at": str(data.get("updated_at") or "").strip() or None,
+    }
+    return out
 
 
 async def expand_templates(gruppe_items: Dict[str, Any], gruppe_name: str, system_pool) -> Dict[str, Any]:
@@ -197,3 +259,67 @@ async def get_app_menu(
     except Exception as e:
         logger.error(f"Fehler beim Laden des App-Menüs {app_name}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/last-navigation", response_model=MenuLastNavigationState)
+async def get_last_navigation(
+    current_user: dict = Depends(get_current_user),
+    gcs = Depends(get_gcs_instance),
+) -> MenuLastNavigationState:
+    """Liest die letzte Menü-Navigation des Users aus sys_systemsteuerung.
+
+    Persistenz-Key:
+    - Gruppe: user_guid
+    - Feld: LAST_NAVIGATION
+    - Wert: JSON-Objekt
+      {menu_type:'start'|'app', app_name?:'...', command?:{handler,params}, updated_at?:'...'}
+    """
+
+    try:
+        key = str(uuid.UUID(str(gcs.user_guid)))
+    except Exception:
+        raise HTTPException(status_code=500, detail="Ungültige user_guid in GCS")
+
+    try:
+        raw, _ = gcs.systemsteuerung.get_value(key, _SYS_FIELD_LAST_NAVIGATION, ab_zeit=gcs.stichtag)
+    except Exception:
+        raw = None
+
+    if raw is None:
+        return MenuLastNavigationState(menu_type="start", app_name=None, command=None, updated_at=None)
+
+    data = _parse_jsonish(raw)
+    try:
+        validated = _validate_last_nav_payload(data)
+    except HTTPException:
+        # Falls alte/kaputte Daten drin sind, lieber leer zurückgeben
+        return MenuLastNavigationState(menu_type="start", app_name=None, command=None, updated_at=None)
+
+    return MenuLastNavigationState(**validated)
+
+
+@router.put("/last-navigation", response_model=MenuLastNavigationState)
+async def put_last_navigation(
+    payload: MenuLastNavigationState,
+    current_user: dict = Depends(get_current_user),
+    gcs = Depends(get_gcs_instance),
+) -> MenuLastNavigationState:
+    """Speichert die letzte Menü-Navigation des Users in sys_systemsteuerung."""
+
+    try:
+        key = str(uuid.UUID(str(gcs.user_guid)))
+    except Exception:
+        raise HTTPException(status_code=500, detail="Ungültige user_guid in GCS")
+
+    raw = payload.model_dump()
+    validated = _validate_last_nav_payload(raw)
+
+    # updated_at automatisch setzen, wenn nicht mitgegeben
+    if not validated.get("updated_at"):
+        from datetime import datetime, timezone
+
+        validated["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+    gcs.systemsteuerung.set_value(key, _SYS_FIELD_LAST_NAVIGATION, validated, gcs.stichtag)
+    await gcs.systemsteuerung.save_all_values()
+    return MenuLastNavigationState(**validated)

@@ -13,6 +13,7 @@ import { useMenu } from '../../contexts/MenuContext';
 import { HorizontalMenu } from '../menu/HorizontalMenu';
 import { VerticalMenu } from '../menu/VerticalMenu';
 import { executeMenuCommand } from '../../utils/menuHandlers';
+import { restoreLastNavigation } from '../../utils/menuHandlers';
 import type { MenuItem } from '../../api/menu';
 
 interface AppLayoutProps {
@@ -22,8 +23,11 @@ interface AppLayoutProps {
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const isDialogRoute = location.pathname.startsWith('/dialog/');
+  const isViewRoute = location.pathname.startsWith('/view/');
   const menu = useMenu();
   
   // Theme loading in background - don't block rendering
@@ -35,10 +39,30 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   
   // Lade Startmenü nach Mount
   useEffect(() => {
-    if (!menu.currentMenu && !menu.loading) {
-      menu.loadStart();
-    }
+    if (menu.currentMenu || menu.loading) return
+
+    ;(async () => {
+      const restored = await restoreLastNavigation({
+        setCurrentMenu: menu.setCurrentMenu,
+        setCurrentApp: menu.setCurrentApp,
+        navigate,
+        showError: (msg) => menu.setError(msg),
+      })
+
+      if (!restored) {
+        await menu.loadStart()
+      } else {
+        setInfoMessage('Letzte Sitzung wiederhergestellt.')
+      }
+    })()
   }, []);
+
+  // Info-Toast automatisch ausblenden
+  useEffect(() => {
+    if (!infoMessage) return
+    const t = window.setTimeout(() => setInfoMessage(null), 6000)
+    return () => window.clearTimeout(t)
+  }, [infoMessage])
 
   // Wenn sich die Route ändert, alten Fehler-Toast zurücksetzen
   useEffect(() => {
@@ -110,7 +134,24 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           {/* Alte HorizontalNav nur wenn kein Menü */}
           {!menu.currentMenu && <HorizontalNav />}
           
-          <div className="content-wrapper">
+          <div
+            className={`content-wrapper ${isDialogRoute ? 'content-wrapper--no-scroll' : isViewRoute ? 'content-wrapper--no-scroll-view' : ''}`}
+          >
+            {/* Info-Anzeige */}
+            {infoMessage ? (
+              <div className="menu-info">
+                <button
+                  type="button"
+                  className="menu-info-close"
+                  aria-label="Info schließen"
+                  onClick={() => setInfoMessage(null)}
+                >
+                  ×
+                </button>
+                {infoMessage}
+              </div>
+            ) : null}
+
             {/* Fehler-Anzeige */}
             {menu.error && (
               <div className="menu-error">
