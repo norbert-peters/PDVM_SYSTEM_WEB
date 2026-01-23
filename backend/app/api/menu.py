@@ -18,6 +18,63 @@ logger = logging.getLogger(__name__)
 _SYS_FIELD_LAST_NAVIGATION = "LAST_NAVIGATION"
 
 
+def _has_children(items: Dict[str, Any], uid: str) -> bool:
+    uid_str = str(uid).strip()
+    for _k, item in (items or {}).items():
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("parent_guid") or "").strip() == uid_str:
+            return True
+    return False
+
+
+def _normalize_menu_group(items: Dict[str, Any]) -> Dict[str, Any]:
+    """Enforce menu invariants on a fully expanded group (incl. templates).
+
+    Rules:
+    - If an item has children, it must be SUBMENU and must not have a command.
+    - If a SUBMENU has no children, it becomes BUTTON.
+    - Missing type defaults to BUTTON.
+    - SEPARATOR/SPACER stay unchanged.
+    """
+    if not isinstance(items, dict):
+        return items
+
+    parent_uids = set()
+    for uid_key in items.keys():
+        uid_str = str(uid_key).strip()
+        if uid_str and _has_children(items, uid_str):
+            parent_uids.add(uid_str)
+
+    out: Dict[str, Any] = {}
+    for uid_key, item in items.items():
+        if not isinstance(item, dict):
+            out[uid_key] = item
+            continue
+
+        uid_str = str(uid_key).strip()
+        t = str(item.get("type") or "").strip().upper()
+
+        if t in {"SEPARATOR", "SPACER"}:
+            out[uid_key] = item
+            continue
+
+        next_item = {**item}
+        if uid_str in parent_uids:
+            next_item["type"] = "SUBMENU"
+            if next_item.get("command") is not None:
+                next_item["command"] = None
+        else:
+            if t == "SUBMENU":
+                next_item["type"] = "BUTTON"
+            elif not t:
+                next_item["type"] = "BUTTON"
+
+        out[uid_key] = next_item
+
+    return out
+
+
 class MenuCommandModel(BaseModel):
     handler: str = Field(..., min_length=1)
     params: Dict[str, Any] = Field(default_factory=dict)
@@ -162,6 +219,10 @@ async def get_start_menu(
         # Template-Expansion (mit Gruppen-Namen für korrekte Template-Zuordnung)
         grund = await expand_templates(grund, "GRUND", gcs._system_pool) if grund else {}
         vertikal = await expand_templates(vertikal, "VERTIKAL", gcs._system_pool) if vertikal else {}
+
+        # Enforce invariants after expansion (parents become SUBMENU, commands stripped)
+        grund = _normalize_menu_group(grund)
+        vertikal = _normalize_menu_group(vertikal)
         
         return {
             "uid": menu_guid,
@@ -235,6 +296,10 @@ async def get_app_menu(
         # Template-Expansion
         grund = await expand_templates(grund, "GRUND", gcs._system_pool) if grund else {}
         vertikal = await expand_templates(vertikal, "VERTIKAL", gcs._system_pool) if vertikal else {}
+
+        # Enforce invariants after expansion (parents become SUBMENU, commands stripped)
+        grund = _normalize_menu_group(grund)
+        vertikal = _normalize_menu_group(vertikal)
         
         # DEBUG: Zeige was zurückgegeben wird
         logger.info(f"📤 API Response für {app_name}:")

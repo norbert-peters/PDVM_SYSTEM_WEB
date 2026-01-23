@@ -180,6 +180,19 @@ Die folgende Tabelle definiert die implementierten Standard-Blöcke (V2), ihre V
 | **`block_view_total_row`** | Grand Total Row | `.pdvm-view-total-row` | `bg_color` | `rgba(0,0,0,0.05)` |
 | | | | `text_color` | `var(--color-text-primary)` |
 
+| **`block_tabs_std`** | Tabs (Dialog intern) | `.pdvm-tabs__*` | `bar_padding` | `6px` |
+| | | | `bar_bg_color` | `transparent` |
+| | | | `bar_border_bottom` | `1px solid var(--color-border-light)` |
+| | | | `bar_sticky_height` | `44px` |
+| | | | `tab_padding` | `8px 12px` |
+| | | | `tab_radius` | `var(--border-radius-md)` |
+| | | | `tab_bg_color` | `transparent` |
+| | | | `tab_text_color` | `var(--color-text-secondary)` |
+| | | | `tab_hover_bg_color` | `rgba(0,0,0,0.04)` |
+| | | | `tab_active_bg_color` | `var(--color-background-primary)` |
+| | | | `tab_active_text_color` | `var(--color-text-primary)` |
+| | | | `tab_active_border_color` | `var(--color-border-light)` |
+
 ### 5.2 Component Blocks
 
 | Block Name | UI Element | CSS Klasse | Properties | Default Fallback |
@@ -256,6 +269,21 @@ Der `edit_json` Tab nutzt bewusst vorhandene Standard-Blöcke, damit Kontrast/Lo
 
 **Hinweis (Such-Highlight im Textmodus)**
 Die Markierung der Treffer in der Textansicht erfolgt über Ace-Marker-Klassen (z.B. `.ace_selected-word`, `.ace_find_highlight`). Die Farben sind in der Komponente bewusst als klare Kontrast-Farben gesetzt (gelb für Treffer), da die Marker in manchen Ace-Themes sonst zu subtil sind.
+
+---
+
+## 5.7 Dialog: `menu` (Menüeditor)
+
+Der Menüeditor verwendet für seine internen Tabs den Block `block_tabs_std`.
+
+Relevante CSS-Variablen (aus `block_tabs_std`):
+- `--block-tabs-std-bar-padding`
+- `--block-tabs-std-bar-bg-color`
+- `--block-tabs-std-bar-border-bottom`
+- `--block-tabs-std-bar-sticky-height` (wichtig für Sticky-Stacking: Tab-Bar oben, Toolbar darunter)
+- `--block-tabs-std-tab-*` (Padding, Radius, Farben, Active-State)
+
+Hinweis: Die kleinen Text-Buttons im Menüeditor (Quick Actions) nutzen aktuell bewusst einfache Standard-Styles (Border/Background) und sind nicht als eigener Block im Theme-System modelliert. Bei Bedarf kann das später als eigener Block (z.B. `block_menu_editor_btn_std`) ergänzt und in CSS auf `--block-*` umgestellt werden.
 
 ### 5.4 Widget Mapping (Komplexe Komponenten)
 

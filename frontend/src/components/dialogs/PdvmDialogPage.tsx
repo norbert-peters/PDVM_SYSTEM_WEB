@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { dialogsAPI, type DialogRow, type DialogDefinitionResponse, type DialogRecordResponse } from '../../api/client'
+import { dialogsAPI, type DialogRow, type DialogDefinitionResponse, type DialogRecordResponse, type DialogUiStateResponse } from '../../api/client'
 import { PdvmViewPageContent } from '../views/PdvmViewPage'
 import { PdvmMenuEditor } from './PdvmMenuEditor'
 import { PdvmJsonEditor, type PdvmJsonEditorHandle, type PdvmJsonEditorMode } from '../common/PdvmJsonEditor'
@@ -56,6 +56,8 @@ export default function PdvmDialogPage() {
     setJsonMode('text')
     setJsonSearch('')
     setJsonSearchHits(null)
+    setMenuEditorRefreshToken(0)
+    setRefreshModalOpen(false)
 
     // Mark context switch so the persistence effect can skip one cycle.
     lastPersistContextKeyRef.current = persistContextKey
@@ -217,11 +219,15 @@ export default function PdvmDialogPage() {
   const [jsonSearchHits, setJsonSearchHits] = useState<number | null>(null)
   const jsonSearchInputRef = useRef<HTMLInputElement | null>(null)
 
+  const [menuEditorRefreshToken, setMenuEditorRefreshToken] = useState(0)
+
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [createModalError, setCreateModalError] = useState<string | null>(null)
 
   const [discardModalOpen, setDiscardModalOpen] = useState(false)
   const [pendingTab, setPendingTab] = useState<ActiveTab | null>(null)
+
+  const [refreshModalOpen, setRefreshModalOpen] = useState(false)
 
   const [infoModalOpen, setInfoModalOpen] = useState(false)
 
@@ -439,6 +445,54 @@ export default function PdvmDialogPage() {
 
   const [menuActiveTab, setMenuActiveTab] = useState<'GRUND' | 'VERTIKAL'>('GRUND')
 
+  const menuTabSkipPersistRef = useRef(false)
+  const menuTabRestoredRef = useRef(false)
+
+  const uiStateQuery = useQuery<DialogUiStateResponse>({
+    queryKey: ['dialog', 'ui-state', dialogGuid, dialogTable],
+    queryFn: () => dialogsAPI.getUiState(dialogGuid!, { dialog_table: dialogTable }),
+    enabled: !!dialogGuid && defQuery.isSuccess && wantsMenuEditor,
+  })
+
+  useEffect(() => {
+    if (!wantsMenuEditor) return
+    if (!uiStateQuery.data) return
+    if (menuTabRestoredRef.current) return
+
+    const raw = (uiStateQuery.data.ui_state as any)?.menu_active_tab
+    const s = String(raw || '').trim().toUpperCase()
+    if (s === 'GRUND' || s === 'VERTIKAL') {
+      menuTabSkipPersistRef.current = true
+      setMenuActiveTab(s as any)
+    }
+    menuTabRestoredRef.current = true
+  }, [wantsMenuEditor, uiStateQuery.data])
+
+  useEffect(() => {
+    if (!wantsMenuEditor) return
+    if (!dialogGuid) return
+    if (!defQuery.isSuccess) return
+
+    if (menuTabSkipPersistRef.current) {
+      menuTabSkipPersistRef.current = false
+      return
+    }
+
+    dialogsAPI
+      .putUiState(
+        dialogGuid,
+        {
+          ui_state: {
+            menu_active_tab: menuActiveTab,
+          },
+        },
+        { dialog_table: dialogTable }
+      )
+      .catch(() => {
+        // Best-effort persistence only.
+      })
+  }, [wantsMenuEditor, dialogGuid, dialogTable, defQuery.isSuccess, menuActiveTab])
+
   const handleMissingMenuGuid = (missingUid: string) => {
     // Only relevant for menu dialogs
     if (!dialogGuid) return
@@ -448,6 +502,40 @@ export default function PdvmDialogPage() {
     dialogsAPI.putLastCall(dialogGuid, null, { dialog_table: dialogTable }).catch(() => {
       // Best-effort persistence only.
     })
+  }
+
+  const performRefreshEdit = async () => {
+    if (!dialogGuid) return
+    if (!selectedUid) return
+
+    setAutoLastCallError(null)
+
+    if (wantsMenuEditor) {
+      await queryClient.invalidateQueries({ queryKey: ['menu-editor', 'menu', selectedUid] })
+      setMenuEditorRefreshToken((t) => t + 1)
+      return
+    }
+
+    await queryClient.invalidateQueries({ queryKey: ['dialog', 'record', dialogGuid, dialogTable, selectedUid] })
+    try {
+      await recordQuery.refetch()
+    } catch {
+      // ignore
+    }
+
+    setJsonError(null)
+    setJsonDirty(false)
+    setJsonSearchHits(null)
+    updateMutation.reset()
+  }
+
+  const refreshEdit = async () => {
+    if (activeTab !== 'edit') return
+    if (editType === 'edit_json' && jsonDirty) {
+      setRefreshModalOpen(true)
+      return
+    }
+    await performRefreshEdit()
   }
 
   return (
@@ -505,6 +593,21 @@ export default function PdvmDialogPage() {
       />
 
       <PdvmDialogModal
+        open={refreshModalOpen}
+        kind="confirm"
+        title="Edit neu laden?"
+        message="Der Editbereich wird aus der Datenbank neu geladen. Ungespeicherte Änderungen gehen verloren."
+        confirmLabel="Neu laden"
+        cancelLabel="Abbrechen"
+        busy={updateMutation.isPending || createMutation.isPending}
+        onCancel={() => setRefreshModalOpen(false)}
+        onConfirm={async () => {
+          setRefreshModalOpen(false)
+          await performRefreshEdit()
+        }}
+      />
+
+      <PdvmDialogModal
         open={createModalOpen}
         kind="form"
         title="Neuer Datensatz"
@@ -554,6 +657,21 @@ export default function PdvmDialogPage() {
           </div>
 
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button
+              type="button"
+              onClick={() => {
+                refreshEdit().catch(() => {
+                  // ignore
+                })
+              }}
+              disabled={!selectedUid || activeTab !== 'edit' || createMutation.isPending || updateMutation.isPending}
+              className="pdvm-dialog__toolBtn"
+              title="Editbereich aus DB neu laden"
+              aria-label="Refresh Edit"
+            >
+              Refresh Edit
+            </button>
+
             {(editType === 'edit_json' || editType === 'menu') && String(defQuery.data?.root_table || '').trim().toLowerCase() !== 'sys_benutzer' ? (
               <button
                 type="button"
@@ -720,7 +838,7 @@ export default function PdvmDialogPage() {
                       </div>
 
                       {menuEditTabs.tabs >= 2 && menuEditTabs.items.length >= 2 ? (
-                        <div className="pdvm-tabs" style={{ marginBottom: 10 }}>
+                        <div className="pdvm-tabs pdvm-tabs--sticky" style={{ marginBottom: 10 }}>
                           <div className="pdvm-tabs__bar">
                             <div className="pdvm-tabs__list" role="tablist" aria-label="Menü Edit Tabs">
                               {menuEditTabs.items.map((t) => (
@@ -739,6 +857,7 @@ export default function PdvmDialogPage() {
                           </div>
                           <div className="pdvm-tabs__panel">
                             <PdvmMenuEditor
+                              key={`${selectedUid}|${menuActiveTab}|${menuEditorRefreshToken}`}
                               menuGuid={selectedUid}
                               group={menuActiveTab}
                               onMissingMenuGuid={handleMissingMenuGuid}
@@ -749,11 +868,21 @@ export default function PdvmDialogPage() {
                         <>
                           <div style={{ marginBottom: 16 }}>
                             <div style={{ fontWeight: 800, marginBottom: 8 }}>GRUND</div>
-                            <PdvmMenuEditor menuGuid={selectedUid} group="GRUND" onMissingMenuGuid={handleMissingMenuGuid} />
+                            <PdvmMenuEditor
+                              key={`${selectedUid}|GRUND|${menuEditorRefreshToken}`}
+                              menuGuid={selectedUid}
+                              group="GRUND"
+                              onMissingMenuGuid={handleMissingMenuGuid}
+                            />
                           </div>
                           <div>
                             <div style={{ fontWeight: 800, marginBottom: 8 }}>VERTIKAL</div>
-                            <PdvmMenuEditor menuGuid={selectedUid} group="VERTIKAL" onMissingMenuGuid={handleMissingMenuGuid} />
+                            <PdvmMenuEditor
+                              key={`${selectedUid}|VERTIKAL|${menuEditorRefreshToken}`}
+                              menuGuid={selectedUid}
+                              group="VERTIKAL"
+                              onMissingMenuGuid={handleMissingMenuGuid}
+                            />
                           </div>
                         </>
                       )}

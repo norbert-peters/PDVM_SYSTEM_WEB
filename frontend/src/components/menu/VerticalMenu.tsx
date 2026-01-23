@@ -18,6 +18,7 @@ export const VerticalMenu: React.FC<VerticalMenuProps> = ({
   onMenuClick
 }) => {
   const [openSubmenus, setOpenSubmenus] = useState<Set<string>>(new Set());
+  const [activeItemGuid, setActiveItemGuid] = useState<string | null>(null);
 
   return (
     <aside className="vertical-menu">
@@ -28,6 +29,8 @@ export const VerticalMenu: React.FC<VerticalMenuProps> = ({
           openSubmenus={openSubmenus}
           setOpenSubmenus={setOpenSubmenus}
           onMenuClick={onMenuClick}
+          activeItemGuid={activeItemGuid}
+          setActiveItemGuid={setActiveItemGuid}
         />
       </div>
     </aside>

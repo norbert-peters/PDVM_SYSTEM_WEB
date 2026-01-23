@@ -81,6 +81,12 @@
   border-left-color: var(--primary-color);
 }
 
+.vertical-menu-button.active {
+  background: var(--surface-hover);
+  border-left-color: var(--primary-color);
+  font-weight: 700;
+}
+
 .vertical-menu-button.open .submenu-arrow {
   transform: rotate(90deg);
 }

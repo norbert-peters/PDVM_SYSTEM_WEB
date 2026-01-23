@@ -11,6 +11,32 @@
   gap: var(--spacing-sm);
 }
 
+/* Sticky support (opt-in) */
+.pdvm-tabs--sticky {
+  /* Approximate bar height so other sticky elements can stack below it */
+  --pdvm-tabs-sticky-bar-height: var(--block-tabs-std-bar-sticky-height, 44px);
+}
+
+.pdvm-tabs--sticky .pdvm-tabs__bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+
+  /* Ensure the bar stays readable while scrolling behind it */
+  background: var(--block-tabs-std-bar-bg-color, var(--color-background-secondary));
+}
+
+/* Menu editor toolbar should stay visible under the sticky tab bar */
+.pdvm-tabs--sticky .pdvm-menu-editor__toolbar {
+  position: sticky;
+  top: var(--pdvm-tabs-sticky-bar-height);
+  z-index: 19;
+
+  background: var(--block-tabs-std-panel-bg-color, var(--color-background-secondary));
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
 .pdvm-tabs__bar {
   display: flex;
   align-items: center;

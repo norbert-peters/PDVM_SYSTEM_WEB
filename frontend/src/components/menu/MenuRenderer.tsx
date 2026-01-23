@@ -15,6 +15,8 @@ interface MenuRendererProps {
   openSubmenus: Set<string>;
   setOpenSubmenus: (submenus: Set<string>) => void;
   onMenuClick: (item: MenuItem) => void;
+  activeItemGuid?: string | null;
+  setActiveItemGuid?: (guid: string | null) => void;
 }
 
 export const MenuRenderer: React.FC<MenuRendererProps> = ({
@@ -22,7 +24,9 @@ export const MenuRenderer: React.FC<MenuRendererProps> = ({
   orientation,
   openSubmenus,
   setOpenSubmenus,
-  onMenuClick
+  onMenuClick,
+  activeItemGuid,
+  setActiveItemGuid
 }) => {
   
   // Hole Children für ein Parent
@@ -39,6 +43,12 @@ export const MenuRenderer: React.FC<MenuRendererProps> = ({
 
   // Handler für Menü-Klick
   const handleItemClick = (guid: string, item: MenuItem) => {
+    try {
+      setActiveItemGuid?.(guid)
+    } catch {
+      // ignore
+    }
+
     if (item.type === 'SUBMENU') {
       const wasOpen = openSubmenus.has(guid);
       const newSubmenus = new Set(openSubmenus);
@@ -123,7 +133,7 @@ export const MenuRenderer: React.FC<MenuRendererProps> = ({
       return (
         <div key={guid} className={`${orientation}-menu-submenu ${depth > 0 ? 'nested' : ''}`}>
           <button
-            className={`${orientation}-menu-button ${isOpen ? 'open' : ''} ${hasChildren ? 'has-children' : ''}`}
+            className={`${orientation}-menu-button ${isOpen ? 'open' : ''} ${hasChildren ? 'has-children' : ''} ${activeItemGuid === guid ? 'active' : ''}`}
             onClick={() => handleItemClick(guid, item)}
             disabled={!item.enabled}
             title={item.tooltip || undefined}
@@ -152,7 +162,7 @@ export const MenuRenderer: React.FC<MenuRendererProps> = ({
       return (
         <button
           key={guid}
-          className={`${orientation}-menu-button`}
+          className={`${orientation}-menu-button ${activeItemGuid === guid ? 'active' : ''}`}
           onClick={() => handleItemClick(guid, item)}
           disabled={!item.enabled}
           title={item.tooltip || undefined}

@@ -113,7 +113,7 @@ async function handleShowHelp(item: MenuItem, _context: MenuHandlerContext): Pro
   const helpType = item.command?.params?.help_type || 'dialog';
   
   // TODO: Hilfe-Dialog implementieren
-  alert(`Hilfe: ${helpText}\nTyp: ${helpType}`);
+  _context.showError(`Hilfe (${helpType}): ${helpText}`);
 }
 
 /**
@@ -166,7 +166,7 @@ const HANDLERS: Record<string, MenuHandler> = {
  */
 export async function executeMenuCommand(item: MenuItem, context: MenuHandlerContext): Promise<void> {
   if (!item.command || !item.command.handler) {
-    console.warn('Menu-Item hat kein Command:', item);
+    context.showError('Kein Kommando vorhanden');
     return;
   }
   

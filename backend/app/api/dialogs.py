@@ -31,6 +31,7 @@ from app.core.dialog_service import (
 router = APIRouter()
 
 _SYS_FIELD_LAST_CALL = "LAST_CALL"
+_SYS_FIELD_UI_STATE = "UI_STATE"
 
 
 _TABLE_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -149,6 +150,48 @@ def _compute_last_call_key(runtime: Dict[str, Any], dialog_guid: str) -> str:
             pass
 
     return str(dialog_guid)
+
+
+def _compute_dialog_ui_state_group(*, dialog_guid: str, root_table: str, edit_type: str) -> str:
+    """UI-State Persistenz-Key (pro User) für Dialog-spezifische UI-Zustände.
+
+    Vorgabe: Composite-Key ("Kombi-Schlüssel") analog zum View-State, aber mit dialog_guid.
+    Format: "{dialog_guid}::{table}::{edit_type}" (lower-case).
+    """
+
+    dg = str(dialog_guid or "").strip().lower()
+    t = _normalize_table_name(root_table)
+    et = str(edit_type or "").strip().lower()
+    return f"{dg}::{t}::{et}".strip().lower()
+
+
+async def _read_ui_state(gcs, *, group: str) -> Dict[str, Any]:
+    try:
+        raw, _ = gcs.systemsteuerung.get_value(group, _SYS_FIELD_UI_STATE, ab_zeit=gcs.stichtag)
+    except Exception:
+        return {}
+
+    if raw is None:
+        return {}
+    if isinstance(raw, dict):
+        return raw
+
+    try:
+        import json
+
+        parsed = json.loads(str(raw))
+        return parsed if isinstance(parsed, dict) else {}
+    except Exception:
+        return {}
+
+
+class DialogUiStateResponse(BaseModel):
+    group: str
+    ui_state: Dict[str, Any] = Field(default_factory=dict)
+
+
+class DialogUiStateUpdateRequest(BaseModel):
+    ui_state: Dict[str, Any] = Field(default_factory=dict)
 
 
 async def get_gcs_instance(current_user: dict = Depends(get_current_user)):
@@ -536,3 +579,71 @@ async def post_dialog_record_create(
         raise HTTPException(status_code=400, detail=str(e))
     except KeyError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/{dialog_guid}/ui-state", response_model=DialogUiStateResponse)
+async def get_dialog_ui_state(dialog_guid: str, dialog_table: Optional[str] = None, gcs=Depends(get_gcs_instance)):
+    try:
+        dialog_uuid = uuid.UUID(dialog_guid)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Ungültige dialog_guid")
+
+    try:
+        dialog_def = await load_dialog_definition(gcs, dialog_uuid)
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"Dialog nicht gefunden: {dialog_guid}")
+
+    runtime = extract_dialog_runtime_config(dialog_def)
+    dialog_table_norm = _normalize_dialog_table(dialog_table)
+    if dialog_table_norm:
+        _ensure_allowed_edit_type(runtime.get("edit_type") or "show_json")
+        runtime["root_table"] = dialog_table_norm
+
+    table = runtime.get("root_table") or ""
+    if not table:
+        raise HTTPException(status_code=400, detail="Dialog ROOT.TABLE ist leer")
+
+    edit_type = str(runtime.get("edit_type") or "show_json").strip().lower()
+    group = _compute_dialog_ui_state_group(dialog_guid=dialog_guid, root_table=table, edit_type=edit_type)
+    ui_state = await _read_ui_state(gcs, group=group)
+    return {"group": group, "ui_state": ui_state}
+
+
+@router.put("/{dialog_guid}/ui-state", response_model=DialogUiStateResponse)
+async def put_dialog_ui_state(
+    dialog_guid: str,
+    payload: DialogUiStateUpdateRequest,
+    dialog_table: Optional[str] = None,
+    gcs=Depends(get_gcs_instance),
+):
+    try:
+        dialog_uuid = uuid.UUID(dialog_guid)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Ungültige dialog_guid")
+
+    try:
+        dialog_def = await load_dialog_definition(gcs, dialog_uuid)
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"Dialog nicht gefunden: {dialog_guid}")
+
+    runtime = extract_dialog_runtime_config(dialog_def)
+    dialog_table_norm = _normalize_dialog_table(dialog_table)
+    if dialog_table_norm:
+        _ensure_allowed_edit_type(runtime.get("edit_type") or "show_json")
+        runtime["root_table"] = dialog_table_norm
+
+    table = runtime.get("root_table") or ""
+    if not table:
+        raise HTTPException(status_code=400, detail="Dialog ROOT.TABLE ist leer")
+
+    edit_type = str(runtime.get("edit_type") or "show_json").strip().lower()
+    group = _compute_dialog_ui_state_group(dialog_guid=dialog_guid, root_table=table, edit_type=edit_type)
+
+    existing = await _read_ui_state(gcs, group=group)
+    next_state = dict(existing)
+    incoming = payload.ui_state if isinstance(payload.ui_state, dict) else {}
+    next_state.update(incoming)
+
+    gcs.systemsteuerung.set_value(group, _SYS_FIELD_UI_STATE, next_state, gcs.stichtag)
+    await gcs.systemsteuerung.save_all_values()
+    return {"group": group, "ui_state": next_state}

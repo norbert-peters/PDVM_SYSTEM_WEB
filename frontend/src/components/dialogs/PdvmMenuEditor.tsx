@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { menuEditorAPI, type MenuRecordResponse } from '../../api/client'
+import { PdvmDialogModal } from '../common/PdvmDialogModal'
 
 type MenuGroup = 'GRUND' | 'VERTIKAL'
 
@@ -8,6 +9,9 @@ type MenuItem = {
   type?: string
   label?: string
   icon?: string
+  tooltip?: string | null
+  enabled?: boolean
+  visible?: boolean
   sort_order?: number
   parent_guid?: string | null
   template_guid?: string | null
@@ -53,6 +57,26 @@ function hasChildren(itemsByUid: Record<string, MenuItem>, uid: string): boolean
     if (normalizeGuid(item?.parent_guid) === u) return true
   }
   return false
+}
+
+function getDescendants(itemsByUid: Record<string, MenuItem>, rootUid: string): string[] {
+  const root = normalizeGuid(rootUid)
+  if (!root) return []
+
+  const out: string[] = []
+  const stack: string[] = [root]
+
+  while (stack.length) {
+    const cur = stack.pop()!
+    for (const [uid, item] of Object.entries(itemsByUid)) {
+      if (normalizeGuid(item?.parent_guid) === cur) {
+        out.push(uid)
+        stack.push(uid)
+      }
+    }
+  }
+
+  return out
 }
 
 function resequenceSortOrder(itemsByUid: Record<string, MenuItem>, parentGuid: string | null): Record<string, MenuItem> {
@@ -109,6 +133,13 @@ export function PdvmMenuEditor(props: { menuGuid: string; group: MenuGroup; onMi
   const queryClient = useQueryClient()
   const [draft, setDraft] = useState<MenuRecordResponse | null>(null)
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set())
+  const [selectedItemUid, setSelectedItemUid] = useState<string | null>(null)
+  const [infoOpen, setInfoOpen] = useState(false)
+
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteTargetUid, setDeleteTargetUid] = useState<string | null>(null)
+  const [deleteTitle, setDeleteTitle] = useState('Item löschen?')
+  const [deleteMessage, setDeleteMessage] = useState('Soll dieses Item wirklich gelöscht werden?')
 
   const menuQuery = useQuery<MenuRecordResponse>({
     queryKey: ['menu-editor', 'menu', props.menuGuid],
@@ -130,6 +161,7 @@ export function PdvmMenuEditor(props: { menuGuid: string; group: MenuGroup; onMi
   useEffect(() => {
     setDraft(null)
     setCollapsed(new Set())
+    setSelectedItemUid(null)
   }, [props.menuGuid])
 
   // Sync draft from query result
@@ -170,6 +202,68 @@ export function PdvmMenuEditor(props: { menuGuid: string; group: MenuGroup; onMi
     })
   }
 
+  const requestDelete = (uid: string) => {
+    const item = groupItems[uid]
+    if (!item) return
+
+    const label = String(item?.label || '').trim() || '(ohne Label)'
+    const type = String((item as any)?.type || '').trim().toUpperCase()
+    const templateGuid = normalizeGuid((item as any)?.template_guid)
+
+    const descendants = getDescendants(groupItems, uid)
+    const childCount = descendants.length
+
+    // 1) Template placeholder: warn that the template itself is not deleted.
+    if (templateGuid) {
+      setDeleteTitle('Template-Eintrag löschen?')
+      setDeleteMessage(
+        `Du löschst nur diesen Template-Platzhalter ("${label}"). Das eigentliche Template (${templateGuid}) wird NICHT gelöscht.`
+      )
+    }
+    // 2) Submenu/parent: warn that all children are deleted.
+    else if (childCount > 0 || type === 'SUBMENU') {
+      setDeleteTitle('Submenü löschen?')
+      setDeleteMessage(`"${label}" wird gelöscht. Dabei werden auch alle untergeordneten Einträge (${childCount}) mit gelöscht.`)
+    }
+    // 3) Normal delete.
+    else {
+      setDeleteTitle('Item löschen?')
+      setDeleteMessage(`Soll "${label}" wirklich gelöscht werden?`)
+    }
+
+    setDeleteTargetUid(uid)
+    setDeleteOpen(true)
+  }
+
+  const performDelete = (uid: string) => {
+    const item = groupItems[uid]
+    if (!item) return
+
+    const parent = normalizeGuid(item.parent_guid)
+    const parentGuid = parent ? parent : null
+    const descendants = getDescendants(groupItems, uid)
+
+    const next: Record<string, MenuItem> = { ...groupItems }
+    for (const d of descendants) delete next[d]
+    delete next[uid]
+
+    setCollapsed((prev) => {
+      const s = new Set(prev)
+      s.delete(uid)
+      for (const d of descendants) s.delete(d)
+      return s
+    })
+
+    setSelectedItemUid((prev) => {
+      if (!prev) return prev
+      if (prev === uid) return null
+      if (descendants.includes(prev)) return null
+      return prev
+    })
+
+    setGroupItems(resequenceSortOrder(next, parentGuid))
+  }
+
   const save = async () => {
     const base = menu
     if (!base) return
@@ -198,8 +292,12 @@ export function PdvmMenuEditor(props: { menuGuid: string; group: MenuGroup; onMi
   const addRootItem = () => {
     const uid = newGuid()
     const newItem: MenuItem = {
-      type: 'item',
+      type: 'BUTTON',
       label: 'Neues MenüItem',
+      icon: null as any,
+      tooltip: null as any,
+      enabled: true as any,
+      visible: true as any,
       parent_guid: null,
       sort_order: 10,
     }
@@ -215,8 +313,12 @@ export function PdvmMenuEditor(props: { menuGuid: string; group: MenuGroup; onMi
 
     const uid = newGuid()
     const newItem: MenuItem = {
-      type: 'item',
+      type: 'BUTTON',
       label: 'Neues MenüItem',
+      icon: null as any,
+      tooltip: null as any,
+      enabled: true as any,
+      visible: true as any,
       parent_guid: parentGuid,
       sort_order: 0,
     }
@@ -227,8 +329,12 @@ export function PdvmMenuEditor(props: { menuGuid: string; group: MenuGroup; onMi
   const addChild = (parentUid: string) => {
     const uid = newGuid()
     const newItem: MenuItem = {
-      type: 'item',
+      type: 'BUTTON',
       label: 'Neues MenüItem',
+      icon: null as any,
+      tooltip: null as any,
+      enabled: true as any,
+      visible: true as any,
       parent_guid: parentUid,
       sort_order: 0,
     }
@@ -302,11 +408,13 @@ export function PdvmMenuEditor(props: { menuGuid: string; group: MenuGroup; onMi
     const isParent = hasChildren(groupItems, uid)
     const isCollapsed = collapsed.has(uid)
     const label = String(item?.label || '').trim() || '(ohne Label)'
+    const isSelected = selectedItemUid === uid
 
     return (
       <div
         key={uid}
         draggable
+        onClick={() => setSelectedItemUid(uid)}
         onDragStart={(ev) => {
           ev.dataTransfer.setData('text/pdvm-drag-uid', uid)
           ev.dataTransfer.setData('text/pdvm-drag-parent', normalizeGuid(item?.parent_guid || ''))
@@ -351,11 +459,11 @@ export function PdvmMenuEditor(props: { menuGuid: string; group: MenuGroup; onMi
           setGroupItems(next)
         }}
         style={{
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: isSelected ? '2px solid rgba(80,160,255,0.85)' : '1px solid rgba(255,255,255,0.08)',
           borderRadius: 10,
           padding: 10,
           marginBottom: 8,
-          background: 'rgba(255,255,255,0.03)',
+          background: isSelected ? 'rgba(80,160,255,0.14)' : 'rgba(255,255,255,0.03)',
           marginLeft: level * 18,
         }}
         title="Drag & Drop: gleiche Ebene sortieren. Shift+Drop: als Kind einhängen."
@@ -371,7 +479,7 @@ export function PdvmMenuEditor(props: { menuGuid: string; group: MenuGroup; onMi
 
           <div style={{ fontWeight: 800 }}>{label}</div>
 
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center' }}>
+          <div className="pdvm-menu-editor__nodeActions" style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center' }}>
             <button type="button" onClick={() => addSibling(uid, 'before')} title="Neues Item oberhalb einfügen">
               +↑
             </button>
@@ -380,6 +488,9 @@ export function PdvmMenuEditor(props: { menuGuid: string; group: MenuGroup; onMi
             </button>
             <button type="button" onClick={() => addChild(uid)} title="Neues Kind-Item einfügen">
               +Kind
+            </button>
+            <button type="button" onClick={() => requestDelete(uid)} title="Item löschen">
+              -Item
             </button>
             <button type="button" onClick={() => moveUp(uid)} title="Nach oben">
               ↑
@@ -396,7 +507,7 @@ export function PdvmMenuEditor(props: { menuGuid: string; group: MenuGroup; onMi
             <button
               type="button"
               onClick={() => {
-                alert('Bearbeiten (Stufe 2): kommt als nächstes. Hier aktuell nur Struktur / Reihenfolge / Einfügen.')
+                setInfoOpen(true)
               }}
               title="Bearbeiten (Stufe 2)"
             >
@@ -407,6 +518,7 @@ export function PdvmMenuEditor(props: { menuGuid: string; group: MenuGroup; onMi
 
         <div style={{ display: 'flex', gap: 10, marginTop: 6, fontSize: 12, opacity: 0.75 }}>
           <div style={{ fontFamily: 'monospace' }}>{uid}</div>
+          <div>type: {String((item as any)?.type || '').toUpperCase() || '-'}</div>
           <div style={{ marginLeft: 'auto' }}>sort: {item?.sort_order ?? '-'}</div>
         </div>
       </div>
@@ -451,13 +563,45 @@ export function PdvmMenuEditor(props: { menuGuid: string; group: MenuGroup; onMi
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+      <PdvmDialogModal
+        open={infoOpen}
+        kind="info"
+        title="Hinweis"
+        message="Bearbeiten (Stufe 2) kommt als nächstes. Aktuell sind Struktur / Reihenfolge / Einfügen implementiert."
+        confirmLabel="OK"
+        onCancel={() => setInfoOpen(false)}
+        onConfirm={() => setInfoOpen(false)}
+      />
+
+      <PdvmDialogModal
+        open={deleteOpen}
+        kind="confirm"
+        title={deleteTitle}
+        message={deleteMessage}
+        confirmLabel="Löschen"
+        cancelLabel="Abbrechen"
+        busy={updateMutation.isPending}
+        onCancel={() => {
+          if (updateMutation.isPending) return
+          setDeleteOpen(false)
+          setDeleteTargetUid(null)
+        }}
+        onConfirm={() => {
+          if (updateMutation.isPending) return
+          const uid = deleteTargetUid
+          setDeleteOpen(false)
+          setDeleteTargetUid(null)
+          if (uid) performDelete(uid)
+        }}
+      />
+
+      <div className="pdvm-menu-editor__toolbar" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
         <div style={{ fontSize: 12, opacity: 0.75 }}>
           Menü: <span style={{ fontFamily: 'monospace' }}>{menu.uid}</span>
         </div>
         <div style={{ fontSize: 12, opacity: 0.75 }}>Gruppe: {props.group}</div>
         <div style={{ fontSize: 12, opacity: 0.75 }}>Items: {itemCount}</div>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+        <div className="pdvm-menu-editor__toolbarActions" style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
           <button type="button" onClick={addRootItem}>
             + Root
           </button>

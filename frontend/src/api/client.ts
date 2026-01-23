@@ -158,6 +158,15 @@ export interface DialogLastCallResponse {
   last_call: string | null
 }
 
+export interface DialogUiStateResponse {
+  group: string
+  ui_state: Record<string, any>
+}
+
+export interface DialogUiStateUpdateRequest {
+  ui_state: Record<string, any>
+}
+
 export interface DialogTableOverrideOptions {
   dialog_table?: string | null
 }
@@ -443,6 +452,24 @@ export const dialogsAPI = {
         params: opts?.dialog_table ? { dialog_table: opts.dialog_table } : undefined,
       }
     )
+    return response.data
+  },
+
+  getUiState: async (dialogGuid: string, opts?: DialogTableOverrideOptions): Promise<DialogUiStateResponse> => {
+    const response = await api.get(`/dialogs/${dialogGuid}/ui-state`, {
+      params: opts?.dialog_table ? { dialog_table: opts.dialog_table } : undefined,
+    })
+    return response.data
+  },
+
+  putUiState: async (
+    dialogGuid: string,
+    payload: DialogUiStateUpdateRequest,
+    opts?: DialogTableOverrideOptions
+  ): Promise<DialogUiStateResponse> => {
+    const response = await api.put(`/dialogs/${dialogGuid}/ui-state`, payload, {
+      params: opts?.dialog_table ? { dialog_table: opts.dialog_table } : undefined,
+    })
     return response.data
   },
 }

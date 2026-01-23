@@ -18,6 +18,7 @@ export const HorizontalMenu: React.FC<HorizontalMenuProps> = ({
   onMenuClick
 }) => {
   const [openSubmenus, setOpenSubmenus] = useState<Set<string>>(new Set());
+  const [activeItemGuid, setActiveItemGuid] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close menus when clicking outside
@@ -40,6 +41,8 @@ export const HorizontalMenu: React.FC<HorizontalMenuProps> = ({
           openSubmenus={openSubmenus}
           setOpenSubmenus={setOpenSubmenus}
           onMenuClick={onMenuClick}
+          activeItemGuid={activeItemGuid}
+          setActiveItemGuid={setActiveItemGuid}
         />
       </div>
     </nav>

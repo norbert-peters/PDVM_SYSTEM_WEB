@@ -207,6 +207,12 @@ Laden/Speichern eines `sys_menudaten` Datensatzes für `edit_type=menu`.
 Validierung:
 - Ein Item, das Kinder hat (Submenü), darf kein `command` haben (wird beim Speichern entfernt).
 
+### `GET /api/dialogs/{dialog_guid}/ui-state` / `PUT /api/dialogs/{dialog_guid}/ui-state`
+UI-State Persistenz (pro User) in `sys_systemsteuerung` für Dialog-bezogene UI-Details.
+
+Aktuell genutzt:
+- `edit_type=menu`: Persistenz des aktiven Edit-Tabs (`menu_active_tab`: `GRUND|VERTIKAL`).
+
 ---
 
 ## Frontend Verhalten (MVP)
@@ -221,6 +227,11 @@ Tabs:
 Für `edit_json`:
 - **Tab 2**: Text-Editor (monospace) + Buttons `Formatieren` und `Speichern`
 - Speichern ruft `PUT /api/dialogs/{dialog_guid}/record/{uid}` auf
+
+Für `menu`:
+- Im Edit-Tab werden interne Tabs (Grundmenü/Vertikalmenü) gerendert.
+- Der aktive Tab wird über `ui-state` persistiert.
+- Der Dialog-Header bietet `Refresh Edit` (lädt den Editbereich neu aus DB; bei `edit_json` mit Dirty-State wird vorher bestätigt).
 
 ---
 
