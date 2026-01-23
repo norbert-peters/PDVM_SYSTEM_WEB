@@ -148,6 +148,11 @@ export interface DialogRecordUpdateRequest {
   daten: Record<string, any>
 }
 
+export interface DialogRecordCreateRequest {
+  name: string
+  template_uid?: string | null
+}
+
 export interface DialogLastCallResponse {
   key: string
   last_call: string | null
@@ -408,6 +413,17 @@ export const dialogsAPI = {
     opts?: DialogTableOverrideOptions
   ): Promise<DialogRecordResponse> => {
     const response = await api.put(`/dialogs/${dialogGuid}/record/${recordUid}`, payload, {
+      params: opts?.dialog_table ? { dialog_table: opts.dialog_table } : undefined,
+    })
+    return response.data
+  },
+
+  createRecord: async (
+    dialogGuid: string,
+    payload: DialogRecordCreateRequest,
+    opts?: DialogTableOverrideOptions
+  ): Promise<DialogRecordResponse> => {
+    const response = await api.post(`/dialogs/${dialogGuid}/record`, payload, {
       params: opts?.dialog_table ? { dialog_table: opts.dialog_table } : undefined,
     })
     return response.data

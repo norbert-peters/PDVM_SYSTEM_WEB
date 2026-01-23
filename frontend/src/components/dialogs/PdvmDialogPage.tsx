@@ -5,6 +5,7 @@ import { dialogsAPI, type DialogRow, type DialogDefinitionResponse, type DialogR
 import { PdvmViewPageContent } from '../views/PdvmViewPage'
 import { PdvmMenuEditor } from './PdvmMenuEditor'
 import { PdvmJsonEditor, type PdvmJsonEditorHandle, type PdvmJsonEditorMode } from '../common/PdvmJsonEditor'
+import { PdvmDialogModal } from '../common/PdvmDialogModal'
 import '../../styles/components/dialog.css'
 
 type ActiveTab = 'view' | 'edit'
@@ -216,6 +217,19 @@ export default function PdvmDialogPage() {
   const [jsonSearchHits, setJsonSearchHits] = useState<number | null>(null)
   const jsonSearchInputRef = useRef<HTMLInputElement | null>(null)
 
+  const [createModalOpen, setCreateModalOpen] = useState(false)
+  const [createModalError, setCreateModalError] = useState<string | null>(null)
+
+  const [discardModalOpen, setDiscardModalOpen] = useState(false)
+  const [pendingTab, setPendingTab] = useState<ActiveTab | null>(null)
+
+  const [infoModalOpen, setInfoModalOpen] = useState(false)
+
+  useEffect(() => {
+    if (!autoLastCallError) return
+    setInfoModalOpen(true)
+  }, [autoLastCallError])
+
   useEffect(() => {
     if (!recordQuery.data) return
     if (editType !== 'edit_json') return
@@ -239,6 +253,44 @@ export default function PdvmDialogPage() {
       await queryClient.invalidateQueries({ queryKey: ['dialog', 'record', dialogGuid, dialogTable, selectedUid] })
     },
   })
+
+  const createMutation = useMutation({
+    mutationFn: async (name: string) => {
+      return dialogsAPI.createRecord(
+        dialogGuid!,
+        {
+          name,
+          // Default: PDVM template record (fiktive GUID)
+          template_uid: '66666666-6666-6666-6666-666666666666',
+        },
+        { dialog_table: dialogTable }
+      )
+    },
+    onSuccess: async (created) => {
+      // Refresh list and open the new record.
+      await queryClient.invalidateQueries({ queryKey: ['dialog', 'rows', dialogGuid, dialogTable] })
+
+      const embeddedViewGuid = String(defQuery.data?.view_guid || '').trim()
+      if (embeddedViewGuid) {
+        // Best-effort: refresh embedded View so the new row becomes visible.
+        await queryClient.invalidateQueries({ queryKey: ['view', 'matrix', embeddedViewGuid] })
+      }
+
+      setSelectedUid(created.uid)
+      setSelectedUids([created.uid])
+      setActiveTab('edit')
+      setJsonDirty(false)
+      setJsonSearchHits(null)
+    },
+  })
+
+  const createNewRecord = async () => {
+    if (!dialogGuid) return
+    if (editType !== 'edit_json' && editType !== 'menu') return
+
+    setCreateModalError(null)
+    setCreateModalOpen(true)
+  }
 
   const saveJson = async () => {
     if (editType !== 'edit_json') return
@@ -400,11 +452,120 @@ export default function PdvmDialogPage() {
 
   return (
     <div className="pdvm-dialog">
+      <PdvmDialogModal
+        open={infoModalOpen && !!autoLastCallError}
+        kind="info"
+        title="Hinweis"
+        message={autoLastCallError || ''}
+        confirmLabel="OK"
+        busy={false}
+        onCancel={() => {
+          setInfoModalOpen(false)
+          setAutoLastCallError(null)
+        }}
+        onConfirm={() => {
+          setInfoModalOpen(false)
+          setAutoLastCallError(null)
+        }}
+      />
+
+      <PdvmDialogModal
+        open={discardModalOpen}
+        kind="confirm"
+        title="Änderungen verwerfen?"
+        message="Es gibt ungespeicherte Änderungen. Beim Wechseln gehen diese verloren."
+        confirmLabel="Verwerfen"
+        cancelLabel="Abbrechen"
+        busy={updateMutation.isPending || createMutation.isPending}
+        onCancel={() => {
+          setDiscardModalOpen(false)
+          setPendingTab(null)
+        }}
+        onConfirm={() => {
+          // Best-effort: reset editor content to last loaded record state.
+          try {
+            if (recordQuery.data?.daten && editType === 'edit_json') {
+              jsonEditorRef.current?.setJson(recordQuery.data.daten)
+              jsonEditorRef.current?.setMode(jsonMode)
+            }
+          } catch {
+            // ignore
+          }
+
+          setJsonError(null)
+          setJsonDirty(false)
+          setJsonSearchHits(null)
+          updateMutation.reset()
+
+          const next = pendingTab
+          setDiscardModalOpen(false)
+          setPendingTab(null)
+          if (next) setActiveTab(next)
+        }}
+      />
+
+      <PdvmDialogModal
+        open={createModalOpen}
+        kind="form"
+        title="Neuer Datensatz"
+        message="Bitte Name eingeben (Template: 6666...)."
+        fields={[
+          {
+            name: 'name',
+            label: 'Name',
+            type: 'text',
+            required: true,
+            minLength: 1,
+            maxLength: 200,
+            autoFocus: true,
+            placeholder: 'z.B. Neuer Satz',
+          },
+        ]}
+        confirmLabel="Erstellen"
+        cancelLabel="Abbrechen"
+        busy={createMutation.isPending || updateMutation.isPending}
+        error={createModalError}
+        onCancel={() => {
+          if (createMutation.isPending || updateMutation.isPending) return
+          setCreateModalOpen(false)
+          setCreateModalError(null)
+        }}
+        onConfirm={async (values) => {
+          const name = String(values?.name || '').trim()
+          if (!name) return
+
+          try {
+            setAutoLastCallError(null)
+            setCreateModalError(null)
+            await createMutation.mutateAsync(name)
+            setCreateModalOpen(false)
+          } catch (e: any) {
+            const detail = e?.response?.data?.detail
+            setCreateModalError(String(detail || e?.message || 'Neuer Datensatz konnte nicht angelegt werden'))
+          }
+        }}
+      />
+
       <div className="pdvm-dialog__header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <h2 style={{ margin: 0 }}>{title}</h2>
           <div style={{ fontSize: 12, opacity: 0.7 }}>
             {defQuery.data?.root_table ? `TABLE: ${defQuery.data.root_table}` : null}
+          </div>
+
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+            {(editType === 'edit_json' || editType === 'menu') && String(defQuery.data?.root_table || '').trim().toLowerCase() !== 'sys_benutzer' ? (
+              <button
+                type="button"
+                onClick={createNewRecord}
+                disabled={createMutation.isPending || updateMutation.isPending}
+                className="pdvm-dialog__toolBtn"
+                title="Neuen Datensatz (aus Template 6666...) erstellen"
+                aria-label="Neuer Satz"
+              >
+                Neuer Satz
+              </button>
+            ) : null}
           </div>
         </div>
 
@@ -437,7 +598,14 @@ export default function PdvmDialogPage() {
               role="tab"
               aria-selected={activeTab === 'view'}
               className={`pdvm-tabs__tab ${activeTab === 'view' ? 'pdvm-tabs__tab--active' : ''}`}
-              onClick={() => setActiveTab('view')}
+                onClick={() => {
+                  if (activeTab === 'edit' && editType === 'edit_json' && jsonDirty) {
+                    setPendingTab('view')
+                    setDiscardModalOpen(true)
+                    return
+                  }
+                  setActiveTab('view')
+                }}
             >
               {tabLabel.tab1}
             </button>
@@ -446,7 +614,7 @@ export default function PdvmDialogPage() {
               role="tab"
               aria-selected={activeTab === 'edit'}
               className={`pdvm-tabs__tab ${activeTab === 'edit' ? 'pdvm-tabs__tab--active' : ''}`}
-              onClick={() => setActiveTab('edit')}
+                onClick={() => setActiveTab('edit')}
             >
               {tabLabel.tab2}
             </button>
@@ -654,7 +822,7 @@ export default function PdvmDialogPage() {
                               <button
                                 type="button"
                                 onClick={() => jsonEditorRef.current?.expandAll()}
-                                disabled={updateMutation.isPending}
+                                disabled={updateMutation.isPending || createMutation.isPending}
                                 className="pdvm-dialog__toolBtn"
                                 title="Alle Knoten aufklappen"
                                 aria-label="Alle Knoten aufklappen"
@@ -664,7 +832,7 @@ export default function PdvmDialogPage() {
                               <button
                                 type="button"
                                 onClick={() => jsonEditorRef.current?.collapseAll()}
-                                disabled={updateMutation.isPending}
+                                disabled={updateMutation.isPending || createMutation.isPending}
                                 className="pdvm-dialog__toolBtn"
                                 title="Alle Knoten einklappen"
                                 aria-label="Alle Knoten einklappen"
@@ -677,7 +845,7 @@ export default function PdvmDialogPage() {
                                   jsonEditorRef.current?.sort()
                                   updateMutation.reset()
                                 }}
-                                disabled={updateMutation.isPending}
+                                disabled={updateMutation.isPending || createMutation.isPending}
                                 className="pdvm-dialog__toolBtn"
                                 title="Objekt-Schlüssel sortieren (A–Z)"
                                 aria-label="Objekt-Schlüssel sortieren"
@@ -687,7 +855,7 @@ export default function PdvmDialogPage() {
                               <button
                                 type="button"
                                 onClick={formatJson}
-                                disabled={updateMutation.isPending}
+                                disabled={updateMutation.isPending || createMutation.isPending}
                                 className="pdvm-dialog__toolBtn"
                                 title="JSON formatieren (Pretty Print)"
                                 aria-label="JSON formatieren"
@@ -723,7 +891,7 @@ export default function PdvmDialogPage() {
                               <button
                                 type="button"
                                 onClick={doSearch}
-                                disabled={updateMutation.isPending}
+                                disabled={updateMutation.isPending || createMutation.isPending}
                                 className="pdvm-dialog__toolBtn"
                                 title="Suchen"
                                 aria-label="Suchen"
@@ -738,7 +906,7 @@ export default function PdvmDialogPage() {
                             <button
                               type="button"
                               onClick={saveJson}
-                              disabled={updateMutation.isPending || !!jsonError}
+                              disabled={updateMutation.isPending || createMutation.isPending || !!jsonError}
                               className="pdvm-dialog__toolBtn pdvm-dialog__toolBtn--primary"
                               title="Speichern"
                               aria-label="Speichern"
@@ -749,8 +917,14 @@ export default function PdvmDialogPage() {
                             {jsonDirty && !updateMutation.isPending ? (
                               <div style={{ fontSize: 12, opacity: 0.8 }}>Änderungen…</div>
                             ) : null}
+                            {createMutation.isPending ? <div style={{ fontSize: 12, opacity: 0.8 }}>Erstelle...</div> : null}
                             {updateMutation.isPending ? <div style={{ fontSize: 12, opacity: 0.8 }}>Speichere...</div> : null}
                             {updateMutation.isSuccess ? <div style={{ fontSize: 12, opacity: 0.8 }}>Gespeichert</div> : null}
+                            {createMutation.isError ? (
+                              <div style={{ fontSize: 12, color: 'crimson' }}>
+                                Fehler: {(createMutation.error as any)?.message || 'Erstellen fehlgeschlagen'}
+                              </div>
+                            ) : null}
                             {updateMutation.isError ? (
                               <div style={{ fontSize: 12, color: 'crimson' }}>
                                 Fehler: {(updateMutation.error as any)?.message || 'Speichern fehlgeschlagen'}

@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field
 from app.core.security import get_current_user
 from app.core.pdvm_central_systemsteuerung import get_gcs_session
 from app.core.dialog_service import (
+    create_dialog_record_from_template,
     extract_dialog_runtime_config,
     load_dialog_definition,
     load_dialog_record,
@@ -50,8 +51,8 @@ def _normalize_dialog_table(dialog_table: Optional[str]) -> Optional[str]:
 
 def _ensure_allowed_edit_type(edit_type: str):
     et = str(edit_type or "").strip().lower()
-    if et not in {"show_json", "edit_json"}:
-        raise HTTPException(status_code=400, detail="Nur EDIT_TYPE show_json und edit_json sind erlaubt")
+    if et not in {"show_json", "edit_json", "menu"}:
+        raise HTTPException(status_code=400, detail="Nur EDIT_TYPE show_json, edit_json und menu sind erlaubt")
 
 
 def _normalize_table_name(value: Optional[str]) -> str:
@@ -211,6 +212,11 @@ class DialogRecordResponse(BaseModel):
 
 class DialogRecordUpdateRequest(BaseModel):
     daten: Dict[str, Any]
+
+
+class DialogRecordCreateRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=200)
+    template_uid: Optional[str] = None
 
 
 class DialogLastCallResponse(BaseModel):
@@ -472,3 +478,61 @@ async def put_dialog_record(
         raise HTTPException(status_code=400, detail=str(e))
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Datensatz nicht gefunden: {record_uid}")
+
+
+@router.post("/{dialog_guid}/record", response_model=DialogRecordResponse)
+async def post_dialog_record_create(
+    dialog_guid: str,
+    payload: DialogRecordCreateRequest,
+    dialog_table: Optional[str] = None,
+    gcs=Depends(get_gcs_instance),
+):
+    """Erstellt einen neuen Datensatz anhand eines Template-Records (Default: 6666...)."""
+    try:
+        dialog_uuid = uuid.UUID(dialog_guid)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Ungültige dialog_guid")
+
+    try:
+        dialog_def = await load_dialog_definition(gcs, dialog_uuid)
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"Dialog nicht gefunden: {dialog_guid}")
+
+    runtime = extract_dialog_runtime_config(dialog_def)
+    dialog_table_norm = _normalize_dialog_table(dialog_table)
+    if dialog_table_norm:
+        _ensure_allowed_edit_type(runtime.get("edit_type") or "show_json")
+        runtime["root_table"] = dialog_table_norm
+        runtime["view_guid"] = None
+
+    table = runtime.get("root_table") or ""
+    if not table:
+        raise HTTPException(status_code=400, detail="Dialog ROOT.TABLE ist leer")
+
+    edit_type = str(runtime.get("edit_type") or "show_json").strip().lower()
+    if edit_type == "show_json":
+        raise HTTPException(status_code=400, detail="Neuer Satz ist bei EDIT_TYPE=show_json nicht erlaubt")
+    if edit_type not in {"edit_json", "menu"}:
+        raise HTTPException(status_code=400, detail="Neuer Satz ist nur für EDIT_TYPE=edit_json oder menu erlaubt")
+
+    name = str(payload.name or "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="name ist leer")
+
+    template_uuid = None
+    if payload.template_uid is not None:
+        s = str(payload.template_uid).strip()
+        if s:
+            try:
+                template_uuid = uuid.UUID(s)
+            except Exception:
+                raise HTTPException(status_code=400, detail="Ungültige template_uid")
+
+    try:
+        if template_uuid is None:
+            return await create_dialog_record_from_template(gcs, root_table=table, name=name)
+        return await create_dialog_record_from_template(gcs, root_table=table, name=name, template_uuid=template_uuid)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))

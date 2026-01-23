@@ -65,6 +65,15 @@ items = row["daten"]["GRUND"]  # Umgeht Historisierung und Logik!
 *   Alle Netzwerk-Anfragen müssen in `src/api/client.ts` oder entsprechenden API-Modulen definiert sein.
 *   Dies sichert konsistentes Error-Handling (z.B. 401 Redirects) und Token-Injection.
 
+### 2.4 UI Dialoge/Modals
+**Regel:** Keine nativen Browser-Dialoge (`window.alert/confirm/prompt`) in der App.
+
+*   ❌ **VERBOTEN:** `window.alert(...)`, `window.confirm(...)`, `window.prompt(...)`
+*   ✅ **PFLICHT:** Nutzung von `PdvmDialogModal` für Info/Confirm/Form-Dialoge.
+*   **Warum?** Einheitliches Theming, Busy-Zustände (Async), Validierung, konsistente UX.
+
+Siehe Spezifikation: `docs/specs/PDVM_DIALOG_MODAL_SPEC.md`.
+
 ---
 
 ## 3. Legacy Code

@@ -13,10 +13,14 @@ MVP (Phase 0):
 
 from __future__ import annotations
 
+import copy
 import uuid
 from typing import Any, Dict, List, Optional
 
 from app.core.pdvm_datenbank import PdvmDatabase
+
+
+_DEFAULT_TEMPLATE_UID = uuid.UUID("66666666-6666-6666-6666-666666666666")
 
 
 def _get_root_table(root: Dict[str, Any]) -> str:
@@ -132,6 +136,67 @@ async def update_dialog_record_json(
     )
 
     return await load_dialog_record(gcs, root_table=root_table, record_uuid=record_uuid)
+
+
+async def create_dialog_record_from_template(
+    gcs,
+    *,
+    root_table: str,
+    name: str,
+    template_uuid: uuid.UUID = _DEFAULT_TEMPLATE_UID,
+) -> Dict[str, Any]:
+    """Erstellt einen neuen Datensatz anhand eines Template-Datensatzes.
+
+    Ziel: "Neuer Satz" im Dialog.
+    - Template ist ein fiktiver Datensatz (Default: 6666...)
+    - daten werden kopiert
+    - ROOT.SELF_GUID und ROOT.SELF_NAME werden auf den neuen Datensatz gesetzt
+    - name-Spalte wird auf den übergebenen Namen gesetzt
+    """
+    if not root_table:
+        raise KeyError("ROOT.TABLE ist leer")
+
+    # sys_benutzer ist ein Sonderfall (nicht standardisiert wie alle anderen Tabellen).
+    # Der "Template-Record" Ansatz gilt daher explizit NICHT für sys_benutzer.
+    if str(root_table).strip().lower() == "sys_benutzer":
+        raise ValueError("Für sys_benutzer darf kein neuer Satz via Template erstellt werden")
+
+    name_norm = str(name or "").strip()
+    if not name_norm:
+        raise ValueError("name ist leer")
+
+    db = PdvmDatabase(root_table, system_pool=gcs._system_pool, mandant_pool=gcs._mandant_pool)
+
+    template_row = await db.get_by_uid(template_uuid)
+    if not template_row:
+        raise KeyError(f"Template-Datensatz nicht gefunden: {template_uuid}")
+
+    template_daten = template_row.get("daten")
+    if template_daten is None:
+        template_daten = {}
+    if not isinstance(template_daten, dict):
+        raise ValueError("Template 'daten' ist kein JSON-Objekt")
+
+    new_uuid = uuid.uuid4()
+
+    daten_copy: Dict[str, Any] = copy.deepcopy(template_daten)
+
+    root = daten_copy.get("ROOT")
+    if not isinstance(root, dict):
+        root = {}
+    root["SELF_GUID"] = str(new_uuid)
+    root["SELF_NAME"] = name_norm
+    daten_copy["ROOT"] = root
+
+    await db.create(
+        new_uuid,
+        daten=daten_copy,
+        name=name_norm,
+        historisch=0,
+        sec_id=template_row.get("sec_id"),
+    )
+
+    return await load_dialog_record(gcs, root_table=root_table, record_uuid=new_uuid)
 
 
 def extract_dialog_runtime_config(dialog_def: Dict[str, Any]) -> Dict[str, Any]:

@@ -105,7 +105,7 @@ Menü-Item ruft den Dialog über den Handler `go_dialog` auf.
 Hinweis:
 - `dialog_guid` ist zwingend.
 - Optional `dialog_table`: überschreibt die im Dialog konfigurierte Root-Tabelle.
-- In diesem Override-Modus sind nur `EDIT_TYPE = show_json` und `EDIT_TYPE = edit_json` erlaubt (sonst Fehler).
+- In diesem Override-Modus sind nur `EDIT_TYPE = show_json`, `EDIT_TYPE = edit_json` und `EDIT_TYPE = menu` erlaubt (sonst Fehler).
 
 Neu (Zielbild):
 - Der Dialog rendert IMMER eine View (kein Dialog-eigenes `uid+name`-Listing).
@@ -157,6 +157,35 @@ Request:
 
 Hinweis:
 - Der Endpoint ist nur aktiv, wenn der Dialog `EDIT_TYPE = edit_json` gesetzt hat.
+
+### `POST /api/dialogs/{dialog_guid}/record`
+Optionaler Query-Parameter:
+- `dialog_table=<tablename>`: überschreibt die Root-Tabelle.
+
+Erstellt einen neuen Datensatz anhand eines Template-Records.
+
+Request:
+```json
+{ "name": "Neuer Name", "template_uid": "66666666-6666-6666-6666-666666666666" }
+```
+
+Default-Verhalten (wenn `template_uid` fehlt):
+- `template_uid = 66666666-6666-6666-6666-666666666666`
+
+Beim Erstellen:
+- `daten` wird aus dem Template kopiert
+- `daten.ROOT.SELF_GUID` wird auf die neue UID gesetzt
+- `daten.ROOT.SELF_NAME` wird auf den übergebenen Namen gesetzt
+- Spalte `name` wird auf den übergebenen Namen gesetzt
+
+Einschränkungen:
+- Nur erlaubt für `EDIT_TYPE = edit_json` oder `EDIT_TYPE = menu`.
+- Für `EDIT_TYPE = show_json` (read-only) wird kein neuer Satz angelegt und der Button im Dialog bleibt ausgeblendet.
+- Ausnahme: `sys_benutzer` unterstützt diesen Template-Mechanismus nicht.
+
+UI-Hinweis:
+- Die Namensabfrage für „Neuer Satz“ erfolgt im Frontend über `PdvmDialogModal` (kein `window.prompt`).
+- Siehe `docs/specs/PDVM_DIALOG_MODAL_SPEC.md`.
 
 ### `GET /api/systemdaten/menu-commands`
 Liefert den Command-Katalog für den Menüeditor.
