@@ -151,6 +151,7 @@ export interface DialogRecordUpdateRequest {
 export interface DialogRecordCreateRequest {
   name: string
   template_uid?: string | null
+  is_template?: boolean | null
 }
 
 export interface DialogLastCallResponse {
@@ -202,6 +203,23 @@ export interface MenuCommandCatalog {
   commands: MenuCommandDefinition[]
   language: string
   default_language: string
+}
+
+export interface SystemdatenTextResponse {
+  text: string | null
+  label: string | null
+  name: string | null
+}
+
+export interface SystemdatenDropdownResponse {
+  map: Record<string, string>
+  options: Array<{ key: string; value: string }>
+  language: string
+  default_language: string
+}
+
+export interface SystemdatenMenuConfigsResponse {
+  configs: Record<string, any>
 }
 
 // Create axios instance with default config
@@ -477,6 +495,27 @@ export const dialogsAPI = {
 export const systemdatenAPI = {
   getMenuCommands: async (opts?: { language?: string; dataset_uid?: string }): Promise<MenuCommandCatalog> => {
     const response = await api.get('/systemdaten/menu-commands', {
+      params: opts,
+    })
+    return response.data
+  },
+
+  getText: async (opts: { dataset_uid: string; entry_key: string; group?: string; language?: string }): Promise<SystemdatenTextResponse> => {
+    const response = await api.get('/systemdaten/text', {
+      params: opts,
+    })
+    return response.data
+  },
+
+  getDropdown: async (opts: { table: string; dataset_uid: string; field: string; language?: string }): Promise<SystemdatenDropdownResponse> => {
+    const response = await api.get('/systemdaten/dropdown', {
+      params: opts,
+    })
+    return response.data
+  },
+
+  getMenuConfigs: async (opts?: { dataset_uid?: string }): Promise<SystemdatenMenuConfigsResponse> => {
+    const response = await api.get('/systemdaten/menu-configs', {
       params: opts,
     })
     return response.data

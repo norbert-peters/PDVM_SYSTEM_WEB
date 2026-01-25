@@ -3,7 +3,7 @@ Menu API - Lädt und verwaltet PDVM Menüs über GCS
 Verwendet PdvmCentralDatabase für sys_menudaten (in pdvm_system DB)
 """
 from fastapi import APIRouter, Depends, HTTPException
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Tuple
 import logging
 import uuid
 import json
@@ -28,6 +28,88 @@ def _has_children(items: Dict[str, Any], uid: str) -> bool:
     return False
 
 
+def _normalize_flag(value: Any) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "ja", "y"}
+    return False
+
+
+def _is_template_menu(root_data: Any) -> bool:
+    if not isinstance(root_data, dict):
+        return False
+    if "is_template" in root_data:
+        return _normalize_flag(root_data.get("is_template"))
+    if "IS_TEMPLATE" in root_data:
+        return _normalize_flag(root_data.get("IS_TEMPLATE"))
+    return False
+
+
+def _normalize_guid(value: Any) -> str:
+    return str(value or "").strip()
+
+
+def _clone_template_items(
+    template_items: Dict[str, Any],
+    spacer_item: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Klonen + einfügen von Template-Items an der Spacer-Position.
+
+    - Alle Template-UIDs werden neu generiert (Mehrfach-Verwendung möglich).
+    - Top-Level-Items (ohne parent_guid) werden auf die Parent-Ebene des Spacers gehoben.
+    - Sortierung: spacer_sort + (template_sort / 10.0)
+    """
+    if not isinstance(template_items, dict):
+        return {}
+
+    spacer_parent = _normalize_guid(spacer_item.get("parent_guid")) or None
+    spacer_sort_raw = spacer_item.get("sort_order")
+    try:
+        spacer_sort = float(spacer_sort_raw) if spacer_sort_raw is not None else 0.0
+    except Exception:
+        spacer_sort = 0.0
+
+    uid_map: Dict[str, str] = {}
+    for old_uid in template_items.keys():
+        uid_map[str(old_uid)] = str(uuid.uuid4())
+
+    cloned: Dict[str, Any] = {}
+
+    for old_uid, item in template_items.items():
+        if not isinstance(item, dict):
+            continue
+
+        old_uid_str = str(old_uid)
+        new_uid = uid_map.get(old_uid_str) or str(uuid.uuid4())
+
+        old_parent = _normalize_guid(item.get("parent_guid"))
+        is_top_level = not old_parent
+
+        if is_top_level:
+            new_parent = spacer_parent
+        else:
+            new_parent = uid_map.get(old_parent)
+
+        next_item = {**item}
+        next_item["parent_guid"] = new_parent
+
+        if is_top_level:
+            try:
+                tmpl_sort = float(item.get("sort_order") or 0)
+            except Exception:
+                tmpl_sort = 0.0
+            next_item["sort_order"] = spacer_sort + (tmpl_sort / 10.0)
+
+        cloned[new_uid] = next_item
+
+    return cloned
+
+
 def _normalize_menu_group(items: Dict[str, Any]) -> Dict[str, Any]:
     """Enforce menu invariants on a fully expanded group (incl. templates).
 
@@ -39,6 +121,10 @@ def _normalize_menu_group(items: Dict[str, Any]) -> Dict[str, Any]:
     """
     if not isinstance(items, dict):
         return items
+
+    def _is_separator_label(value: Any) -> bool:
+        s = str(value or "").strip().upper()
+        return s in {"SEPERATOR", "SEPARATOR"}
 
     parent_uids = set()
     for uid_key in items.keys():
@@ -69,6 +155,11 @@ def _normalize_menu_group(items: Dict[str, Any]) -> Dict[str, Any]:
                 next_item["type"] = "BUTTON"
             elif not t:
                 next_item["type"] = "BUTTON"
+
+            if _is_separator_label(next_item.get("label")):
+                next_item["type"] = "SEPARATOR"
+                if next_item.get("command") is not None:
+                    next_item["command"] = None
 
         out[uid_key] = next_item
 
@@ -148,24 +239,33 @@ async def expand_templates(gruppe_items: Dict[str, Any], gruppe_name: str, syste
     result = gruppe_items.copy()
     
     # Finde SPACER mit template_guid
-    for item_guid, item in list(gruppe_items.items()):
+    for _item_guid, item in list(gruppe_items.items()):
         if item.get("type") == "SPACER" and item.get("template_guid"):
             template_guid = item["template_guid"]
-            
+
             try:
                 # Lade Template-Menü mit PdvmCentralDatabase.load()
                 template_menu = await PdvmCentralDatabase.load("sys_menudaten", template_guid, system_pool=system_pool)
-                
-                # Hole Items derselben Gruppe
-                template_items = template_menu.get_value_by_group(gruppe_name)
-                
-                # Füge Template-Items ein (ohne Duplikate)
-                for tmpl_guid, tmpl_item in template_items.items():
-                    if tmpl_guid not in result:
-                        result[tmpl_guid] = tmpl_item
-                
-                logger.info(f"✅ Template {template_guid} in {gruppe_name} expandiert: {len(template_items)} Items")
-                
+
+                template_root = template_menu.get_value_by_group("ROOT")
+                if not _is_template_menu(template_root):
+                    logger.warning(f"⚠️ Menü {template_guid} ist kein Template (ROOT.is_template fehlt/false)")
+                    continue
+
+                # Template-Items werden aus TEMPLATE-Gruppe eingefügt
+                template_items = template_menu.get_value_by_group("TEMPLATE") or {}
+                if not isinstance(template_items, dict) or not template_items:
+                    logger.warning(f"⚠️ Template {template_guid} hat keine TEMPLATE-Einträge")
+                    continue
+
+                # Einfügen an der Spacer-Position (neue UIDs, Parent+Sort Anpassung)
+                cloned = _clone_template_items(template_items, item)
+                result.update(cloned)
+
+                logger.info(
+                    f"✅ Template {template_guid} in {gruppe_name} expandiert: {len(template_items)} Items → {len(cloned)} Klone"
+                )
+
             except Exception as e:
                 logger.warning(f"⚠️ Template {template_guid} konnte nicht geladen werden: {e}")
     

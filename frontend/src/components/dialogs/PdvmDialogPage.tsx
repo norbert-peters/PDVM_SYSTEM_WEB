@@ -73,6 +73,7 @@ export default function PdvmDialogPage() {
   const editType = String(defQuery.data?.edit_type || 'show_json').trim().toLowerCase()
   const wantsMenuEditor = editType === 'menu'
   const hasEmbeddedView = !!String(defQuery.data?.view_guid || '').trim()
+  const isSysMenuTable = String(defQuery.data?.root_table || '').trim().toLowerCase() === 'sys_menudaten'
 
   // If the dialog embeds a View (by view_guid), keep selection in sync by listening
   // to the global selection event emitted by PdvmViewPage.
@@ -123,6 +124,15 @@ export default function PdvmDialogPage() {
     const root = (defQuery.data?.root || {}) as Record<string, any>
     const keys = Object.keys(root)
     const k = keys.find((x) => String(x).trim().toLowerCase() === 'menu_guid')
+    const v = k ? root[k] : null
+    const s = v != null ? String(v).trim() : ''
+    return s || null
+  }, [defQuery.data?.root])
+
+  const systemdatenUid = useMemo(() => {
+    const root = (defQuery.data?.root || {}) as Record<string, any>
+    const keys = Object.keys(root)
+    const k = keys.find((x) => String(x).trim().toLowerCase() === 'systemdaten_uid')
     const v = k ? root[k] : null
     const s = v != null ? String(v).trim() : ''
     return s || null
@@ -261,13 +271,14 @@ export default function PdvmDialogPage() {
   })
 
   const createMutation = useMutation({
-    mutationFn: async (name: string) => {
+    mutationFn: async (payload: { name: string; is_template?: boolean }) => {
       return dialogsAPI.createRecord(
         dialogGuid!,
         {
-          name,
+          name: payload.name,
           // Default: PDVM template record (fiktive GUID)
           template_uid: '66666666-6666-6666-6666-666666666666',
+          is_template: payload.is_template,
         },
         { dialog_table: dialogTable }
       )
@@ -611,19 +622,36 @@ export default function PdvmDialogPage() {
         open={createModalOpen}
         kind="form"
         title="Neuer Datensatz"
-        message="Bitte Name eingeben (Template: 6666...)."
-        fields={[
-          {
-            name: 'name',
-            label: 'Name',
-            type: 'text',
-            required: true,
-            minLength: 1,
-            maxLength: 200,
-            autoFocus: true,
-            placeholder: 'z.B. Neuer Satz',
-          },
-        ]}
+        message={isSysMenuTable ? 'Bitte Name und Menü-Typ auswählen.' : 'Bitte Name eingeben (Template: 6666...).'}
+        fields={(
+          [
+            {
+              name: 'name',
+              label: 'Name',
+              type: 'text',
+              required: true,
+              minLength: 1,
+              maxLength: 200,
+              autoFocus: true,
+              placeholder: 'z.B. Neuer Satz',
+            },
+          ] as any[]
+        ).concat(
+          isSysMenuTable
+            ? [
+                {
+                  name: 'menu_type',
+                  label: 'Menü-Typ',
+                  type: 'dropdown',
+                  options: [
+                    { value: 'standard', label: 'Standard-Menü' },
+                    { value: 'template', label: 'Template-Menü' },
+                  ],
+                },
+              ]
+            : []
+        )}
+        initialValues={isSysMenuTable ? { menu_type: 'standard' } : undefined}
         confirmLabel="Erstellen"
         cancelLabel="Abbrechen"
         busy={createMutation.isPending || updateMutation.isPending}
@@ -637,10 +665,13 @@ export default function PdvmDialogPage() {
           const name = String(values?.name || '').trim()
           if (!name) return
 
+          const menuType = String(values?.menu_type || '').trim().toLowerCase()
+          const isTemplate = menuType === 'template'
+
           try {
             setAutoLastCallError(null)
             setCreateModalError(null)
-            await createMutation.mutateAsync(name)
+            await createMutation.mutateAsync({ name, is_template: isSysMenuTable ? isTemplate : undefined })
             setCreateModalOpen(false)
           } catch (e: any) {
             const detail = e?.response?.data?.detail
@@ -860,6 +891,8 @@ export default function PdvmDialogPage() {
                               key={`${selectedUid}|${menuActiveTab}|${menuEditorRefreshToken}`}
                               menuGuid={selectedUid}
                               group={menuActiveTab}
+                              systemdatenUid={systemdatenUid}
+                              frameDaten={defQuery.data?.frame?.daten || null}
                               onMissingMenuGuid={handleMissingMenuGuid}
                             />
                           </div>
@@ -872,6 +905,8 @@ export default function PdvmDialogPage() {
                               key={`${selectedUid}|GRUND|${menuEditorRefreshToken}`}
                               menuGuid={selectedUid}
                               group="GRUND"
+                              systemdatenUid={systemdatenUid}
+                              frameDaten={defQuery.data?.frame?.daten || null}
                               onMissingMenuGuid={handleMissingMenuGuid}
                             />
                           </div>
@@ -881,6 +916,8 @@ export default function PdvmDialogPage() {
                               key={`${selectedUid}|VERTIKAL|${menuEditorRefreshToken}`}
                               menuGuid={selectedUid}
                               group="VERTIKAL"
+                              systemdatenUid={systemdatenUid}
+                              frameDaten={defQuery.data?.frame?.daten || null}
                               onMissingMenuGuid={handleMissingMenuGuid}
                             />
                           </div>

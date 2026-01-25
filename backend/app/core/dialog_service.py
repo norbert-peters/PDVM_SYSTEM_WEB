@@ -144,6 +144,7 @@ async def create_dialog_record_from_template(
     root_table: str,
     name: str,
     template_uuid: uuid.UUID = _DEFAULT_TEMPLATE_UID,
+    root_patch: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Erstellt einen neuen Datensatz anhand eines Template-Datensatzes.
 
@@ -186,6 +187,8 @@ async def create_dialog_record_from_template(
         root = {}
     root["SELF_GUID"] = str(new_uuid)
     root["SELF_NAME"] = name_norm
+    if root_patch and isinstance(root_patch, dict):
+        root.update(root_patch)
     daten_copy["ROOT"] = root
 
     await db.create(

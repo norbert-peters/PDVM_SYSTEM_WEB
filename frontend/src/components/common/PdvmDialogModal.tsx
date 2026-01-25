@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import './PdvmDialogModal.css'
 
 export type PdvmDialogModalKind = 'info' | 'confirm' | 'form'
-export type PdvmDialogModalFieldType = 'text' | 'textarea' | 'number'
+export type PdvmDialogModalFieldType = 'text' | 'textarea' | 'number' | 'dropdown'
 
 export interface PdvmDialogModalField {
   name: string
@@ -13,6 +13,7 @@ export interface PdvmDialogModalField {
   minLength?: number
   maxLength?: number
   autoFocus?: boolean
+  options?: Array<{ value: string; label: string }>
 }
 
 export interface PdvmDialogModalProps {
@@ -227,6 +228,14 @@ export function PdvmDialogModal(props: PdvmDialogModalProps) {
                         className="pdvm-modal__textarea"
                         spellCheck={false}
                       />
+                    ) : type === 'dropdown' ? (
+                      <select {...(commonProps as any)} className="pdvm-modal__input">
+                        {(f.options || []).map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
                     ) : (
                       <input
                         {...(commonProps as any)}

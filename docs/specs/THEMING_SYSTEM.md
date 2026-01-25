@@ -228,6 +228,17 @@ Die folgende Tabelle definiert die implementierten Standard-Blöcke (V2), ihre V
 3. **Fallback:** Die Fallbacks referenzieren semantische Variablen aus `variables.css` (z.B. `--color-primary-500`), welche wiederum über das Legacy-Color-Mapping (Gruppe `colors`) befüllt werden.
 4. **Resilience:** Wenn ein Theme keine Blöcke definiert, greift das System auf die globalen Farben zurück, solange die CSS-Dateien korrekte Fallbacks definiert haben.
 
+### 5.4 Widget Mapping (Komplexe Komponenten)
+
+Komplexe Widgets setzen sich oft aus mehreren Blöcken zusammen. Hier wird definiert, welche Blöcke für welche Teilelemente verwendet werden.
+
+| Widget | Element | Verwendeter Block | CSS Variable (Beispiel) | Beschreibung |
+| :--- | :--- | :--- | :--- | :--- |
+| **`PdvmDateTimePicker`** | **Input Field** | `block_input_std` | `--block-input-std-bg-color` | Rahmen, Hintergrund und Text des Eingabefeldes. |
+|  | **Popover/Calendar** | `block_surface_main` | `--block-surface-main-bg-color` | Hintergrund des aufklappbaren Kalenders. |
+|  | **Selected Date** | `block_btn_primary` | `--block-btn-primary-bg-color` | Markierung des ausgewählten Tages (ähnlich Primary Button). |
+|  | **Navigation Icons** | `block_input_std` | `--block-input-std-text-color` | Pfeile für Monat/Jahr (erben Textfarbe vom Input-Standard). |
+
 ### 5.5 View: Block-Zuordnung (Neu)
 
 Für die generische View (`PdvmViewPage` / später `PdvmView`) werden folgende Blöcke empfohlen:
@@ -285,21 +296,25 @@ Relevante CSS-Variablen (aus `block_tabs_std`):
 
 Hinweis: Die kleinen Text-Buttons im Menüeditor (Quick Actions) nutzen aktuell bewusst einfache Standard-Styles (Border/Background) und sind nicht als eigener Block im Theme-System modelliert. Bei Bedarf kann das später als eigener Block (z.B. `block_menu_editor_btn_std`) ergänzt und in CSS auf `--block-*` umgestellt werden.
 
-### 5.4 Widget Mapping (Komplexe Komponenten)
+---
 
-Komplexe Widgets setzen sich oft aus mehreren Blöcken zusammen. Hier wird definiert, welche Blöcke für welche Teilelemente verwendet werden.
+## 5.8 Menü (Horizontal + Vertikal)
 
-| Widget | Element              | Verwendeter Block    | CSS Variable (Beispiel)         | 
-            | Beschreibung                                                               |
-| :---   | :---                 | :---                 | :---                            |
-            | :---                                                                       |
-| **`PdvmDateTimePicker`** 
-|        | **Input Field**      | `block_input_std`    | `--block-input-std-bg-color`    |
-            | Der Rahmen Hintergrund und Text des Eingabefeldes.                         |
-|        | **Popover/Calendar** | `block_surface_main` | `--block-surface-main-bg-color` |
-            | Der Hintergrund des aufklappbaren Kalenders.                               |
-|        | **Selected Date**    | `block_btn_primary`  | `--block-btn-primary-bg-color`  |
-            | Die Markierung des ausgewählten Tages (ähnlich einem Primary Button).      |
-|        | **Navigation Icons** | `block_input_std`    | `--block-input-std-text-color`  |
-            | Pfeile für Monat/Jahr (erben Textfarbe vom Input-Standard).                |
+**Status:** Menü nutzt aktuell Legacy-Variablen (`--color-*`, `--surface-*`).
+Für V2 ist folgende Block-Zuordnung vorgesehen, damit Theme-Sets das Menü konsistent steuern können.
+
+### Empfohlene Blöcke
+| Block Name | UI Element | CSS Klasse | Properties | Default Fallback |
+| :--- | :--- | :--- | :--- | :--- |
+| **`block_menu_horizontal`** | Top-Menü-Leiste | `.horizontal-menu` | `bg_color`, `border_bottom`, `shadow` | `var(--color-background-primary)` / `var(--color-border-medium)` |
+| **`block_menu_vertical`** | Sidebar Menü | `.vertical-menu` | `bg_color`, `border_right` | `var(--surface-primary)` / `var(--border-color)` |
+| **`block_menu_button`** | Menü-Button | `.horizontal-menu-button`, `.vertical-menu-button` | `text_color`, `hover_bg`, `active_bg` | `var(--color-text-primary)` / `var(--color-background-secondary)` |
+| **`block_menu_dropdown`** | Dropdown-Container | `.horizontal-menu-dropdown`, `.vertical-menu-dropdown` | `bg_color`, `border`, `shadow` | `var(--color-background-primary)` / `var(--color-border-medium)` |
+| **`block_menu_separator`** | Separator-Linie | `.horizontal-menu-separator`, `.vertical-menu-separator` | `color`, `opacity` | `currentColor` / `0.3` |
+| **`block_menu_icon`** | Icon-Farbe/Größe | `.menu-icon` | `color`, `size` | `currentColor` / `16px` |
+
+### Hinweis Icon-Farbe
+Icons werden als SVGs gerendert und nutzen `currentColor`. Dadurch folgt die Farbe der Textfarbe des Buttons.
+
+---
 

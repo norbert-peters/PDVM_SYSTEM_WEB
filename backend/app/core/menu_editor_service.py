@@ -13,7 +13,7 @@ Wir interpretieren "Submenü" pragmatisch: jedes Item, das mindestens ein Kind h
 from __future__ import annotations
 
 import uuid
-from typing import Any, Dict
+from typing import Any, Dict, Iterable, Tuple
 
 from app.core.pdvm_datenbank import PdvmDatabase
 
@@ -27,12 +27,39 @@ def _has_children(group_items: Dict[str, Any], uid: str) -> bool:
     return False
 
 
-def _strip_commands_from_parents(daten: Dict[str, Any]) -> Dict[str, Any]:
+def _normalize_flag(value: Any) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "ja", "y"}
+    return False
+
+
+def _is_template_menu(daten: Dict[str, Any]) -> bool:
+    root = daten.get("ROOT") if isinstance(daten, dict) else None
+    if not isinstance(root, dict):
+        return False
+    if "is_template" in root:
+        return _normalize_flag(root.get("is_template"))
+    if "IS_TEMPLATE" in root:
+        return _normalize_flag(root.get("IS_TEMPLATE"))
+    return False
+
+
+def _get_edit_groups(daten: Dict[str, Any]) -> Tuple[str, ...]:
+    return ("TEMPLATE",) if _is_template_menu(daten) else ("GRUND", "VERTIKAL")
+
+
+def _strip_commands_from_parents(daten: Dict[str, Any], groups: Iterable[str]) -> Dict[str, Any]:
     if not isinstance(daten, dict):
         raise ValueError("daten muss ein Objekt sein")
 
     out = {**daten}
-    for group_name in ("GRUND", "VERTIKAL"):
+    for group_name in groups:
         group = out.get(group_name)
         if not isinstance(group, dict):
             continue
@@ -112,12 +139,17 @@ def _normalize_types_in_group(group_items: Dict[str, Any]) -> Dict[str, Any]:
     return out
 
 
-def _normalize_menu_types(daten: Dict[str, Any]) -> Dict[str, Any]:
+def _is_separator_label(value: Any) -> bool:
+    s = str(value or "").strip().upper()
+    return s in {"SEPERATOR", "SEPARATOR"}
+
+
+def _normalize_menu_types(daten: Dict[str, Any], groups: Iterable[str]) -> Dict[str, Any]:
     if not isinstance(daten, dict):
         raise ValueError("daten muss ein Objekt sein")
 
     out = {**daten}
-    for group_name in ("GRUND", "VERTIKAL"):
+    for group_name in groups:
         group = out.get(group_name)
         if not isinstance(group, dict):
             continue
@@ -155,9 +187,33 @@ def _normalize_menu_types(daten: Dict[str, Any]) -> Dict[str, Any]:
                 elif not t:
                     next_item["type"] = "BUTTON"
 
+                # Separator by label (only if not a submenu)
+                if _is_separator_label(next_item.get("label")):
+                    next_item["type"] = "SEPARATOR"
+                    if next_item.get("command") is not None:
+                        next_item["command"] = None
+
             new_group[uid_key] = next_item
 
         out[group_name] = new_group
+
+    return out
+
+
+def _enforce_template_groups(daten: Dict[str, Any]) -> Dict[str, Any]:
+    if not isinstance(daten, dict):
+        return daten
+
+    is_template = _is_template_menu(daten)
+    out = {**daten}
+
+    if is_template:
+        out.pop("GRUND", None)
+        out.pop("VERTIKAL", None)
+        if "TEMPLATE" not in out or not isinstance(out.get("TEMPLATE"), dict):
+            out["TEMPLATE"] = {}
+    else:
+        out.pop("TEMPLATE", None)
 
     return out
 
@@ -184,8 +240,10 @@ async def update_menu_record(gcs, *, menu_uuid: uuid.UUID, daten: Dict[str, Any]
     if not existing:
         raise KeyError(f"Menü nicht gefunden: {menu_uuid}")
 
-    cleaned = _strip_commands_from_parents(daten)
-    cleaned = _normalize_menu_types(cleaned)
+    cleaned = _enforce_template_groups(daten)
+    groups = _get_edit_groups(cleaned)
+    cleaned = _strip_commands_from_parents(cleaned, groups)
+    cleaned = _normalize_menu_types(cleaned, groups)
 
     await db.update(
         menu_uuid,

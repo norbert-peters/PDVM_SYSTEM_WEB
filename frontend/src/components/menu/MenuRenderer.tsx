@@ -6,6 +6,7 @@
 
 import React from 'react';
 import type { MenuItem, MenuGroup } from '../../api/menu';
+import { renderMenuIcon } from './menuIcons';
 
 export const MAX_DEPTH = 5;
 
@@ -138,7 +139,7 @@ export const MenuRenderer: React.FC<MenuRendererProps> = ({
             disabled={!item.enabled}
             title={item.tooltip || undefined}
           >
-            {item.icon && <span className="menu-icon">{item.icon}</span>}
+            {renderMenuIcon((item as any)?.icon ?? (item as any)?.ICON ?? (item as any)?.Icon)}
             <span className="menu-label">{item.label}</span>
             {hasChildren && <span className="submenu-arrow">{orientation === 'horizontal' ? '▼' : '▶'}</span>}
           </button>
@@ -167,7 +168,7 @@ export const MenuRenderer: React.FC<MenuRendererProps> = ({
           disabled={!item.enabled}
           title={item.tooltip || undefined}
         >
-          {item.icon && <span className="menu-icon">{item.icon}</span>}
+          {renderMenuIcon((item as any)?.icon ?? (item as any)?.ICON ?? (item as any)?.Icon)}
           <span className="menu-label">{item.label}</span>
         </button>
       );

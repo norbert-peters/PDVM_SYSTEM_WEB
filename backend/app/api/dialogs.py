@@ -260,6 +260,7 @@ class DialogRecordUpdateRequest(BaseModel):
 class DialogRecordCreateRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
     template_uid: Optional[str] = None
+    is_template: Optional[bool] = None
 
 
 class DialogLastCallResponse(BaseModel):
@@ -572,9 +573,15 @@ async def post_dialog_record_create(
                 raise HTTPException(status_code=400, detail="Ungültige template_uid")
 
     try:
+        root_patch = None
+        if str(table).strip().lower() == "sys_menudaten" and payload.is_template is not None:
+            root_patch = {"is_template": bool(payload.is_template)}
+
         if template_uuid is None:
-            return await create_dialog_record_from_template(gcs, root_table=table, name=name)
-        return await create_dialog_record_from_template(gcs, root_table=table, name=name, template_uuid=template_uuid)
+            return await create_dialog_record_from_template(gcs, root_table=table, name=name, root_patch=root_patch)
+        return await create_dialog_record_from_template(
+            gcs, root_table=table, name=name, template_uuid=template_uuid, root_patch=root_patch
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except KeyError as e:
