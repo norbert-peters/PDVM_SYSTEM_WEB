@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { PdvmDialogModal } from './PdvmDialogModal'
 import './PdvmInputControl.css'
 
-export type PdvmInputType = 'string' | 'text' | 'dropdown' | 'true_false'
+export type PdvmInputType = 'string' | 'text' | 'dropdown' | 'multi_dropdown' | 'true_false'
 
 export type PdvmDropdownOption = { value: string; label: string }
 
@@ -86,6 +86,26 @@ export function PdvmInputControl(props: {
             onChange={(e) => props.onChange(e.target.value)}
           >
             <option value="">(bitte auswählen)</option>
+            {(props.options || []).map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        ) : null}
+
+        {props.type === 'multi_dropdown' ? (
+          <select
+            id={props.id}
+            className="pdvm-pic__select"
+            multiple
+            value={Array.isArray(props.value) ? props.value.map((v) => String(v)) : []}
+            disabled={disabled}
+            onChange={(e) => {
+              const selected = Array.from(e.target.selectedOptions).map((o) => String(o.value))
+              props.onChange(selected)
+            }}
+          >
             {(props.options || []).map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}

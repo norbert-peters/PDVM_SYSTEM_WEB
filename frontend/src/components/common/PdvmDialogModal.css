@@ -104,6 +104,35 @@
   font-size: 13px;
 }
 
+.pdvm-modal__input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.pdvm-modal__input-wrap .pdvm-modal__input {
+  width: 100%;
+  padding-right: 36px;
+}
+
+.pdvm-modal__toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px;
+}
+
+.pdvm-modal__toggle:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .pdvm-modal__textarea {
   resize: vertical;
 }

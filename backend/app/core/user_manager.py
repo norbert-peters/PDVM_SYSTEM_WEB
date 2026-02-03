@@ -22,8 +22,8 @@ logger = logging.getLogger(__name__)
 
 # Validierungs-Patterns
 EMAIL_REGEX = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-PASSWORD_MIN_LENGTH = 8
-PASSWORD_REGEX = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$'
+PASSWORD_MIN_LENGTH = 12
+PASSWORD_REGEX = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{12,}$'
 
 
 class UserManager:
@@ -69,7 +69,7 @@ class UserManager:
         Prüft Passwort-Komplexität
         
         Anforderungen:
-        - Min. 8 Zeichen
+        - Min. 12 Zeichen
         - Min. 1 Großbuchstabe
         - Min. 1 Kleinbuchstabe
         - Min. 1 Zahl
@@ -219,6 +219,47 @@ class UserManager:
         except Exception as e:
             logger.error(f"Fehler beim Laden des Benutzers {email}: {e}")
             return None
+
+    async def get_user_by_user_email(self, email: str) -> Optional[Dict[str, Any]]:
+        """
+        Lädt Benutzer anhand USER.EMAIL aus daten
+
+        Args:
+            email: Email-Adresse (wird normalisiert)
+
+        Returns:
+            User-Daten oder None
+        """
+        email = self.normalize_email(email)
+
+        try:
+            pool = DatabasePool._pool_auth
+
+            async with pool.acquire() as conn:
+                user = await conn.fetchrow(
+                    """
+                    SELECT uid, benutzer, passwort, name, daten
+                    FROM sys_benutzer
+                    WHERE LOWER(daten->'USER'->>'EMAIL') = $1
+                """,
+                    email,
+                )
+
+                if user:
+                    user_dict = dict(user)
+                    if user_dict.get('daten') and isinstance(user_dict['daten'], str):
+                        try:
+                            user_dict['daten'] = json.loads(user_dict['daten'])
+                        except Exception:
+                            user_dict['daten'] = {}
+                    elif not user_dict.get('daten'):
+                        user_dict['daten'] = {}
+                    return user_dict
+                return None
+
+        except Exception as e:
+            logger.error(f"Fehler beim Laden des Benutzers {email} via USER.EMAIL: {e}")
+            return None
     
     async def is_account_locked(self, email: str) -> bool:
         """
@@ -343,6 +384,33 @@ class UserManager:
         
         security = user['daten'].get('SECURITY', {})
         return security.get('PASSWORD_CHANGE_REQUIRED', False)
+
+    async def get_security(self, email: str) -> Dict[str, Any]:
+        """
+        Lädt SECURITY-Block des Users
+        """
+        user = await self.get_user_by_email(email)
+        if not user or not user.get('daten'):
+            return {}
+        security = user['daten'].get('SECURITY', {})
+        return security if isinstance(security, dict) else {}
+
+    async def is_password_reset_expired(self, email: str) -> bool:
+        """
+        Prüft ob PASSWORD_RESET_EXPIRES_AT abgelaufen ist.
+        """
+        security = await self.get_security(email)
+        expires_at = security.get('PASSWORD_RESET_EXPIRES_AT')
+        if not expires_at:
+            return False
+
+        try:
+            value = str(expires_at).replace('Z', '').strip()
+            expires_dt = datetime.fromisoformat(value)
+        except Exception:
+            return False
+
+        return datetime.utcnow() > expires_dt
     
     async def unlock_account(self, email: str) -> bool:
         """

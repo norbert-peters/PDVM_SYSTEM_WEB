@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import './PdvmDialogModal.css'
 
 export type PdvmDialogModalKind = 'info' | 'confirm' | 'form'
-export type PdvmDialogModalFieldType = 'text' | 'textarea' | 'number' | 'dropdown'
+export type PdvmDialogModalFieldType = 'text' | 'textarea' | 'number' | 'dropdown' | 'password'
 
 export interface PdvmDialogModalField {
   name: string
@@ -60,6 +60,7 @@ export function PdvmDialogModal(props: PdvmDialogModalProps) {
 
   const [localError, setLocalError] = useState<string | null>(null)
   const [values, setValues] = useState<Record<string, string>>({})
+  const [showPassword, setShowPassword] = useState<Record<string, boolean>>({})
   const confirmBtnRef = useRef<HTMLButtonElement | null>(null)
 
   const computedConfirmLabel = useMemo(() => {
@@ -86,6 +87,7 @@ export function PdvmDialogModal(props: PdvmDialogModalProps) {
       next[f.name] = s != null ? String(s) : ''
     }
     setValues(next)
+    setShowPassword({})
 
     // Focus the first autoFocus field (or confirm button)
     const focusTimer = window.setTimeout(() => {
@@ -237,12 +239,39 @@ export function PdvmDialogModal(props: PdvmDialogModalProps) {
                         ))}
                       </select>
                     ) : (
-                      <input
-                        {...(commonProps as any)}
-                        type={type === 'number' ? 'number' : 'text'}
-                        className="pdvm-modal__input"
-                        spellCheck={false}
-                      />
+                      <div className="pdvm-modal__input-wrap">
+                        <input
+                          {...(commonProps as any)}
+                          type={
+                            type === 'number'
+                              ? 'number'
+                              : type === 'password'
+                              ? showPassword[f.name]
+                                ? 'text'
+                                : 'password'
+                              : 'text'
+                          }
+                          className="pdvm-modal__input"
+                          spellCheck={false}
+                        />
+                        {type === 'password' ? (
+                          <button
+                            type="button"
+                            className="pdvm-modal__toggle"
+                            onClick={() =>
+                              setShowPassword((prev) => ({
+                                ...prev,
+                                [f.name]: !prev[f.name],
+                              }))
+                            }
+                            disabled={busy}
+                            aria-label={showPassword[f.name] ? 'Passwort verbergen' : 'Passwort anzeigen'}
+                            title={showPassword[f.name] ? 'Passwort verbergen' : 'Passwort anzeigen'}
+                          >
+                            {showPassword[f.name] ? '🙈' : '👁️'}
+                          </button>
+                        ) : null}
+                      </div>
                     )}
                   </label>
                 )

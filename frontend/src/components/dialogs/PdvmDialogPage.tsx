@@ -1,11 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { dialogsAPI, type DialogRow, type DialogDefinitionResponse, type DialogRecordResponse, type DialogUiStateResponse } from '../../api/client'
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  dialogsAPI,
+  systemdatenAPI,
+  usersAPI,
+  type DialogRow,
+  type DialogDefinitionResponse,
+  type DialogRecordResponse,
+  type DialogUiStateResponse,
+} from '../../api/client'
 import { PdvmViewPageContent } from '../views/PdvmViewPage'
 import { PdvmMenuEditor } from './PdvmMenuEditor'
 import { PdvmJsonEditor, type PdvmJsonEditorHandle, type PdvmJsonEditorMode } from '../common/PdvmJsonEditor'
 import { PdvmDialogModal } from '../common/PdvmDialogModal'
+import { PdvmInputControl, type PdvmDropdownOption } from '../common/PdvmInputControl'
+import { PdvmLookupSelect } from '../common/PdvmLookupSelect'
 import '../../styles/components/dialog.css'
 
 type ActiveTab = 'view' | 'edit'
@@ -24,6 +34,90 @@ function safeJsonPretty(value: any): string {
   }
 }
 
+type PicDef = {
+  key?: string
+  tab?: number
+  name?: string
+  label?: string
+  tooltip?: string | null
+  type?: string
+  table?: string
+  gruppe?: string
+  feld?: string
+  display_order?: number
+  read_only?: boolean
+  historical?: boolean
+  abdatum?: boolean
+  source_path?: string
+  configs?: Record<string, any>
+}
+
+function asObject(value: any): Record<string, any> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, any>) : {}
+}
+
+function normalizePicType(value: any): 'string' | 'text' | 'dropdown' | 'multi_dropdown' | 'true_false' | 'go_select_view' | 'action' {
+  const t = String(value || '').trim().toLowerCase()
+  if (t === 'text') return 'text'
+  if (t === 'dropdown') return 'dropdown'
+  if (t === 'multi_dropdown') return 'multi_dropdown'
+  if (t === 'true_false' || t === 'bool' || t === 'boolean') return 'true_false'
+  if (t === 'go_select_view' || t === 'selected_view' || t === 'lookup') return 'go_select_view'
+  if (t === 'action') return 'action'
+  return 'string'
+}
+
+function extractPicDefs(frameDaten: Record<string, any> | null | undefined): PicDef[] {
+  const fd = asObject(frameDaten)
+  const fields = asObject(fd.FIELDS)
+  const out: PicDef[] = []
+  for (const [key, value] of Object.entries(fields)) {
+    const item = asObject(value)
+    out.push({ key, ...(item as PicDef) })
+  }
+  out.sort((a, b) => {
+    const ao = Number(a.display_order ?? 0)
+    const bo = Number(b.display_order ?? 0)
+    if (ao !== bo) return ao - bo
+    const al = String(a.label || a.name || '').toLowerCase()
+    const bl = String(b.label || b.name || '').toLowerCase()
+    return al.localeCompare(bl)
+  })
+  return out
+}
+
+function getFieldValue(daten: Record<string, any>, gruppe: string, feld: string) {
+  const groupObj = asObject(daten[gruppe])
+  if (!feld.includes('.')) return groupObj[feld]
+  return feld.split('.').reduce((acc: any, part: string) => {
+    if (!acc || typeof acc !== 'object') return undefined
+    return acc[part]
+  }, groupObj as any)
+}
+
+function setFieldValue(daten: Record<string, any>, gruppe: string, feld: string, value: any) {
+  const out = { ...daten }
+  const groupObj = asObject(out[gruppe])
+  if (!feld.includes('.')) {
+    out[gruppe] = { ...groupObj, [feld]: value }
+    return out
+  }
+  const parts = feld.split('.').filter(Boolean)
+  let cursor: any = { ...groupObj }
+  const root = cursor
+  parts.forEach((part, idx) => {
+    if (idx === parts.length - 1) {
+      cursor[part] = value
+      return
+    }
+    const next = cursor[part]
+    cursor[part] = asObject(next)
+    cursor = cursor[part]
+  })
+  out[gruppe] = root
+  return out
+}
+
 export default function PdvmDialogPage() {
   const { dialogGuid } = useParams<{ dialogGuid: string }>()
   const [searchParams] = useSearchParams()
@@ -37,10 +131,31 @@ export default function PdvmDialogPage() {
   const [selectedUids, setSelectedUids] = useState<string[]>([])
   const ignoredAutoLastCallUidRef = useRef<string>('')
   const [autoLastCallError, setAutoLastCallError] = useState<string | null>(null)
+  const suppressPersistRef = useRef<boolean>(true)
 
   // Avoid writing last_call for a new dialog_table using an old selection.
   const lastPersistContextKeyRef = useRef<string>('')
-  const persistContextKey = `${String(dialogGuid || '')}|${String(dialogTable || '')}`
+
+  const defQuery = useQuery<DialogDefinitionResponse>({
+    queryKey: ['dialog', 'definition', dialogGuid, dialogTable],
+    queryFn: () => dialogsAPI.getDefinition(dialogGuid!, { dialog_table: dialogTable }),
+    enabled: !!dialogGuid,
+  })
+
+  const lastCallScopeKey = useMemo(() => {
+    const vg = String(defQuery.data?.view_guid || '').trim()
+    const rt = String(defQuery.data?.root_table || defQuery.data?.root?.TABLE || '').trim()
+    return vg && rt ? `${vg}::${rt}` : ''
+  }, [defQuery.data?.view_guid, defQuery.data?.root_table, defQuery.data?.root])
+
+  const persistContextKey = lastCallScopeKey
+
+  const effectiveDialogTable = useMemo(() => {
+    const override = String(dialogTable || '').trim()
+    if (override) return override
+    const rt = String(defQuery.data?.root_table || defQuery.data?.root?.TABLE || '').trim()
+    return rt || null
+  }, [dialogTable, defQuery.data?.root_table, defQuery.data?.root])
 
   // IMPORTANT: When switching to another dialog (route param), this component usually stays mounted.
   // Reset local state so we don't carry over selection/edit-tab from the previous dialog.
@@ -56,18 +171,23 @@ export default function PdvmDialogPage() {
     setJsonMode('text')
     setJsonSearch('')
     setJsonSearchHits(null)
+    setPicActiveTab(1)
+    setPicDraft(null)
+    setPicDirty(false)
     setMenuEditorRefreshToken(0)
     setRefreshModalOpen(false)
 
     // Mark context switch so the persistence effect can skip one cycle.
-    lastPersistContextKeyRef.current = persistContextKey
+    // Important: keep it DIFFERENT from persistContextKey to avoid writing stale selection.
+    lastPersistContextKeyRef.current = ''
+    suppressPersistRef.current = true
   }, [dialogGuid, dialogTable])
 
-  const defQuery = useQuery<DialogDefinitionResponse>({
-    queryKey: ['dialog', 'definition', dialogGuid, dialogTable],
-    queryFn: () => dialogsAPI.getDefinition(dialogGuid!, { dialog_table: dialogTable }),
-    enabled: !!dialogGuid,
-  })
+  useEffect(() => {
+    // Reset persistence scope on view/table change.
+    lastPersistContextKeyRef.current = ''
+    suppressPersistRef.current = true
+  }, [lastCallScopeKey])
 
   const openEditMode = String(defQuery.data?.open_edit_mode || 'tab').trim().toLowerCase()
   const editType = String(defQuery.data?.edit_type || 'show_json').trim().toLowerCase()
@@ -88,6 +208,11 @@ export default function PdvmDialogPage() {
       const next = selected.map((x: any) => String(x))
       setSelectedUids(next)
       if (next.length === 1) setSelectedUid(next[0])
+
+      // Selection belongs to the current view/dialog; allow persisting.
+      if (lastCallScopeKey) {
+        suppressPersistRef.current = false
+      }
 
       // OPEN_EDIT=auto: jump to edit as soon as a single row is selected.
       if (openEditMode === 'auto' && next.length === 1) {
@@ -139,6 +264,52 @@ export default function PdvmDialogPage() {
   }, [defQuery.data?.root])
 
   const isMenuEditor = wantsMenuEditor
+  const isPicEditor = editType === 'edit_user'
+  const frameDaten = (defQuery.data?.frame?.daten || null) as Record<string, any> | null
+  const frameRoot = (defQuery.data?.frame?.root || {}) as Record<string, any>
+
+  const picDefs = useMemo(() => extractPicDefs(frameDaten), [frameDaten])
+
+  const picTabs = useMemo(() => {
+    const tabsRaw = frameRoot.TABS ?? frameRoot.tabs
+    const tabs = Number(tabsRaw || 0)
+
+    const pickTabBlock = (tabIndex: number): Record<string, any> | null => {
+      const rx = new RegExp(`^tab[_-]?0*${tabIndex}$`, 'i')
+      for (const key of Object.keys(frameRoot)) {
+        if (!rx.test(key)) continue
+        const v = (frameRoot as any)[key]
+        return v && typeof v === 'object' ? v : null
+      }
+      return null
+    }
+
+    let items: Array<{ index: number; head: string }> = []
+    const maxTabs = Math.max(1, Math.min(10, tabs || 1))
+    for (let i = 1; i <= maxTabs; i++) {
+      const block = pickTabBlock(i)
+      const head = String((block as any)?.HEAD ?? (block as any)?.head ?? '').trim() || `Tab ${i}`
+      items.push({ index: i, head })
+    }
+
+    if (isPicEditor) {
+      items = items.filter((t) => t.index !== 5)
+    }
+
+    return { tabs: items.length, items }
+  }, [frameRoot, isPicEditor])
+
+  const [picActiveTab, setPicActiveTab] = useState(1)
+  const [picDraft, setPicDraft] = useState<Record<string, any> | null>(null)
+  const [picDirty, setPicDirty] = useState(false)
+
+  useEffect(() => {
+    if (!picTabs.items.length) return
+    const allowed = new Set(picTabs.items.map((t) => t.index))
+    if (!allowed.has(picActiveTab)) {
+      setPicActiveTab(picTabs.items[0].index)
+    }
+  }, [picTabs.items, picActiveTab])
 
   const rowsQuery = useQuery<{ dialog_guid: string; table: string; rows: DialogRow[] }>({
     queryKey: ['dialog', 'rows', dialogGuid, dialogTable, pageLimit, pageOffset],
@@ -152,14 +323,7 @@ export default function PdvmDialogPage() {
     enabled: !!dialogGuid && !!selectedUid && !isMenuEditor,
   })
 
-  // Optional preselect: if dialog root defines MENU_GUID, select it once.
-  useEffect(() => {
-    if (!wantsMenuEditor) return
-    if (!menuGuid) return
-    if (selectedUid) return
-    setSelectedUid(menuGuid)
-    setSelectedUids([menuGuid])
-  }, [wantsMenuEditor, menuGuid, selectedUid])
+
 
   // Auto-select last_call (if present) and open edit immediately.
   useEffect(() => {
@@ -179,6 +343,9 @@ export default function PdvmDialogPage() {
     setSelectedUid(lastCallUid)
     setSelectedUids([lastCallUid])
     setActiveTab('edit')
+    if (lastCallScopeKey) {
+      suppressPersistRef.current = false
+    }
   }, [dialogGuid, defQuery.isSuccess, defQuery.data?.meta, selectedUid])
 
   // If auto-last_call load fails (e.g. record deleted), fall back to view.
@@ -204,11 +371,21 @@ export default function PdvmDialogPage() {
     })
   }, [recordQuery.isError, recordQuery.error, defQuery.data?.meta, dialogGuid, dialogTable])
 
+  // Mark selection as belonging to the current dialog context.
+  useEffect(() => {
+    if (!selectedUid) return
+    if (!isUuidString(selectedUid)) return
+    if (!persistContextKey) return
+    lastPersistContextKeyRef.current = persistContextKey
+  }, [selectedUid, persistContextKey])
+
   // Persist last selection immediately (best-effort), even before loading the record.
   useEffect(() => {
     if (!dialogGuid) return
     if (!selectedUid) return
     if (!isUuidString(selectedUid)) return
+    if (!persistContextKey) return
+    if (suppressPersistRef.current) return
 
     // If the dialog context just changed (e.g. new dialog_table), don't persist the previous selection.
     if (lastPersistContextKeyRef.current !== persistContextKey) {
@@ -219,7 +396,7 @@ export default function PdvmDialogPage() {
     dialogsAPI.putLastCall(dialogGuid, selectedUid, { dialog_table: dialogTable }).catch(() => {
       // Best-effort persistence only.
     })
-  }, [dialogGuid, selectedUid, dialogTable])
+  }, [dialogGuid, selectedUid, dialogTable, persistContextKey])
 
   const jsonEditorRef = useRef<PdvmJsonEditorHandle | null>(null)
   const [jsonError, setJsonError] = useState<string | null>(null)
@@ -241,10 +418,22 @@ export default function PdvmDialogPage() {
 
   const [infoModalOpen, setInfoModalOpen] = useState(false)
 
+  const [userActionInfo, setUserActionInfo] = useState<string | null>(null)
+  const [userActionError, setUserActionError] = useState<string | null>(null)
+  const [userActionBusy, setUserActionBusy] = useState(false)
+  const [resetPwConfirmOpen, setResetPwConfirmOpen] = useState(false)
+  const [lockAccountOpen, setLockAccountOpen] = useState(false)
+  const [unlockAccountOpen, setUnlockAccountOpen] = useState(false)
+
   useEffect(() => {
     if (!autoLastCallError) return
     setInfoModalOpen(true)
   }, [autoLastCallError])
+
+  useEffect(() => {
+    if (!userActionInfo && !userActionError) return
+    setInfoModalOpen(true)
+  }, [userActionInfo, userActionError])
 
   useEffect(() => {
     if (!recordQuery.data) return
@@ -260,6 +449,18 @@ export default function PdvmDialogPage() {
       setJsonError(e?.message || 'Editor konnte JSON nicht laden')
     }
   }, [recordQuery.data?.uid, recordQuery.data?.modified_at, editType, jsonMode])
+
+  useEffect(() => {
+    if (!recordQuery.data) return
+    if (!isPicEditor) return
+    setPicDraft(recordQuery.data.daten || {})
+    setPicDirty(false)
+  }, [recordQuery.data?.uid, recordQuery.data?.modified_at, isPicEditor])
+
+  useEffect(() => {
+    if (!isPicEditor) return
+    setPicActiveTab(1)
+  }, [selectedUid, isPicEditor])
 
   const updateMutation = useMutation({
     mutationFn: async (nextJson: Record<string, any>) => {
@@ -303,7 +504,6 @@ export default function PdvmDialogPage() {
 
   const createNewRecord = async () => {
     if (!dialogGuid) return
-    if (editType !== 'edit_json' && editType !== 'menu') return
 
     setCreateModalError(null)
     setCreateModalOpen(true)
@@ -328,6 +528,13 @@ export default function PdvmDialogPage() {
     setJsonError(null)
     await updateMutation.mutateAsync(parsed)
     setJsonDirty(false)
+  }
+
+  const savePic = async () => {
+    if (!isPicEditor) return
+    if (!dialogGuid || !selectedUid || !picDraft) return
+    await updateMutation.mutateAsync(picDraft)
+    setPicDirty(false)
   }
 
   const formatJson = () => {
@@ -418,6 +625,41 @@ export default function PdvmDialogPage() {
     }
   }, [defQuery.data?.daten, defQuery.data?.root])
 
+  const dropdownFieldConfigs = useMemo(() => {
+    if (!isPicEditor) return [] as Array<{ fieldKey: string; table: string; datasetUid: string; field: string }>
+    const out: Array<{ fieldKey: string; table: string; datasetUid: string; field: string }> = []
+    picDefs.forEach((def) => {
+      const type = normalizePicType(def.type)
+      if (type !== 'dropdown' && type !== 'multi_dropdown') return
+      const cfg = asObject(def.configs?.dropdown)
+      const datasetUid = String(cfg.key || cfg.dataset_uid || '').trim()
+      const field = String(cfg.field || cfg.feld || '').trim()
+      const table = String(cfg.table || '').trim()
+      if (!datasetUid || !field || !table) return
+      const fieldKey = String(def.key || `${def.gruppe || ''}.${def.feld || ''}`)
+      out.push({ fieldKey, table, datasetUid, field })
+    })
+    return out
+  }, [isPicEditor, picDefs])
+
+  const dropdownQueries = useQueries({
+    queries: dropdownFieldConfigs.map((cfg) => ({
+      queryKey: ['systemdaten', 'dropdown', cfg.table, cfg.datasetUid, cfg.field],
+      queryFn: () => systemdatenAPI.getDropdown({ table: cfg.table, dataset_uid: cfg.datasetUid, field: cfg.field }),
+      enabled: isPicEditor && !!cfg.table && !!cfg.datasetUid && !!cfg.field,
+    })),
+  })
+
+  const dropdownOptionsByFieldKey = useMemo(() => {
+    const out: Record<string, PdvmDropdownOption[]> = {}
+    dropdownFieldConfigs.forEach((cfg, idx) => {
+      const res = dropdownQueries[idx]
+      const options = res?.data?.options || []
+      out[cfg.fieldKey] = options.map((opt) => ({ value: String(opt.key), label: String(opt.value) }))
+    })
+    return out
+  }, [dropdownFieldConfigs, dropdownQueries])
+
   // Menu editor tabs come from frame definition (sys_framedaten)
   const menuEditTabs = useMemo(() => {
     const frameRoot = (defQuery.data?.frame?.root || {}) as Record<string, any>
@@ -507,11 +749,18 @@ export default function PdvmDialogPage() {
   const handleMissingMenuGuid = (missingUid: string) => {
     // Only relevant for menu dialogs
     if (!dialogGuid) return
+    if (missingUid) {
+      ignoredAutoLastCallUidRef.current = missingUid
+    }
     setAutoLastCallError(`Letztes Menü (last_call) wurde nicht gefunden: ${missingUid}. Bitte neu auswählen.`)
     setSelectedUid(null)
+    setSelectedUids([])
     setActiveTab('view')
     dialogsAPI.putLastCall(dialogGuid, null, { dialog_table: dialogTable }).catch(() => {
       // Best-effort persistence only.
+    })
+    queryClient.invalidateQueries({ queryKey: ['dialog', 'definition', dialogGuid, dialogTable] }).catch(() => {
+      // Best-effort refresh only.
     })
   }
 
@@ -537,12 +786,14 @@ export default function PdvmDialogPage() {
     setJsonError(null)
     setJsonDirty(false)
     setJsonSearchHits(null)
+    setPicDirty(false)
+    setPicDraft(null)
     updateMutation.reset()
   }
 
   const refreshEdit = async () => {
     if (activeTab !== 'edit') return
-    if (editType === 'edit_json' && jsonDirty) {
+    if ((editType === 'edit_json' && jsonDirty) || (isPicEditor && picDirty)) {
       setRefreshModalOpen(true)
       return
     }
@@ -569,6 +820,124 @@ export default function PdvmDialogPage() {
       />
 
       <PdvmDialogModal
+        open={infoModalOpen && !!userActionInfo}
+        kind="info"
+        title="Hinweis"
+        message={userActionInfo || ''}
+        confirmLabel="OK"
+        busy={false}
+        onCancel={() => {
+          setInfoModalOpen(false)
+          setUserActionInfo(null)
+          setUserActionError(null)
+        }}
+        onConfirm={() => {
+          setInfoModalOpen(false)
+          setUserActionInfo(null)
+          setUserActionError(null)
+        }}
+      />
+
+      <PdvmDialogModal
+        open={infoModalOpen && !!userActionError}
+        kind="info"
+        title="Fehler"
+        message={userActionError || ''}
+        confirmLabel="OK"
+        busy={false}
+        onCancel={() => {
+          setInfoModalOpen(false)
+          setUserActionInfo(null)
+          setUserActionError(null)
+        }}
+        onConfirm={() => {
+          setInfoModalOpen(false)
+          setUserActionInfo(null)
+          setUserActionError(null)
+        }}
+      />
+
+      <PdvmDialogModal
+        open={resetPwConfirmOpen}
+        kind="confirm"
+        title="Maschinelles Passwort senden"
+        message="Ein neues maschinelles Passwort wird erzeugt und per E-Mail versendet. Fortfahren?"
+        confirmLabel="Senden"
+        cancelLabel="Abbrechen"
+        busy={userActionBusy}
+        onCancel={() => setResetPwConfirmOpen(false)}
+        onConfirm={async () => {
+          if (!selectedUid) return
+          setUserActionBusy(true)
+          setResetPwConfirmOpen(false)
+          try {
+            const res = await usersAPI.resetPassword(selectedUid)
+            if (res.email_sent) {
+              setUserActionInfo(`OTP gesendet an ${res.email}. Gültig bis ${res.expires_at}.`)
+            } else {
+              setUserActionError(`OTP erstellt, E-Mail fehlgeschlagen: ${res.email_error || 'unbekannt'}`)
+            }
+            await performRefreshEdit()
+          } catch (e: any) {
+            setUserActionError(e?.response?.data?.detail || e?.message || 'Passwort-Reset fehlgeschlagen')
+          } finally {
+            setUserActionBusy(false)
+          }
+        }}
+      />
+
+      <PdvmDialogModal
+        open={lockAccountOpen}
+        kind="form"
+        title="Account sperren"
+        message="Bitte optionalen Sperrgrund angeben."
+        fields={[{ name: 'reason', label: 'Grund', type: 'text', required: false }]}
+        confirmLabel="Sperren"
+        cancelLabel="Abbrechen"
+        busy={userActionBusy}
+        onCancel={() => setLockAccountOpen(false)}
+        onConfirm={async (values) => {
+          if (!selectedUid) return
+          setUserActionBusy(true)
+          setLockAccountOpen(false)
+          try {
+            await usersAPI.lockAccount(selectedUid, String(values?.reason || '').trim() || undefined)
+            setUserActionInfo('Account wurde gesperrt.')
+            await performRefreshEdit()
+          } catch (e: any) {
+            setUserActionError(e?.response?.data?.detail || e?.message || 'Account-Sperre fehlgeschlagen')
+          } finally {
+            setUserActionBusy(false)
+          }
+        }}
+      />
+
+      <PdvmDialogModal
+        open={unlockAccountOpen}
+        kind="confirm"
+        title="Account entsperren"
+        message="Account wirklich entsperren?"
+        confirmLabel="Entsperren"
+        cancelLabel="Abbrechen"
+        busy={userActionBusy}
+        onCancel={() => setUnlockAccountOpen(false)}
+        onConfirm={async () => {
+          if (!selectedUid) return
+          setUserActionBusy(true)
+          setUnlockAccountOpen(false)
+          try {
+            await usersAPI.unlockAccount(selectedUid)
+            setUserActionInfo('Account wurde entsperrt.')
+            await performRefreshEdit()
+          } catch (e: any) {
+            setUserActionError(e?.response?.data?.detail || e?.message || 'Account-Entsperrung fehlgeschlagen')
+          } finally {
+            setUserActionBusy(false)
+          }
+        }}
+      />
+
+      <PdvmDialogModal
         open={discardModalOpen}
         kind="confirm"
         title="Änderungen verwerfen?"
@@ -589,6 +958,11 @@ export default function PdvmDialogPage() {
             }
           } catch {
             // ignore
+          }
+
+          if (recordQuery.data?.daten && isPicEditor) {
+            setPicDraft(recordQuery.data.daten)
+            setPicDirty(false)
           }
 
           setJsonError(null)
@@ -703,7 +1077,24 @@ export default function PdvmDialogPage() {
               Refresh Edit
             </button>
 
-            {(editType === 'edit_json' || editType === 'menu') && String(defQuery.data?.root_table || '').trim().toLowerCase() !== 'sys_benutzer' ? (
+            {isPicEditor && activeTab === 'edit' ? (
+              <button
+                type="button"
+                onClick={() => {
+                  savePic().catch(() => {
+                    // ignore
+                  })
+                }}
+                disabled={!picDirty || !selectedUid || activeTab !== 'edit' || createMutation.isPending || updateMutation.isPending}
+                className="pdvm-dialog__toolBtn"
+                title="Änderungen speichern"
+                aria-label="Speichern"
+              >
+                Speichern
+              </button>
+            ) : null}
+
+            {activeTab === 'view' ? (
               <button
                 type="button"
                 onClick={createNewRecord}
@@ -748,7 +1139,7 @@ export default function PdvmDialogPage() {
               aria-selected={activeTab === 'view'}
               className={`pdvm-tabs__tab ${activeTab === 'view' ? 'pdvm-tabs__tab--active' : ''}`}
                 onClick={() => {
-                  if (activeTab === 'edit' && editType === 'edit_json' && jsonDirty) {
+                    if (activeTab === 'edit' && ((editType === 'edit_json' && jsonDirty) || (isPicEditor && picDirty))) {
                     setPendingTab('view')
                     setDiscardModalOpen(true)
                     return
@@ -776,7 +1167,7 @@ export default function PdvmDialogPage() {
 
         <div className="pdvm-tabs__panel pdvm-dialog__panel">
           <div
-            className={`pdvm-dialog__panelScroll ${activeTab === 'view' && hasEmbeddedView ? 'pdvm-dialog__panelScroll--noScroll' : ''}`}
+            className={`pdvm-dialog__panelScroll ${activeTab === 'view' && hasEmbeddedView ? 'pdvm-dialog__panelScroll--noScroll' : ''} ${activeTab === 'edit' ? 'pdvm-dialog__panelScroll--noScroll' : ''}`}
           >
           {/* edit_type=menu nutzt Auswahl im View-Tab; ROOT.MENU_GUID ist optional (Preselect) */}
 
@@ -787,7 +1178,12 @@ export default function PdvmDialogPage() {
           {activeTab === 'view' ? (
             <div className="pdvm-dialog__view">
               {defQuery.data?.view_guid ? (
-                <PdvmViewPageContent viewGuid={String(defQuery.data.view_guid)} tableOverride={dialogTable} editType={editType} embedded />
+                <PdvmViewPageContent
+                  viewGuid={String(defQuery.data.view_guid)}
+                  tableOverride={effectiveDialogTable}
+                  editType={editType}
+                  embedded
+                />
               ) : (
                 <>
                   <div style={{ marginBottom: 12, color: 'crimson', fontSize: 12 }}>
@@ -857,9 +1253,9 @@ export default function PdvmDialogPage() {
           ) : null}
 
           {activeTab === 'edit' ? (
-            <div>
+            <div className="pdvm-dialog__editArea">
               {isMenuEditor ? (
-                <>
+                <div className="pdvm-dialog__editAreaContent">
                   {!selectedUid ? <div>Kein Menüdatensatz ausgewählt. Bitte zuerst im View-Tab auswählen.</div> : null}
 
                   {selectedUid ? (
@@ -925,9 +1321,154 @@ export default function PdvmDialogPage() {
                       )}
                     </div>
                   ) : null}
+                </div>
+              ) : isPicEditor ? (
+                <>
+                  <div className="pdvm-dialog__editAreaHeader">
+                    {recordQuery.data ? (
+                      <div style={{ marginBottom: 10, display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+                        <div style={{ fontSize: 12, opacity: 0.75 }}>
+                          Passwortwechsel erforderlich:{' '}
+                          <strong>{String((recordQuery.data.daten?.SECURITY as any)?.PASSWORD_CHANGE_REQUIRED ? 'JA' : 'NEIN')}</strong>
+                        </div>
+                        <div style={{ fontSize: 12, opacity: 0.75 }}>
+                          Account gesperrt:{' '}
+                          <strong>{String((recordQuery.data.daten?.SECURITY as any)?.ACCOUNT_LOCKED ? 'JA' : 'NEIN')}</strong>
+                        </div>
+                        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+                          <button
+                            type="button"
+                            className="pdvm-dialog__toolBtn"
+                            onClick={() => setResetPwConfirmOpen(true)}
+                            disabled={!selectedUid || userActionBusy}
+                          >
+                            Maschinelles Passwort senden
+                          </button>
+                          {((recordQuery.data.daten?.SECURITY as any)?.ACCOUNT_LOCKED ? true : false) ? (
+                            <button
+                              type="button"
+                              className="pdvm-dialog__toolBtn"
+                              onClick={() => setUnlockAccountOpen(true)}
+                              disabled={!selectedUid || userActionBusy}
+                            >
+                              Account entsperren
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="pdvm-dialog__toolBtn"
+                              onClick={() => setLockAccountOpen(true)}
+                              disabled={!selectedUid || userActionBusy}
+                            >
+                              Account sperren
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ) : null}
+                    {picTabs.items.length > 1 ? (
+                      <div className="pdvm-tabs pdvm-tabs--sticky pdvm-dialog__editUserTabs">
+                        <div className="pdvm-tabs__bar">
+                          <div className="pdvm-tabs__list" role="tablist" aria-label="Edit Tabs">
+                            {picTabs.items.map((t) => (
+                              <button
+                                key={t.index}
+                                type="button"
+                                role="tab"
+                                aria-selected={picActiveTab === t.index}
+                                className={`pdvm-tabs__tab ${picActiveTab === t.index ? 'pdvm-tabs__tab--active' : ''}`}
+                                onClick={() => setPicActiveTab(t.index)}
+                              >
+                                {t.head}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="pdvm-dialog__editAreaContent">
+                    {picDefs.length === 0 ? (
+                      <div style={{ opacity: 0.75 }}>Keine FIELDS im Frame definiert.</div>
+                    ) : null}
+
+                    <div style={{ display: 'grid', gap: 12 }}>
+                      {picDefs
+                        .filter((d) => Number(d.tab || 1) === picActiveTab)
+                        .map((d) => {
+                          const gruppe = String(d.gruppe || '').trim()
+                          const feld = String(d.feld || '').trim()
+                          if (!gruppe || !feld) return null
+
+                          const current = picDraft ? picDraft : recordQuery.data?.daten || {}
+                          const rawValue = getFieldValue(current, gruppe, feld)
+                          const type = normalizePicType(d.type)
+                          const fieldKey = String(d.key || `${gruppe}.${feld}`)
+                          const options = dropdownOptionsByFieldKey[fieldKey] || []
+
+                          const onChange = (value: any) => {
+                            setPicDraft((prev) => {
+                              const base = prev || (recordQuery.data?.daten || {})
+                              return setFieldValue(base, gruppe, feld, value)
+                            })
+                            setPicDirty(true)
+                          }
+
+                          if (type === 'go_select_view') {
+                            const lookupTable = String(d.configs?.viewtable || d.configs?.table || '').trim()
+                            const fallbackTable = feld.endsWith('.MENU') ? 'sys_menudaten' : ''
+                            const effectiveTable = lookupTable || fallbackTable
+                            return (
+                              <div key={fieldKey} className="pdvm-pic" title={d.tooltip || undefined}>
+                                <div className="pdvm-pic__labelRow">
+                                  <label className="pdvm-pic__label">{d.label || d.name || feld}</label>
+                                </div>
+                                <div className="pdvm-pic__control">
+                                  <PdvmLookupSelect
+                                    table={effectiveTable}
+                                    value={rawValue ? String(rawValue) : null}
+                                    onChange={(v) => onChange(v)}
+                                    disabled={!!d.read_only}
+                                  />
+                                </div>
+                              </div>
+                            )
+                          }
+
+                          if (type === 'action') {
+                            return (
+                              <div key={fieldKey} className="pdvm-pic" title={d.tooltip || undefined}>
+                                <div className="pdvm-pic__labelRow">
+                                  <label className="pdvm-pic__label">{d.label || d.name || feld}</label>
+                                </div>
+                                <div className="pdvm-pic__control">
+                                  <button type="button" className="pdvm-dialog__toolBtn" disabled={!!d.read_only}>
+                                    {d.label || d.name || feld}
+                                  </button>
+                                </div>
+                              </div>
+                            )
+                          }
+
+                          return (
+                            <PdvmInputControl
+                              key={fieldKey}
+                              label={d.label || d.name || feld}
+                              tooltip={d.tooltip}
+                              type={type === 'multi_dropdown' ? 'multi_dropdown' : (type as any)}
+                              value={rawValue}
+                              onChange={onChange}
+                              readOnly={!!d.read_only}
+                              options={options}
+                              helpText={d.tooltip || ''}
+                            />
+                          )
+                        })}
+                    </div>
+                  </div>
                 </>
               ) : (
-                <>
+                <div className="pdvm-dialog__editAreaContent">
                   <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 8 }}>
                     EditType: <span style={{ fontFamily: 'monospace' }}>{defQuery.data?.edit_type || 'show_json'}</span>
                   </div>
@@ -1117,6 +1658,109 @@ export default function PdvmDialogPage() {
                             onValidationMessage={(msg) => setJsonError(msg)}
                           />
                         </div>
+                      ) : isPicEditor ? (
+                        <div className="pdvm-dialog__editUser">
+                          {picTabs.items.length > 1 ? (
+                            <div className="pdvm-tabs pdvm-tabs--sticky pdvm-dialog__editUserTabs">
+                              <div className="pdvm-tabs__bar">
+                                <div className="pdvm-tabs__list" role="tablist" aria-label="Edit Tabs">
+                                  {picTabs.items.map((t) => (
+                                    <button
+                                      key={t.index}
+                                      type="button"
+                                      role="tab"
+                                      aria-selected={picActiveTab === t.index}
+                                      className={`pdvm-tabs__tab ${picActiveTab === t.index ? 'pdvm-tabs__tab--active' : ''}`}
+                                      onClick={() => setPicActiveTab(t.index)}
+                                    >
+                                      {t.head}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          ) : null}
+
+                          <div className="pdvm-dialog__editUserContent">
+                            {picDefs.length === 0 ? (
+                              <div style={{ opacity: 0.75 }}>Keine FIELDS im Frame definiert.</div>
+                            ) : null}
+
+                            <div style={{ display: 'grid', gap: 12 }}>
+                              {picDefs
+                                .filter((d) => Number(d.tab || 1) === picActiveTab)
+                                .map((d) => {
+                                  const gruppe = String(d.gruppe || '').trim()
+                                  const feld = String(d.feld || '').trim()
+                                  if (!gruppe || !feld) return null
+
+                                  const current = picDraft ? picDraft : recordQuery.data?.daten || {}
+                                  const rawValue = getFieldValue(current, gruppe, feld)
+                                  const type = normalizePicType(d.type)
+                                  const fieldKey = String(d.key || `${gruppe}.${feld}`)
+                                  const options = dropdownOptionsByFieldKey[fieldKey] || []
+
+                                  const onChange = (value: any) => {
+                                    setPicDraft((prev) => {
+                                      const base = prev || (recordQuery.data?.daten || {})
+                                      return setFieldValue(base, gruppe, feld, value)
+                                    })
+                                    setPicDirty(true)
+                                  }
+
+                                  if (type === 'go_select_view') {
+                                    const lookupTable = String(d.configs?.viewtable || d.configs?.table || '').trim()
+                                    const fallbackTable = feld.endsWith('.MENU') ? 'sys_menudaten' : ''
+                                    const effectiveTable = lookupTable || fallbackTable
+                                    return (
+                                      <div key={fieldKey} className="pdvm-pic" title={d.tooltip || undefined}>
+                                        <div className="pdvm-pic__labelRow">
+                                          <label className="pdvm-pic__label">{d.label || d.name || feld}</label>
+                                        </div>
+                                        <div className="pdvm-pic__control">
+                                          <PdvmLookupSelect
+                                            table={effectiveTable}
+                                            value={rawValue ? String(rawValue) : null}
+                                            onChange={(v) => onChange(v)}
+                                            disabled={!!d.read_only}
+                                          />
+                                        </div>
+                                      </div>
+                                    )
+                                  }
+
+                                  if (type === 'action') {
+                                    return (
+                                      <div key={fieldKey} className="pdvm-pic" title={d.tooltip || undefined}>
+                                        <div className="pdvm-pic__labelRow">
+                                          <label className="pdvm-pic__label">{d.label || d.name || feld}</label>
+                                        </div>
+                                        <div className="pdvm-pic__control">
+                                          <button type="button" className="pdvm-dialog__toolBtn" disabled={!!d.read_only}>
+                                            {d.label || d.name || feld}
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )
+                                  }
+
+                                  return (
+                                    <PdvmInputControl
+                                      key={fieldKey}
+                                      label={d.label || d.name || feld}
+                                      tooltip={d.tooltip}
+                                      type={type === 'multi_dropdown' ? 'multi_dropdown' : (type as any)}
+                                      value={rawValue}
+                                      onChange={onChange}
+                                      readOnly={!!d.read_only}
+                                      options={options}
+                                      helpText={d.tooltip || ''}
+                                    />
+                                  )
+                                })}
+                            </div>
+                          </div>
+                        </div>
                       ) : (
                         <pre
                           style={{
@@ -1135,7 +1779,7 @@ export default function PdvmDialogPage() {
                       )}
                     </div>
                   ) : null}
-                </>
+                </div>
               )}
             </div>
           ) : null}

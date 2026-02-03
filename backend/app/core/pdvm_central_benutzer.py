@@ -7,8 +7,10 @@ Wird vom Administrator für Benutzerverwaltung verwendet
 """
 import uuid
 from typing import Optional, Dict, List
+import asyncpg
 from app.core.pdvm_central_datenbank import PdvmCentralDatabase
 from app.core.database import DatabasePool
+from app.core.pdvm_datenbank import PdvmDatabase
 import json
 
 
@@ -38,24 +40,53 @@ class PdvmCentralBenutzer(PdvmCentralDatabase):
             Dict mit uid, email, benutzer, passwort, daten, historisch, etc.
             None wenn nicht gefunden
         """
-        pool = DatabasePool._pool_auth
-        async with pool.acquire() as conn:
-            row = await conn.fetchrow("""
-                SELECT uid, email, benutzer, passwort, daten,
-                       historisch, sec_id, created_at, modified_at
-                FROM sys_benutzer 
-                WHERE uid = $1
-            """, self.user_guid)
-            
+        # Standard: use PdvmDatabase routing (auth DB for sys_benutzer)
+        try:
+            db = PdvmDatabase("sys_benutzer")
+            row = await db.get_by_uid(self.user_guid)
             if not row:
                 return None
-            
             result = dict(row)
+        except Exception:
+            result = None
+
+        # Fallback to explicit auth query for extra columns (benutzer/passwort/email)
+        if result is None or "benutzer" not in result or "passwort" not in result:
+            pool = DatabasePool._pool_auth
+            async with pool.acquire() as conn:
+                try:
+                    row = await conn.fetchrow("""
+                        SELECT uid, email, benutzer, passwort, daten,
+                               historisch, sec_id, created_at, modified_at
+                        FROM sys_benutzer 
+                        WHERE uid = $1
+                    """, self.user_guid)
+                except asyncpg.exceptions.UndefinedColumnError:
+                    row = await conn.fetchrow("""
+                        SELECT uid, benutzer, passwort, daten,
+                               historisch, sec_id, created_at, modified_at
+                        FROM sys_benutzer 
+                        WHERE uid = $1
+                    """, self.user_guid)
+
+                if not row:
+                    return None
+
+                result = dict(row)
             
             # Parse JSONB daten
             if result['daten'] and isinstance(result['daten'], str):
                 result['daten'] = json.loads(result['daten'])
             
+            # EMAIL kann in JSON liegen (USER.EMAIL)
+            if 'email' not in result:
+                try:
+                    user_group = result.get('daten', {}).get('USER', {}) if isinstance(result.get('daten'), dict) else {}
+                    if isinstance(user_group, dict) and 'EMAIL' in user_group:
+                        result['email'] = user_group.get('EMAIL')
+                except Exception:
+                    pass
+
             return result
     
     async def get_user_by_email(self, email: str) -> Optional[Dict]:
@@ -70,12 +101,20 @@ class PdvmCentralBenutzer(PdvmCentralDatabase):
         """
         pool = DatabasePool._pool_auth
         async with pool.acquire() as conn:
-            row = await conn.fetchrow("""
-                SELECT uid, email, benutzer, passwort, daten,
-                       historisch, sec_id, created_at, modified_at
-                FROM sys_benutzer 
-                WHERE email = $1
-            """, email)
+            try:
+                row = await conn.fetchrow("""
+                    SELECT uid, email, benutzer, passwort, daten,
+                           historisch, sec_id, created_at, modified_at
+                    FROM sys_benutzer 
+                    WHERE email = $1
+                """, email)
+            except asyncpg.exceptions.UndefinedColumnError:
+                row = await conn.fetchrow("""
+                    SELECT uid, benutzer, passwort, daten,
+                           historisch, sec_id, created_at, modified_at
+                    FROM sys_benutzer 
+                    WHERE daten->'USER'->>'EMAIL' = $1
+                """, email)
             
             if not row:
                 return None
@@ -83,6 +122,14 @@ class PdvmCentralBenutzer(PdvmCentralDatabase):
             result = dict(row)
             if result['daten'] and isinstance(result['daten'], str):
                 result['daten'] = json.loads(result['daten'])
+
+            if 'email' not in result:
+                try:
+                    user_group = result.get('daten', {}).get('USER', {}) if isinstance(result.get('daten'), dict) else {}
+                    if isinstance(user_group, dict) and 'EMAIL' in user_group:
+                        result['email'] = user_group.get('EMAIL')
+                except Exception:
+                    pass
             
             return result
     
@@ -110,11 +157,20 @@ class PdvmCentralBenutzer(PdvmCentralDatabase):
         """
         pool = DatabasePool._pool_auth
         async with pool.acquire() as conn:
-            await conn.execute("""
-                UPDATE sys_benutzer 
-                SET email = $1, modified_at = NOW() 
-                WHERE uid = $2
-            """, new_email, self.user_guid)
+            try:
+                await conn.execute("""
+                    UPDATE sys_benutzer 
+                    SET email = $1, modified_at = NOW() 
+                    WHERE uid = $2
+                """, new_email, self.user_guid)
+                return
+            except asyncpg.exceptions.UndefinedColumnError:
+                pass
+
+        # Fallback: JSONB USER.EMAIL
+        user = await PdvmCentralDatabase.load("sys_benutzer", str(self.user_guid))
+        user.set_value("USER", "EMAIL", new_email)
+        await user.save_all_values()
     
     async def update_benutzer(self, new_benutzer: str):
         """
@@ -230,9 +286,16 @@ class PdvmCentralBenutzer(PdvmCentralDatabase):
         """
         pool = DatabasePool._pool_auth
         async with pool.acquire() as conn:
-            count = await conn.fetchval("""
-                SELECT COUNT(*) 
-                FROM sys_benutzer 
-                WHERE email = $1 AND historisch = 0
-            """, email)
+            try:
+                count = await conn.fetchval("""
+                    SELECT COUNT(*) 
+                    FROM sys_benutzer 
+                    WHERE email = $1 AND historisch = 0
+                """, email)
+            except asyncpg.exceptions.UndefinedColumnError:
+                count = await conn.fetchval("""
+                    SELECT COUNT(*) 
+                    FROM sys_benutzer 
+                    WHERE daten->'USER'->>'EMAIL' = $1 AND historisch = 0
+                """, email)
             return count > 0

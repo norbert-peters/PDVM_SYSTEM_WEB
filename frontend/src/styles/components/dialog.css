@@ -54,6 +54,34 @@
   overflow: hidden;
 }
 
+/* Edit-Tab: Header bleibt, Content scrollt */
+.pdvm-dialog__editArea {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
+}
+
+.pdvm-dialog__editAreaHeader {
+  flex: 0 0 auto;
+  margin-bottom: var(--spacing-sm);
+}
+
+.pdvm-dialog__editUserTabs {
+  flex: 0 0 auto;
+}
+
+.pdvm-dialog__editAreaContent {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
 /* Wenn eine View eingebettet ist, soll die View intern scrollen */
 
 /* View-Tab: nur die Liste scrollt (inkl. sticky table header) */

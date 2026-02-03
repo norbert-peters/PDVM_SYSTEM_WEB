@@ -15,12 +15,41 @@ from __future__ import annotations
 
 import copy
 import uuid
+import secrets
+import string
+import json
 from typing import Any, Dict, List, Optional
 
 from app.core.pdvm_datenbank import PdvmDatabase
+from app.core.pdvm_central_datenbank import PdvmCentralDatabase
+from app.core.pdvm_central_benutzer import PdvmCentralBenutzer
+from app.core.user_manager import UserManager
+from app.core.database import DatabasePool
 
 
 _DEFAULT_TEMPLATE_UID = uuid.UUID("66666666-6666-6666-6666-666666666666")
+
+
+def _generate_temp_password(length: int = 12) -> str:
+    if length < 12:
+        length = 12
+    lower = string.ascii_lowercase
+    upper = string.ascii_uppercase
+    digits = string.digits
+    special = "@$!%*?&"
+
+    chars = [
+        secrets.choice(lower),
+        secrets.choice(upper),
+        secrets.choice(digits),
+        secrets.choice(special),
+    ]
+    pool = lower + upper + digits + special
+    while len(chars) < length:
+        chars.append(secrets.choice(pool))
+
+    secrets.SystemRandom().shuffle(chars)
+    return "".join(chars)
 
 
 def _get_root_table(root: Dict[str, Any]) -> str:
@@ -90,6 +119,33 @@ async def load_dialog_record(gcs, *, root_table: str, record_uuid: uuid.UUID) ->
     if not root_table:
         raise KeyError("ROOT.TABLE ist leer")
 
+    # sys_benutzer: Sonderfall mit zusätzlichen Spalten (email/benutzer/passwort)
+    if str(root_table).strip().lower() == "sys_benutzer":
+        benutzer_mgr = PdvmCentralBenutzer(record_uuid)
+        row = await benutzer_mgr.get_user()
+        if not row:
+            raise KeyError(f"Datensatz nicht gefunden: {record_uuid}")
+
+        daten = row.get("daten") or {}
+        if not isinstance(daten, dict):
+            daten = {}
+
+        # SYSTEM-Gruppe mit Spalten (benutzer als Spalte)
+        system_group = daten.get("SYSTEM") if isinstance(daten.get("SYSTEM"), dict) else {}
+        if not isinstance(system_group, dict):
+            system_group = {}
+        if row.get("benutzer") is not None:
+            system_group["BENUTZER"] = row.get("benutzer")
+        daten["SYSTEM"] = system_group
+
+        return {
+            "uid": str(row.get("uid")),
+            "name": row.get("name") or "",
+            "daten": daten,
+            "historisch": int(row.get("historisch") or 0),
+            "modified_at": row.get("modified_at").isoformat() if row.get("modified_at") else None,
+        }
+
     db = PdvmDatabase(root_table, system_pool=gcs._system_pool, mandant_pool=gcs._mandant_pool)
     row = await db.get_by_uid(record_uuid)
     if not row:
@@ -138,6 +194,63 @@ async def update_dialog_record_json(
     return await load_dialog_record(gcs, root_table=root_table, record_uuid=record_uuid)
 
 
+async def update_dialog_record_central(
+    gcs,
+    *,
+    root_table: str,
+    record_uuid: uuid.UUID,
+    daten: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Aktualisiert Datensatz via PdvmCentralDatabase (Pflicht für edit_user).
+
+    Regeln:
+    - Werte werden per set_value(gruppe, feld) gesetzt
+    - SYSTEM-Gruppe ist für Tabellen-Spalten reserviert (Sonderfälle)
+    - sys_benutzer: Spalten email/benutzer werden zusätzlich synchronisiert
+    """
+    if not root_table:
+        raise KeyError("ROOT.TABLE ist leer")
+
+    if daten is None or not isinstance(daten, dict):
+        raise ValueError("daten muss ein JSON-Objekt (dict) sein")
+
+    central = await PdvmCentralDatabase.load(
+        table_name=root_table,
+        guid=str(record_uuid),
+        stichtag=gcs.stichtag,
+        system_pool=gcs._system_pool,
+        mandant_pool=gcs._mandant_pool,
+    )
+
+    system_updates: Dict[str, Any] = {}
+
+    for gruppe, gruppe_data in daten.items():
+        if not isinstance(gruppe_data, dict):
+            continue
+
+        if str(gruppe).upper() == "SYSTEM":
+            for feld, wert in gruppe_data.items():
+                system_updates[str(feld).upper()] = wert
+            continue
+
+        for feld, wert in gruppe_data.items():
+            central.set_value(str(gruppe), str(feld), wert)
+
+    await central.save_all_values()
+
+    # sys_benutzer: Spalten-Sync (email/benutzer)
+    if str(root_table).strip().lower() == "sys_benutzer":
+        benutzer_mgr = PdvmCentralBenutzer(record_uuid)
+        benutzer_value = system_updates.get("BENUTZER")
+        if benutzer_value is not None:
+            await benutzer_mgr.update_benutzer(str(benutzer_value))
+
+    # SYSTEM-Gruppe: falls weitere Tabellen-Spalten unterstützt werden, hier ergänzen.
+    # Aktuell wird SYSTEM nur für sys_benutzer (email/benutzer) synchronisiert.
+
+    return await load_dialog_record(gcs, root_table=root_table, record_uuid=record_uuid)
+
+
 async def create_dialog_record_from_template(
     gcs,
     *,
@@ -157,26 +270,50 @@ async def create_dialog_record_from_template(
     if not root_table:
         raise KeyError("ROOT.TABLE ist leer")
 
-    # sys_benutzer ist ein Sonderfall (nicht standardisiert wie alle anderen Tabellen).
-    # Der "Template-Record" Ansatz gilt daher explizit NICHT für sys_benutzer.
-    if str(root_table).strip().lower() == "sys_benutzer":
-        raise ValueError("Für sys_benutzer darf kein neuer Satz via Template erstellt werden")
-
     name_norm = str(name or "").strip()
     if not name_norm:
         raise ValueError("name ist leer")
+    name_value = name_norm
 
     db = PdvmDatabase(root_table, system_pool=gcs._system_pool, mandant_pool=gcs._mandant_pool)
 
-    template_row = await db.get_by_uid(template_uuid)
-    if not template_row:
-        raise KeyError(f"Template-Datensatz nicht gefunden: {template_uuid}")
+    if str(root_table).strip().lower() == "sys_benutzer":
+        pool = DatabasePool._pool_auth
+        async with pool.acquire() as conn:
+            template_row = await conn.fetchrow(
+                """
+                SELECT uid, benutzer, passwort, daten, name, historisch, sec_id
+                FROM sys_benutzer
+                WHERE uid = $1
+            """,
+                template_uuid,
+            )
+        if not template_row:
+            raise KeyError(f"Template-Datensatz nicht gefunden: {template_uuid}")
 
-    template_daten = template_row.get("daten")
-    if template_daten is None:
-        template_daten = {}
-    if not isinstance(template_daten, dict):
-        raise ValueError("Template 'daten' ist kein JSON-Objekt")
+        template_row = dict(template_row)
+        template_daten = template_row.get("daten")
+        if template_daten is None:
+            template_daten = {}
+        if isinstance(template_daten, str):
+            try:
+                import json
+
+                template_daten = json.loads(template_daten)
+            except Exception:
+                template_daten = {}
+        if not isinstance(template_daten, dict):
+            raise ValueError("Template 'daten' ist kein JSON-Objekt")
+    else:
+        template_row = await db.get_by_uid(template_uuid)
+        if not template_row:
+            raise KeyError(f"Template-Datensatz nicht gefunden: {template_uuid}")
+
+        template_daten = template_row.get("daten")
+        if template_daten is None:
+            template_daten = {}
+        if not isinstance(template_daten, dict):
+            raise ValueError("Template 'daten' ist kein JSON-Objekt")
 
     new_uuid = uuid.uuid4()
 
@@ -186,18 +323,52 @@ async def create_dialog_record_from_template(
     if not isinstance(root, dict):
         root = {}
     root["SELF_GUID"] = str(new_uuid)
-    root["SELF_NAME"] = name_norm
+    root["SELF_NAME"] = name_value
     if root_patch and isinstance(root_patch, dict):
         root.update(root_patch)
     daten_copy["ROOT"] = root
 
-    await db.create(
-        new_uuid,
-        daten=daten_copy,
-        name=name_norm,
-        historisch=0,
-        sec_id=template_row.get("sec_id"),
-    )
+    if str(root_table).strip().lower() == "sys_benutzer":
+        benutzer_value = name_value
+
+        passwort_value = template_row.get("passwort")
+        if not passwort_value:
+            passwort_value = UserManager.hash_password(_generate_temp_password())
+
+        pool = DatabasePool._pool_auth
+        async with pool.acquire() as conn:
+            await conn.execute(
+                """
+                INSERT INTO sys_benutzer (uid, benutzer, passwort, daten, name, historisch, sec_id)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+            """,
+                new_uuid,
+                benutzer_value,
+                passwort_value,
+                json.dumps(daten_copy),
+                name_value,
+                0,
+                template_row.get("sec_id"),
+            )
+            # Ensure name column and ROOT.SELF_NAME stay aligned with provided name.
+            await conn.execute(
+                """
+                UPDATE sys_benutzer
+                SET name = $1, daten = $2, modified_at = NOW()
+                WHERE uid = $3
+            """,
+                name_value,
+                json.dumps(daten_copy),
+                new_uuid,
+            )
+    else:
+        await db.create(
+            new_uuid,
+            daten=daten_copy,
+            name=name_value,
+            historisch=0,
+            sec_id=template_row.get("sec_id"),
+        )
 
     return await load_dialog_record(gcs, root_table=root_table, record_uuid=new_uuid)
 
@@ -236,7 +407,13 @@ def extract_dialog_runtime_config(dialog_def: Dict[str, Any]) -> Dict[str, Any]:
         return None
 
     root_table = _get_root_table(root)
-    view_guid_raw = _get_ci(root, "VIEW_GUID", "view_guid")
+    view_guid_raw = _get_ci(root, "VIEW_GUID", "view_guid", "VIEWGUID", "viewguid")
+    if not view_guid_raw:
+        # Fallbacks: allow view guid outside ROOT or inside TAB_01
+        view_guid_raw = _get_ci(daten, "VIEW_GUID", "view_guid", "VIEWGUID", "viewguid")
+        if not view_guid_raw:
+            tab1 = _find_tab_block(daten, 1) or _find_tab_block(root, 1)
+            view_guid_raw = _get_ci(tab1 or {}, "VIEW_GUID", "view_guid", "VIEWGUID", "viewguid")
     view_guid = str(view_guid_raw).strip() if view_guid_raw else None
 
     edit_type_raw = _get_ci(root, "EDIT_TYPE", "edit_type")

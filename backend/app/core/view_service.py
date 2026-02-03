@@ -194,6 +194,33 @@ async def load_view_base_rows(
     include_historisch: bool = True,
     control_fields: Optional[List[tuple[str, str]]] = None,
 ) -> List[Dict[str, Any]]:
+    def _user_has_role(role_name: str) -> bool:
+        try:
+            roles, _ = gcs.benutzer.get_value("PERMISSIONS", "ROLES", ab_zeit=float(gcs.stichtag))
+        except Exception:
+            roles = None
+
+        if roles is None:
+            return False
+
+        role_norm = str(role_name).strip().lower()
+        if isinstance(roles, list):
+            return any(str(r).strip().lower() == role_norm for r in roles)
+
+        # Fallback: String-Listen erlauben (z.B. "admin,user")
+        try:
+            roles_str = str(roles)
+        except Exception:
+            return False
+
+        candidates = [r.strip().lower() for r in roles_str.replace(";", ",").split(",") if r.strip()]
+        return role_norm in candidates
+
+    if str(table_name).strip().lower() == "sys_benutzer":
+        # Zugriff auf sys_benutzer nur für Admin-Role
+        if not _user_has_role("admin"):
+            return []
+
     db = PdvmDatabase(
         table_name,
         system_pool=gcs._system_pool,

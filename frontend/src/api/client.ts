@@ -19,6 +19,16 @@ export interface LoginResponse {
   mandanten?: Array<Record<string, any>>
 }
 
+export interface PasswordChangeRequest {
+  new_password: string
+  confirm_password: string
+}
+
+export interface PasswordChangeResponse {
+  success: boolean
+  message: string
+}
+
 export interface PdvmRecord {
   uid: string
   name: string
@@ -168,6 +178,23 @@ export interface DialogUiStateUpdateRequest {
   ui_state: Record<string, any>
 }
 
+export interface PasswordResetResponse {
+  user_uid: string
+  email: string
+  email_sent: boolean
+  email_error?: string | null
+  expires_at: string
+}
+
+export interface ForgotPasswordRequest {
+  email: string
+}
+
+export interface LockAccountResponse {
+  success: boolean
+  message: string
+}
+
 export interface DialogTableOverrideOptions {
   dialog_table?: string | null
 }
@@ -243,7 +270,9 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const requestUrl = String(error?.config?.url || '')
+    const isAuthEndpoint = requestUrl.includes('/auth/login') || requestUrl.includes('/auth/forgot-password')
+    if (error.response?.status === 401 && !isAuthEndpoint) {
       // Unauthorized - Token ungültig oder abgelaufen
       console.log('Token ungültig - automatischer Logout')
       localStorage.removeItem('token')
@@ -265,11 +294,46 @@ export const authAPI = {
     const response = await api.post('/auth/login', formData)
     return response.data
   },
+
+  changePassword: async (payload: PasswordChangeRequest, token?: string): Promise<PasswordChangeResponse> => {
+    const response = await api.post(
+      '/auth/password-change',
+      payload,
+      token
+        ? {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        : undefined
+    )
+    return response.data
+  },
+
+  forgotPassword: async (payload: ForgotPasswordRequest): Promise<PasswordResetResponse> => {
+    const response = await api.post('/auth/forgot-password', payload)
+    return response.data
+  },
   
   getMe: async (token: string) => {
     const response = await api.get('/auth/me', {
       headers: { Authorization: `Bearer ${token}` }
     })
+    return response.data
+  },
+}
+
+export const usersAPI = {
+  resetPassword: async (userUid: string): Promise<PasswordResetResponse> => {
+    const response = await api.post(`/users/${userUid}/password-reset`)
+    return response.data
+  },
+  lockAccount: async (userUid: string, reason?: string): Promise<LockAccountResponse> => {
+    const response = await api.post(`/users/${userUid}/lock`, { reason })
+    return response.data
+  },
+  unlockAccount: async (userUid: string): Promise<LockAccountResponse> => {
+    const response = await api.post(`/users/${userUid}/unlock`)
     return response.data
   },
 }

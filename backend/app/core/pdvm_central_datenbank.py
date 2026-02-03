@@ -389,7 +389,7 @@ class PdvmCentralDatabase:
         
         SICHERHEITSSCHALTER: Wenn no_save=True wurde, wird nichts gespeichert.
         AUTO-GUID: Wenn keine GUID vorhanden ist, wird automatisch eine neue generiert.
-        NAME-SYNC: ROOT.NAME wird automatisch mit der 'name' Spalte synchronisiert.
+        NAME-SYNC: ROOT.NAME/ROOT.SELF_NAME wird mit der 'name' Spalte synchronisiert.
         
         Returns:
             str: Die GUID des gespeicherten Datensatzes
@@ -406,28 +406,30 @@ class PdvmCentralDatabase:
         try:
             guid_uuid = uuid.UUID(self.guid)
             
-            # NAME-SYNC: Extrahiere ROOT.NAME für die 'name' Spalte
+            # NAME-SYNC: ROOT.NAME / ROOT.SELF_NAME für die 'name' Spalte
             name_value = None
-            if 'ROOT' in self.data and 'NAME' in self.data['ROOT']:
-                name_value = self.data['ROOT']['NAME']
+            if 'ROOT' in self.data and isinstance(self.data['ROOT'], dict):
+                root = self.data['ROOT']
+                name_value = root.get('NAME') or root.get('SELF_NAME')
                 if not name_value or name_value == '-eingeben-':
-                    name_value = f"{self.table_name}_entry"
-            else:
-                name_value = f"{self.table_name}_entry"
+                    name_value = None
             
             # Prüfe ob Datensatz existiert
             existing = await self.db.get_row(guid_uuid)
             
             if existing:
-                # Update
-                await self.db.update(guid_uuid, self.data, name=name_value)
+                # Update (only set name when present)
+                if name_value:
+                    await self.db.update(guid_uuid, self.data, name=name_value)
+                else:
+                    await self.db.update(guid_uuid, self.data)
                 logger.info(f"Daten aktualisiert für GUID {self.guid} mit name={name_value}")
             else:
-                # Create
+                # Create (name optional for non-dialog system saves)
                 await self.db.create(
                     guid_uuid,
                     self.data,
-                    name=name_value,
+                    name=name_value or "",
                     historisch=1 if self.historisch else 0
                 )
                 logger.info(f"Neuer Datensatz erstellt mit GUID {self.guid} und name={name_value}")

@@ -7,17 +7,29 @@ Nach Desktop-Vorbild: pdvm_login_dialog.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
+import uuid
 import logging
 from app.models.schemas import Token, UserLogin, UserCreate
+from pydantic import BaseModel, Field
 from app.core.security import (
     create_access_token,
     get_current_user
 )
 from app.core.config import settings
 from app.core.user_manager import UserManager
+from app.core.password_reset_service import issue_password_reset, _extract_user_email
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+class PasswordChangeRequest(BaseModel):
+    new_password: str = Field(..., min_length=12)
+    confirm_password: str = Field(..., min_length=12)
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str = Field(..., min_length=3)
 
 @router.post("/login", response_model=Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
@@ -46,7 +58,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
         logger.warning(f"❌ Account gesperrt: {email}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account gesperrt nach zu vielen Fehlversuchen. Bitte kontaktieren Sie einen Administrator.",
+            detail="Der Account ist gesperrt. Bitte wenden Sie sich an den Administrator.",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
@@ -89,6 +101,12 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     
     # 6. Prüfe ob Passwort geändert werden muss
     password_change_required = await user_manager.check_password_change_required(email)
+    if password_change_required and await user_manager.is_password_reset_expired(email):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Maschinelles Passwort ist abgelaufen. Bitte wenden Sie sich an den Administrator.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     
     # 7. Lade Mandanten-Liste für User (mit Berechtigungs-Filter)
     from app.core.data_managers import MandantDataManager
@@ -174,6 +192,72 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
         "user_data": user.get('daten', {}),
         "mandanten": filtered_mandanten
     }
+
+
+@router.post("/password-change")
+async def change_password(payload: PasswordChangeRequest, current_user: dict = Depends(get_current_user)):
+    """
+    Ändert Passwort des aktuellen Users (erforderlich bei PASSWORD_CHANGE_REQUIRED).
+    """
+    from app.core.pdvm_central_benutzer import PdvmCentralBenutzer
+    from app.core.password_reset_service import clear_password_reset_flags
+
+    new_password = str(payload.new_password or "").strip()
+    confirm_password = str(payload.confirm_password or "").strip()
+    if new_password != confirm_password:
+        raise HTTPException(status_code=400, detail="Passwörter stimmen nicht überein")
+
+    user_id = current_user.get("sub")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Ungültiger Benutzer")
+
+    user_manager = UserManager()
+    ok, msg = user_manager.validate_password_complexity(new_password)
+    if not ok:
+        raise HTTPException(status_code=400, detail=msg or "Passwort erfüllt die Richtlinie nicht")
+
+    # Locked accounts cannot change passwords
+    user = await user_manager.get_user_by_id(user_id)
+    if user and isinstance(user.get('daten'), dict):
+        security = user['daten'].get('SECURITY', {})
+        if isinstance(security, dict) and security.get('ACCOUNT_LOCKED'):
+            raise HTTPException(status_code=403, detail="Der Account ist gesperrt. Bitte wenden Sie sich an den Administrator.")
+
+    new_hash = user_manager.hash_password(new_password)
+    mgr = PdvmCentralBenutzer(uuid.UUID(str(user_id)))
+    await mgr.change_password(new_hash)
+
+    await clear_password_reset_flags(user_uid=str(user_id))
+
+    return {"success": True, "message": "Passwort wurde geändert"}
+
+
+@router.post("/forgot-password")
+async def forgot_password(payload: ForgotPasswordRequest):
+    """
+    Vergisst-Passwort-Flow: erzeugt maschinelles Passwort und sendet es an USER.EMAIL.
+    """
+    user_manager = UserManager()
+    email = user_manager.normalize_email(str(payload.email or "").strip())
+
+    if not user_manager.validate_email(email):
+        raise HTTPException(status_code=400, detail="Ungültige E-Mail-Adresse")
+
+    user = await user_manager.get_user_by_user_email(email)
+    if not user:
+        raise HTTPException(status_code=400, detail="E-Mail-Adresse nicht gefunden")
+
+    stored_email = _extract_user_email(user)
+    if not stored_email or user_manager.normalize_email(stored_email) != email:
+        raise HTTPException(status_code=400, detail="E-Mail-Adresse stimmt nicht überein")
+
+    try:
+        result = await issue_password_reset(gcs=None, user_uid=str(user["uid"]))
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/me")
 async def read_users_me(current_user: dict = Depends(get_current_user)):

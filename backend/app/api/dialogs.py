@@ -26,7 +26,9 @@ from app.core.dialog_service import (
     load_dialog_rows_uid_name,
     load_frame_definition,
     update_dialog_record_json,
+    update_dialog_record_central,
 )
+from app.core.pdvm_datenbank import PdvmDatabase
 
 router = APIRouter()
 
@@ -44,16 +46,15 @@ def _normalize_dialog_table(dialog_table: Optional[str]) -> Optional[str]:
     if not t:
         return None
     # Security: PdvmDatabase uses the table name inside f-strings.
-    # We must strictly validate to prevent SQL injection.
-    if not _TABLE_NAME_RE.match(t):
+
         raise HTTPException(status_code=400, detail="Ungültige dialog_table (nur [A-Za-z0-9_] erlaubt)")
     return t
 
 
 def _ensure_allowed_edit_type(edit_type: str):
     et = str(edit_type or "").strip().lower()
-    if et not in {"show_json", "edit_json", "menu"}:
-        raise HTTPException(status_code=400, detail="Nur EDIT_TYPE show_json, edit_json und menu sind erlaubt")
+    if et not in {"show_json", "edit_json", "menu", "edit_user"}:
+        raise HTTPException(status_code=400, detail="Nur EDIT_TYPE show_json, edit_json, menu und edit_user sind erlaubt")
 
 
 def _normalize_table_name(value: Optional[str]) -> str:
@@ -64,6 +65,47 @@ def _table_key_upper(root_table: str) -> str:
     return str(root_table or "").strip().upper()
 
 
+def _normalize_last_call_payload(raw: Any) -> Dict[str, Any]:
+    if isinstance(raw, dict):
+        return raw
+    if raw is None:
+        return {}
+    try:
+        import json
+
+        parsed = json.loads(str(raw))
+        return parsed if isinstance(parsed, dict) else {}
+    except Exception:
+        return {}
+
+
+async def _clear_last_call_for_table(gcs, *, key: str, root_table: str) -> None:
+    table_key = _table_key_upper(root_table)
+    if not table_key:
+        return
+
+    gcs.systemsteuerung.set_value(key, table_key, {_SYS_FIELD_LAST_CALL: None}, gcs.stichtag)
+    await gcs.systemsteuerung.save_all_values()
+
+
+async def _clear_legacy_last_call_map(gcs, *, key: str) -> None:
+    """Removes legacy LAST_CALL map under field LAST_CALL (old structure)."""
+    try:
+        raw, _ = gcs.systemsteuerung.get_value(key, _SYS_FIELD_LAST_CALL, ab_zeit=gcs.stichtag)
+    except Exception:
+        raw = None
+
+    legacy = _normalize_last_call_payload(raw)
+    if not legacy:
+        return
+
+    try:
+        gcs.systemsteuerung.delete_field(key, _SYS_FIELD_LAST_CALL)
+        await gcs.systemsteuerung.save_all_values()
+    except Exception:
+        pass
+
+
 async def _read_last_call_scoped_by_table(
     gcs,
     *,
@@ -72,13 +114,10 @@ async def _read_last_call_scoped_by_table(
 ) -> Optional[str]:
     """Liest last_call aus sys_systemsteuerung.
 
-    Datenmodell (gewünscht):
-    - Gruppe: frame_guid (oder fallback view_guid/dialog_guid)
-    - Feld: LAST_CALL (Großbuchstaben)
-    - Wert: Dict/JSON-Objekt, Key = TABLE (Großbuchstaben), Value = GUID
-
-    Beispiel:
-    LAST_CALL = {"SYS_VIEWDATEN": "...", "SYS_FRAMDATEN": "..."}
+    Datenmodell (vereinfacht):
+    - Gruppe: view_guid
+    - Feld: TABLE (Großbuchstaben)
+    - Wert: {"LAST_CALL": <guid|null>}
     """
 
     table_norm = _normalize_table_name(root_table)
@@ -90,30 +129,20 @@ async def _read_last_call_scoped_by_table(
         return None
 
     try:
-        raw, _ = gcs.systemsteuerung.get_value(key, _SYS_FIELD_LAST_CALL, ab_zeit=gcs.stichtag)
+        raw, _ = gcs.systemsteuerung.get_value(key, table_key, ab_zeit=gcs.stichtag)
     except Exception:
         return None
 
     if raw is None:
         return None
 
-    mapping: Dict[str, Any]
-    if isinstance(raw, dict):
-        mapping = raw
+    payload = _normalize_last_call_payload(raw)
+    if _SYS_FIELD_LAST_CALL in payload:
+        value = payload.get(_SYS_FIELD_LAST_CALL)
     else:
-        # In early testing it might be persisted as a JSON-string; be tolerant.
-        try:
-            import json
+        value = raw
 
-            parsed = json.loads(str(raw))
-            mapping = parsed if isinstance(parsed, dict) else {}
-        except Exception:
-            mapping = {}
-
-    value = mapping.get(table_key)
-    if value is None:
-        return None
-    s = str(value).strip()
+    s = str(value).strip() if value is not None else ""
     if not s:
         return None
 
@@ -123,33 +152,24 @@ async def _read_last_call_scoped_by_table(
         return None
 
 
-def _compute_last_call_key(runtime: Dict[str, Any], dialog_guid: str) -> str:
+def _compute_last_call_key(runtime: Dict[str, Any]) -> Optional[str]:
     """Berechnet den Persistenz-Key für last_call.
 
-    Vorgabe (PDVM Dialog Spec): Die letzte selektierte GUID wird pro User in der
-    Systemsteuerung unter der *frame_guid* abgelegt.
+    PDVM-Dialog-Regel (vereinfacht): last_call ist ausschließlich
+    an view_guid + table gekoppelt. Keine frame/dialog Fallbacks.
 
-    Priorität:
-    1) frame_guid
-    2) view_guid (legacy / Fallback, wenn kein Frame vorhanden)
-    3) dialog_guid (letzter Fallback)
+    Returns:
+        view_guid als String oder None wenn nicht vorhanden/ungültig.
     """
 
-    frame_guid = runtime.get("frame_guid")
-    if frame_guid:
-        try:
-            return str(uuid.UUID(str(frame_guid)))
-        except Exception:
-            pass
-
     view_guid = runtime.get("view_guid")
-    if view_guid:
-        try:
-            return str(uuid.UUID(str(view_guid)))
-        except Exception:
-            pass
+    if not view_guid:
+        return None
 
-    return str(dialog_guid)
+    try:
+        return str(uuid.UUID(str(view_guid)))
+    except Exception:
+        return None
 
 
 def _compute_dialog_ui_state_group(*, dialog_guid: str, root_table: str, edit_type: str) -> str:
@@ -303,10 +323,28 @@ async def get_dialog_definition(dialog_guid: str, dialog_table: Optional[str] = 
             # Frame ist optional; Dialog soll trotzdem rendern.
             frame_payload = None
 
-    # last_call aus sys_systemsteuerung (pro User): group = frame_guid (wenn vorhanden), sonst view_guid, sonst dialog_guid
-    # zusätzlich table-scoped: TABELLE + LAST_CALL
-    last_call_key = _compute_last_call_key(runtime, dialog_guid)
-    last_call_str = await _read_last_call_scoped_by_table(gcs, key=last_call_key, root_table=runtime.get("root_table") or "")
+    # last_call aus sys_systemsteuerung (pro User): group = view_guid
+    # table-scoped: TABLE + LAST_CALL (Objekt: {"LAST_CALL": <uid|null>})
+    last_call_key = _compute_last_call_key(runtime)
+    root_table = runtime.get("root_table") or ""
+    last_call_str = None
+    if last_call_key:
+        table_key = _table_key_upper(root_table)
+        if table_key:
+            try:
+                existing_raw, _ = gcs.systemsteuerung.get_value(last_call_key, table_key, ab_zeit=gcs.stichtag)
+            except Exception:
+                existing_raw = None
+
+            # Wenn Feld fehlt → initialisieren mit LAST_CALL = None
+            if existing_raw is None:
+                gcs.systemsteuerung.set_value(last_call_key, table_key, {_SYS_FIELD_LAST_CALL: None}, gcs.stichtag)
+                await gcs.systemsteuerung.save_all_values()
+                last_call_str = None
+            else:
+                payload = _normalize_last_call_payload(existing_raw)
+                value = payload.get(_SYS_FIELD_LAST_CALL) if _SYS_FIELD_LAST_CALL in payload else None
+                last_call_str = str(value).strip() if value is not None else None
 
     return {
         **dialog_def,
@@ -317,7 +355,12 @@ async def get_dialog_definition(dialog_guid: str, dialog_table: Optional[str] = 
         "open_edit_mode": runtime.get("open_edit_mode") or "button",
         "frame_guid": frame_guid,
         "frame": frame_payload,
-        "meta": {"tabs": runtime.get("tabs", 2), "dialog_table": dialog_table_norm, "last_call": last_call_str, "last_call_key": last_call_key},
+        "meta": {
+            "tabs": runtime.get("tabs", 2),
+            "dialog_table": dialog_table_norm,
+            "last_call": last_call_str,
+            "last_call_key": f"{last_call_key}::{_table_key_upper(root_table)}" if last_call_key and root_table else last_call_key,
+        },
     }
 
 
@@ -340,9 +383,12 @@ async def get_dialog_last_call(dialog_guid: str, dialog_table: Optional[str] = N
         _ensure_allowed_edit_type(runtime.get("edit_type") or "show_json")
         runtime["root_table"] = dialog_table_norm
 
-    key = _compute_last_call_key(runtime, dialog_guid)
+    key = _compute_last_call_key(runtime)
+    root_table = runtime.get("root_table") or ""
+    if not key:
+        return {"key": "", "last_call": None}
 
-    last_call = await _read_last_call_scoped_by_table(gcs, key=key, root_table=runtime.get("root_table") or "")
+    last_call = await _read_last_call_scoped_by_table(gcs, key=key, root_table=root_table)
 
     return {"key": key, "last_call": last_call}
 
@@ -371,7 +417,9 @@ async def put_dialog_last_call(
         _ensure_allowed_edit_type(runtime.get("edit_type") or "show_json")
         runtime["root_table"] = dialog_table_norm
 
-    key = _compute_last_call_key(runtime, dialog_guid)
+    key = _compute_last_call_key(runtime)
+    if not key:
+        raise HTTPException(status_code=400, detail="VIEW_GUID fehlt - last_call kann nicht gesetzt werden")
 
     record_uid = payload.record_uid
     if record_uid is not None:
@@ -390,21 +438,9 @@ async def put_dialog_last_call(
     if not table_key:
         raise HTTPException(status_code=400, detail="ROOT.TABLE ist leer")
 
-    # Read-modify-write the LAST_CALL map.
-    try:
-        existing_raw, _ = gcs.systemsteuerung.get_value(key, _SYS_FIELD_LAST_CALL, ab_zeit=gcs.stichtag)
-    except Exception:
-        existing_raw = None
-
-    existing_map: Dict[str, Any] = existing_raw if isinstance(existing_raw, dict) else {}
-    next_map = dict(existing_map)
-
-    if record_uid is None:
-        next_map.pop(table_key, None)
-    else:
-        next_map[table_key] = record_uid
-
-    gcs.systemsteuerung.set_value(key, _SYS_FIELD_LAST_CALL, next_map, gcs.stichtag)
+    # Persist per view_guid + table (payload contains LAST_CALL only).
+    payload = {_SYS_FIELD_LAST_CALL: record_uid if record_uid is not None else None}
+    gcs.systemsteuerung.set_value(key, table_key, payload, gcs.stichtag)
     await gcs.systemsteuerung.save_all_values()
 
     return {"key": key, "last_call": record_uid}
@@ -482,9 +518,11 @@ async def put_dialog_record(
     dialog_table: Optional[str] = None,
     gcs=Depends(get_gcs_instance),
 ):
-    """Aktualisiert das JSONB-Feld 'daten' eines Datensatzes.
+    """Aktualisiert einen Datensatz.
 
-    Aktiv, wenn der Dialog mit EDIT_TYPE='edit_json' konfiguriert ist.
+    Unterstützt:
+    - EDIT_TYPE=edit_json (JSON Editor)
+    - EDIT_TYPE=edit_user (PIC über PdvmCentralDatabase)
     """
     try:
         dialog_uuid = uuid.UUID(dialog_guid)
@@ -513,10 +551,12 @@ async def put_dialog_record(
         raise HTTPException(status_code=400, detail="Dialog ROOT.TABLE ist leer")
 
     edit_type = str(runtime.get("edit_type") or "show_json").strip().lower()
-    if edit_type != "edit_json":
-        raise HTTPException(status_code=400, detail="Dialog ist nicht für edit_json konfiguriert")
+    if edit_type not in {"edit_json", "edit_user"}:
+        raise HTTPException(status_code=400, detail="Dialog ist nicht für edit_json oder edit_user konfiguriert")
 
     try:
+        if edit_type == "edit_user":
+            return await update_dialog_record_central(gcs, root_table=table, record_uuid=record_uuid, daten=payload.daten)
         return await update_dialog_record_json(gcs, root_table=table, record_uuid=record_uuid, daten=payload.daten)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -552,12 +592,6 @@ async def post_dialog_record_create(
     table = runtime.get("root_table") or ""
     if not table:
         raise HTTPException(status_code=400, detail="Dialog ROOT.TABLE ist leer")
-
-    edit_type = str(runtime.get("edit_type") or "show_json").strip().lower()
-    if edit_type == "show_json":
-        raise HTTPException(status_code=400, detail="Neuer Satz ist bei EDIT_TYPE=show_json nicht erlaubt")
-    if edit_type not in {"edit_json", "menu"}:
-        raise HTTPException(status_code=400, detail="Neuer Satz ist nur für EDIT_TYPE=edit_json oder menu erlaubt")
 
     name = str(payload.name or "").strip()
     if not name:
