@@ -89,3 +89,9 @@ Each table follows the PDVM standard:
 - `created_at` - Creation timestamp
 - `modified_at` - Last modified
 - `daten_backup` - Backup data
+
+## 📝 Änderungen
+
+- 2026-02-03: Mandanten-Setup aktualisiert `ROOT.DB_CREATED_AT` über `MandantDataManager.update_value()` (kein direkter Router-DB-Zugriff).
+- 2026-02-03: `go_dialog` akzeptiert `dialog_table`, `table` oder `root_table` als Tabellen-Override; Dialog-Seite liest auch `?table=`.
+- 2026-02-04: Idle-Session gemäß `ROOT.IDLE_TIMEOUT`/`ROOT.IDLE_WARNING` (Sekunden) inkl. Keep-Alive und Warn-Dialog.

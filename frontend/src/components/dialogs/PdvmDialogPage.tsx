@@ -121,7 +121,7 @@ function setFieldValue(daten: Record<string, any>, gruppe: string, feld: string,
 export default function PdvmDialogPage() {
   const { dialogGuid } = useParams<{ dialogGuid: string }>()
   const [searchParams] = useSearchParams()
-  const dialogTable = (searchParams.get('dialog_table') || '').trim() || null
+  const dialogTable = (searchParams.get('dialog_table') || searchParams.get('table') || '').trim() || null
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<ActiveTab>('view')
   const [pageOffset, setPageOffset] = useState(0)

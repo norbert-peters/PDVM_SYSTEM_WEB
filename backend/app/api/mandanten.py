@@ -18,6 +18,16 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
+def _parse_idle_seconds(value) -> int | None:
+    try:
+        n = int(float(str(value).strip()))
+        if n <= 0:
+            return None
+        return n
+    except Exception:
+        return None
+
+
 # System-UIDs die nicht in der Auswahl angezeigt werden
 SYSTEM_MANDANT_UIDS = [
     "66666666-6666-6666-6666-666666666666",  # Template
@@ -244,8 +254,8 @@ async def select_mandant(
                         await init_conn.close()
                     
                     # DB_CREATED_AT setzen
-                    from ..core.pdvm_datetime import PdvmDateTime
-                    db_created_at = await PdvmDateTime.now()
+                    from ..core.pdvm_datetime import now_pdvm_str
+                    db_created_at = now_pdvm_str()
                     await manager.update_value(
                         mandant_id=mandant_id,
                         group="ROOT",
@@ -371,6 +381,8 @@ async def select_mandant(
             "mandant_name": mandant["name"],
             "mandant_town": mandant_data.get("ROOT", {}).get("MANDANT_TOWN"),
             "mandant_street": mandant_data.get("ROOT", {}).get("MANDANT_STREET"),
+            "idle_timeout": _parse_idle_seconds(mandant_data.get("ROOT", {}).get("IDLE_TIMEOUT")),
+            "idle_warning": _parse_idle_seconds(mandant_data.get("ROOT", {}).get("IDLE_WARNING")),
             "database": database,
             "message": f"Mandant '{mandant['name']}' erfolgreich ausgewählt"
         }

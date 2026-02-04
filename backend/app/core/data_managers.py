@@ -194,6 +194,53 @@ class MandantDataManager:
         
         logger.info(f"✅ Mandant aktualisiert: {mandant_id}")
         return updated
+
+    async def update_value(
+        self,
+        mandant_id: str | UUID,
+        group: str,
+        field: str,
+        value: Any
+    ) -> Dict[str, Any]:
+        """
+        Aktualisiert einen einzelnen Wert in der Mandanten-Struktur
+
+        Args:
+            mandant_id: UUID des Mandanten
+            group: Daten-Gruppe (z.B. ROOT, MANDANT, CONFIG)
+            field: Feldname innerhalb der Gruppe
+            value: Neuer Wert
+
+        Returns:
+            Aktualisierter Mandant
+        """
+        mandant = await self.get_by_id(mandant_id)
+        if not mandant:
+            raise ValueError(f"Mandant nicht gefunden: {mandant_id}")
+
+        daten = mandant.get("daten") if isinstance(mandant.get("daten"), dict) else {}
+        group_key = str(group or "").strip() or "ROOT"
+
+        group_data = daten.get(group_key)
+        if not isinstance(group_data, dict):
+            group_data = {}
+
+        group_data[str(field)] = value
+        daten[group_key] = group_data
+
+        if isinstance(daten.get("MANDANT"), dict):
+            daten["MANDANT"]["MODIFIED"] = datetime.now().isoformat()
+
+        updated = await self.db_service.update(
+            uid=mandant_id,
+            daten=daten,
+            name=mandant.get("name"),
+            backup_old=True
+        )
+
+        self._cache[str(mandant_id)] = updated
+        logger.info(f"✅ Mandant-Wert aktualisiert: {mandant_id} {group_key}.{field}")
+        return updated
     
     async def check_access(
         self,

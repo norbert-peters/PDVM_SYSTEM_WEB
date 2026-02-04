@@ -75,6 +75,8 @@ class MandantSelectResponse(BaseModel):
     mandant_name: str
     mandant_town: Optional[str] = None
     mandant_street: Optional[str] = None
+    idle_timeout: Optional[int] = None
+    idle_warning: Optional[int] = None
     database: str
     message: str
 

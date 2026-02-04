@@ -84,6 +84,14 @@ Dann sollen alle Dialoge auf den zuletzt ausgewählten Datensatz springen.
 - Sonderfälle (z.B. `sys_benutzer`) dürfen Zusatzfunktionen haben, müssen aber **primär**
 	`PdvmDatabase` nutzen und nur für Spezialspalten auf Auth‑Queries ausweichen.
 
+### 1.8 Session Idle Timeout (Mandant ROOT)
+**Regel:** Idle‑Timeout wird zentral über Mandant‑Daten gesteuert.
+
+- `ROOT.IDLE_TIMEOUT` und `ROOT.IDLE_WARNING` sind **Sekunden**.
+- Backend aktualisiert Session‑Aktivität bei jeder Anfrage (Sliding Session).
+- Frontend sendet `POST /api/auth/keep-alive` bei Benutzer‑Aktivität und zeigt Warnung via `PdvmDialogModal`.
+- Bei Inaktivität wird die Session serverseitig beendet (GCS‑Session schließt Pools).
+
 ---
 
 ## 2. Frontend Architektur (React)

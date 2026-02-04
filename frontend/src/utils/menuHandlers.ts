@@ -137,7 +137,7 @@ async function handleGoView(item: MenuItem, context: MenuHandlerContext): Promis
  */
 async function handleGoDialog(item: MenuItem, context: MenuHandlerContext): Promise<void> {
   const dialogGuid = item.command?.params?.dialog_guid || item.command?.params?.guid;
-  const dialogTable = item.command?.params?.dialog_table;
+  const dialogTable = item.command?.params?.dialog_table || item.command?.params?.table || item.command?.params?.root_table;
 
   if (!dialogGuid) {
     context.showError('Kein dialog_guid im Command gefunden');
@@ -240,7 +240,7 @@ export async function restoreLastNavigation(context: MenuHandlerContext): Promis
 
       if (handler === 'go_dialog') {
         const dialogGuid = params?.dialog_guid || params?.guid
-        const dialogTable = params?.dialog_table
+        const dialogTable = params?.dialog_table || params?.table || params?.root_table
         if (dialogGuid) {
           const qs = dialogTable ? `?dialog_table=${encodeURIComponent(String(dialogTable))}` : ''
           context.navigate(`/dialog/${String(dialogGuid)}${qs}`)

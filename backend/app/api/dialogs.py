@@ -46,7 +46,7 @@ def _normalize_dialog_table(dialog_table: Optional[str]) -> Optional[str]:
     if not t:
         return None
     # Security: PdvmDatabase uses the table name inside f-strings.
-
+    if not _TABLE_NAME_RE.match(t):
         raise HTTPException(status_code=400, detail="Ungültige dialog_table (nur [A-Za-z0-9_] erlaubt)")
     return t
 

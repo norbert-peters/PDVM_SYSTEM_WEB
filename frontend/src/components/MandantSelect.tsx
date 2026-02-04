@@ -66,6 +66,19 @@ export default function MandantSelect({ onMandantSelected, onCreateNew }: Mandan
       // Backend-Aufruf: Mandant auswählen + Tabellen anlegen
       const selected = await mandantenAPI.selectMandant(mandantId)
 
+      const idleTimeout = Number(selected?.idle_timeout ?? selected?.idleTimeout ?? 0)
+      const idleWarning = Number(selected?.idle_warning ?? selected?.idleWarning ?? 0)
+      if (Number.isFinite(idleTimeout) && idleTimeout > 0) {
+        localStorage.setItem('idle_timeout', String(Math.trunc(idleTimeout)))
+      } else {
+        localStorage.removeItem('idle_timeout')
+      }
+      if (Number.isFinite(idleWarning) && idleWarning > 0) {
+        localStorage.setItem('idle_warning', String(Math.trunc(idleWarning)))
+      } else {
+        localStorage.removeItem('idle_warning')
+      }
+
       // Callback aufrufen (AuthContext persistiert in localStorage)
       onMandantSelected({
         uid: selected.mandant_id ?? mandantId,

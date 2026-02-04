@@ -29,6 +29,14 @@ export interface PasswordChangeResponse {
   message: string
 }
 
+export interface KeepAliveResponse {
+  ok: boolean
+  idle_timeout?: number | null
+  idle_warning?: number | null
+  idle_remaining?: number | null
+  last_activity?: number | null
+}
+
 export interface PdvmRecord {
   uid: string
   name: string
@@ -312,6 +320,11 @@ export const authAPI = {
 
   forgotPassword: async (payload: ForgotPasswordRequest): Promise<PasswordResetResponse> => {
     const response = await api.post('/auth/forgot-password', payload)
+    return response.data
+  },
+
+  keepAlive: async (): Promise<KeepAliveResponse> => {
+    const response = await api.post('/auth/keep-alive')
     return response.data
   },
   

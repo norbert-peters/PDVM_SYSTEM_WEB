@@ -10,6 +10,7 @@ Nach Desktop-Vorbild: pdvm_central_systemsteuerung.py
 """
 import uuid
 import logging
+import time
 from typing import Optional, Dict, Any
 from app.core.pdvm_central_datenbank import PdvmCentralDatabase
 from app.core.pdvm_datenbank import PdvmDatabase
@@ -21,6 +22,16 @@ logger = logging.getLogger(__name__)
 # SESSION STORAGE (In-Memory für MVP)
 # ============================================
 _gcs_sessions: Dict[str, 'PdvmCentralSystemsteuerung'] = {}
+
+
+def _parse_idle_seconds(value: Any) -> Optional[int]:
+    try:
+        n = int(float(str(value).strip()))
+        if n <= 0:
+            return None
+        return n
+    except Exception:
+        return None
 
 
 def get_gcs() -> Optional['PdvmCentralSystemsteuerung']:
@@ -109,6 +120,13 @@ async def create_gcs_session(
     # Linear init: ensure DB-backed instances are loaded before the session is used.
     await gcs.initialize_from_db()
     
+    # Idle-Konfiguration aus Mandant (ROOT.IDLE_TIMEOUT / IDLE_WARNING)
+    try:
+        gcs.set_idle_config(mandant_data)
+    except Exception:
+        pass
+    gcs.touch()
+
     # In Session-Store ablegen
     _gcs_sessions[session_token] = gcs
     
@@ -126,7 +144,26 @@ def get_gcs_session(session_token: str) -> Optional['PdvmCentralSystemsteuerung'
     Returns:
         PdvmCentralSystemsteuerung-Instanz oder None
     """
-    return _gcs_sessions.get(session_token)
+    gcs = _gcs_sessions.get(session_token)
+    if not gcs:
+        return None
+
+    try:
+        if gcs.is_idle_expired():
+            # Session abgelaufen → schließen
+            try:
+                # fire-and-forget: close pools
+                import asyncio
+
+                asyncio.create_task(close_gcs_session(session_token))
+            except Exception:
+                _gcs_sessions.pop(session_token, None)
+            return None
+        gcs.touch()
+    except Exception:
+        pass
+
+    return gcs
 
 
 async def close_gcs_session(session_token: str):
@@ -210,6 +247,13 @@ class PdvmCentralSystemsteuerung:
         # Key: (table_name, dataset_uid, language)
         # Value: {ts, default_language, maps:{field->{key:label}}, options:{field->[...]} }
         self._pdvm_dropdown_cache: Dict[tuple[str, str, str], Any] = {}
+
+        # Idle-Session-Management (Sekunden)
+        self._idle_timeout_seconds: Optional[int] = None
+        self._idle_warning_seconds: Optional[int] = None
+        self._last_activity_ts: Optional[float] = None
+
+        self.layout = None
         
         # ===== DESKTOP-PATTERN: Separate Instanzen =====
         
@@ -258,7 +302,49 @@ class PdvmCentralSystemsteuerung:
         )
         
         # 5. Layout wird in initialize_from_db() geladen (linear)
-        self.layout = None
+
+    def set_idle_config(self, mandant_data: Dict[str, Any]) -> None:
+        root = mandant_data.get("ROOT", {}) if isinstance(mandant_data, dict) else {}
+        if not isinstance(root, dict):
+            root = {}
+
+        timeout = _parse_idle_seconds(root.get("IDLE_TIMEOUT"))
+        warning = _parse_idle_seconds(root.get("IDLE_WARNING"))
+
+        self._idle_timeout_seconds = timeout
+        self._idle_warning_seconds = warning
+
+    def touch(self) -> None:
+        self._last_activity_ts = time.time()
+
+    def is_idle_expired(self, now_ts: Optional[float] = None) -> bool:
+        timeout = self._idle_timeout_seconds or 0
+        if timeout <= 0:
+            return False
+        last = self._last_activity_ts
+        if last is None:
+            return False
+        now = now_ts if now_ts is not None else time.time()
+        return (now - last) >= timeout
+
+    def idle_remaining_seconds(self, now_ts: Optional[float] = None) -> Optional[int]:
+        timeout = self._idle_timeout_seconds or 0
+        if timeout <= 0:
+            return None
+        last = self._last_activity_ts
+        if last is None:
+            return None
+        now = now_ts if now_ts is not None else time.time()
+        remaining = timeout - (now - last)
+        return int(remaining) if remaining > 0 else 0
+
+    def get_idle_status(self) -> Dict[str, Any]:
+        return {
+            "idle_timeout": self._idle_timeout_seconds,
+            "idle_warning": self._idle_warning_seconds,
+            "last_activity": self._last_activity_ts,
+            "idle_remaining": self.idle_remaining_seconds(),
+        }
 
     @staticmethod
     def _truthy(value: Any) -> bool:

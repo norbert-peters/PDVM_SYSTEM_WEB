@@ -15,6 +15,7 @@ from app.core.security import (
     create_access_token,
     get_current_user
 )
+from app.core.pdvm_central_systemsteuerung import get_gcs_session
 from app.core.config import settings
 from app.core.user_manager import UserManager
 from app.core.password_reset_service import issue_password_reset, _extract_user_email
@@ -258,6 +259,24 @@ async def forgot_password(payload: ForgotPasswordRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/keep-alive")
+async def keep_alive(current_user: dict = Depends(get_current_user)):
+    """Aktualisiert Session-Aktivität und liefert Idle-Status (Mandant ROOT)."""
+    token = current_user.get("token")
+    if not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Kein Session-Token gefunden")
+
+    gcs = get_gcs_session(token)
+    if not gcs:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Keine GCS-Session gefunden. Bitte Mandant auswählen.")
+
+    try:
+        gcs.touch()
+        return {"ok": True, **gcs.get_idle_status()}
+    except Exception:
+        return {"ok": True}
 
 @router.get("/me")
 async def read_users_me(current_user: dict = Depends(get_current_user)):
