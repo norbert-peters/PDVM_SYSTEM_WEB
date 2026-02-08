@@ -12,6 +12,7 @@ import {
 } from '../../api/client'
 import { PdvmViewPageContent } from '../views/PdvmViewPage'
 import { PdvmMenuEditor } from './PdvmMenuEditor'
+import { PdvmImportDataEditor, PdvmImportDataSteps } from './PdvmImportDataEditor'
 import { PdvmJsonEditor, type PdvmJsonEditorHandle, type PdvmJsonEditorMode } from '../common/PdvmJsonEditor'
 import { PdvmDialogModal } from '../common/PdvmDialogModal'
 import { PdvmInputControl, type PdvmDropdownOption } from '../common/PdvmInputControl'
@@ -194,6 +195,7 @@ export default function PdvmDialogPage() {
   const wantsMenuEditor = editType === 'menu'
   const hasEmbeddedView = !!String(defQuery.data?.view_guid || '').trim()
   const isSysMenuTable = String(defQuery.data?.root_table || '').trim().toLowerCase() === 'sys_menudaten'
+  const isImportEditor = editType === 'import_data'
 
   // If the dialog embeds a View (by view_guid), keep selection in sync by listening
   // to the global selection event emitted by PdvmViewPage.
@@ -265,6 +267,12 @@ export default function PdvmDialogPage() {
 
   const isMenuEditor = wantsMenuEditor
   const isPicEditor = editType === 'edit_user'
+  const [importStep, setImportStep] = useState(1)
+
+  useEffect(() => {
+    if (!isImportEditor) return
+    setImportStep(1)
+  }, [isImportEditor, selectedUid, effectiveDialogTable])
   const frameDaten = (defQuery.data?.frame?.daten || null) as Record<string, any> | null
   const frameRoot = (defQuery.data?.frame?.root || {}) as Record<string, any>
 
@@ -322,6 +330,29 @@ export default function PdvmDialogPage() {
     queryFn: () => dialogsAPI.getRecord(dialogGuid!, selectedUid!, { dialog_table: dialogTable }),
     enabled: !!dialogGuid && !!selectedUid && !isMenuEditor,
   })
+
+  const editInfoParts = useMemo(() => {
+    const items: Array<{ label: string; value: string }> = []
+    if (effectiveDialogTable) items.push({ label: 'TABLE', value: effectiveDialogTable })
+    if (defQuery.data?.edit_type) items.push({ label: 'EDIT_TYPE', value: String(defQuery.data.edit_type) })
+    if (selectedUid) items.push({ label: 'UID', value: selectedUid })
+    if (recordQuery.data?.name) items.push({ label: 'NAME', value: String(recordQuery.data.name) })
+    return items
+  }, [effectiveDialogTable, defQuery.data?.edit_type, selectedUid, recordQuery.data?.name])
+
+  const renderEditInfo = () => {
+    if (editInfoParts.length === 0) return null
+    return (
+      <div className="pdvm-dialog__editInfo">
+        {editInfoParts.map((item, idx) => (
+          <span key={item.label}>
+            {item.label}: <span style={{ fontFamily: 'monospace' }}>{item.value}</span>
+            {idx < editInfoParts.length - 1 ? ' | ' : ''}
+          </span>
+        ))}
+      </div>
+    )
+  }
 
 
 
@@ -762,6 +793,14 @@ export default function PdvmDialogPage() {
     queryClient.invalidateQueries({ queryKey: ['dialog', 'definition', dialogGuid, dialogTable] }).catch(() => {
       // Best-effort refresh only.
     })
+  }
+
+  const handleImportApplied = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['dialog', 'rows', dialogGuid, dialogTable] })
+    const embeddedViewGuid = String(defQuery.data?.view_guid || '').trim()
+    if (embeddedViewGuid) {
+      await queryClient.invalidateQueries({ queryKey: ['view', 'matrix', embeddedViewGuid] })
+    }
   }
 
   const performRefreshEdit = async () => {
@@ -1255,33 +1294,36 @@ export default function PdvmDialogPage() {
           {activeTab === 'edit' ? (
             <div className="pdvm-dialog__editArea">
               {isMenuEditor ? (
-                <div className="pdvm-dialog__editAreaContent">
-                  {!selectedUid ? <div>Kein Menüdatensatz ausgewählt. Bitte zuerst im View-Tab auswählen.</div> : null}
-
-                  {selectedUid ? (
-                    <div>
-                      <div style={{ marginBottom: 10, fontSize: 12, opacity: 0.8 }}>
-                        Menü UID: <span style={{ fontFamily: 'monospace' }}>{selectedUid}</span>
-                      </div>
-
-                      {menuEditTabs.tabs >= 2 && menuEditTabs.items.length >= 2 ? (
-                        <div className="pdvm-tabs pdvm-tabs--sticky" style={{ marginBottom: 10 }}>
-                          <div className="pdvm-tabs__bar">
-                            <div className="pdvm-tabs__list" role="tablist" aria-label="Menü Edit Tabs">
-                              {menuEditTabs.items.map((t) => (
-                                <button
-                                  key={t.group}
-                                  type="button"
-                                  role="tab"
-                                  aria-selected={menuActiveTab === t.group}
-                                  className={`pdvm-tabs__tab ${menuActiveTab === t.group ? 'pdvm-tabs__tab--active' : ''}`}
-                                  onClick={() => setMenuActiveTab(t.group)}
-                                >
-                                  {t.head}
-                                </button>
-                              ))}
-                            </div>
+                <>
+                  <div className="pdvm-dialog__editAreaHeader">
+                    {renderEditInfo()}
+                    {selectedUid && menuEditTabs.tabs >= 2 && menuEditTabs.items.length >= 2 ? (
+                      <div className="pdvm-tabs">
+                        <div className="pdvm-tabs__bar">
+                          <div className="pdvm-tabs__list" role="tablist" aria-label="Menü Edit Tabs">
+                            {menuEditTabs.items.map((t) => (
+                              <button
+                                key={t.group}
+                                type="button"
+                                role="tab"
+                                aria-selected={menuActiveTab === t.group}
+                                className={`pdvm-tabs__tab ${menuActiveTab === t.group ? 'pdvm-tabs__tab--active' : ''}`}
+                                onClick={() => setMenuActiveTab(t.group)}
+                              >
+                                {t.head}
+                              </button>
+                            ))}
                           </div>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="pdvm-dialog__editAreaContent">
+                    {!selectedUid ? <div>Kein Menüdatensatz ausgewählt. Bitte zuerst im View-Tab auswählen.</div> : null}
+
+                    {selectedUid ? (
+                      <div>
+                        {menuEditTabs.tabs >= 2 && menuEditTabs.items.length >= 2 ? (
                           <div className="pdvm-tabs__panel">
                             <PdvmMenuEditor
                               key={`${selectedUid}|${menuActiveTab}|${menuEditorRefreshToken}`}
@@ -1292,36 +1334,36 @@ export default function PdvmDialogPage() {
                               onMissingMenuGuid={handleMissingMenuGuid}
                             />
                           </div>
-                        </div>
-                      ) : (
-                        <>
-                          <div style={{ marginBottom: 16 }}>
-                            <div style={{ fontWeight: 800, marginBottom: 8 }}>GRUND</div>
-                            <PdvmMenuEditor
-                              key={`${selectedUid}|GRUND|${menuEditorRefreshToken}`}
-                              menuGuid={selectedUid}
-                              group="GRUND"
-                              systemdatenUid={systemdatenUid}
-                              frameDaten={defQuery.data?.frame?.daten || null}
-                              onMissingMenuGuid={handleMissingMenuGuid}
-                            />
-                          </div>
-                          <div>
-                            <div style={{ fontWeight: 800, marginBottom: 8 }}>VERTIKAL</div>
-                            <PdvmMenuEditor
-                              key={`${selectedUid}|VERTIKAL|${menuEditorRefreshToken}`}
-                              menuGuid={selectedUid}
-                              group="VERTIKAL"
-                              systemdatenUid={systemdatenUid}
-                              frameDaten={defQuery.data?.frame?.daten || null}
-                              onMissingMenuGuid={handleMissingMenuGuid}
-                            />
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  ) : null}
-                </div>
+                        ) : (
+                          <>
+                            <div style={{ marginBottom: 16 }}>
+                              <div style={{ fontWeight: 800, marginBottom: 8 }}>GRUND</div>
+                              <PdvmMenuEditor
+                                key={`${selectedUid}|GRUND|${menuEditorRefreshToken}`}
+                                menuGuid={selectedUid}
+                                group="GRUND"
+                                systemdatenUid={systemdatenUid}
+                                frameDaten={defQuery.data?.frame?.daten || null}
+                                onMissingMenuGuid={handleMissingMenuGuid}
+                              />
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 800, marginBottom: 8 }}>VERTIKAL</div>
+                              <PdvmMenuEditor
+                                key={`${selectedUid}|VERTIKAL|${menuEditorRefreshToken}`}
+                                menuGuid={selectedUid}
+                                group="VERTIKAL"
+                                systemdatenUid={systemdatenUid}
+                                frameDaten={defQuery.data?.frame?.daten || null}
+                                onMissingMenuGuid={handleMissingMenuGuid}
+                              />
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                </>
               ) : isPicEditor ? (
                 <>
                   <div className="pdvm-dialog__editAreaHeader">
@@ -1366,6 +1408,7 @@ export default function PdvmDialogPage() {
                         </div>
                       </div>
                     ) : null}
+                    {renderEditInfo()}
                     {picTabs.items.length > 1 ? (
                       <div className="pdvm-tabs pdvm-tabs--sticky pdvm-dialog__editUserTabs">
                         <div className="pdvm-tabs__bar">
@@ -1468,10 +1511,12 @@ export default function PdvmDialogPage() {
                   </div>
                 </>
               ) : (
-                <div className="pdvm-dialog__editAreaContent">
-                  <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 8 }}>
-                    EditType: <span style={{ fontFamily: 'monospace' }}>{defQuery.data?.edit_type || 'show_json'}</span>
+                <>
+                  <div className="pdvm-dialog__editAreaHeader">
+                    {isImportEditor ? <PdvmImportDataSteps step={importStep} onChange={setImportStep} /> : null}
+                    {renderEditInfo()}
                   </div>
+                  <div className="pdvm-dialog__editAreaContent">
 
                   {!selectedUid ? <div>Kein Datensatz ausgewählt. Bitte zuerst im View-Tab auswählen.</div> : null}
 
@@ -1484,12 +1529,16 @@ export default function PdvmDialogPage() {
 
                   {selectedUid && recordQuery.data ? (
                     <div>
-                      <div style={{ marginBottom: 8, fontSize: 12, opacity: 0.8 }}>
-                        UID: <span style={{ fontFamily: 'monospace' }}>{recordQuery.data.uid}</span>
-                      </div>
-                      <div style={{ marginBottom: 8, fontSize: 12, opacity: 0.8 }}>
-                        Name: <span style={{ fontFamily: 'monospace' }}>{recordQuery.data.name}</span>
-                      </div>
+                      {!isImportEditor && editType !== 'edit_json' && editType !== 'show_json' ? (
+                        <>
+                          <div style={{ marginBottom: 8, fontSize: 12, opacity: 0.8 }}>
+                            UID: <span style={{ fontFamily: 'monospace' }}>{recordQuery.data.uid}</span>
+                          </div>
+                          <div style={{ marginBottom: 8, fontSize: 12, opacity: 0.8 }}>
+                            Name: <span style={{ fontFamily: 'monospace' }}>{recordQuery.data.name}</span>
+                          </div>
+                        </>
+                      ) : null}
 
                       {editType === 'edit_json' ? (
                         <div>
@@ -1761,6 +1810,15 @@ export default function PdvmDialogPage() {
                             </div>
                           </div>
                         </div>
+                      ) : isImportEditor ? (
+                        <PdvmImportDataEditor
+                          tableName={effectiveDialogTable}
+                          datasetUid={selectedUid}
+                          onApplied={handleImportApplied}
+                          step={importStep}
+                          onStepChange={setImportStep}
+                          hideSteps
+                        />
                       ) : (
                         <pre
                           style={{
@@ -1780,6 +1838,7 @@ export default function PdvmDialogPage() {
                     </div>
                   ) : null}
                 </div>
+                </>
               )}
             </div>
           ) : null}

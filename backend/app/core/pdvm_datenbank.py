@@ -69,6 +69,7 @@ class PdvmDatabase:
         # SYSTEM: Strukturdaten und Layouts (mandantenübergreifend)
         elif table_name in [
             "sys_beschreibungen",
+            "sys_ext_table",
             "sys_dropdowndaten",
             "sys_menudaten",
             "sys_dialogdaten",

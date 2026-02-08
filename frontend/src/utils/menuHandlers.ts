@@ -10,6 +10,13 @@ type LastMenuContext = { menu_type: 'start' | 'app'; app_name?: string | null }
 
 let lastMenuContext: LastMenuContext = { menu_type: 'start', app_name: null }
 
+function hasMenuItems(menuData: any): boolean {
+  if (!menuData) return false
+  const grundCount = menuData.GRUND ? Object.keys(menuData.GRUND).length : 0
+  const vertCount = menuData.VERTIKAL ? Object.keys(menuData.VERTIKAL).length : 0
+  return grundCount + vertCount > 0
+}
+
 export type MenuHandler = (item: MenuItem, context: MenuHandlerContext) => Promise<void>;
 
 export interface MenuHandlerContext {
@@ -45,6 +52,15 @@ async function handleOpenAppMenu(item: MenuItem, context: MenuHandlerContext): P
     if (menuResponse.error === 'NO_MENU') {
       context.showError(menuResponse.message || `Kein Menü für ${appName}`);
       return;
+    }
+
+    if (!hasMenuItems(menuResponse.menu_data)) {
+      const startResponse = await loadStartMenu()
+      context.setCurrentMenu(startResponse.menu_data)
+      context.setCurrentApp(null)
+      context.showError(`App-Menü ${appName} ist leer. Startmenü geladen.`)
+      lastMenuContext = { menu_type: 'start', app_name: null }
+      return
     }
     
     // Menü erfolgreich geladen
@@ -214,9 +230,17 @@ export async function restoreLastNavigation(context: MenuHandlerContext): Promis
     if (menuType === 'app' && appName) {
       const menuResponse = await loadAppMenu(appName)
       if (menuResponse.error) throw new Error(menuResponse.message || menuResponse.error)
-      context.setCurrentMenu(menuResponse.menu_data)
-      context.setCurrentApp(appName)
-      lastMenuContext = { menu_type: 'app', app_name: appName }
+      if (!hasMenuItems(menuResponse.menu_data)) {
+        const startResponse = await loadStartMenu()
+        context.setCurrentMenu(startResponse.menu_data)
+        context.setCurrentApp(null)
+        lastMenuContext = { menu_type: 'start', app_name: null }
+        await putLastNavigation({ menu_type: 'start', app_name: null, command: null })
+      } else {
+        context.setCurrentMenu(menuResponse.menu_data)
+        context.setCurrentApp(appName)
+        lastMenuContext = { menu_type: 'app', app_name: appName }
+      }
     } else {
       const menuResponse = await loadStartMenu()
       context.setCurrentMenu(menuResponse.menu_data)

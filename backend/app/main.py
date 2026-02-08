@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import DatabasePool
 from app.api import auth, tables, admin, mandanten, menu, gcs, layout, views, dialogs, users
-from app.api import systemdaten, lookups, menu_editor
+from app.api import systemdaten, lookups, menu_editor, import_data
 
 app = FastAPI(
     title="PDVM System API",
@@ -77,6 +77,7 @@ app.include_router(admin.router, prefix="/api/admin", tags=["Administration"])
 app.include_router(layout.router, prefix="/api/layout", tags=["Layout"])
 app.include_router(views.router, prefix="/api/views", tags=["Views"])
 app.include_router(dialogs.router, prefix="/api/dialogs", tags=["Dialogs"])
+app.include_router(import_data.router, prefix="/api/import", tags=["ImportData"])
 app.include_router(users.router, prefix="/api/users", tags=["Users"])
 
 @app.get("/")

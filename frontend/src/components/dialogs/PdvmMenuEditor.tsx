@@ -1158,9 +1158,6 @@ export function PdvmMenuEditor(props: {
       </PdvmInputModal>
 
       <div className="pdvm-menu-editor__toolbar" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-        <div style={{ fontSize: 12, opacity: 0.75 }}>
-          Menü: <span style={{ fontFamily: 'monospace' }}>{menu.uid}</span>
-        </div>
         <div style={{ fontSize: 12, opacity: 0.75 }}>Gruppe: {effectiveGroup}</div>
         <div style={{ fontSize: 12, opacity: 0.75 }}>Items: {itemCount}</div>
         <div className="pdvm-menu-editor__toolbarActions" style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>

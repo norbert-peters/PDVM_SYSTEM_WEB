@@ -41,6 +41,13 @@ export function MenuProvider({ children }: MenuProviderProps) {
   const [currentApp, setCurrentApp] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  const hasMenuItems = (menuData: MenuData | null): boolean => {
+    if (!menuData) return false
+    const grundCount = menuData.GRUND ? Object.keys(menuData.GRUND).length : 0
+    const vertCount = menuData.VERTIKAL ? Object.keys(menuData.VERTIKAL).length : 0
+    return grundCount + vertCount > 0
+  }
   
   /**
    * Lädt Startmenü
@@ -56,12 +63,15 @@ export function MenuProvider({ children }: MenuProviderProps) {
     } catch (err: any) {
       const errorMsg = err.response?.data?.detail || err.message || 'Fehler beim Laden des Startmenüs';
       
-      // Bei 404 (keine GCS-Session) oder 401 (nicht autorisiert) -> automatischer Logout
-      if (err.response?.status === 404 || err.response?.status === 401) {
-        console.warn('GCS-Session verloren - automatischer Logout');
-        localStorage.removeItem('token');
-        window.location.href = '/login';
-        return;
+      // Nur bei fehlender GCS-Session oder 401 hart ausloggen
+      const status = err.response?.status
+      const detail = String(err.response?.data?.detail || '')
+      const isMissingGcs = detail.toLowerCase().includes('gcs-session') || detail.toLowerCase().includes('mandant')
+      if (status === 401 || (status === 404 && isMissingGcs)) {
+        console.warn('GCS-Session verloren - automatischer Logout')
+        localStorage.removeItem('token')
+        window.location.href = '/login'
+        return
       }
       
       setError(errorMsg);
@@ -94,18 +104,29 @@ export function MenuProvider({ children }: MenuProviderProps) {
         return;
       }
       
-      setCurrentMenu(response.menu_data);
-      setCurrentApp(appName);
+      if (!hasMenuItems(response.menu_data)) {
+        const start = await loadStartMenu()
+        setCurrentMenu(start.menu_data)
+        setCurrentApp(null)
+        setError(`App-Menue ${appName} ist leer. Startmenue geladen.`)
+        return
+      }
+
+      setCurrentMenu(response.menu_data)
+      setCurrentApp(appName)
       
     } catch (err: any) {
       const errorMsg = err.response?.data?.detail || err.message || 'Fehler beim Laden des Menüs';
       
-      // Bei 404 (keine GCS-Session) oder 401 (nicht autorisiert) -> automatischer Logout
-      if (err.response?.status === 404 || err.response?.status === 401) {
-        console.warn('GCS-Session verloren - automatischer Logout');
-        localStorage.removeItem('token');
-        window.location.href = '/login';
-        return;
+      // Nur bei fehlender GCS-Session oder 401 hart ausloggen
+      const status = err.response?.status
+      const detail = String(err.response?.data?.detail || '')
+      const isMissingGcs = detail.toLowerCase().includes('gcs-session') || detail.toLowerCase().includes('mandant')
+      if (status === 401 || (status === 404 && isMissingGcs)) {
+        console.warn('GCS-Session verloren - automatischer Logout')
+        localStorage.removeItem('token')
+        window.location.href = '/login'
+        return
       }
       
       setError(errorMsg);

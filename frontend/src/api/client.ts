@@ -186,6 +186,48 @@ export interface DialogUiStateUpdateRequest {
   ui_state: Record<string, any>
 }
 
+export interface ImportPreviewResponse {
+  dataset_uid: string
+  table_name: string
+  file_format: string
+  headers: string[]
+  canonical_headers: string[]
+  rows: Array<Record<string, any>>
+  unmatched_headers: string[]
+  preview_mode?: string
+}
+
+export interface ImportApplyRequest {
+  table_name: string
+  dataset_uid: string
+  rows: Array<Record<string, any>>
+}
+
+export interface ImportApplyResponse {
+  updated_count: number
+  dataset_uid: string
+}
+
+export interface ImportDatasetResponse {
+  uid: string
+  name: string
+  daten: Record<string, any>
+}
+
+export interface ImportConfigUpdateRequest {
+  table_name: string
+  dataset_uid: string
+  root_patch?: Record<string, any>
+  config_patch?: Record<string, any>
+  columns?: string[]
+  columns_map?: Record<string, any>
+}
+
+export interface ImportClearRequest {
+  table_name: string
+  dataset_uid: string
+}
+
 export interface PasswordResetResponse {
   user_uid: string
   email: string
@@ -565,6 +607,56 @@ export const dialogsAPI = {
     const response = await api.put(`/dialogs/${dialogGuid}/ui-state`, payload, {
       params: opts?.dialog_table ? { dialog_table: opts.dialog_table } : undefined,
     })
+    return response.data
+  },
+}
+
+export const importDataAPI = {
+  preview: async (payload: {
+    dataset_uid: string
+    table_name: string
+    file: File
+    sheet_name?: string
+    has_headers?: boolean
+    custom_headers?: string
+    header_overrides?: Record<string, any>
+  }): Promise<ImportPreviewResponse> => {
+    const form = new FormData()
+    form.append('dataset_uid', payload.dataset_uid)
+    form.append('table_name', payload.table_name)
+    if (payload.sheet_name) form.append('sheet_name', payload.sheet_name)
+    if (typeof payload.has_headers === 'boolean') {
+      form.append('has_headers', String(payload.has_headers))
+    }
+    if (payload.custom_headers) form.append('custom_headers', payload.custom_headers)
+    if (payload.header_overrides) form.append('header_overrides', JSON.stringify(payload.header_overrides))
+    form.append('file', payload.file)
+
+    const response = await api.post('/import/preview', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return response.data
+  },
+
+  apply: async (payload: ImportApplyRequest): Promise<ImportApplyResponse> => {
+    const response = await api.post('/import/apply', payload)
+    return response.data
+  },
+
+  getDataset: async (payload: { dataset_uid: string; table_name: string }): Promise<ImportDatasetResponse> => {
+    const response = await api.get(`/import/dataset/${payload.dataset_uid}`, {
+      params: { table_name: payload.table_name },
+    })
+    return response.data
+  },
+
+  updateConfig: async (payload: ImportConfigUpdateRequest): Promise<ImportDatasetResponse> => {
+    const response = await api.put('/import/config', payload)
+    return response.data
+  },
+
+  clearData: async (payload: ImportClearRequest): Promise<ImportDatasetResponse> => {
+    const response = await api.post('/import/clear', payload)
     return response.data
   },
 }

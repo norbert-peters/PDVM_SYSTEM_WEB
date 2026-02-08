@@ -40,6 +40,7 @@ $$ LANGUAGE plpgsql;
 -- MANDANT SYSTEM TABLES
 -- ========================================
 SELECT create_pdvm_table('sys_anwendungsdaten');
+SELECT create_pdvm_table('sys_ext_table_man');
 SELECT create_pdvm_table('sys_systemsteuerung');
 SELECT create_pdvm_table('sys_security');
 SELECT create_pdvm_table('sys_error_log');

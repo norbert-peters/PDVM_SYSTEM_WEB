@@ -56,9 +56,9 @@ CREATE TABLE IF NOT EXISTS sys_benutzer (
     daten_backup JSONB
 );
 
-CREATE INDEX idx_sys_benutzer_benutzer ON sys_benutzer(benutzer);
-CREATE INDEX idx_sys_benutzer_sec_id ON sys_benutzer(sec_id);
-CREATE INDEX idx_sys_benutzer_daten ON sys_benutzer USING GIN(daten);
+CREATE INDEX IF NOT EXISTS idx_sys_benutzer_benutzer ON sys_benutzer(benutzer);
+CREATE INDEX IF NOT EXISTS idx_sys_benutzer_sec_id ON sys_benutzer(sec_id);
+CREATE INDEX IF NOT EXISTS idx_sys_benutzer_daten ON sys_benutzer USING GIN(daten);
 
 -- sys_mandanten (Clients/Tenants)
 SELECT create_pdvm_table('sys_mandanten');

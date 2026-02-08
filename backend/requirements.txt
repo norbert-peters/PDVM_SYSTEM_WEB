@@ -16,6 +16,9 @@ python-multipart==0.0.6
 # CORS & Security
 python-dotenv==1.0.0
 
+# File parsing
+openpyxl==3.1.5
+
 # Development
 pytest==7.4.3
 httpx==0.26.0

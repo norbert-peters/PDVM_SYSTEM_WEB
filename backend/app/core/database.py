@@ -12,12 +12,14 @@ from app.core.config import settings
 TABLE_DATABASE_MAP = {
     # System tables (pdvm_system database)
     "sys_beschreibungen": "system",
+    "sys_ext_table": "system",
     "sys_dialogdaten": "system",
     "sys_framedaten": "system",
     "sys_viewdaten": "system",
     "sys_menudaten": "system",
     "sys_layout": "system",
     "sys_dropdowndaten": "system",
+    "sys_systemdaten": "system",
     
     # Auth tables (auth database)
     "sys_benutzer": "auth",
@@ -25,13 +27,13 @@ TABLE_DATABASE_MAP = {
     
     # Mandant tables (mandant database)
     "sys_anwendungsdaten": "mandant",
+    "sys_ext_table_man": "mandant",
     "sys_systemsteuerung": "mandant",
     "sys_security": "mandant",
     "sys_error_log": "mandant",
     "sys_error_acknowledgments": "mandant",
     "persondaten": "mandant",
     "finanzdaten": "mandant",
-        "sys_systemdaten": "system",
 }
 
 class DatabasePool:

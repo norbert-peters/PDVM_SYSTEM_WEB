@@ -40,6 +40,7 @@ $$ LANGUAGE plpgsql;
 -- SYSTEM CONFIGURATION TABLES
 -- ========================================
 SELECT create_pdvm_table('sys_beschreibungen');
+SELECT create_pdvm_table('sys_ext_table');
 SELECT create_pdvm_table('sys_dialogdaten');
 SELECT create_pdvm_table('sys_framedaten');
 SELECT create_pdvm_table('sys_viewdaten');

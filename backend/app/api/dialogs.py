@@ -53,8 +53,11 @@ def _normalize_dialog_table(dialog_table: Optional[str]) -> Optional[str]:
 
 def _ensure_allowed_edit_type(edit_type: str):
     et = str(edit_type or "").strip().lower()
-    if et not in {"show_json", "edit_json", "menu", "edit_user"}:
-        raise HTTPException(status_code=400, detail="Nur EDIT_TYPE show_json, edit_json, menu und edit_user sind erlaubt")
+    if et not in {"show_json", "edit_json", "menu", "edit_user", "import_data"}:
+        raise HTTPException(
+            status_code=400,
+            detail="Nur EDIT_TYPE show_json, edit_json, menu, edit_user und import_data sind erlaubt",
+        )
 
 
 def _normalize_table_name(value: Optional[str]) -> str:
@@ -551,8 +554,8 @@ async def put_dialog_record(
         raise HTTPException(status_code=400, detail="Dialog ROOT.TABLE ist leer")
 
     edit_type = str(runtime.get("edit_type") or "show_json").strip().lower()
-    if edit_type not in {"edit_json", "edit_user"}:
-        raise HTTPException(status_code=400, detail="Dialog ist nicht für edit_json oder edit_user konfiguriert")
+    if edit_type not in {"edit_json", "edit_user", "import_data"}:
+        raise HTTPException(status_code=400, detail="Dialog ist nicht für edit_json, edit_user oder import_data konfiguriert")
 
     try:
         if edit_type == "edit_user":

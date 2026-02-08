@@ -134,6 +134,16 @@ Siehe Spezifikation: `docs/specs/PDVM_DIALOG_MODAL_SPEC.md`.
 - Der neue Datensatz wird **aus Template UID `66666666-6666-6666-6666-666666666666`** erstellt und anschließend in der View sichtbar.
 - View/Tabellenanzeige und Edit-Formular bleiben unabhängig (keine Vermischung von Zuständigkeiten).
 
+### 2.6 Einheitlicher Edit-Frame (Dialoge)
+**Regel:** Alle Editoren verwenden denselben Edit-Rahmen.
+
+- Kopfbereich (Header + Edit-Tabs) ist fix.
+- Nur der Editor-Inhalt scrollt.
+- Edit-Typen liefern Inhalte, nicht das Layout.
+- Keine individuellen Scroll-Container pro Editor.
+
+Siehe Spezifikation: `docs/specs/PDVM_DIALOG_EDIT_FRAME_SPEC.md`.
+
 ---
 
 ## 3. Legacy Code
