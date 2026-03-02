@@ -128,12 +128,14 @@ export interface DialogDefinitionResponse {
   daten: Record<string, any>
   root: Record<string, any>
   root_table: string
+  dialog_type?: string | null
   view_guid?: string | null
   edit_type: string
   selection_mode?: 'single' | 'multi' | string
   open_edit_mode?: 'button' | 'double_click' | 'auto' | string
   frame_guid?: string | null
   frame?: FrameDefinitionResponse | null
+  tab_modules?: Array<Record<string, any>>
   meta: Record<string, any>
 }
 
@@ -170,6 +172,38 @@ export interface DialogRecordCreateRequest {
   name: string
   template_uid?: string | null
   is_template?: boolean | null
+}
+
+export interface DialogValidationIssue {
+  group: string
+  index?: number | null
+  field?: string | null
+  code: string
+  message: string
+}
+
+export interface DialogDraftStartRequest {
+  name: string
+  template_uid?: string | null
+  is_template?: boolean | null
+  modul_type?: string | null
+}
+
+export interface DialogDraftUpdateRequest {
+  daten: Record<string, any>
+}
+
+export interface DialogDraftCommitRequest {
+  daten?: Record<string, any>
+}
+
+export interface DialogDraftResponse {
+  draft_id: string
+  name: string
+  daten: Record<string, any>
+  root_table: string
+  edit_type: string
+  validation_errors: DialogValidationIssue[]
 }
 
 export interface DialogLastCallResponse {
@@ -268,6 +302,31 @@ export interface MenuRecordResponse {
 
 export interface MenuRecordUpdateRequest {
   daten: Record<string, any>
+}
+
+export interface ControlRecordResponse {
+  uid: string
+  name: string
+  daten: Record<string, any>
+  historisch: number
+}
+
+export interface ControlListItem {
+  uid: string
+  name: string
+  modul_type?: string | null
+  label?: string | null
+  type?: string | null
+  table?: string | null
+  gruppe?: string | null
+  field?: string | null
+}
+
+export interface ControlListResponse {
+  total: number
+  skip: number
+  limit: number
+  items: ControlListItem[]
 }
 
 export interface MenuCommandDefinition {
@@ -575,6 +634,41 @@ export const dialogsAPI = {
     return response.data
   },
 
+  startDraft: async (
+    dialogGuid: string,
+    payload: DialogDraftStartRequest,
+    opts?: DialogTableOverrideOptions
+  ): Promise<DialogDraftResponse> => {
+    const response = await api.post(`/dialogs/${dialogGuid}/draft/start`, payload, {
+      params: opts?.dialog_table ? { dialog_table: opts.dialog_table } : undefined,
+    })
+    return response.data
+  },
+
+  updateDraft: async (
+    dialogGuid: string,
+    draftId: string,
+    payload: DialogDraftUpdateRequest,
+    opts?: DialogTableOverrideOptions
+  ): Promise<DialogDraftResponse> => {
+    const response = await api.put(`/dialogs/${dialogGuid}/draft/${draftId}`, payload, {
+      params: opts?.dialog_table ? { dialog_table: opts.dialog_table } : undefined,
+    })
+    return response.data
+  },
+
+  commitDraft: async (
+    dialogGuid: string,
+    draftId: string,
+    payload: DialogDraftCommitRequest,
+    opts?: DialogTableOverrideOptions
+  ): Promise<DialogRecordResponse> => {
+    const response = await api.post(`/dialogs/${dialogGuid}/draft/${draftId}/commit`, payload, {
+      params: opts?.dialog_table ? { dialog_table: opts.dialog_table } : undefined,
+    })
+    return response.data
+  },
+
   putLastCall: async (
     dialogGuid: string,
     recordUid: string | null,
@@ -706,6 +800,18 @@ export const menuEditorAPI = {
 
   updateMenu: async (menuGuid: string, payload: MenuRecordUpdateRequest): Promise<MenuRecordResponse> => {
     const response = await api.put(`/menu-editor/${menuGuid}`, payload)
+    return response.data
+  },
+}
+
+export const controlDictAPI = {
+  getControl: async (uid: string): Promise<ControlRecordResponse> => {
+    const response = await api.get(`/control/${uid}`)
+    return response.data
+  },
+
+  listControls: async (opts?: { modul_type?: string; table?: string; skip?: number; limit?: number }): Promise<ControlListResponse> => {
+    const response = await api.get('/control/list-controls', { params: opts })
     return response.data
   },
 }

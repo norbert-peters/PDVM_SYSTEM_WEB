@@ -13,7 +13,9 @@ Erwartete Struktur in sys_systemdaten.daten (Beispiel):
     "menü_command": {
       "commands": [
         {"handler": "go_view", "label": "View öffnen", "params": [{"name": "view_guid", "type": "guid", "required": true, "lookup_table": "sys_viewdaten"}]},
-        {"handler": "go_dialog", "label": "Dialog öffnen", "params": [{"name": "dialog_guid", "type": "guid", "required": true, "lookup_table": "sys_dialogdaten"}, {"name": "dialog_table", "type": "table", "required": false}]}
+                {"handler": "go_dialog", "label": "Dialog öffnen", "params": [{"name": "dialog_guid", "type": "guid", "required": true, "lookup_table": "sys_dialogdaten"}, {"name": "dialog_table", "type": "table", "required": false}]},
+                {"handler": "go_pdvm_dialog", "label": "PDVM Dialog öffnen", "params": [{"name": "dialog_guid", "type": "guid", "required": true, "lookup_table": "sys_dialogdaten"}, {"name": "dialog_table", "type": "table", "required": false}]},
+                {"handler": "go_pdvm_edit", "label": "PDVM Edit öffnen", "params": [{"name": "dialog_guid", "type": "guid", "required": true, "lookup_table": "sys_dialogdaten"}, {"name": "dialog_table", "type": "table", "required": false}]}
       ]
     }
   }

@@ -95,6 +95,10 @@ PDVM_SYSTEM_WEB/
 ✅ JSONB data storage
 ✅ SEC_PROFILES security filtering
 
+## Dialog V2 Hinweis (Quickstart als Aktion)
+- QUICKSTART ist eine Aktion und wird als `acti`-Modul in Dialog V2 eingebunden.
+- Ein entsprechender Tab nutzt `MODULE=acti` und verweist per `GUID` auf das Aktions-Frame (sys_framedaten).
+
 ## Next Steps
 - [ ] Add record editing UI
 - [ ] Add record creation UI

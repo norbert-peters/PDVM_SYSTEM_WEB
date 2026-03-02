@@ -92,6 +92,12 @@ Dann sollen alle Dialoge auf den zuletzt ausgewählten Datensatz springen.
 - Frontend sendet `POST /api/auth/keep-alive` bei Benutzer‑Aktivität und zeigt Warnung via `PdvmDialogModal`.
 - Bei Inaktivität wird die Session serverseitig beendet (GCS‑Session schließt Pools).
 
+### 1.9 Zeitwerte im Pdvm-Format (JSONB)
+**Regel:** Zeitwerte in JSONB-Daten werden im Pdvm-Format gespeichert.
+
+- Gilt fuer `daten` in allen PDVM-Tabellen.
+- Ausnahme: systemeigene Spalten wie `created_at`/`modified_at` bleiben SQL-Timestamps.
+
 ---
 
 ## 2. Frontend Architektur (React)
@@ -134,6 +140,15 @@ Siehe Spezifikation: `docs/specs/PDVM_DIALOG_MODAL_SPEC.md`.
 - Der neue Datensatz wird **aus Template UID `66666666-6666-6666-6666-666666666666`** erstellt und anschließend in der View sichtbar.
 - View/Tabellenanzeige und Edit-Formular bleiben unabhängig (keine Vermischung von Zuständigkeiten).
 
+### 2.5a Linearer Draft-Flow bei Neuanlage
+**Regel:** "Neuer Satz" läuft generisch und linear über Drafts.
+
+- `Neuer Satz` startet mit `POST /api/dialogs/{dialog_guid}/draft/start`.
+- Edit arbeitet auf Draft-Daten; Backend liefert Validierungsfehler mit Zielpfad (`group`, `field`).
+- Persistenz erfolgt erst bei `POST /api/dialogs/{dialog_guid}/draft/{draft_id}/commit`.
+- Kein erzwungener Sonderpfad mit `428` als Steuermechanismus für Standard-Neuanlage.
+- Gilt tabellenübergreifend (nicht nur `sys_control_dict`).
+
 ### 2.6 Einheitlicher Edit-Frame (Dialoge)
 **Regel:** Alle Editoren verwenden denselben Edit-Rahmen.
 
@@ -143,6 +158,40 @@ Siehe Spezifikation: `docs/specs/PDVM_DIALOG_MODAL_SPEC.md`.
 - Keine individuellen Scroll-Container pro Editor.
 
 Siehe Spezifikation: `docs/specs/PDVM_DIALOG_EDIT_FRAME_SPEC.md`.
+
+### 2.7 Dialog V2 (egalisiert)
+**Regel:** Dialoge nutzen ein einheitliches Datenmodell in `sys_dialogdaten`.
+
+- `DIALOG_TYPE`: `norm`, `work`, `acti`.
+- Tabs definieren Module (`view`, `edit`, `acti`) mit `GUID` pro Tab.
+- `VIEW_GUID`/`FRAME_GUID` in `ROOT` sind optional (legacy); die GUIs kommen aus den Tab-Definitionen.
+- Aufruf erfolgt immer ueber `go_pdvm_dialog` (dialog_guid + optional dialog_table fuer `show_json`/`edit_json`).
+- `pdvm_edit` ist der Standard-Edit-Typ (Frame-gesteuert). `edit_json`/`show_json` bleiben erhalten.
+- `show_json` ist ein Edit-Typ und benoetigt immer einen Edit-Tab.
+- `dialog_table` ueberschreibt die Tabelle der View-Definition bei `show_json`/`edit_json` (View-State, Matrix, Dialog-CRUD).
+
+Siehe Spezifikation: `docs/specs/PDVM_DIALOG_EDIT_FRAME_SPEC.md`.
+
+### 2.8 Einheitliche Gruppen und Labels
+**Regel:** Gruppen- und Feldnamen sind egalisiert.
+
+Gruppen (Ausnahme: sys_layout):
+- `ROOT`
+- `SYSTEM`
+- `>TABELLE<` (Grossbuchstaben)
+- `GRUND` (nur sys_menudaten)
+- `VERTIKAL` (nur sys_menudaten)
+- `>SPRACHKENNUNG<` (Grossbuchstaben)
+- `DATAS` (sys_ext_table, sys_ext_table_man)
+- `CONFIG`
+- `>GUID<` (sys_systemsteuerung, sys_anwendungsdaten)
+
+Label-Regel:
+- Bei GUID-keyed Listen/Auswahlen ist `label` Pflicht.
+- Nur wenn `label` fehlt, darf die GUID als Kurzform (8 Zeichen) angezeigt werden.
+
+Templates:
+- `element_list` Templates liegen unter UID `5555...` in Gruppe `ELEMENTS`.
 
 ---
 
@@ -177,3 +226,9 @@ Bei der Implementierung von Kern-Funktionalitäten ist die Einhaltung der dedizi
 **Regel:** Passwort-Reset, OTP und Account-Sperrung folgen der Spezifikation.
 *   `SEND_EMAIL` Konfiguration liegt in `sys_mandanten`.
 *   OTP-Logik und `PASSWORD_CHANGE_REQUIRED` werden strikt umgesetzt.
+
+### 4.5 Lineares SOLL-Schema (`docs/specs/PDVM_LINEAR_SCHEMA_V1.md`)
+**Regel:** Die Datenstrukturen fuer Dialog/View/Frame/Control folgen der verbindlichen SOLL-Definition.
+*   `ROOT`/`CONTROL`/`TEMPLATES` werden strukturell einheitlich gefuehrt.
+*   Property-Keys sind in der Zielsicht grossgeschrieben.
+*   Neuanlage basiert auf den Template-Saetzen `666...` und `555...`.

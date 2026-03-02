@@ -11,6 +11,7 @@ MVP (dieser Stand):
   - `EDIT_TYPE = show_json` → JSON formatiert anzeigen (read-only)
   - `EDIT_TYPE = edit_json` → JSON Editor + Speichern (JSONB `daten` wird aktualisiert)
   - `EDIT_TYPE = menu` → Menüeditor (2 interne Tabs: Grundmenü / Vertikal Menü)
+  - `EDIT_TYPE = edit_control` → direkte Property-Edit auf dem Datensatz (Control-orientiert)
 
 ---
 
@@ -66,6 +67,12 @@ Für `EDIT_TYPE = show_json` wird im MVP **keine Feld-Definition ausgewertet** �
 
 Für `EDIT_TYPE = edit_json` wird im MVP ebenfalls keine Feld-Definition ausgewertet – der Editor arbeitet direkt auf `daten`.
 
+Für `EDIT_TYPE = edit_control`:
+- Die Property-Liste des Datensatzes ist direkt die Edit-Struktur.
+- Sammelwerte eine Ebene tiefer sollen als `element_list` oder `group_list` modelliert sein.
+- Wenn diese Typisierung fehlt, liefert das Backend Hinweise (`hint_*`) in `validation_errors`.
+- Hinweise sind nicht blockierend (Commit bleibt erlaubt), harte Validierungsfehler bleiben blockierend.
+
 **Beispiel `sys_framedaten` (JSONB `daten`)**
 ```json
 {
@@ -104,8 +111,8 @@ Menü-Item ruft den Dialog über den Handler `go_dialog` auf.
 
 Hinweis:
 - `dialog_guid` ist zwingend.
-- Optional `dialog_table`: überschreibt die im Dialog konfigurierte Root-Tabelle.
-- In diesem Override-Modus sind nur `EDIT_TYPE = show_json`, `EDIT_TYPE = edit_json` und `EDIT_TYPE = menu` erlaubt (sonst Fehler).
+- Optional `dialog_table`: überschreibt die im Dialog konfigurierte Root-Tabelle (nur fuer `show_json`/`edit_json`).
+- In diesem Override-Modus sind nur `EDIT_TYPE = show_json` und `EDIT_TYPE = edit_json` erlaubt (sonst Fehler).
 
 Neu (Zielbild):
 - Der Dialog rendert IMMER eine View (kein Dialog-eigenes `uid+name`-Listing).
@@ -117,7 +124,7 @@ Neu (Zielbild):
 
 ### `GET /api/dialogs/{dialog_guid}`
 Optionaler Query-Parameter:
-- `dialog_table=<tablename>`: überschreibt die Root-Tabelle.
+- `dialog_table=<tablename>`: überschreibt die Root-Tabelle (nur fuer `show_json`/`edit_json`).
 
 Liefert Dialog-Definition inkl. abgeleiteter Runtime-Felder:
 - `root_table`
@@ -127,7 +134,7 @@ Liefert Dialog-Definition inkl. abgeleiteter Runtime-Felder:
 
 ### `POST /api/dialogs/{dialog_guid}/rows`
 Optionaler Query-Parameter:
-- `dialog_table=<tablename>`: überschreibt die Root-Tabelle.
+- `dialog_table=<tablename>`: überschreibt die Root-Tabelle (nur fuer `show_json`/`edit_json`).
 
 Request:
 ```json
@@ -140,13 +147,13 @@ Hinweis:
 
 ### `GET /api/dialogs/{dialog_guid}/record/{uid}`
 Optionaler Query-Parameter:
-- `dialog_table=<tablename>`: überschreibt die Root-Tabelle.
+- `dialog_table=<tablename>`: überschreibt die Root-Tabelle (nur fuer `show_json`/`edit_json`).
 
 Liefert vollen Datensatz der Root-Tabelle (`daten` JSONB) – für `show_json`.
 
 ### `PUT /api/dialogs/{dialog_guid}/record/{uid}`
 Optionaler Query-Parameter:
-- `dialog_table=<tablename>`: überschreibt die Root-Tabelle.
+- `dialog_table=<tablename>`: überschreibt die Root-Tabelle (nur fuer `show_json`/`edit_json`).
 
 Aktualisiert das JSONB Feld `daten` des Datensatzes.
 
@@ -160,7 +167,7 @@ Hinweis:
 
 ### `POST /api/dialogs/{dialog_guid}/record`
 Optionaler Query-Parameter:
-- `dialog_table=<tablename>`: überschreibt die Root-Tabelle.
+- `dialog_table=<tablename>`: überschreibt die Root-Tabelle (nur fuer `show_json`/`edit_json`).
 
 Erstellt einen neuen Datensatz anhand eines Template-Records.
 
@@ -171,6 +178,11 @@ Request:
 
 Default-Verhalten (wenn `template_uid` fehlt):
 - `template_uid = 66666666-6666-6666-6666-666666666666`
+
+Neu fuer `EDIT_TYPE=edit_control` (und `sys_control_dict`):
+- Beim Start von „Neuer Satz" wird die Template-Auflösung bewusst aufgeschoben.
+- Es wird **nicht** sofort vollständig aus 555/666 aufgelöst, damit keine Vollkopie von Defaults in den Entwurf läuft.
+- Persistenz erfolgt weiterhin über Delta-Logik im Backend.
 
 Beim Erstellen:
 - `daten` wird aus dem Template kopiert

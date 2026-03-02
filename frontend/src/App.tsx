@@ -24,6 +24,7 @@ function AppContent() {
   const lastActivityRef = useRef<number>(Date.now())
   const warningShownRef = useRef<boolean>(false)
   const keepAliveBusyRef = useRef<boolean>(false)
+  const idleWarningOpenRef = useRef<boolean>(false)
   const idleConfigRef = useRef<{ timeout: number; warning: number }>({ timeout: 0, warning: 0 })
 
   // NOTE: state 'token' and 'mandantId' now come from context
@@ -36,9 +37,20 @@ function AppContent() {
     selectMandant(mandant)
   }
 
+  const setIdleWarning = (open: boolean) => {
+    idleWarningOpenRef.current = open
+    setIdleWarningOpen(open)
+  }
+
+  const touchActivity = () => {
+    lastActivityRef.current = Date.now()
+    warningShownRef.current = false
+    if (idleWarningOpenRef.current) setIdleWarning(false)
+  }
+
   useEffect(() => {
     if (!token || !mandantId) {
-      setIdleWarningOpen(false)
+      setIdleWarning(false)
       setIdleRemainingSec(null)
       return
     }
@@ -46,7 +58,7 @@ function AppContent() {
     const timeout = Number(localStorage.getItem('idle_timeout') || 0)
     const warning = Number(localStorage.getItem('idle_warning') || 0)
     if (!Number.isFinite(timeout) || timeout <= 0) {
-      setIdleWarningOpen(false)
+      setIdleWarning(false)
       setIdleRemainingSec(null)
       return
     }
@@ -57,15 +69,13 @@ function AppContent() {
     }
     lastActivityRef.current = Date.now()
     warningShownRef.current = false
-    setIdleWarningOpen(false)
+    setIdleWarning(false)
 
     const onActivity = () => {
-      lastActivityRef.current = Date.now()
-      if (idleWarningOpen) setIdleWarningOpen(false)
-      warningShownRef.current = false
+      touchActivity()
     }
 
-    const events = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart']
+    const events = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'wheel', 'pointerdown', 'pointermove']
     events.forEach((evt) => window.addEventListener(evt, onActivity, { passive: true }))
 
     const tick = () => {
@@ -82,7 +92,7 @@ function AppContent() {
       }
 
       if (cfg.warning > 0 && remainingMs <= cfg.warning * 1000 && !warningShownRef.current) {
-        setIdleWarningOpen(true)
+        setIdleWarning(true)
         warningShownRef.current = true
       }
     }
@@ -165,9 +175,7 @@ function AppContent() {
             confirmLabel="Sitzung verlängern"
             cancelLabel="Abmelden"
             onConfirm={async () => {
-              lastActivityRef.current = Date.now()
-              warningShownRef.current = false
-              setIdleWarningOpen(false)
+              touchActivity()
               try {
                 await authAPI.keepAlive()
               } catch {
@@ -175,7 +183,7 @@ function AppContent() {
               }
             }}
             onCancel={() => {
-              setIdleWarningOpen(false)
+              setIdleWarning(false)
               logout()
             }}
           />

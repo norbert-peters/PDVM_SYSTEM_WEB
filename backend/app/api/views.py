@@ -78,13 +78,17 @@ def _normalize_table_override(value: Optional[str]) -> Optional[str]:
     return t
 
 
-def _allow_table_override(*, root: Dict[str, Any], root_table: str, table_override: str) -> bool:
+def _allow_table_override(*, root: Dict[str, Any], root_table: str, table_override: str, edit_type: Optional[str] = None) -> bool:
     """Allow table override only in explicitly safe contexts.
 
     Baseline rule stays strict (ROOT.NO_DATA=true), but we allow common system use-cases:
     - explicit opt-in via ROOT.ALLOW_TABLE_OVERRIDE=true
     - system-table to system-table override (sys_* -> sys_*)
     """
+    et = str(edit_type or "").strip().lower()
+    if et in {"show_json", "edit_json"}:
+        return True
+
     no_data = _truthy((root or {}).get("NO_DATA") or (root or {}).get("no_data"))
     if no_data:
         return True
@@ -267,7 +271,7 @@ async def get_view_state(
     no_data = _truthy((root or {}).get("NO_DATA") or (root or {}).get("no_data"))
 
     table_override = _normalize_table_override(table)
-    if table_override and not _allow_table_override(root=root, root_table=root_table, table_override=table_override):
+    if table_override and not _allow_table_override(root=root, root_table=root_table, table_override=table_override, edit_type=edit_type):
         raise HTTPException(
             status_code=400,
             detail="table override ist nur erlaubt, wenn ROOT.NO_DATA=true oder ROOT.ALLOW_TABLE_OVERRIDE=true (oder sys_* -> sys_*)",
@@ -326,7 +330,7 @@ async def put_view_state(
     no_data = _truthy((root or {}).get("NO_DATA") or (root or {}).get("no_data"))
 
     table_override = _normalize_table_override(table)
-    if table_override and not _allow_table_override(root=root, root_table=root_table, table_override=table_override):
+    if table_override and not _allow_table_override(root=root, root_table=root_table, table_override=table_override, edit_type=edit_type):
         raise HTTPException(
             status_code=400,
             detail="table override ist nur erlaubt, wenn ROOT.NO_DATA=true oder ROOT.ALLOW_TABLE_OVERRIDE=true (oder sys_* -> sys_*)",

@@ -45,6 +45,8 @@ SELECT create_pdvm_table('sys_systemsteuerung');
 SELECT create_pdvm_table('sys_security');
 SELECT create_pdvm_table('sys_error_log');
 SELECT create_pdvm_table('sys_error_acknowledgments');
+SELECT create_pdvm_table('sys_contr_dict_man');
+SELECT create_pdvm_table('sys_contr_dict_man_audit');
 
 -- ========================================
 -- APPLICATION BUSINESS TABLES

@@ -8,6 +8,7 @@ export function PdvmLookupSelect(props: {
   value: string | null
   onChange: (value: string | null) => void
   disabled?: boolean
+  filterOption?: (row: any) => boolean
 }) {
   const [q, setQ] = useState('')
 
@@ -22,8 +23,9 @@ export function PdvmLookupSelect(props: {
 
   const options = useMemo(() => {
     const rows = query.data?.rows || []
-    return rows.map((r) => ({ value: String(r.uid), label: String(r.name || r.uid) }))
-  }, [query.data?.rows])
+    const filtered = props.filterOption ? rows.filter((r: any) => props.filterOption!(r)) : rows
+    return filtered.map((r: any) => ({ value: String(r.uid), label: String(r.name || r.uid) }))
+  }, [query.data?.rows, props.filterOption])
 
   const current = String(props.value || '')
 

@@ -39,6 +39,9 @@ PDVM_SYSTEM_TABLES = [
     'sys_dialogdaten',
     'sys_viewdaten',
     'sys_framedaten',
-    'sys_layout'
+    'sys_layout',
+    'sys_systemdaten',
+    'sys_control_dict',
+    'sys_control_dict_audit'
 ]
 

@@ -143,7 +143,7 @@ export default function Login({ onLogin }: LoginProps) {
           {
             name: 'email',
             label: 'E-Mail-Adresse',
-            type: 'email',
+            type: 'text',
             required: true,
             autoFocus: true,
           },

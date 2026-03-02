@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>edit_dict - Control Dictionary Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+        }
+
+        .header h1 {
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 8px;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .field-preview {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .field-preview h4 {
+            margin-bottom: 10px;
+            color: #555;
+        }
+
+        .field-preview pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .modul-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .modul-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .modul-card:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .modul-card.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .modul-card h3 {
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .modul-card p {
+            font-size: 13px;
+            opacity: 0.8;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 edit_dict - Control Dictionary Editor</h1>
+            <p>Erstelle und bearbeite Controls mit Template-System</p>
+        </div>
+
+        <div class="content">
+            <!-- Alert Container -->
+            <div id="alertContainer"></div>
+
+            <!-- Section 1: MODUL Auswahl -->
+            <div class="section">
+                <h2 class="section-title">1. MODUL-Typ wählen</h2>
+                <div class="modul-selector">
+                    <div class="modul-card" data-modul="edit" onclick="selectModul('edit')">
+                        <h3>📝 edit</h3>
+                        <p>Editierbare Felder in Dialogen</p>
+                    </div>
+                    <div class="modul-card" data-modul="view" onclick="selectModul('view')">
+                        <h3>👁️ view</h3>
+                        <p>Spalten in Tabellen/Listen</p>
+                    </div>
+                    <div class="modul-card" data-modul="tabs" onclick="selectModul('tabs')">
+                        <h3>📑 tabs</h3>
+                        <p>Element-Lists (z.B. Tabs)</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Control-Daten -->
+            <div class="section">
+                <h2 class="section-title">2. Control-Daten eingeben</h2>
+                
+                <div class="grid">
+                    <div class="form-group">
+                        <label for="name">Name (Feldname)</label>
+                        <input type="text" id="name" placeholder="z.B. label, type, read_only">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="label">Label (Anzeigename)</label>
+                        <input type="text" id="label" placeholder="z.B. Anzeigelabel">
+                    </div>
+                </div>
+
+                <div class="grid">
+                    <div class="form-group">
+                        <label for="type">Typ</label>
+                        <select id="type">
+                            <option value="string">Text (einzeilig)</option>
+                            <option value="text">Text (mehrzeilig)</option>
+                            <option value="number">Zahl</option>
+                            <option value="date">Datum</option>
+                            <option value="datetime">Datum + Zeit</option>
+                            <option value="dropdown">Auswahlliste</option>
+                            <option value="true_false">Ja/Nein</option>
+                            <option value="guid">GUID-Referenz</option>
+                            <option value="element_list">Element-Liste</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="table">Tabelle</label>
+                        <input type="text" id="table" value="sys_control_dict">
+                    </div>
+                </div>
+
+                <div class="grid">
+                    <div class="form-group">
+                        <label for="gruppe">Gruppe</label>
+                        <input type="text" id="gruppe" placeholder="z.B. ROOT, FIELDS">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="display_order">Sortierung</label>
+                        <input type="number" id="display_order" value="0">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <button onclick="createControl()">
+                        <span id="createBtnText">✨ Control erstellen</span>
+                        <span id="createBtnLoading" class="loading" style="display: none;"></span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Section 3: Vorschau -->
+            <div class="section">
+                <h2 class="section-title">3. Vorschau</h2>
+                <div class="field-preview">
+                    <h4>Control-Daten Preview</h4>
+                    <pre id="previewJson">{
+  "message": "Wähle MODUL und fülle Felder aus..."
+}</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedModul = null;
+        const API_BASE = 'http://localhost:8000/api/control';
+
+        function selectModul(modul) {
+            selectedModul = modul;
+            
+            // Update UI
+            document.querySelectorAll('.modul-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            document.querySelector(`[data-modul="${modul}"]`).classList.add('selected');
+            
+            updatePreview();
+        }
+
+        function updatePreview() {
+            if (!selectedModul) return;
+
+            const data = {
+                modul_type: selectedModul,
+                name: document.getElementById('name').value || '',
+                label: document.getElementById('label').value || '',
+                type: document.getElementById('type').value,
+                table: document.getElementById('table').value,
+                gruppe: document.getElementById('gruppe').value || '',
+                display_order: parseInt(document.getElementById('display_order').value) || 0,
+                SELF_NAME: document.getElementById('table').value.split('_')[0] + '_' + (document.getElementById('name').value || 'name')
+            };
+
+            document.getElementById('previewJson').textContent = JSON.stringify(data, null, 2);
+        }
+
+        // Auto-update Preview
+        ['name', 'label', 'type', 'table', 'gruppe', 'display_order'].forEach(field => {
+            document.getElementById(field).addEventListener('input', updatePreview);
+        });
+
+        async function createControl() {
+            if (!selectedModul) {
+                showAlert('Bitte wähle zuerst einen MODUL-Typ', 'error');
+                return;
+            }
+
+            const name = document.getElementById('name').value;
+            if (!name) {
+                showAlert('Name ist erforderlich', 'error');
+                return;
+            }
+
+            // Loading state
+            document.getElementById('createBtnText').style.display = 'none';
+            document.getElementById('createBtnLoading').style.display = 'inline-block';
+
+            try {
+                const response = await fetch(`${API_BASE}/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        modul_type: selectedModul,
+                        table_name: document.getElementById('table').value,
+                        field_data: {
+                            name: document.getElementById('name').value,
+                            label: document.getElementById('label').value,
+                            type: document.getElementById('type').value,
+                            table: document.getElementById('table').value,
+                            gruppe: document.getElementById('gruppe').value,
+                            feld: document.getElementById('name').value,
+                            display_order: parseInt(document.getElementById('display_order').value) || 0
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Fehler beim Erstellen');
+                }
+
+                const result = await response.json();
+                showAlert(`✅ Control erfolgreich erstellt!\nUUID: ${result.uid}\nName: ${result.name}`, 'success');
+
+                // Reset form
+                document.getElementById('name').value = '';
+                document.getElementById('label').value = '';
+                document.getElementById('gruppe').value = '';
+                updatePreview();
+
+            } catch (error) {
+                showAlert(`❌ Fehler: ${error.message}`, 'error');
+            } finally {
+                document.getElementById('createBtnText').style.display = 'inline';
+                document.getElementById('createBtnLoading').style.display = 'none';
+            }
+        }
+
+        function showAlert(message, type) {
+            const container = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            container.appendChild(alert);
+
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+
+        // Initial preview
+        updatePreview();
+    </script>
+</body>
+</html>

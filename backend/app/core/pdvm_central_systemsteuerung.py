@@ -11,6 +11,7 @@ Nach Desktop-Vorbild: pdvm_central_systemsteuerung.py
 import uuid
 import logging
 import time
+import copy
 from typing import Optional, Dict, Any
 from app.core.pdvm_central_datenbank import PdvmCentralDatabase
 from app.core.pdvm_datenbank import PdvmDatabase
@@ -248,6 +249,9 @@ class PdvmCentralSystemsteuerung:
         # Value: {ts, default_language, maps:{field->{key:label}}, options:{field->[...]} }
         self._pdvm_dropdown_cache: Dict[tuple[str, str, str], Any] = {}
 
+        # Session-Cache: sys_control_dict Template 555 (nicht persistent)
+        self._control_template_555_cache: Dict[str, Any] = {}
+
         # Idle-Session-Management (Sekunden)
         self._idle_timeout_seconds: Optional[int] = None
         self._idle_warning_seconds: Optional[int] = None
@@ -469,6 +473,30 @@ class PdvmCentralSystemsteuerung:
                 logger.info(f"✅ Layout geladen: {theme_guid_str}")
         else:
             logger.warning("⚠️ Keine THEME_GUID im Mandant-CONFIG gefunden")
+
+        # --- sys_control_dict Template-Cache (555) ---
+        await self.preload_control_template_cache()
+
+    async def preload_control_template_cache(self) -> None:
+        """Lädt nicht-persistenten Control-Template-Cache (GUID 555...) in die Session."""
+        try:
+            template_uid = uuid.UUID("55555555-5555-5555-5555-555555555555")
+            db = PdvmDatabase(
+                "sys_control_dict",
+                system_pool=self._system_pool,
+                mandant_pool=self._mandant_pool,
+            )
+            row = await db.get_by_uid(template_uid)
+            data = row.get("daten") if isinstance(row, dict) else {}
+            self._control_template_555_cache = copy.deepcopy(data) if isinstance(data, dict) else {}
+            logger.info("✅ GCS Control-Template-Cache geladen (555...)")
+        except Exception as exc:
+            self._control_template_555_cache = {}
+            logger.warning(f"⚠️ GCS Control-Template-Cache konnte nicht geladen werden: {exc}")
+
+    def get_control_template_555_cache(self) -> Dict[str, Any]:
+        """Gibt eine sichere Kopie des nicht-persistenten 555-Template-Caches zurück."""
+        return copy.deepcopy(self._control_template_555_cache) if isinstance(self._control_template_555_cache, dict) else {}
     
     # === Delegierte Methoden für Kompatibilität ===
     

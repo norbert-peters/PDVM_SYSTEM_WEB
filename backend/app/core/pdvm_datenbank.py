@@ -11,6 +11,8 @@ Nach Desktop-Vorbild: pdvm_datenbank.py
 import uuid
 import json
 import asyncio
+import re
+import copy
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 import asyncpg
@@ -77,12 +79,177 @@ class PdvmDatabase:
             "sys_framedaten",
             "sys_layout",
             "sys_systemdaten",
+            "sys_control_dict",
+            "sys_control_dict_audit",
         ]:
             return "system"
         
         # MANDANT: Anwendungsdaten und Fachdaten (pro Mandant)
         else:
             return "mandant"
+
+    _AUDIT_TABLE_MAP = {
+        "sys_control_dict": "sys_control_dict_audit",
+        "sys_contr_dict_man": "sys_contr_dict_man_audit",
+    }
+
+    _GUID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+
+    @staticmethod
+    def _is_guid_key(value: str) -> bool:
+        if not value:
+            return False
+        return bool(PdvmDatabase._GUID_RE.match(str(value).strip()))
+
+    @staticmethod
+    def _collect_guid_field_values(
+        data: Any,
+        out: Optional[Dict[str, Any]] = None,
+        group: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        if out is None:
+            out = {}
+        if isinstance(data, dict):
+            for key, value in data.items():
+                if PdvmDatabase._is_guid_key(key):
+                    group_name = group or "ROOT"
+                    entry = out.setdefault(str(key).strip().lower(), {})
+                    entry[group_name] = {str(key): value}
+                next_group = group
+                if group is None and isinstance(key, str) and not PdvmDatabase._is_guid_key(key):
+                    next_group = key
+                if isinstance(value, dict) or isinstance(value, list):
+                    PdvmDatabase._collect_guid_field_values(value, out, next_group)
+        elif isinstance(data, list):
+            for item in data:
+                PdvmDatabase._collect_guid_field_values(item, out, group)
+        return out
+
+    def _get_audit_table(self) -> Optional[str]:
+        return self._AUDIT_TABLE_MAP.get(self.table_name)
+
+    async def _write_audit_entry(
+        self,
+        *,
+        audit_table: str,
+        feld_guid: str,
+        payload_after: Any,
+    ) -> None:
+        audit_db = PdvmDatabase(audit_table, system_pool=self._system_pool, mandant_pool=self._mandant_pool)
+        audit_uid = uuid.UUID(feld_guid)
+        existing = await audit_db.get_by_uid(audit_uid)
+        if existing:
+            await audit_db.update(uid=audit_uid, daten=payload_after, historisch=1)
+        else:
+            await audit_db.create(uid=audit_uid, daten=payload_after, name="", historisch=1)
+
+    @staticmethod
+    async def _load_control_template_defaults(
+        *,
+        modul_type: str,
+        system_pool: Optional[asyncpg.Pool],
+        mandant_pool: Optional[asyncpg.Pool],
+    ) -> Dict[str, Any]:
+        modul_norm = str(modul_type or "").strip().lower()
+        if not modul_norm:
+            return {}
+
+        template_uid = uuid.UUID("55555555-5555-5555-5555-555555555555")
+        db = PdvmDatabase("sys_control_dict", system_pool=system_pool, mandant_pool=mandant_pool)
+        template_row = await db.get_by_uid(template_uid)
+        if not template_row:
+            return {}
+
+        template_daten = template_row.get("daten") or {}
+        if isinstance(template_daten, str):
+            try:
+                template_daten = json.loads(template_daten)
+            except Exception:
+                template_daten = {}
+        if not isinstance(template_daten, dict):
+            return {}
+
+        defaults: Dict[str, Any] = {}
+
+        templates = template_daten.get("TEMPLATES")
+        if isinstance(templates, dict):
+            tpl_control = templates.get("CONTROL")
+            if isinstance(tpl_control, dict):
+                defaults.update(copy.deepcopy(tpl_control))
+
+        modul_map = template_daten.get("MODUL")
+        if isinstance(modul_map, dict):
+            ci_map = {str(k).strip().lower(): k for k in modul_map.keys()}
+            real_key = ci_map.get(modul_norm)
+            if real_key is not None:
+                modul_defaults = modul_map.get(real_key)
+                if isinstance(modul_defaults, dict):
+                    defaults.update(copy.deepcopy(modul_defaults))
+
+        defaults["modul_type"] = modul_norm
+        return defaults
+
+    @staticmethod
+    async def _resolve_control_data_with_templates(
+        *,
+        control_data: Dict[str, Any],
+        system_pool: Optional[asyncpg.Pool],
+        mandant_pool: Optional[asyncpg.Pool],
+    ) -> Dict[str, Any]:
+        if not isinstance(control_data, dict):
+            return {}
+
+        modul_type = str(control_data.get("modul_type") or "").strip().lower()
+        if not modul_type:
+            return dict(control_data)
+
+        defaults = await PdvmDatabase._load_control_template_defaults(
+            modul_type=modul_type,
+            system_pool=system_pool,
+            mandant_pool=mandant_pool,
+        )
+        if not defaults:
+            return dict(control_data)
+
+        resolved = copy.deepcopy(defaults)
+        resolved.update(control_data)
+        return resolved
+
+    @staticmethod
+    async def load_control_definition(
+        feld_guid: uuid.UUID,
+        *,
+        system_pool: Optional[asyncpg.Pool],
+        mandant_pool: Optional[asyncpg.Pool],
+    ) -> Optional[Dict[str, Any]]:
+        """Lädt Control-Definition (Mandant zuerst, dann System)."""
+        mandant_db = PdvmDatabase("sys_contr_dict_man", system_pool=system_pool, mandant_pool=mandant_pool)
+        row = await mandant_db.get_by_uid(feld_guid)
+        if not row:
+            system_db = PdvmDatabase("sys_control_dict", system_pool=system_pool, mandant_pool=mandant_pool)
+            row = await system_db.get_by_uid(feld_guid)
+
+        if not row:
+            return None
+
+        out = dict(row)
+        daten = out.get("daten") or {}
+        if isinstance(daten, str):
+            try:
+                daten = json.loads(daten)
+            except Exception:
+                daten = {}
+
+        if isinstance(daten, dict):
+            out["daten"] = await PdvmDatabase._resolve_control_data_with_templates(
+                control_data=daten,
+                system_pool=system_pool,
+                mandant_pool=mandant_pool,
+            )
+        else:
+            out["daten"] = {}
+
+        return out
     
     def get_pool(self) -> asyncpg.Pool:
         """Holt den richtigen Connection Pool für diese Tabelle"""
@@ -329,6 +496,7 @@ class PdvmDatabase:
             Aktualisierter Datensatz
         """
         pool = self.get_pool()
+        before_row = await self.get_by_uid(uid)
         async with pool.acquire() as conn:
             # gilt_bis wird immer auf höchstes Datum gesetzt
             if name is not None and historisch is not None:
@@ -360,7 +528,19 @@ class PdvmDatabase:
                     WHERE uid = $2
                 """, json.dumps(daten), uid)
             
-            return await self.get_by_uid(uid)
+            updated = await self.get_by_uid(uid)
+
+        audit_table = self._get_audit_table()
+        if audit_table and updated:
+            after_guid_values = self._collect_guid_field_values(updated.get("daten"))
+            for key, payload in after_guid_values.items():
+                await self._write_audit_entry(
+                    audit_table=audit_table,
+                    feld_guid=key,
+                    payload_after=payload,
+                )
+
+        return updated
     
     async def delete(self, uid: uuid.UUID, soft_delete: bool = True) -> bool:
         """
@@ -433,7 +613,17 @@ class PdvmDatabase:
         if not isinstance(features, list):
             features = []
         
-        all_tables = sys_tables + features
+        mandatory_tables = [
+            "sys_anwendungsdaten",
+            "sys_systemsteuerung",
+            "sys_security",
+            "sys_error_log",
+            "sys_error_acknowledgments",
+            "sys_contr_dict_man",
+            "sys_contr_dict_man_audit",
+        ]
+
+        all_tables = list(dict.fromkeys(mandatory_tables + sys_tables + features))
         
         if not all_tables:
             logger.info(f"Keine Tabellen für Mandant {mandant_id} konfiguriert")

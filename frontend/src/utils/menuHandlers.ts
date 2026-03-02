@@ -175,6 +175,8 @@ const HANDLERS: Record<string, MenuHandler> = {
   'show_help': handleShowHelp,
   'go_view': handleGoView,
   'go_dialog': handleGoDialog,
+  'go_pdvm_dialog': handleGoDialog,
+  'go_pdvm_edit': handleGoDialog,
 };
 
 /**
@@ -262,7 +264,7 @@ export async function restoreLastNavigation(context: MenuHandlerContext): Promis
         }
       }
 
-      if (handler === 'go_dialog') {
+      if (handler === 'go_dialog' || handler === 'go_pdvm_dialog' || handler === 'go_pdvm_edit') {
         const dialogGuid = params?.dialog_guid || params?.guid
         const dialogTable = params?.dialog_table || params?.table || params?.root_table
         if (dialogGuid) {

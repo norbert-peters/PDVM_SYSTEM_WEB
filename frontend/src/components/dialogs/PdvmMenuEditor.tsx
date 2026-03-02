@@ -104,8 +104,9 @@ function findPicDef(picDefs: PicDef[], feld: string): PicDef | null {
   return null
 }
 
-function normalizePicType(value: any): 'string' | 'text' | 'dropdown' | 'true_false' | 'menu_command' | 'selected_view' {
+function normalizePicType(value: any): 'string' | 'number' | 'text' | 'dropdown' | 'true_false' | 'menu_command' | 'selected_view' {
   const t = String(value || '').trim().toLowerCase()
+  if (t === 'number' || t === 'int' || t === 'integer') return 'number'
   if (t === 'text') return 'text'
   if (t === 'dropdown') return 'dropdown'
   if (t === 'true_false' || t === 'bool' || t === 'boolean') return 'true_false'
@@ -583,6 +584,7 @@ export function PdvmMenuEditor(props: {
     if (!target) return
     const parent = normalizeGuid(target.parent_guid)
     const parentGuid = parent ? parent : null
+    const uid = newGuid()
 
     const newItem: MenuItem = {
       type: 'BUTTON',
@@ -1025,7 +1027,7 @@ export function PdvmMenuEditor(props: {
                       key={def.key || feld}
                       label={label}
                       tooltip={tooltip}
-                      type={typ}
+                      type={typ === 'menu_command' ? 'string' : typ}
                       value={value}
                       readOnly={readOnly}
                       onChange={(v) => setFieldValue(feld, v)}
@@ -1091,7 +1093,6 @@ export function PdvmMenuEditor(props: {
                       const cfg = menuParamConfigs[name] as any
                       const handler = String(cfg?.handler || '').trim()
                       const fromTable = String(cfg?.from_table || '').trim()
-                      const dropdownCfg = cfg?.dropdown || null
 
                       if (handler === 'go_select_view' && fromTable) {
                         return (

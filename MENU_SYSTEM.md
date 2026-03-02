@@ -87,3 +87,20 @@ Aktionen werden als JSON-Objekt im `command` Feld definiert und vom `MenuHandler
   "params": { "view_guid": "..." }
 }
 ```
+
+### 4.1 Dialog-Commands (V2)
+- `go_dialog`, `go_pdvm_dialog` und `go_pdvm_edit` oeffnen Dialoge per `dialog_guid`.
+- Optional kann `dialog_table` uebergeben werden (nur relevant fuer `show_json`/`edit_json`).
+- Bei `show_json`/`edit_json` ueberschreibt `dialog_table` die Tabelle aus der View-Definition (gilt fuer View-State, Matrix und Dialog-CRUD).
+- `show_json` ist ein Edit-Typ und benoetigt immer einen Edit-Tab.
+
+Beispiel:
+```json
+"command": {
+  "handler": "go_pdvm_dialog",
+  "params": {
+    "dialog_guid": "...",
+    "dialog_table": "sys_personen"
+  }
+}
+```

@@ -20,6 +20,8 @@ TABLE_DATABASE_MAP = {
     "sys_layout": "system",
     "sys_dropdowndaten": "system",
     "sys_systemdaten": "system",
+    "sys_control_dict": "system",
+    "sys_control_dict_audit": "system",
     
     # Auth tables (auth database)
     "sys_benutzer": "auth",
@@ -32,6 +34,8 @@ TABLE_DATABASE_MAP = {
     "sys_security": "mandant",
     "sys_error_log": "mandant",
     "sys_error_acknowledgments": "mandant",
+    "sys_contr_dict_man": "mandant",
+    "sys_contr_dict_man_audit": "mandant",
     "persondaten": "mandant",
     "finanzdaten": "mandant",
 }

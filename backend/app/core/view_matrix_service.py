@@ -49,28 +49,37 @@ def _normalize_type(control: Dict[str, Any]) -> str:
     return t
 
 
+def _get_ci(obj: Any, key: str) -> Any:
+    if not isinstance(obj, dict):
+        return None
+    if key in obj:
+        return obj.get(key)
+    wanted = str(key or "").strip().lower()
+    if not wanted:
+        return None
+    for k, v in obj.items():
+        if str(k).strip().lower() == wanted:
+            return v
+    return None
+
+
 def _get_value_from_row(row: Dict[str, Any], control: Dict[str, Any]) -> Any:
     daten = row.get("daten") or {}
     if not isinstance(daten, dict):
         return None
 
-    gruppe = str(control.get("gruppe") or "")
-    feld = str(control.get("feld") or "")
+    gruppe = str(control.get("gruppe") or control.get("GRUPPE") or "")
+    feld = str(control.get("feld") or control.get("FELD") or "")
     if not gruppe or not feld:
         return None
 
-    group_obj = daten.get(gruppe)
-    raw = None
-    try:
-        raw = group_obj.get(feld) if isinstance(group_obj, dict) else None
-    except Exception:
-        raw = None
+    group_obj = _get_ci(daten, gruppe)
+    raw = _get_ci(group_obj, feld)
 
-    # SYSTEM special-case: tolerate case variants (frontend does this too)
-    if gruppe.upper() == "SYSTEM" and raw is None and isinstance(group_obj, dict):
-        raw = group_obj.get(str(feld).lower())
-        if raw is None:
-            raw = group_obj.get(str(feld).upper())
+    # Fallback für legacy/flat JSON-Strukturen:
+    # Einige Tabellen (z.B. sys_control_dict) speichern Felder ohne ROOT-Container.
+    if raw is None and gruppe.strip().upper() in {"ROOT", "__ROOT__"}:
+        raw = _get_ci(daten, feld)
 
     return raw
 
@@ -282,12 +291,14 @@ async def build_view_matrix(
         return s in {"1", "true", "yes", "y", "on"}
 
     no_data = _truthy((root or {}).get("NO_DATA") or (root or {}).get("no_data"))
+    et = str(edit_type or "").strip().lower() or "view"
     if table_override:
         allow_flag = _truthy((root or {}).get("ALLOW_TABLE_OVERRIDE") or (root or {}).get("allow_table_override"))
         rt = str(table or "").strip().lower()
         to = str(table_override or "").strip().lower()
         allow_sys_to_sys = rt.startswith("sys_") and to.startswith("sys_")
-        if not (no_data or allow_flag or allow_sys_to_sys):
+        allow_dialog_json = et in {"show_json", "edit_json"}
+        if not (no_data or allow_flag or allow_sys_to_sys or allow_dialog_json):
             raise ValueError("table_override ist nur erlaubt, wenn ROOT.NO_DATA=true oder ROOT.ALLOW_TABLE_OVERRIDE=true (oder sys_* -> sys_*)")
         table = str(table_override).strip()
         if not table:

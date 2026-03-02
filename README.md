@@ -90,6 +90,38 @@ Each table follows the PDVM standard:
 - `modified_at` - Last modified
 - `daten_backup` - Backup data
 
+## 💾 PostgreSQL Backup (Docker)
+
+PowerShell-Skripte für Backup und Restore liegen in `database/scripts`:
+
+```powershell
+# Backup erstellen (legt .dump in database/backups ab)
+cd database\scripts
+.\backup_postgres.ps1
+
+# Optional mit eigener Aufbewahrung (z. B. 30 Tage)
+.\backup_postgres.ps1 -KeepDays 30
+
+# Direkt auf externe Platte sichern + lokales Fallback, falls Platte fehlt
+.\backup_postgres.ps1 -OutputDir "E:\PDVM_Backups" -FallbackOutputDir "..\backups"
+
+# Letztes Backup zurückspielen
+.\restore_postgres.ps1
+
+# Konkretes Backup zurückspielen
+.\restore_postgres.ps1 -BackupFile ..\backups\pdvm_system_20260223_120000.dump
+```
+
+### Automatisierung (Windows Aufgabenplanung)
+
+Beispiel (täglich 02:00 Uhr):
+
+```powershell
+$action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -File \"C:\Users\norbe\OneDrive\Dokumente\PDVM_SYSTEM_WEB\database\scripts\backup_postgres.ps1\""
+$trigger = New-ScheduledTaskTrigger -Daily -At 2:00AM
+Register-ScheduledTask -TaskName "PDVM_Postgres_Backup" -Action $action -Trigger $trigger -Description "Tägliches PostgreSQL Backup für PDVM"
+```
+
 ## 📝 Änderungen
 
 - 2026-02-03: Mandanten-Setup aktualisiert `ROOT.DB_CREATED_AT` über `MandantDataManager.update_value()` (kein direkter Router-DB-Zugriff).

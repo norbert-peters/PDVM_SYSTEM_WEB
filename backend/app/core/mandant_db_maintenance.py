@@ -57,7 +57,9 @@ class MandantDatabaseMaintenance:
                 'sys_layout',
                 'sys_security',
                 'sys_error_log',
-                'sys_error_acknowledgments'
+                'sys_error_acknowledgments',
+                'sys_contr_dict_man',
+                'sys_contr_dict_man_audit'
             ]
             
             logger.info(f"📋 Phase 1: Standard-System-Tabellen ({len(standard_tables)})")
