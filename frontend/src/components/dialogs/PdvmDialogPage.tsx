@@ -5,9 +5,11 @@ import {
   controlDictAPI,
   dialogsAPI,
   systemdatenAPI,
+  viewsAPI,
   usersAPI,
   type DialogRow,
   type DialogDefinitionResponse,
+  type FrameDefinitionResponse,
   type DialogRecordResponse,
   type DialogDraftResponse,
   type DialogUiStateResponse,
@@ -18,7 +20,7 @@ import { PdvmMenuEditor } from './PdvmMenuEditor'
 import { PdvmImportDataEditor, PdvmImportDataSteps } from './PdvmImportDataEditor'
 import { PdvmJsonEditor, type PdvmJsonEditorHandle, type PdvmJsonEditorMode } from '../common/PdvmJsonEditor'
 import { PdvmDialogModal } from '../common/PdvmDialogModal'
-import { PdvmInputControl, type PdvmDropdownOption } from '../common/PdvmInputControl'
+import { PdvmInputControl, type PdvmDropdownOption, type PdvmElementField } from '../common/PdvmInputControl'
 import { PdvmLookupSelect } from '../common/PdvmLookupSelect'
 import '../../styles/components/dialog.css'
 
@@ -60,6 +62,46 @@ function asObject(value: any): Record<string, any> {
   return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, any>) : {}
 }
 
+function cloneValue(value: any): any {
+  if (value == null) return value
+  if (Array.isArray(value)) return value.map((entry) => cloneValue(entry))
+  if (typeof value !== 'object') return value
+  try {
+    return JSON.parse(JSON.stringify(value))
+  } catch {
+    return value
+  }
+}
+
+function normalizeValueEnvelope(value: any): Record<string, any> {
+  const obj = asObject(value)
+  if (Object.prototype.hasOwnProperty.call(obj, 'ORIGINAL')) {
+    return obj
+  }
+  return { ORIGINAL: cloneValue(value) }
+}
+
+function buildFlatPicControl(params: {
+  controlData: any
+  fieldKey: string
+  value: any
+  valueTimeKey?: string | null
+}): Record<string, any> {
+  const controlData = asObject(params.controlData)
+  const controlRoot = asObject(controlData.ROOT)
+  const controlPayload = asObject(controlData.CONTROL)
+  const guidRaw = String(controlRoot.SELF_GUID ?? '').trim()
+  const resolvedValueTimeKey = String(params.valueTimeKey || '').trim() || 'ORIGINAL'
+
+  return {
+    ...controlPayload,
+    FIELD_KEY: String(params.fieldKey || '').trim(),
+    GUID_KEY: guidRaw || null,
+    VALUE: normalizeValueEnvelope(params.value),
+    VALUE_TIME_KEY: resolvedValueTimeKey,
+  }
+}
+
 function normalizePicType(
   value: any
 ): 'string' | 'number' | 'text' | 'dropdown' | 'multi_dropdown' | 'true_false' | 'go_select_view' | 'action' | 'element_list' | 'group_list' {
@@ -76,13 +118,97 @@ function normalizePicType(
   return 'string'
 }
 
-function buildElementFieldsFromCollectionValue(value: any): Array<{ name: string; label: string; type: 'text' | 'textarea' | 'number' | 'dropdown' }> {
+function buildElementFieldsFromCollectionValue(value: any): Array<{ name: string; label: string; type: 'string' | 'text' | 'textarea' | 'number' | 'dropdown' | 'multi_dropdown' | 'true_false' }> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return []
   const first = Object.values(value).find((row) => row && typeof row === 'object' && !Array.isArray(row)) as Record<string, any> | undefined
   if (!first) return []
   return Object.keys(first)
     .filter((k) => String(k || '').trim())
-    .map((k) => ({ name: k, label: k, type: 'text' as const }))
+    .map((k) => ({ name: k, label: k, type: 'string' as const }))
+}
+
+function mapPicTypeToElementFieldType(value: any): 'string' | 'text' | 'textarea' | 'number' | 'dropdown' | 'multi_dropdown' | 'true_false' {
+  const t = normalizePicType(value)
+  if (t === 'number') return 'number'
+  if (t === 'text') return 'textarea'
+  if (t === 'dropdown') return 'dropdown'
+  if (t === 'multi_dropdown') return 'multi_dropdown'
+  if (t === 'true_false') return 'true_false'
+  return 'string'
+}
+
+function toBoolean(value: any): boolean {
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'number') return value !== 0
+  if (typeof value === 'string') {
+    const v = value.trim().toLowerCase()
+    if (!v) return false
+    if (['true', '1', 'ja', 'yes', 'y', 'on'].includes(v)) return true
+    if (['false', '0', 'nein', 'no', 'n', 'off'].includes(v)) return false
+  }
+  return !!value
+}
+
+function buildElementFieldsFromFrameDaten(frameDaten: Record<string, any> | null | undefined): PdvmElementField[] {
+  const defs = extractPicDefs(frameDaten)
+  return defs
+    .map((d) => {
+      const row = asObject(d as any)
+      const name = String((d as any).feld ?? row.FELD ?? (d as any).name ?? row.NAME ?? '').trim()
+      if (!name) return null
+      const label = String((d as any).label ?? row.LABEL ?? (d as any).name ?? row.NAME ?? name).trim() || name
+      const fieldType = mapPicTypeToElementFieldType((d as any).type ?? row.TYPE)
+      const displayOrder = Number((d as any).display_order ?? row.DISPLAY_ORDER)
+      const tooltip = String((d as any).tooltip ?? row.TOOLTIP ?? row.HELP_TEXT ?? '').trim()
+      const required = toBoolean((d as any).required ?? row.REQUIRED)
+      const expertMode = toBoolean(row.EXPERT_MODE ?? row.expert_mode ?? asObject(row.CONTROL).EXPERT_MODE ?? asObject(row.CONTROL).expert_mode)
+
+      return {
+        name,
+        label,
+        type: fieldType,
+        required,
+        tooltip: tooltip || undefined,
+        help_text: tooltip || undefined,
+        control_debug: {
+          ...asObject(row.CONTROL),
+          FIELD_KEY: `ELEMENT.${name}`,
+          EXPERT_MODE: expertMode,
+        },
+        EXPERT_MODE: expertMode,
+        SAVE_PATH: name,
+        display_order: Number.isFinite(displayOrder) ? displayOrder : undefined,
+      } as PdvmElementField
+    })
+    .filter(Boolean) as PdvmElementField[]
+}
+
+function buildElementTemplateFromFields(fields: PdvmElementField[]): Record<string, any> {
+  const out: Record<string, any> = {}
+  fields.forEach((field) => {
+    if (!field?.name) return
+    if (field.type === 'number') {
+      out[field.name] = 0
+      return
+    }
+    if (field.type === 'true_false') {
+      out[field.name] = false
+      return
+    }
+    if (field.type === 'multi_dropdown') {
+      out[field.name] = []
+      return
+    }
+    out[field.name] = ''
+  })
+  return out
+}
+
+function isCollectionObject(value: any): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const entries = Object.entries(value)
+  if (!entries.length) return false
+  return entries.every(([key, row]) => String(key || '').trim() && row && typeof row === 'object' && !Array.isArray(row))
 }
 
 type ControlEditModel = {
@@ -164,6 +290,17 @@ function extractControlEditModel(daten: Record<string, any> | null | undefined):
           continue
         }
 
+        if (isCollectionObject(raw)) {
+          base.type = 'element_list'
+          base.configs = {
+            ...(base.configs || {}),
+            element_template: {},
+            element_fields: buildElementFieldsFromCollectionValue(raw),
+          }
+          defs.push(base)
+          continue
+        }
+
         base.type = 'action'
         base.read_only = true
         base.tooltip = 'Objekt ohne TYPE=element_list/group_list. Bitte in der Definition ergänzen.'
@@ -194,10 +331,14 @@ function buildUnifiedControlMatrix(
   opts: {
     frameDaten?: Record<string, any> | null
     currentDaten?: Record<string, any> | null
+    excludeRootGroup?: boolean
   }
 ): ControlEditModel {
   if (source === 'frame_fields') {
-    const defs = extractPicDefs(opts.frameDaten || null)
+    const allDefs = extractPicDefs(opts.frameDaten || null)
+    const defs = opts.excludeRootGroup
+      ? allDefs.filter((d) => String(d.gruppe || '').trim().toUpperCase() !== 'ROOT')
+      : allDefs
     const tabsMap = new Map<number, { index: number; head: string; group: string }>()
 
     defs.forEach((d) => {
@@ -226,7 +367,45 @@ function extractPicDefs(frameDaten: Record<string, any> | null | undefined): Pic
   const out: PicDef[] = []
   for (const [key, value] of Object.entries(fields)) {
     const item = asObject(value)
-    out.push({ key, ...(item as PicDef) })
+    const control = asObject((item as any).CONTROL)
+    const root = asObject((item as any).ROOT)
+    const configsRaw = asObject((item as any).configs ?? (item as any).CONFIGS)
+    const cfgElements = asObject((item as any).CONFIGS_ELEMENTS ?? control.CONFIGS_ELEMENTS)
+    const mergedConfigs = {
+      ...configsRaw,
+      ...(Object.keys(cfgElements).length ? { CONFIGS_ELEMENTS: cfgElements } : {}),
+      ...(Object.keys(asObject((configsRaw as any).dropdown)).length ? {} : { dropdown: asObject((cfgElements as any).dropdown) }),
+    }
+
+    const displayOrderRaw = (item as any).display_order ?? (item as any).DISPLAY_ORDER ?? control.DISPLAY_ORDER ?? control.EXPERT_ORDER
+    const tabRaw =
+      (item as any).tab ??
+      (item as any).TAB ??
+      control.TAB ??
+      (item as any).index ??
+      (item as any).INDEX ??
+      control.EDIT_TAB
+
+    out.push({
+      ...(item as PicDef),
+      key,
+      tab: Number(tabRaw || 1) || 1,
+      name: String((item as any).name ?? (item as any).NAME ?? control.NAME ?? key).trim(),
+      label: String((item as any).label ?? (item as any).LABEL ?? control.LABEL ?? control.NAME ?? key).trim(),
+      tooltip: String((item as any).tooltip ?? (item as any).TOOLTIP ?? control.TOOLTIP ?? '').trim() || undefined,
+      type: String((item as any).type ?? (item as any).TYPE ?? control.TYPE ?? 'string').trim(),
+      table: String((item as any).table ?? (item as any).TABLE ?? control.TABLE ?? '').trim(),
+      gruppe: String((item as any).gruppe ?? (item as any).GRUPPE ?? control.GRUPPE ?? '').trim(),
+      feld: String((item as any).feld ?? (item as any).FELD ?? control.FIELD ?? control.FELD ?? key).trim(),
+      display_order: Number(displayOrderRaw || 0),
+      read_only: toBoolean((item as any).read_only ?? (item as any).READ_ONLY ?? control.READ_ONLY),
+      historical: toBoolean((item as any).historical ?? (item as any).HISTORICAL ?? control.HISTORICAL),
+      abdatum: toBoolean((item as any).abdatum ?? (item as any).ABDATUM ?? control.ABDATUM),
+      source_path: String((item as any).source_path ?? (item as any).SOURCE_PATH ?? control.SOURCE_PATH ?? '').trim() || undefined,
+      configs: mergedConfigs,
+      ...(Object.keys(control).length ? { CONTROL: control } : {}),
+      ...(Object.keys(root).length ? { ROOT: root } : {}),
+    } as any)
   }
   out.sort((a, b) => {
     const ao = Number(a.display_order ?? 0)
@@ -506,6 +685,7 @@ export default function PdvmDialogPage() {
   const isControlEditor = editType === 'edit_control'
   const usesUnifiedControlMatrix = isPdvmEdit || isControlEditor
   const isFieldEditor = isPicEditor || isFrameEditor || isPdvmEdit || isControlEditor
+  const CONTROL_TEMPLATE_UID = '55555555-5555-5555-5555-555555555555'
   const [importStep, setImportStep] = useState(1)
 
   useEffect(() => {
@@ -624,6 +804,7 @@ export default function PdvmDialogPage() {
     return buildUnifiedControlMatrix(source, {
       frameDaten,
       currentDaten: (picDraft ? picDraft : currentDaten) as Record<string, any> | null,
+      excludeRootGroup: isPdvmEdit,
     })
   }, [usesUnifiedControlMatrix, isPdvmEdit, frameDaten, picDraft, currentDaten])
 
@@ -633,19 +814,32 @@ export default function PdvmDialogPage() {
   }, [isControlEditor, unifiedControlMatrix])
   const effectivePicDefs = useMemo(() => {
     if (usesUnifiedControlMatrix) {
-      return unifiedControlMatrix?.defs || []
+      const defs = unifiedControlMatrix?.defs || []
+      if (isPdvmEdit) {
+        return defs.filter((d) => String(d.gruppe || '').trim().toUpperCase() !== 'ROOT')
+      }
+      return defs
     }
     return picDefs
-  }, [usesUnifiedControlMatrix, unifiedControlMatrix, picDefs])
+  }, [usesUnifiedControlMatrix, unifiedControlMatrix, picDefs, isPdvmEdit])
 
   const controlResolveListQuery = useQuery({
     queryKey: ['control-dict', 'list', 'resolve', effectiveDialogTable],
     queryFn: () => controlDictAPI.listControls({ limit: 2000, skip: 0 }),
-    enabled: isControlEditor,
+    enabled: usesUnifiedControlMatrix,
   })
 
+  const controlTemplateQuery = useQuery({
+    queryKey: ['control-dict', 'template', CONTROL_TEMPLATE_UID],
+    queryFn: () => controlDictAPI.getControl(CONTROL_TEMPLATE_UID),
+    enabled: usesUnifiedControlMatrix,
+  })
+
+  const controlTemplateData = useMemo(() => asObject(controlTemplateQuery.data?.daten), [controlTemplateQuery.data])
+  const controlTemplatePayload = useMemo(() => asObject(controlTemplateData.CONTROL), [controlTemplateData])
+
   const matchedControlRefs = useMemo(() => {
-    if (!isControlEditor) return [] as Array<{ uid: string; gruppe: string; feld: string }>
+    if (!usesUnifiedControlMatrix) return [] as Array<{ uid: string; gruppe: string; feld: string }>
 
     const rows = controlResolveListQuery.data?.items || []
     const tableNorm = String(effectiveDialogTable || '').trim().toLowerCase()
@@ -703,13 +897,13 @@ export default function PdvmDialogPage() {
         return { uid, gruppe, feld: String(d.feld || '').trim() }
       })
       .filter(Boolean) as Array<{ uid: string; gruppe: string; feld: string }>
-  }, [isControlEditor, controlResolveListQuery.data, effectivePicDefs, effectiveDialogTable])
+  }, [usesUnifiedControlMatrix, controlResolveListQuery.data, effectivePicDefs, effectiveDialogTable])
 
   const resolvedControlQueries = useQueries({
     queries: matchedControlRefs.map((entry) => ({
       queryKey: ['control-dict', 'resolved', entry.uid],
       queryFn: () => controlDictAPI.getControl(entry.uid),
-      enabled: isControlEditor,
+      enabled: usesUnifiedControlMatrix,
     })),
   })
 
@@ -725,29 +919,41 @@ export default function PdvmDialogPage() {
   }, [matchedControlRefs, resolvedControlQueries])
 
   const effectivePicDefsResolved = useMemo(() => {
-    if (!isControlEditor) return effectivePicDefs
+    if (!usesUnifiedControlMatrix) return effectivePicDefs
 
     return effectivePicDefs.map((d) => {
       const gruppe = String(d.gruppe || '').trim().toUpperCase()
       const feld = String(d.feld || '').trim().toUpperCase()
+      const fieldKey = String(d.key || `CTRL.${gruppe}.${feld}`)
       const key = `${gruppe}::${feld}`
       const resolved = resolvedControlByGroupField[key]
       const controlData = asObject(resolved?.data)
-      const controlRoot = asObject(controlData.ROOT)
-      const controlPayload = asObject(controlData.CONTROL)
+      const resolvedPayload = asObject(controlData.CONTROL)
+      const inheritedPayload = {
+        ...controlTemplatePayload,
+        ...resolvedPayload,
+      }
 
-      // Wenn kein aufgelöstes Original-Control vorliegt: keine künstliche Struktur aufbauen.
-      if (!Object.keys(controlPayload).length) return d
+      if (!Object.keys(inheritedPayload).length) return d
 
-      const name = String(controlPayload.NAME ?? d.name ?? d.feld ?? '').trim()
-      const label = String(controlPayload.LABEL ?? name ?? '').trim()
-      const typeRaw = String(controlPayload.TYPE ?? d.type ?? '').trim()
-      const tooltip = String(controlPayload.TOOLTIP ?? d.tooltip ?? '').trim()
-      const readOnly = controlPayload.READ_ONLY
+      const name = String(inheritedPayload.NAME ?? d.name ?? d.feld ?? '').trim()
+      const label = String(inheritedPayload.LABEL ?? name ?? '').trim()
+      const typeRaw = String(inheritedPayload.TYPE ?? d.type ?? '').trim()
+      const tooltip = String(inheritedPayload.TOOLTIP ?? d.tooltip ?? '').trim()
+      const readOnly = inheritedPayload.READ_ONLY
       const configs = asObject(d.configs)
-      configs.control_original = controlData
-      configs.control_root = controlRoot
-      configs.control_payload = controlPayload
+      configs.control_flat = buildFlatPicControl({
+        controlData: {
+          ROOT: asObject(controlData.ROOT),
+          CONTROL: inheritedPayload,
+        },
+        fieldKey,
+        value: null,
+        valueTimeKey: 'ORIGINAL',
+      })
+      delete configs.control_original
+      delete configs.control_root
+      delete configs.control_payload
 
       return {
         ...d,
@@ -759,11 +965,59 @@ export default function PdvmDialogPage() {
         configs,
       }
     })
-  }, [isControlEditor, effectivePicDefs, resolvedControlByGroupField])
+  }, [usesUnifiedControlMatrix, effectivePicDefs, resolvedControlByGroupField, controlTemplatePayload])
 
   const uiPicDefs = useMemo(() => {
-    return isControlEditor ? effectivePicDefsResolved : effectivePicDefs
-  }, [isControlEditor, effectivePicDefsResolved, effectivePicDefs])
+    return usesUnifiedControlMatrix ? effectivePicDefsResolved : effectivePicDefs
+  }, [usesUnifiedControlMatrix, effectivePicDefsResolved, effectivePicDefs])
+
+  const buildControlDebugForField = (
+    def: PicDef,
+    fieldKey: string,
+    rawValue: any,
+    resolvedControl: { uid: string; data: Record<string, any> } | null
+  ): Record<string, any> => {
+    const resolvedData = asObject(resolvedControl?.data)
+    const resolvedPayload = asObject(resolvedData.CONTROL)
+    if (Object.keys(resolvedPayload).length) {
+      return buildFlatPicControl({
+        controlData: resolvedData,
+        fieldKey,
+        value: rawValue,
+        valueTimeKey: 'ORIGINAL',
+      })
+    }
+
+    const cfgFlat = asObject(asObject(def.configs).control_flat)
+    if (Object.keys(cfgFlat).length) {
+      return {
+        ...cfgFlat,
+        FIELD_KEY: String((cfgFlat as any).FIELD_KEY || fieldKey).trim(),
+        VALUE: normalizeValueEnvelope(rawValue),
+        VALUE_TIME_KEY: String((cfgFlat as any).VALUE_TIME_KEY || 'ORIGINAL').trim() || 'ORIGINAL',
+      }
+    }
+
+    const fallbackPayload = {
+      NAME: String(def.name || def.feld || '').trim(),
+      TYPE: String(def.type || 'string').trim(),
+      FIELD: String(def.feld || '').trim(),
+      LABEL: String(def.label || def.name || def.feld || '').trim(),
+      TOOLTIP: String(def.tooltip || '').trim(),
+      READ_ONLY: !!def.read_only,
+      EXPERT_MODE: toBoolean((def as any).EXPERT_MODE ?? (def as any).expert_mode ?? asObject(def.configs).EXPERT_MODE ?? asObject(def.configs).expert_mode),
+      DISPLAY_ORDER: Number(def.display_order || 0),
+      CONFIGS_ELEMENTS: asObject((def as any).CONFIGS_ELEMENTS ?? asObject(def.configs).CONFIGS_ELEMENTS),
+    }
+
+    return buildFlatPicControl({
+      controlData: { ROOT: {}, CONTROL: fallbackPayload },
+      fieldKey,
+      value: rawValue,
+      valueTimeKey: 'ORIGINAL',
+    })
+  }
+
   const effectivePicTabs = useMemo(() => {
     if (usesUnifiedControlMatrix) {
       const items = (unifiedControlMatrix?.tabs || []).map((t) => ({ index: t.index, head: t.head }))
@@ -1242,27 +1496,72 @@ export default function PdvmDialogPage() {
   }, [defQuery.data?.daten, defQuery.data?.root, tab1Module, tab2Module])
 
   const dropdownFieldConfigs = useMemo(() => {
-    if (!isFieldEditor) return [] as Array<{ fieldKey: string; table: string; datasetUid: string; field: string }>
-    const out: Array<{ fieldKey: string; table: string; datasetUid: string; field: string }> = []
+    if (!isFieldEditor) {
+      return [] as Array<
+        | { kind: 'system'; fieldKey: string; table: string; datasetUid: string; field: string; group?: string }
+        | { kind: 'view'; fieldKey: string; viewGuid: string; tableOverride?: string }
+      >
+    }
+
+    const out: Array<
+      | { kind: 'system'; fieldKey: string; table: string; datasetUid: string; field: string; group?: string }
+      | { kind: 'view'; fieldKey: string; viewGuid: string; tableOverride?: string }
+    > = []
+
     uiPicDefs.forEach((def) => {
       const type = normalizePicType(def.type)
       if (type !== 'dropdown' && type !== 'multi_dropdown') return
-      const cfg = asObject(def.configs?.dropdown)
-      const datasetUid = String(cfg.key || cfg.dataset_uid || '').trim()
+
+      const flatControl = asObject(def.configs?.control_flat)
+      const cfgElements = asObject(flatControl.CONFIGS_ELEMENTS)
+      const cfgFlat = asObject(cfgElements.dropdown)
+      const cfgLegacy = asObject(def.configs?.dropdown)
+      const cfg = Object.keys(cfgFlat).length ? cfgFlat : cfgLegacy
+
+      const keyRaw = String(cfg.key || cfg.dataset_uid || cfg.view_guid || '').trim()
       const field = String(cfg.field || cfg.feld || '').trim()
       const table = String(cfg.table || '').trim()
-      if (!datasetUid || !field || !table) return
+      const group = String(cfg.group || cfg.gruppe || '').trim()
+
       const fieldKey = String(def.key || `${def.gruppe || ''}.${def.feld || ''}`)
-      out.push({ fieldKey, table, datasetUid, field })
+
+      if (group.toUpperCase() === '*VIEW' && keyRaw) {
+        out.push({ kind: 'view', fieldKey, viewGuid: keyRaw, tableOverride: table || undefined })
+        return
+      }
+
+      if (!keyRaw || !field || !table) return
+      out.push({ kind: 'system', fieldKey, table, datasetUid: keyRaw, field, group: group || undefined })
     })
     return out
   }, [isFieldEditor, uiPicDefs])
 
   const dropdownQueries = useQueries({
     queries: dropdownFieldConfigs.map((cfg) => ({
-      queryKey: ['systemdaten', 'dropdown', cfg.table, cfg.datasetUid, cfg.field],
-      queryFn: () => systemdatenAPI.getDropdown({ table: cfg.table, dataset_uid: cfg.datasetUid, field: cfg.field }),
-      enabled: isFieldEditor && !!cfg.table && !!cfg.datasetUid && !!cfg.field,
+      queryKey:
+        cfg.kind === 'system'
+          ? ['systemdaten', 'dropdown', cfg.table, cfg.datasetUid, cfg.field, cfg.group || '']
+          : ['views', 'dropdown-source', cfg.viewGuid, cfg.tableOverride || ''],
+      queryFn: () => {
+        if (cfg.kind === 'system') {
+          return systemdatenAPI.getDropdown({
+            table: cfg.table,
+            dataset_uid: cfg.datasetUid,
+            field: cfg.field,
+            group: cfg.group,
+          })
+        }
+        return viewsAPI.postMatrix(
+          cfg.viewGuid,
+          {
+            include_historisch: false,
+            limit: 1000,
+            offset: 0,
+          },
+          cfg.tableOverride ? { table: cfg.tableOverride } : undefined,
+        )
+      },
+      enabled: isFieldEditor,
     })),
   })
 
@@ -1270,11 +1569,292 @@ export default function PdvmDialogPage() {
     const out: Record<string, PdvmDropdownOption[]> = {}
     dropdownFieldConfigs.forEach((cfg, idx) => {
       const res = dropdownQueries[idx]
-      const options = res?.data?.options || []
-      out[cfg.fieldKey] = options.map((opt) => ({ value: String(opt.key), label: String(opt.value) }))
+
+      if (cfg.kind === 'system') {
+        const options = (res?.data as any)?.options || []
+        out[cfg.fieldKey] = options.map((opt: any) => ({ value: String(opt.key), label: String(opt.value) }))
+        return
+      }
+
+      const rows = Array.isArray((res?.data as any)?.rows) ? (res?.data as any).rows : []
+      out[cfg.fieldKey] = rows
+        .filter((row: any) => row && typeof row === 'object' && String(row.kind || '').toLowerCase() === 'data' && row.uid)
+        .map((row: any) => ({ value: String(row.uid), label: String(row.name || row.uid) }))
     })
     return out
   }, [dropdownFieldConfigs, dropdownQueries])
+
+  const elementFrameRefs = useMemo(() => {
+    if (!isPdvmEdit || !isFieldEditor) return [] as Array<{ fieldKey: string; frameGuid: string }>
+
+    const current = (picDraft ? picDraft : currentDaten || {}) as Record<string, any>
+    const refs: Array<{ fieldKey: string; frameGuid: string }> = []
+
+    uiPicDefs.forEach((def) => {
+      const type = normalizePicType(def.type)
+      if (type !== 'element_list' && type !== 'group_list') return
+
+      const gruppe = String(def.gruppe || '').trim()
+      const feld = String(def.feld || '').trim()
+      if (!gruppe || !feld) return
+
+      const frameGuidField = `${feld}_GUID`
+      const frameGuidRaw = getFieldValue(current, gruppe, frameGuidField)
+      const frameGuid = String(frameGuidRaw || '').trim()
+      if (!isUuidString(frameGuid)) return
+
+      const fieldKey = String(def.key || `${gruppe}.${feld}`)
+      refs.push({ fieldKey, frameGuid })
+    })
+
+    const uniqueByField = new Map<string, { fieldKey: string; frameGuid: string }>()
+    refs.forEach((ref) => {
+      if (!uniqueByField.has(ref.fieldKey)) uniqueByField.set(ref.fieldKey, ref)
+    })
+
+    return Array.from(uniqueByField.values())
+  }, [isPdvmEdit, isFieldEditor, uiPicDefs, picDraft, currentDaten])
+
+  const elementFrameQueries = useQueries({
+    queries: elementFrameRefs.map((ref) => ({
+      queryKey: ['dialogs', 'frame', ref.frameGuid],
+      queryFn: () => dialogsAPI.getFrameDefinition(ref.frameGuid),
+      enabled: isPdvmEdit && !!ref.frameGuid,
+    })),
+  })
+
+  const elementFrameConfigByFieldKey = useMemo(() => {
+    const out: Record<string, { fields: PdvmElementField[]; template: Record<string, any>; frame: FrameDefinitionResponse }> = {}
+    elementFrameRefs.forEach((ref, idx) => {
+      const frame = elementFrameQueries[idx]?.data as FrameDefinitionResponse | undefined
+      if (!frame?.daten) return
+      const fields = buildElementFieldsFromFrameDaten(frame.daten)
+      if (!fields.length) return
+      out[ref.fieldKey] = {
+        fields,
+        template: buildElementTemplateFromFields(fields),
+        frame,
+      }
+    })
+    return out
+  }, [elementFrameRefs, elementFrameQueries])
+
+  const elementFieldCandidates = useMemo(() => {
+    if (!usesUnifiedControlMatrix) return [] as string[]
+    const out = new Set<string>()
+
+    uiPicDefs.forEach((def) => {
+      const type = normalizePicType(def.type)
+      if (type !== 'element_list' && type !== 'group_list') return
+
+      const fieldKey = String(def.key || `${def.gruppe || ''}.${def.feld || ''}`)
+      const frameFields = elementFrameConfigByFieldKey[fieldKey]?.fields || []
+      const cfgFieldsRaw = (def.configs as any)?.element_fields || (def.configs as any)?.fields || []
+      const cfgFields = Array.isArray(cfgFieldsRaw) ? cfgFieldsRaw : []
+      const source = frameFields.length ? frameFields : cfgFields
+
+      source.forEach((field: any) => {
+        const nameUpper = String(field?.name || '').trim().toUpperCase()
+        if (nameUpper) out.add(nameUpper)
+      })
+    })
+
+    return Array.from(out)
+  }, [usesUnifiedControlMatrix, uiPicDefs, elementFrameConfigByFieldKey])
+
+  const elementFieldControlRefs = useMemo(() => {
+    if (!usesUnifiedControlMatrix) return [] as Array<{ fieldUpper: string; uid: string }>
+    const rows = controlResolveListQuery.data?.items || []
+    if (!rows.length || !elementFieldCandidates.length) return [] as Array<{ fieldUpper: string; uid: string }>
+
+    const tableNorm = String(effectiveDialogTable || '').trim().toLowerCase()
+    const refs: Array<{ fieldUpper: string; uid: string }> = []
+
+    elementFieldCandidates.forEach((fieldUpper) => {
+      const candidates = rows
+        .map((row) => {
+          const uid = String(row.uid || '').trim()
+          const rowField = String(row.field || '').trim().toUpperCase()
+          const rowTable = String(row.table || '').trim().toLowerCase()
+          const rowGroup = String(row.gruppe || '').trim().toUpperCase()
+          if (!uid || !rowField || rowField !== fieldUpper) return null
+          let score = 0
+          if (tableNorm && rowTable === tableNorm) score += 10
+          if (!rowTable) score += 5
+          if (rowGroup === 'ROOT') score += 2
+          if (!rowGroup) score += 1
+          return { uid, score }
+        })
+        .filter(Boolean) as Array<{ uid: string; score: number }>
+
+      if (!candidates.length) return
+      candidates.sort((a, b) => b.score - a.score)
+      refs.push({ fieldUpper, uid: candidates[0].uid })
+    })
+
+    return refs
+  }, [usesUnifiedControlMatrix, controlResolveListQuery.data, elementFieldCandidates, effectiveDialogTable])
+
+  const elementFieldControlQueries = useQueries({
+    queries: elementFieldControlRefs.map((entry) => ({
+      queryKey: ['control-dict', 'element-field', entry.uid],
+      queryFn: () => controlDictAPI.getControl(entry.uid),
+      enabled: usesUnifiedControlMatrix,
+    })),
+  })
+
+  const elementFieldControlByName = useMemo(() => {
+    const out: Record<string, Record<string, any>> = {}
+    elementFieldControlRefs.forEach((entry, idx) => {
+      const daten = asObject(elementFieldControlQueries[idx]?.data?.daten)
+      const controlPayload = asObject(daten.CONTROL)
+      if (!Object.keys(controlPayload).length) return
+      out[entry.fieldUpper] = daten
+    })
+    return out
+  }, [elementFieldControlRefs, elementFieldControlQueries])
+
+  const elementDropdownFieldConfigs = useMemo(() => {
+    if (!isFieldEditor) {
+      return [] as Array<
+        | { kind: 'system'; fieldCompositeKey: string; table: string; datasetUid: string; field: string; group?: string }
+        | { kind: 'view'; fieldCompositeKey: string; viewGuid: string; tableOverride?: string }
+      >
+    }
+
+    const out: Array<
+      | { kind: 'system'; fieldCompositeKey: string; table: string; datasetUid: string; field: string; group?: string }
+      | { kind: 'view'; fieldCompositeKey: string; viewGuid: string; tableOverride?: string }
+    > = []
+
+    uiPicDefs.forEach((def) => {
+      const type = normalizePicType(def.type)
+      if (type !== 'element_list' && type !== 'group_list') return
+
+      const parentFieldKey = String(def.key || `${def.gruppe || ''}.${def.feld || ''}`)
+      const frameFields = elementFrameConfigByFieldKey[parentFieldKey]?.fields || []
+      const cfgFieldsRaw = (def.configs as any)?.element_fields || (def.configs as any)?.fields || []
+      const cfgFields = Array.isArray(cfgFieldsRaw) ? cfgFieldsRaw : []
+      const source = frameFields.length ? frameFields : cfgFields
+
+      source.forEach((field: any) => {
+        const name = String(field?.name || '').trim()
+        if (!name) return
+        const lookupKey = name.toUpperCase()
+        const controlData = asObject(elementFieldControlByName[lookupKey])
+        const controlPayload = asObject(controlData.CONTROL)
+        const cfgElements = asObject(controlPayload.CONFIGS_ELEMENTS)
+        const cfgFlat = asObject(cfgElements.dropdown)
+        const cfgLegacy = asObject((field as any)?.dropdown)
+        const cfg = Object.keys(cfgFlat).length ? cfgFlat : cfgLegacy
+        if (!Object.keys(cfg).length) return
+
+        const keyRaw = String(cfg.key || cfg.dataset_uid || cfg.view_guid || '').trim()
+        const fieldName = String(cfg.field || cfg.feld || '').trim()
+        const table = String(cfg.table || '').trim()
+        const group = String(cfg.group || cfg.gruppe || '').trim()
+        const fieldCompositeKey = `${parentFieldKey}::${name}`
+
+        if (group.toUpperCase() === '*VIEW' && keyRaw) {
+          out.push({ kind: 'view', fieldCompositeKey, viewGuid: keyRaw, tableOverride: table || undefined })
+          return
+        }
+
+        if (!keyRaw || !fieldName || !table) return
+        out.push({ kind: 'system', fieldCompositeKey, table, datasetUid: keyRaw, field: fieldName, group: group || undefined })
+      })
+    })
+
+    return out
+  }, [isFieldEditor, uiPicDefs, elementFrameConfigByFieldKey, elementFieldControlByName])
+
+  const elementDropdownQueries = useQueries({
+    queries: elementDropdownFieldConfigs.map((cfg) => ({
+      queryKey:
+        cfg.kind === 'system'
+          ? ['systemdaten', 'dropdown', cfg.table, cfg.datasetUid, cfg.field, cfg.group || '']
+          : ['views', 'dropdown-source', cfg.viewGuid, cfg.tableOverride || ''],
+      queryFn: () => {
+        if (cfg.kind === 'system') {
+          return systemdatenAPI.getDropdown({
+            table: cfg.table,
+            dataset_uid: cfg.datasetUid,
+            field: cfg.field,
+            group: cfg.group,
+          })
+        }
+        return viewsAPI.postMatrix(
+          cfg.viewGuid,
+          {
+            include_historisch: false,
+            limit: 1000,
+            offset: 0,
+          },
+          cfg.tableOverride ? { table: cfg.tableOverride } : undefined,
+        )
+      },
+      enabled: isFieldEditor,
+    })),
+  })
+
+  const elementDropdownOptionsByCompositeKey = useMemo(() => {
+    const out: Record<string, PdvmDropdownOption[]> = {}
+    elementDropdownFieldConfigs.forEach((cfg, idx) => {
+      const res = elementDropdownQueries[idx]
+      if (cfg.kind === 'system') {
+        const options = (res?.data as any)?.options || []
+        out[cfg.fieldCompositeKey] = options.map((opt: any) => ({ value: String(opt.key), label: String(opt.value) }))
+        return
+      }
+
+      const rows = Array.isArray((res?.data as any)?.rows) ? (res?.data as any).rows : []
+      out[cfg.fieldCompositeKey] = rows
+        .filter((row: any) => row && typeof row === 'object' && String(row.kind || '').toLowerCase() === 'data' && row.uid)
+        .map((row: any) => ({ value: String(row.uid), label: String(row.name || row.uid) }))
+    })
+    return out
+  }, [elementDropdownFieldConfigs, elementDropdownQueries])
+
+  const enrichElementFields = (fieldsRaw: any, parentFieldKey: string): PdvmElementField[] => {
+    const fields = Array.isArray(fieldsRaw) ? fieldsRaw : []
+    return fields.map((field: any) => {
+      const current = asObject(field)
+      const name = String(current.name || '').trim()
+      if (!name) return current as PdvmElementField
+
+      const lookupKey = name.toUpperCase()
+      const controlData = asObject(elementFieldControlByName[lookupKey])
+      const controlPayload = asObject(controlData.CONTROL)
+      if (!Object.keys(controlPayload).length) return current as PdvmElementField
+
+      const mappedType = mapPicTypeToElementFieldType(controlPayload.TYPE)
+      const readOnly = toBoolean(controlPayload.READ_ONLY)
+      const expertMode = toBoolean(controlPayload.EXPERT_MODE)
+      const tooltip = String(controlPayload.TOOLTIP ?? current.tooltip ?? current.help_text ?? '').trim()
+      const fieldCompositeKey = `${parentFieldKey}::${name}`
+      const resolvedOptions = elementDropdownOptionsByCompositeKey[fieldCompositeKey] || []
+
+      return {
+        ...current,
+        type: mappedType,
+        label: String(controlPayload.LABEL ?? current.label ?? name).trim() || name,
+        required: toBoolean(current.required ?? false),
+        placeholder: String(current.placeholder ?? '').trim() || undefined,
+        tooltip: tooltip || undefined,
+        help_text: tooltip || undefined,
+        SAVE_PATH: String(current.SAVE_PATH || name).trim(),
+        options: resolvedOptions.length ? resolvedOptions : (Array.isArray(current.options) ? current.options : undefined),
+        control_debug: buildFlatPicControl({
+          controlData,
+          fieldKey: `${parentFieldKey}.${name}`,
+          value: null,
+          valueTimeKey: 'ORIGINAL',
+        }),
+        EXPERT_MODE: expertMode,
+        ...(readOnly ? { READ_ONLY: true } : {}),
+      } as any
+    }) as PdvmElementField[]
+  }
 
   // Menu editor tabs come from frame definition (sys_framedaten)
   const menuEditTabs = useMemo(() => {
@@ -2389,7 +2969,14 @@ export default function PdvmDialogPage() {
                       </div>
                     ) : null}
 
-                    <div style={{ display: 'grid', gap: 12 }}>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gap: 12,
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                        alignItems: 'start',
+                      }}
+                    >
                       {uiPicDefs
                         .filter((d) => Number(d.tab || 1) === picActiveTab)
                         .map((d) => {
@@ -2404,8 +2991,11 @@ export default function PdvmDialogPage() {
                           const validationKey = `${gruppe}.${feld}`
                           const validationMessage = draftErrorByField[validationKey]
                           const options = dropdownOptionsByFieldKey[fieldKey] || []
-                          const elementTemplate = d.configs?.element_template || d.configs?.template || d.configs?.elemente_template || null
-                          const elementFields = d.configs?.element_fields || d.configs?.fields || null
+                          const resolvedControl = resolvedControlByGroupField[`${gruppe.toUpperCase()}::${feld.toUpperCase()}`] || null
+                          const elementFrameConfig = elementFrameConfigByFieldKey[fieldKey]
+                          const elementTemplate = elementFrameConfig?.template || d.configs?.element_template || d.configs?.template || d.configs?.elemente_template || null
+                          const elementFieldsRaw = elementFrameConfig?.fields || d.configs?.element_fields || d.configs?.fields || null
+                          const elementFields = enrichElementFields(elementFieldsRaw, fieldKey)
 
                           const onChange = (value: any) => {
                             setPicDraft((prev) => {
@@ -2464,13 +3054,7 @@ export default function PdvmDialogPage() {
                               helpText={validationMessage ? `${validationMessage}${d.tooltip ? ` · ${d.tooltip}` : ''}` : (d.tooltip || '')}
                               elementTemplate={elementTemplate}
                               elementFields={elementFields}
-                              controlDebug={{
-                                field_key: fieldKey,
-                                gruppe,
-                                feld,
-                                pic_def: d,
-                                resolved_control: resolvedControlByGroupField[`${gruppe.toUpperCase()}::${feld.toUpperCase()}`] || null,
-                              }}
+                              controlDebug={buildControlDebugForField(d, fieldKey, rawValue, resolvedControl)}
                             />
                           )
                         })}
@@ -2720,7 +3304,14 @@ export default function PdvmDialogPage() {
                               <div style={{ opacity: 0.75 }}>Keine FIELDS im Frame definiert.</div>
                             ) : null}
 
-                            <div style={{ display: 'grid', gap: 12 }}>
+                            <div
+                              style={{
+                                display: 'grid',
+                                gap: 12,
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                                alignItems: 'start',
+                              }}
+                            >
                               {uiPicDefs
                                 .filter((d) => Number(d.tab || 1) === picActiveTab)
                                 .map((d) => {
@@ -2735,6 +3326,11 @@ export default function PdvmDialogPage() {
                                   const validationKey = `${gruppe}.${feld}`
                                   const validationMessage = draftErrorByField[validationKey]
                                   const options = dropdownOptionsByFieldKey[fieldKey] || []
+                                  const resolvedControl = resolvedControlByGroupField[`${gruppe.toUpperCase()}::${feld.toUpperCase()}`] || null
+                                  const elementFrameConfig = elementFrameConfigByFieldKey[fieldKey]
+                                  const elementTemplate = elementFrameConfig?.template || d.configs?.element_template || d.configs?.template || d.configs?.elemente_template || null
+                                  const elementFieldsRaw = elementFrameConfig?.fields || d.configs?.element_fields || d.configs?.fields || null
+                                  const elementFields = enrichElementFields(elementFieldsRaw, fieldKey)
 
                                   const onChange = (value: any) => {
                                     setPicDraft((prev) => {
@@ -2791,13 +3387,9 @@ export default function PdvmDialogPage() {
                                       readOnly={!!d.read_only}
                                       options={options}
                                       helpText={validationMessage ? `${validationMessage}${d.tooltip ? ` · ${d.tooltip}` : ''}` : (d.tooltip || '')}
-                                      controlDebug={{
-                                        field_key: fieldKey,
-                                        gruppe,
-                                        feld,
-                                        pic_def: d,
-                                        resolved_control: resolvedControlByGroupField[`${gruppe.toUpperCase()}::${feld.toUpperCase()}`] || null,
-                                      }}
+                                      elementTemplate={elementTemplate}
+                                      elementFields={elementFields}
+                                      controlDebug={buildControlDebugForField(d, fieldKey, rawValue, resolvedControl)}
                                     />
                                   )
                                 })}

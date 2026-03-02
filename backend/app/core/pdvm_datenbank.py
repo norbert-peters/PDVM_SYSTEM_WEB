@@ -323,6 +323,19 @@ class PdvmDatabase:
             'historisch': row['historisch'],
             'name': row['name']
         }
+
+    async def get_modified_at_by_uid(self, uid: uuid.UUID) -> Optional[datetime]:
+        """Liest nur `modified_at` eines Datensatzes (schneller Stale-Check)."""
+        pool = self.get_pool()
+        async with pool.acquire() as conn:
+            return await conn.fetchval(
+                f"""
+                SELECT modified_at
+                FROM {self.table_name}
+                WHERE uid = $1
+                """,
+                uid,
+            )
     
     async def get_all(
         self,

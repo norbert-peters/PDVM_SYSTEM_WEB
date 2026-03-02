@@ -403,6 +403,19 @@ class DialogLastCallUpdateRequest(BaseModel):
     record_uid: Optional[str] = None
 
 
+@router.get("/frame/{frame_guid}", response_model=FrameDefinitionResponse)
+async def get_frame_definition(frame_guid: str, gcs=Depends(get_gcs_instance)):
+    try:
+        frame_uuid = uuid.UUID(frame_guid)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Ungültige frame_guid")
+
+    try:
+        return await load_frame_definition(gcs, frame_uuid)
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"Frame nicht gefunden: {frame_guid}")
+
+
 @router.get("/{dialog_guid}", response_model=DialogDefinitionResponse)
 async def get_dialog_definition(dialog_guid: str, dialog_table: Optional[str] = None, gcs=Depends(get_gcs_instance)):
     try:

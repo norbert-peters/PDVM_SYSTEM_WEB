@@ -54,6 +54,10 @@
   gap: 8px;
 }
 
+.pdvm-pic__control--stack {
+  align-items: stretch;
+}
+
 .pdvm-pic__input,
 .pdvm-pic__select,
 .pdvm-pic__textarea {
@@ -81,4 +85,31 @@
   gap: 8px;
   user-select: none;
   font-size: 13px;
+}
+
+.pdvm-dialog__elementMeta {
+  font-size: 12px;
+  opacity: 0.8;
+  margin-bottom: 6px;
+}
+
+.pdvm-dialog__elementEmpty {
+  font-size: 12px;
+  opacity: 0.75;
+  border: 1px dashed var(--color-border-medium, rgba(0, 0, 0, 0.24));
+  border-radius: var(--border-radius-md, 8px);
+  padding: 8px 10px;
+  margin-bottom: 8px;
+}
+
+.pdvm-pic__elementEditor {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (max-width: 900px) {
+  .pdvm-pic__elementEditor {
+    grid-template-columns: 1fr;
+  }
 }

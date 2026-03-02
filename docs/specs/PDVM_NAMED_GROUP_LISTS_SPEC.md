@@ -119,3 +119,184 @@ Backend umgesetzt in:
   - `_strip_template_meta_groups` (entfernt TEMPLATES/ELEMENTS aus Instanzen)
   - `_apply_root_identity` (schuetzt SELF_GUID/SELF_NAME vor Patch-Override)
   - Aufruf in `build_dialog_draft_from_template` und `create_dialog_record_from_template`
+
+## 10. PIC Control-Format (linear, flach, verbindlich)
+
+Stand: 2026-03-02
+
+Fuer die Steuerung der `PdvmInputControl` gilt ab sofort ein einheitliches, lineares Control-Objekt:
+
+1. Alle steuernden Attribute liegen auf Root-Ebene (flach, keine mehrfachen Spiegelungen).
+2. Basis ist `resolved_control.data.CONTROL`.
+3. Es werden standardisiert folgende Zusatzattribute hinzugefuegt:
+   - `FIELD_KEY` (z. B. `CTRL.ROOT.TABS`)
+   - `GUID_KEY` (aus `resolved_control.data.ROOT.SELF_GUID`)
+   - `VALUE` (Wertehuelle)
+   - `VALUE_TIME_KEY` (aktiver Zeitschluessel in `VALUE`)
+
+Beispiel:
+```json
+{
+  "NAME": "TABS",
+  "TYPE": "number",
+  "FIELD": "TABS",
+  "LABEL": "Tabs",
+  "READ_ONLY": false,
+  "FIELD_KEY": "CTRL.ROOT.TABS",
+  "GUID_KEY": "b78b41ec-5372-49e3-b34a-8ddb2fc25c98",
+  "VALUE": {
+    "ORIGINAL": 2
+  },
+  "VALUE_TIME_KEY": "ORIGINAL"
+}
+```
+
+### 10.1 Regel fuer VALUE
+- `VALUE` ist eine Map (Zeit-/Version-Schluessel -> Wert).
+- Minimal muss `VALUE.ORIGINAL` vorhanden sein.
+- `VALUE_TIME_KEY` zeigt auf den aktuell aktiven Eintrag in `VALUE`.
+- In der aktuellen Web-Implementierung wird standardmaessig `VALUE_TIME_KEY = "ORIGINAL"` verwendet.
+
+### 10.2 Persistenz-Regel
+- Das flache PIC-Control ist Laufzeitstruktur fuer Rendering/Steuerung.
+- Persistiert wird weiterhin der fachliche Datensatzwert im Dialog-Draft/Record.
+- Erweiterte Zeitstapel (mehrere Zeitkeys in `VALUE`) sind zulaessig und koennen spaeter ohne Strukturbruch eingefuehrt werden.
+
+### 10.3 Anzeige-Regel im PdvmInputControl
+- Der Control-Dialog (`{}`-Button) zeigt ausschliesslich das flache Control-Objekt.
+- Es sind keine zusaetzlichen Wrapper-Schluessel erlaubt (z. B. `label`, `input_type_raw`, `input_type_effective`, `read_only`, `disabled`, `value`, `options`, `control`).
+- Wenn solche Werte benoetigt werden, muessen sie als regulaere Attribute im flachen Control-Template definiert werden.
+- Der `{}`-Button ist nur im Expert-Mode sichtbar (`EXPERT_MODE=true` im flachen Control).
+
+## 11. Dropdown-Regeln (verbindlich)
+
+Quelle fuer Dropdown-Config:
+- Primaer: `control_flat.CONFIGS_ELEMENTS.dropdown`
+- Fallback (legacy): `def.configs.dropdown`
+
+Entscheidungstabelle:
+
+1. `key=GUID`, `field=Feld`, `table=Tabelle`, `group=""`
+  - Lade aus `table` den Datensatz `key`.
+  - Verwende Gruppe = aktuelle Sprache in Grossbuchstaben (z. B. `DE-DE`).
+  - Suche in der Gruppe das Dropdown ueber `field` (Name/List-Name oder Item-GUID).
+
+2. `key=GUID`, `field=Feld`, `table=Tabelle`, `group=Gruppe`
+  - Wie oben, aber feste Gruppe = `group`.
+
+3. `key=view_guid`, `group=*VIEW`, `table=""`
+  - Lade Optionen aus der View (`view_guid`) und uebernehme als Value die `uid`.
+
+4. `key=view_guid`, `group=*VIEW`, `table=Tabelle`
+  - Wie 3, aber mit Table-Override fuer die View-Abfrage.
+
+Rückgabeformat fuer UI-Select bleibt linear:
+- `[{ value: <uid|key>, label: <name|value> }]`
+
+## 12. Type `multi_dropdown` (verbindlich)
+
+Basis:
+- Nutzt dieselbe Datenquelle und dieselben Aufloesungsregeln wie `dropdown` (siehe Abschnitt 11).
+
+Wertvertrag:
+- Laufzeitwert ist linear als String-Array: `string[]`.
+- Im flachen Control liegt der aktive Wert unter `VALUE[VALUE_TIME_KEY]`.
+- Der gespeicherte Fachwert im Datensatz ist ebenfalls `string[]`.
+
+Kompatibilitaet (Legacy-Werte):
+- Wenn ein Altwert als String vorliegt (Trenner `,` `;` `|`), wird er fuer die UI in `string[]` normalisiert.
+- Beim Speichern wird immer das lineare Array-Format verwendet.
+
+## 13. Type `true_false` (verbindlich)
+
+Wertvertrag:
+- Laufzeitwert ist linear als Boolean: `true | false`.
+- Im flachen Control liegt der aktive Wert unter `VALUE[VALUE_TIME_KEY]`.
+- Der gespeicherte Fachwert im Datensatz ist Boolean.
+
+Kompatibilitaet (Legacy-Werte):
+- Altwerte werden fuer die UI robust normalisiert, z. B. `"true"`, `"1"`, `"ja"`, `1` -> `true`.
+- Entsprechend werden `"false"`, `"0"`, `"nein"`, `0`, `null`, `""` als `false` behandelt.
+- Bei Benutzeränderung schreibt das InputControl immer ein echtes Boolean (`checked`).
+
+## 14. Type `text` (verbindlich)
+
+Wertvertrag:
+- Laufzeitwert ist linear als String.
+- Im flachen Control liegt der aktive Wert unter `VALUE[VALUE_TIME_KEY]`.
+- Der gespeicherte Fachwert im Datensatz ist String.
+
+Normalisierung:
+- `null` und `undefined` werden in der UI als leerer String dargestellt.
+- Andere Altwerte (z. B. Number/Boolean) werden fuer die Anzeige in String konvertiert.
+- Bei Benutzeränderung schreibt das InputControl den Textwert als String zurueck.
+
+## 15. Type `string` (verbindlich)
+
+Wertvertrag:
+- Laufzeitwert ist linear als String.
+- Im flachen Control liegt der aktive Wert unter `VALUE[VALUE_TIME_KEY]`.
+- Der gespeicherte Fachwert im Datensatz ist String.
+
+Normalisierung:
+- `null` und `undefined` werden in der UI als leerer String dargestellt.
+- Andere Altwerte werden fuer die Anzeige in String konvertiert.
+- Bei Benutzeränderung schreibt das InputControl den Eingabewert als String zurueck.
+
+## 16. Type `number` (verbindlich)
+
+Wertvertrag:
+- Laufzeitwert ist linear als Number-String (Ziffernfolge) im InputControl.
+- Im flachen Control liegt der aktive Wert unter `VALUE[VALUE_TIME_KEY]`.
+- Der gespeicherte Fachwert im Datensatz ist aktuell als Number-String kompatibel.
+
+Normalisierung:
+- Erlaubt sind nur Ziffern `1-9` (aktueller UI-Standard).
+- `0`, Minuszeichen, Dezimaltrenner und sonstige Zeichen werden entfernt.
+- `null` und `undefined` werden als leerer String dargestellt.
+- Bei Benutzeränderung schreibt das InputControl den bereinigten Number-String zurueck.
+
+## 17. Type `element_list` (verbindlich)
+
+Wertvertrag:
+- Laufzeitwert ist linear als Map: `Record<string, object>`.
+- Im flachen Control liegt der aktive Wert unter `VALUE[VALUE_TIME_KEY]`.
+- Der gespeicherte Fachwert im Datensatz ist die gleiche Map-Struktur.
+
+Normalisierung:
+- Wenn bereits Objekt-Map vorhanden ist, wird sie direkt verwendet.
+- Legacy-Array wird in eine Map mit laufenden String-Keys (`"1"`, `"2"`, ...) umgewandelt.
+- Legacy-JSON-String (Objekt) wird geparst und als Map verwendet.
+- Sonstige/ungültige Werte werden als leere Map behandelt.
+- Im `edit_control`-Fallback gilt: Objekt-Maps ohne explizites `TYPE` werden als `element_list` interpretiert (z. B. `TAB_ELEMENTS` mit `TAB_01`, `TAB_02`, ...).
+
+Frame-Regel fuer `pdvm_edit`:
+- Für ein Feld `<FELD>` vom Typ `element_list` wird optional `<FELD>_GUID` in derselben Gruppe gelesen.
+- Ist `<FELD>_GUID` eine gültige GUID, wird dieses Frame aus `sys_framedaten` geladen und als Element-Editorstruktur verwendet.
+- Ist keine gültige GUID vorhanden oder Frame nicht auffindbar, greift der `edit_control`-Fallback (auto-infer aus Elementobjekt).
+
+Darstellung:
+- InputControl zeigt Anzahl der Einträge (`Einträge: N`).
+- Bei leerer Liste wird ein klarer Empty-State angezeigt.
+
+Lineare Render-/Save-Regel:
+- Element-Editor rendert Controls wie im normalen Edit als Matrix von `PdvmInputControl`.
+- Reihenfolge kommt aus `display_order` der Frame-Controls.
+- Zielpfad im Elementobjekt wird je Control ausschließlich über `SAVE_PATH` festgelegt.
+- Fehlt `SAVE_PATH`, gilt Fallback auf den Control-Namen/Feldnamen.
+
+Einheitliche Pipeline-Quelle (verbindlich):
+- `edit_control`: Quelle sind die Gruppen/Felder des gelesenen Datensatzes; jede Gruppe wird als eigener Tab projiziert.
+- `pdvm_edit`: Quelle sind die im Frame definierten Felder aus allen Gruppen außer `ROOT`.
+
+Einheitliche Control-Vererbung (verbindlich):
+- Basis: Control-Template aus `sys_control_dict` (`55555555-5555-5555-5555-555555555555`).
+- Danach: spezifisches Feld-Control aus `sys_control_dict` (nach `TABLE/GRUPPE/FELD`).
+- Danach: Frame-Definition (z. B. Tab/Order/Anzeige-Metadaten).
+- Ergebnis ist ein lineares `control_flat`, das für Rendern und Debug (`{}`) verwendet wird.
+
+## 18. Type `group_list` (verbindlich)
+
+Wertvertrag:
+- Entspricht in der Runtime-Darstellung dem Type `element_list` (gleiche lineare Map-Struktur).
+- Fachlich bleibt die Bedeutung unterschiedlich (Top-Level Gruppenblock statt Elementliste), technisch identischer Editor-Vertrag.

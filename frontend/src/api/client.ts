@@ -590,6 +590,11 @@ export const viewsAPI = {
 
 // Dialogs API
 export const dialogsAPI = {
+  getFrameDefinition: async (frameGuid: string): Promise<FrameDefinitionResponse> => {
+    const response = await api.get(`/dialogs/frame/${frameGuid}`)
+    return response.data
+  },
+
   getDefinition: async (dialogGuid: string, opts?: DialogTableOverrideOptions): Promise<DialogDefinitionResponse> => {
     const response = await api.get(`/dialogs/${dialogGuid}`, {
       params: opts?.dialog_table ? { dialog_table: opts.dialog_table } : undefined,
@@ -770,7 +775,7 @@ export const systemdatenAPI = {
     return response.data
   },
 
-  getDropdown: async (opts: { table: string; dataset_uid: string; field: string; language?: string }): Promise<SystemdatenDropdownResponse> => {
+  getDropdown: async (opts: { table: string; dataset_uid: string; field: string; group?: string; language?: string }): Promise<SystemdatenDropdownResponse> => {
     const response = await api.get('/systemdaten/dropdown', {
       params: opts,
     })

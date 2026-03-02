@@ -8,10 +8,66 @@ export type PdvmDropdownOption = { value: string; label: string }
 export type PdvmElementField = {
   name: string
   label: string
-  type?: 'text' | 'textarea' | 'number' | 'dropdown'
+  type?: 'string' | 'text' | 'textarea' | 'number' | 'dropdown' | 'multi_dropdown' | 'true_false'
   placeholder?: string
   required?: boolean
   options?: PdvmDropdownOption[]
+  tooltip?: string
+  help_text?: string
+  control_debug?: Record<string, any> | null
+  EXPERT_MODE?: boolean
+  SAVE_PATH?: string
+  display_order?: number
+}
+
+function getValueByPath(source: Record<string, any> | null | undefined, path: string): any {
+  const obj = source && typeof source === 'object' ? source : {}
+  const parts = String(path || '')
+    .split('.')
+    .map((p) => p.trim())
+    .filter(Boolean)
+  if (!parts.length) return undefined
+  let cursor: any = obj
+  for (const part of parts) {
+    if (!cursor || typeof cursor !== 'object') return undefined
+    cursor = cursor[part]
+  }
+  return cursor
+}
+
+function setValueByPath(target: Record<string, any>, path: string, value: any): Record<string, any> {
+  const parts = String(path || '')
+    .split('.')
+    .map((p) => p.trim())
+    .filter(Boolean)
+  if (!parts.length) return target
+  const out = { ...target }
+  let cursor: any = out
+  parts.forEach((part, idx) => {
+    if (idx === parts.length - 1) {
+      cursor[part] = value
+      return
+    }
+    const next = cursor[part]
+    if (!next || typeof next !== 'object' || Array.isArray(next)) {
+      cursor[part] = {}
+    } else {
+      cursor[part] = { ...next }
+    }
+    cursor = cursor[part]
+  })
+  return out
+}
+
+function mapElementFieldTypeToInputType(value: PdvmElementField['type']): PdvmInputType {
+  const t = String(value || 'text').trim().toLowerCase()
+  if (t === 'number') return 'number'
+  if (t === 'textarea') return 'text'
+  if (t === 'dropdown') return 'dropdown'
+  if (t === 'multi_dropdown') return 'multi_dropdown'
+  if (t === 'true_false') return 'true_false'
+  if (t === 'text') return 'text'
+  return 'string'
 }
 
 function normalizeInputType(value: any): PdvmInputType {
@@ -25,6 +81,84 @@ function normalizeInputType(value: any): PdvmInputType {
   if (t === 'elemente_list') return 'elemente_list'
   if (t === 'group_list') return 'group_list'
   return 'string'
+}
+
+function normalizeMultiDropdownValue(value: any): string[] {
+  if (Array.isArray(value)) {
+    const unique = new Set(value.map((v) => String(v)).map((v) => v.trim()).filter(Boolean))
+    return Array.from(unique)
+  }
+
+  if (value == null) return []
+
+  if (typeof value === 'string') {
+    const items = value
+      .split(/[;,|]/g)
+      .map((s) => s.trim())
+      .filter(Boolean)
+    return Array.from(new Set(items))
+  }
+
+  return []
+}
+
+function normalizeTrueFalseValue(value: any): boolean {
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'number') return value !== 0
+  if (typeof value === 'string') {
+    const v = value.trim().toLowerCase()
+    if (!v) return false
+    if (['true', '1', 'ja', 'yes', 'y', 'on'].includes(v)) return true
+    if (['false', '0', 'nein', 'no', 'n', 'off'].includes(v)) return false
+  }
+  return !!value
+}
+
+function normalizeTextValue(value: any): string {
+  if (value == null) return ''
+  return String(value)
+}
+
+function normalizeStringValue(value: any): string {
+  if (value == null) return ''
+  return String(value)
+}
+
+function sanitizeNumberInput(value: any): string {
+  return String(value ?? '').replace(/[^1-9]+/g, '')
+}
+
+function normalizeNumberValue(value: any): string {
+  return sanitizeNumberInput(value)
+}
+
+function normalizeCollectionValue(value: any): Record<string, any> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, any>
+  }
+
+  if (Array.isArray(value)) {
+    const out: Record<string, any> = {}
+    value.forEach((entry, idx) => {
+      out[String(idx + 1)] = entry
+    })
+    return out
+  }
+
+  if (typeof value === 'string') {
+    const raw = value.trim()
+    if (!raw) return {}
+    try {
+      const parsed = JSON.parse(raw)
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed as Record<string, any>
+      }
+    } catch {
+      // ignore invalid legacy json
+    }
+  }
+
+  return {}
 }
 
 export function PdvmInputControl(props: {
@@ -53,7 +187,7 @@ export function PdvmInputControl(props: {
   const [elementModalError, setElementModalError] = useState<string | null>(null)
   const [elementModalUid, setElementModalUid] = useState<string | null>(null)
   const [elementModalTitle, setElementModalTitle] = useState<string>('')
-  const [elementModalInitial, setElementModalInitial] = useState<Record<string, string> | null>(null)
+  const [elementModalDraft, setElementModalDraft] = useState<Record<string, any> | null>(null)
   const [elementModalBase, setElementModalBase] = useState<Record<string, any> | null>(null)
 
   const effectiveType = normalizeInputType((props as any).type)
@@ -70,31 +204,26 @@ export function PdvmInputControl(props: {
   }, [props.helpText])
 
   const showHelpButton = helpEnabled
-  const controlDebugPayload = useMemo(() => {
-    return {
-      label: props.label,
-      input_type_raw: String((props as any).type || ''),
-      input_type_effective: effectiveType,
-      read_only: !!props.readOnly,
-      disabled: !!props.disabled,
-      value: props.value,
-      options: props.options || [],
-      control: props.controlDebug || null,
-    }
-  }, [props, effectiveType])
+  const controlDebugPayload = props.controlDebug || null
+  const showControlButton = useMemo(() => {
+    const ctrl = props.controlDebug || null
+    if (!ctrl || typeof ctrl !== 'object') return false
+    const raw = (ctrl as any).EXPERT_MODE ?? (ctrl as any).expert_mode ?? false
+    return !!raw
+  }, [props.controlDebug])
+  const multiDropdownValue = useMemo(() => normalizeMultiDropdownValue(props.value), [props.value])
+  const trueFalseValue = useMemo(() => normalizeTrueFalseValue(props.value), [props.value])
+  const textValue = useMemo(() => normalizeTextValue(props.value), [props.value])
+  const stringValue = useMemo(() => normalizeStringValue(props.value), [props.value])
+  const numberValue = useMemo(() => normalizeNumberValue(props.value), [props.value])
 
   const elementLabelKeys = useMemo(() => {
     const keys = props.elementLabelKeys && props.elementLabelKeys.length ? props.elementLabelKeys : ['label', 'name', 'feld']
     return keys.map((k) => String(k)).filter(Boolean)
   }, [props.elementLabelKeys])
 
-  const elementMap = useMemo(() => {
-    const v = props.value
-    if (v && typeof v === 'object' && !Array.isArray(v)) {
-      return v as Record<string, any>
-    }
-    return {}
-  }, [props.value])
+  const elementMap = useMemo(() => normalizeCollectionValue(props.value), [props.value])
+  const elementCount = Object.keys(elementMap).length
 
   const elementEntries = useMemo(() => {
     const out = Object.entries(elementMap).map(([uid, cfg]) => ({ uid, cfg }))
@@ -105,6 +234,38 @@ export function PdvmInputControl(props: {
     })
     return out
   }, [elementMap, elementLabelKeys])
+
+  const elementModalFields = useMemo(() => {
+    if (elementFields && elementFields.length) {
+      const ordered = [...elementFields]
+      ordered.sort((a, b) => {
+        const ao = Number(a.display_order)
+        const bo = Number(b.display_order)
+        if (Number.isFinite(ao) && Number.isFinite(bo) && ao !== bo) return ao - bo
+        if (Number.isFinite(ao) && !Number.isFinite(bo)) return -1
+        if (!Number.isFinite(ao) && Number.isFinite(bo)) return 1
+        return String(a.label || a.name || '').localeCompare(String(b.label || b.name || ''))
+      })
+      return ordered
+    }
+    const base = elementModalBase && typeof elementModalBase === 'object' ? elementModalBase : {}
+    return Object.keys(base)
+      .filter((k) => String(k || '').trim())
+      .map((key, idx) => {
+        const raw = (base as any)[key]
+        let inferredType: PdvmElementField['type'] = 'string'
+        if (typeof raw === 'number') inferredType = 'number'
+        else if (typeof raw === 'boolean') inferredType = 'true_false'
+        else if (Array.isArray(raw)) inferredType = 'multi_dropdown'
+        return {
+          name: key,
+          label: key,
+          type: inferredType,
+          SAVE_PATH: key,
+          display_order: (idx + 1) * 10,
+        } as PdvmElementField
+      })
+  }, [elementFields, elementModalBase])
 
   const getElementLabel = (cfg: any, uid: string) => {
     for (const key of elementLabelKeys) {
@@ -131,17 +292,7 @@ export function PdvmInputControl(props: {
     setElementModalUid(uid)
     setElementModalTitle(title)
     setElementModalBase(base)
-    if (elementFields && elementFields.length) {
-      const initial: Record<string, string> = {}
-      elementFields.forEach((f) => {
-        const raw = base[f.name]
-        initial[f.name] = raw == null ? '' : String(raw)
-      })
-      setElementModalInitial(initial)
-    } else {
-      const json = cfg && typeof cfg === 'object' ? JSON.stringify(cfg, null, 2) : '{}'
-      setElementModalInitial({ json })
-    }
+    setElementModalDraft(base)
     setElementModalError(null)
     setElementModalOpen(true)
   }
@@ -165,6 +316,32 @@ export function PdvmInputControl(props: {
     props.onChange(next)
   }
 
+  const saveElementModal = () => {
+    const uid = elementModalUid
+    if (!uid) return
+
+    const draft = elementModalDraft && typeof elementModalDraft === 'object' ? JSON.parse(JSON.stringify(elementModalDraft)) : {}
+
+    for (const field of elementModalFields) {
+      if (!field.required) continue
+      const savePath = String(field.SAVE_PATH || field.name || '').trim()
+      const raw = getValueByPath(draft, savePath)
+      const text = raw == null ? '' : String(raw).trim()
+      if (!text) {
+        setElementModalError(`${field.label}: Pflichtfeld`)
+        return
+      }
+    }
+
+    const next = { ...elementMap, [uid]: draft }
+    props.onChange(next)
+    setElementModalOpen(false)
+    setElementModalError(null)
+    setElementModalUid(null)
+    setElementModalBase(null)
+    setElementModalDraft(null)
+  }
+
   return (
     <div className="pdvm-pic" title={props.tooltip || undefined}>
       <div className="pdvm-pic__labelRow">
@@ -183,24 +360,28 @@ export function PdvmInputControl(props: {
             >
               ?
             </button>
-            <button
-              type="button"
-              className="pdvm-pic__helpBtn"
-              title="Control anzeigen"
-              aria-label="Control anzeigen"
-              onClick={() => setControlOpen(true)}
-              disabled={false}
-              style={{ marginLeft: 6 }}
-            >
-              {'{}'}
-            </button>
+            {showControlButton ? (
+              <button
+                type="button"
+                className="pdvm-pic__helpBtn"
+                title="Control anzeigen"
+                aria-label="Control anzeigen"
+                onClick={() => setControlOpen(true)}
+                disabled={false}
+                style={{ marginLeft: 6 }}
+              >
+                {'{}'}
+              </button>
+            ) : null}
           </>
         ) : null}
       </div>
 
-      <div className="pdvm-pic__control">
+      <div className={`pdvm-pic__control ${isElementList ? 'pdvm-pic__control--stack' : ''}`.trim()}>
         {isElementList ? (
           <div className="pdvm-dialog__elementList">
+            <div className="pdvm-dialog__elementMeta">Einträge: {elementCount}</div>
+            {elementEntries.length === 0 ? <div className="pdvm-dialog__elementEmpty">Keine Einträge vorhanden.</div> : null}
             {elementEntries.map(({ uid, cfg }) => (
               <div key={uid} className="pdvm-dialog__elementItem" title={JSON.stringify(cfg, null, 2)}>
                 <div className="pdvm-dialog__elementLabel">{getElementLabel(cfg, uid)}</div>
@@ -225,7 +406,7 @@ export function PdvmInputControl(props: {
             id={props.id}
             className="pdvm-pic__input"
             type="text"
-            value={String(props.value ?? '')}
+            value={stringValue}
             placeholder={props.placeholder}
             disabled={disabled}
             onChange={(e) => props.onChange(e.target.value)}
@@ -241,25 +422,25 @@ export function PdvmInputControl(props: {
               type="text"
               inputMode="numeric"
               pattern="[1-9]*"
-            value={String(props.value ?? '')}
-            placeholder={props.placeholder}
-            disabled={disabled}
+              value={numberValue}
+              placeholder={props.placeholder}
+              disabled={disabled}
               onBlur={() => {
                 props.onBlur?.()
-                if (!String(props.value ?? '').trim()) {
+                if (!numberValue.trim()) {
                   setNumberInputError(null)
                 }
               }}
-            onChange={(e) => {
+              onChange={(e) => {
                 const raw = String(e.target.value || '')
-                const digitsOnly = raw.replace(/[^1-9]+/g, '')
+                const digitsOnly = sanitizeNumberInput(raw)
                 if (raw !== digitsOnly) {
                   setNumberInputError('Es sind nur die Ziffern 1-9 möglich')
                 } else {
                   setNumberInputError(null)
                 }
-              props.onChange(digitsOnly)
-            }}
+                props.onChange(digitsOnly)
+              }}
             />
             {numberInputError ? <div style={{ marginTop: 6, fontSize: 12, color: '#b42318' }}>{numberInputError}</div> : null}
           </>
@@ -269,7 +450,7 @@ export function PdvmInputControl(props: {
           <textarea
             id={props.id}
             className="pdvm-pic__textarea"
-            value={String(props.value ?? '')}
+            value={textValue}
             placeholder={props.placeholder}
             disabled={disabled}
             rows={3}
@@ -301,11 +482,11 @@ export function PdvmInputControl(props: {
             id={props.id}
             className="pdvm-pic__select"
             multiple
-            value={Array.isArray(props.value) ? props.value.map((v) => String(v)) : []}
+            value={multiDropdownValue}
             disabled={disabled}
             onBlur={props.onBlur}
             onChange={(e) => {
-              const selected = Array.from(e.target.selectedOptions).map((o) => String(o.value))
+              const selected = Array.from(e.target.selectedOptions).map((o) => String(o.value).trim()).filter(Boolean)
               props.onChange(selected)
             }}
           >
@@ -322,12 +503,12 @@ export function PdvmInputControl(props: {
             <input
               id={props.id}
               type="checkbox"
-              checked={!!props.value}
+              checked={trueFalseValue}
               disabled={disabled}
               onBlur={props.onBlur}
               onChange={(e) => props.onChange(e.target.checked)}
             />
-            <span>{!!props.value ? 'Ja' : 'Nein'}</span>
+            <span>{trueFalseValue ? 'Ja' : 'Nein'}</span>
           </label>
         ) : null}
       </div>
@@ -354,22 +535,55 @@ export function PdvmInputControl(props: {
 
       <PdvmDialogModal
         open={elementModalOpen}
-        kind="form"
+        kind="confirm"
         title={elementModalTitle}
-        message={elementFields && elementFields.length ? 'Element bearbeiten' : 'Element als JSON bearbeiten'}
-        fields={
-          elementFields && elementFields.length
-            ? elementFields.map((f) => ({
-                name: f.name,
-                label: f.label,
-                type: f.type || 'text',
-                placeholder: f.placeholder,
-                required: f.required,
-                options: f.options,
-              }))
-            : [{ name: 'json', label: 'Element', type: 'textarea', required: true, autoFocus: true }]
+        message={
+          <div className="pdvm-pic__elementEditor">
+            {elementModalFields.length ? (
+              elementModalFields.map((field) => {
+                const fieldType = mapElementFieldTypeToInputType(field.type)
+                const parentExpert = !!((props.controlDebug as any)?.EXPERT_MODE ?? (props.controlDebug as any)?.expert_mode ?? false)
+                const fieldExpert = !!((field as any).EXPERT_MODE ?? false)
+                const nestedControlDebug = (field.control_debug && typeof field.control_debug === 'object'
+                  ? field.control_debug
+                  : {
+                      FIELD_KEY: `ELEMENT.${field.name}`,
+                    }) as Record<string, any>
+                nestedControlDebug.EXPERT_MODE = !!(nestedControlDebug.EXPERT_MODE ?? fieldExpert ?? parentExpert)
+                return (
+                  <PdvmInputControl
+                    key={`element-modal-${field.name}`}
+                    label={field.required ? `${field.label} *` : field.label}
+                    tooltip={field.tooltip || null}
+                    type={fieldType}
+                    value={(() => {
+                      const savePath = String(field.SAVE_PATH || field.name || '').trim()
+                      if (!savePath || !elementModalDraft || typeof elementModalDraft !== 'object') return ''
+                      return getValueByPath(elementModalDraft as Record<string, any>, savePath)
+                    })()}
+                    options={field.options || []}
+                    placeholder={field.placeholder}
+                    helpEnabled={true}
+                    helpText={field.help_text || field.tooltip || null}
+                    controlDebug={nestedControlDebug}
+                    onChange={(value) => {
+                      setElementModalDraft((prev) => {
+                        const base = prev && typeof prev === 'object' ? prev : {}
+                        const savePath = String(field.SAVE_PATH || field.name || '').trim()
+                        if (!savePath) return base
+                        return {
+                          ...setValueByPath(base, savePath, value),
+                        }
+                      })
+                    }}
+                  />
+                )
+              })
+            ) : (
+              <div className="pdvm-dialog__elementEmpty">Keine Felder für dieses Element definiert.</div>
+            )}
+          </div>
         }
-        initialValues={elementModalInitial || undefined}
         error={elementModalError}
         confirmLabel="Speichern"
         cancelLabel="Abbrechen"
@@ -378,46 +592,9 @@ export function PdvmInputControl(props: {
           setElementModalError(null)
           setElementModalUid(null)
           setElementModalBase(null)
+          setElementModalDraft(null)
         }}
-        onConfirm={(values) => {
-          const uid = elementModalUid
-          if (!uid) return
-          if (elementFields && elementFields.length) {
-            const base = elementModalBase ? JSON.parse(JSON.stringify(elementModalBase)) : {}
-            elementFields.forEach((f) => {
-              const raw = values[f.name]
-              if ((f.type || 'text') === 'number') {
-                const n = Number(raw)
-                base[f.name] = Number.isFinite(n) ? n : 0
-              } else {
-                base[f.name] = raw
-              }
-            })
-            const next = { ...elementMap, [uid]: base }
-            props.onChange(next)
-            setElementModalOpen(false)
-            setElementModalError(null)
-            setElementModalUid(null)
-            setElementModalBase(null)
-            return
-          }
-
-          try {
-            const parsed = JSON.parse(String(values.json || '{}'))
-            if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-              setElementModalError('Element muss ein JSON-Objekt sein.')
-              return
-            }
-            const next = { ...elementMap, [uid]: parsed }
-            props.onChange(next)
-            setElementModalOpen(false)
-            setElementModalError(null)
-            setElementModalUid(null)
-            setElementModalBase(null)
-          } catch {
-            setElementModalError('Ungueltiges JSON')
-          }
-        }}
+        onConfirm={() => saveElementModal()}
       />
     </div>
   )

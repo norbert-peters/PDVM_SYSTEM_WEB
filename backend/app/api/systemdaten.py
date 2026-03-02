@@ -69,6 +69,7 @@ async def get_systemdaten_dropdown(
     table: str,
     dataset_uid: str,
     field: str,
+    group: Optional[str] = None,
     language: Optional[str] = None,
     gcs=Depends(get_gcs_instance),
 ) -> Dict[str, Any]:
@@ -78,6 +79,7 @@ async def get_systemdaten_dropdown(
             table=table,
             dataset_uid=dataset_uid,
             field=field,
+            group=group,
             language=language,
         )
     except Exception:
