@@ -199,6 +199,9 @@ export function PdvmDialogModal(props: PdvmDialogModalProps) {
         </div>
 
         <div className="pdvm-modal__body">
+          {error ? <div className="pdvm-modal__error">{error}</div> : null}
+          {localError ? <div className="pdvm-modal__error">{localError}</div> : null}
+
           {message ? <div className="pdvm-modal__message">{message}</div> : null}
 
           {fields.length > 0 ? (
@@ -278,9 +281,6 @@ export function PdvmDialogModal(props: PdvmDialogModalProps) {
               })}
             </div>
           ) : null}
-
-          {error ? <div className="pdvm-modal__error">{error}</div> : null}
-          {localError ? <div className="pdvm-modal__error">{localError}</div> : null}
         </div>
 
         <div className="pdvm-modal__footer">

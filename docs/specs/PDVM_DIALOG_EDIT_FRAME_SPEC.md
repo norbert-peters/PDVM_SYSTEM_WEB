@@ -171,7 +171,9 @@ Dies bleibt erweiterbar und kompatibel mit vorhandenen InputControls.
 
 ## Architektur-Regeln (verbindlich)
 - Kein direkter SQL-Zugriff in Routern (nur PdvmCentralDatabase).
-- `edit_user` bleibt Legacy und wird schrittweise durch `pdvm_edit` ersetzt.
+- `pdvm_edit` ist der zentrale Edit-Frame fuer InputControls.
+- `edit_user` nutzt denselben `pdvm_edit`-Kern und darf nur User-spezifische Add-ons liefern (z. B. Passwort/Account-Aktionen).
+- `edit_frame` wird nicht mehr verwendet; Dialoge nutzen `pdvm_edit`.
 - View/Edit Autonomie bleibt erhalten (Neuanlage nur im View-Tab).
 - Persistenz-Scopes nutzen `(view_guid, table, edit_type)`.
 

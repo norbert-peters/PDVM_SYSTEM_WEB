@@ -50,6 +50,12 @@ export interface GcsStichtagResponse {
   display: string
 }
 
+export interface GcsValueResponse {
+  gruppe: string
+  feld: string
+  value: any
+}
+
 export interface ViewDefinitionResponse {
   uid: string
   name: string
@@ -166,12 +172,6 @@ export interface DialogRecordResponse {
 
 export interface DialogRecordUpdateRequest {
   daten: Record<string, any>
-}
-
-export interface DialogRecordCreateRequest {
-  name: string
-  template_uid?: string | null
-  is_template?: boolean | null
 }
 
 export interface DialogValidationIssue {
@@ -517,6 +517,13 @@ export const mandantenAPI = {
 
 // GCS API
 export const gcsAPI = {
+  getValue: async (gruppe: string, feld: string): Promise<GcsValueResponse> => {
+    const response = await api.get('/gcs/value', {
+      params: { gruppe, feld },
+    })
+    return response.data
+  },
+
   getStichtag: async (): Promise<GcsStichtagResponse> => {
     const response = await api.get('/gcs/stichtag')
     return response.data
@@ -623,17 +630,6 @@ export const dialogsAPI = {
     opts?: DialogTableOverrideOptions
   ): Promise<DialogRecordResponse> => {
     const response = await api.put(`/dialogs/${dialogGuid}/record/${recordUid}`, payload, {
-      params: opts?.dialog_table ? { dialog_table: opts.dialog_table } : undefined,
-    })
-    return response.data
-  },
-
-  createRecord: async (
-    dialogGuid: string,
-    payload: DialogRecordCreateRequest,
-    opts?: DialogTableOverrideOptions
-  ): Promise<DialogRecordResponse> => {
-    const response = await api.post(`/dialogs/${dialogGuid}/record`, payload, {
       params: opts?.dialog_table ? { dialog_table: opts.dialog_table } : undefined,
     })
     return response.data

@@ -623,17 +623,49 @@ class PdvmCentralSystemsteuerung:
     
     def get_expert_mode(self) -> bool:
         """
-        Liest expert_mode des Users aus user_guid Gruppe
+        Liest Expert-Mode aus Benutzerdaten (SETTINGS.EXPERT_MODE).
+
+        Primäre Quelle: sys_benutzer.daten -> Gruppe SETTINGS, Feld EXPERT_MODE
+        Legacy-Fallback: sys_systemsteuerung (Gruppe user_guid, Feld EXPERT_MODE)
         
         Returns:
             True = Expert Mode aktiv, False = Standard (default)
         """
-        wert, _ = self.get_value(str(self.user_guid), "EXPERT_MODE", ab_zeit=self.stichtag)
-        return wert if wert is not None else False
+        # Primär: Benutzerdaten aus Login/GCS (SETTINGS.EXPERT_MODE)
+        try:
+            benutzer_data = self.benutzer.data if isinstance(self.benutzer.data, dict) else {}
+            settings = benutzer_data.get("SETTINGS") if isinstance(benutzer_data.get("SETTINGS"), dict) else {}
+            if "EXPERT_MODE" in settings:
+                return self._truthy(settings.get("EXPERT_MODE"))
+        except Exception:
+            pass
+
+        # Legacy-Fallback: historisch in sys_systemsteuerung unter user_guid gespeichert
+        try:
+            legacy_wert, _ = self.get_value(str(self.user_guid), "EXPERT_MODE", ab_zeit=self.stichtag)
+            if legacy_wert is not None:
+                return self._truthy(legacy_wert)
+        except Exception:
+            pass
+
+        return False
     
     def set_expert_mode(self, expert_mode: bool):
-        """Setzt expert_mode des Users in user_guid Gruppe"""
-        self.set_value(str(self.user_guid), "EXPERT_MODE", expert_mode, ab_zeit=self.stichtag)
+        """Setzt expert_mode konsistent in SETTINGS.EXPERT_MODE und Legacy-Feld."""
+        value = bool(expert_mode)
+
+        # Primär: Benutzerdaten-Struktur (wird in GCS-Instanz gehalten)
+        try:
+            if not isinstance(self.benutzer.data, dict):
+                self.benutzer.data = {}
+            if not isinstance(self.benutzer.data.get("SETTINGS"), dict):
+                self.benutzer.data["SETTINGS"] = {}
+            self.benutzer.data["SETTINGS"]["EXPERT_MODE"] = value
+        except Exception:
+            pass
+
+        # Legacy-Kompatibilität: bestehende Leser auf sys_systemsteuerung weiter bedienen
+        self.set_value(str(self.user_guid), "EXPERT_MODE", value, ab_zeit=self.stichtag)
     
     # === View-Einstellungen ===
     

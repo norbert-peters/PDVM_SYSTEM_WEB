@@ -14,7 +14,7 @@ import re
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.core.security import get_current_user
 from app.core.pdvm_central_systemsteuerung import get_gcs_session
@@ -122,6 +122,7 @@ class ViewDefinitionResponse(BaseModel):
     name: str
     daten: Dict[str, Any]
     root: Dict[str, Any]
+    meta: Dict[str, Any] = Field(default_factory=dict)
 
 
 class ViewBaseRow(BaseModel):
@@ -184,6 +185,10 @@ async def get_view_definition(view_guid: str, gcs=Depends(get_gcs_instance)):
 
     try:
         result = await load_view_definition(gcs, view_uuid)
+        result["meta"] = {
+            **(result.get("meta") or {}),
+            "expert_mode": bool(gcs.get_expert_mode()),
+        }
         return result
     except KeyError:
         raise HTTPException(status_code=404, detail=f"View nicht gefunden: {view_guid}")

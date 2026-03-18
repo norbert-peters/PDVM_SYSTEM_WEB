@@ -60,7 +60,7 @@ async def simplify_frame():
         print(f"      http://localhost:8010/api/dialogs/.../record/{frame_uuid}")
         print("   3. Erwartung: 4 Controls mit Daten anzeigen:")
         print("      • Dialog-Name: 'Edit Frame'")
-        print("      • Edit-Type: 'edit_frame'")
+        print("      • Edit-Type: 'pdvm_edit'")
         print("      • Tabs: 2")
         print("      • Tabs (Liste): Dict mit 2 Einträgen")
         

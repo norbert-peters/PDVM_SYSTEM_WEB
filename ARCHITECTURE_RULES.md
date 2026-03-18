@@ -98,6 +98,32 @@ Dann sollen alle Dialoge auf den zuletzt ausgewählten Datensatz springen.
 - Gilt fuer `daten` in allen PDVM-Tabellen.
 - Ausnahme: systemeigene Spalten wie `created_at`/`modified_at` bleiben SQL-Timestamps.
 
+Verbindliche Definition (PdvmDateTime):
+- Format ist immer `YYYYDDD.FRACTION`.
+- `YYYY`: Jahr, `DDD`: Tag im Jahr (1-366), `FRACTION`: Bruchteil des Tages (`0.5 = 12:00:00`).
+- Es gibt kein alternatives Zeitkodierungsformat im Nachkommateil.
+
+Verbindliche Umwandlung:
+- Umwandlung zwischen Python/JS Datum und PDVM erfolgt ausschliesslich ueber `pdvm_datetime.py` bzw. deren abgeleitete, formatgleiche Hilfsfunktionen.
+- Direkte Eigenimplementierungen mit abweichender Mathematik sind verboten.
+- Wenn neue Hilfsfunktionen benoetigt werden, werden sie als neue Funktionssammlung hinzugefuegt, muessen aber dieselbe Formatdefinition einhalten.
+
+### 1.10 sys_control_dict Struktur (linear, ohne Fallback)
+**Regel:** Datensaetze in `sys_control_dict.daten` haben exakt die Gruppen `ROOT` und `CONTROL`.
+
+- Keine flachen Legacy-Top-Level-Properties in `daten`.
+- `CONTROL.FIELD`/`CONTROL.FELD` sind verpflichtend in GROSSBUCHSTABEN.
+- `name`/`SELF_NAME` folgen immer `<TABELLENPREFIX>_<FIELD>` in GROSSBUCHSTABEN (z. B. `SYS_LABEL`).
+- Neuanlage erfolgt ausschliesslich ueber den regulären Neuanlage-Flow (keine Template-Direktkopien als Fachdaten).
+
+### 1.11 Schutz von Basis-/Template-GUIDs (maschinenfest)
+**Regel:** Reservierte Basis-/Template-Datensaetze duerfen durch Migrationen nicht geaendert werden.
+
+- Gilt insbesondere fuer GUID-Serien mit den Praefixen `5...`, `6...` und `0...` (z. B. `5555...`, `6666...`, `0000...`).
+- Diese Saetze bilden die tabellenweiten Basiseinstellungen und werden manuell gepflegt.
+- Migrationsskripte fuer `sys_control_dict` muessen diese GUIDs explizit vom Update ausschliessen.
+- Automatische Umbenennung/Normalisierung dieser reservierten Saetze ist verboten.
+
 ---
 
 ## 2. Frontend Architektur (React)
@@ -149,6 +175,13 @@ Siehe Spezifikation: `docs/specs/PDVM_DIALOG_MODAL_SPEC.md`.
 - Kein erzwungener Sonderpfad mit `428` als Steuermechanismus für Standard-Neuanlage.
 - Gilt tabellenübergreifend (nicht nur `sys_control_dict`).
 
+Verbindlich (einziger Ablauf):
+- Der einzige fachlich zulässige Neuanlage-Flow ist:
+	`POST /api/dialogs/{dialog_guid}/draft/start` → Edit auf Draft → `POST /api/dialogs/{dialog_guid}/draft/{draft_id}/commit`.
+- Direkte Neuanlage über `POST /api/dialogs/{dialog_guid}/record` ist nur Kompatibilität und muss intern denselben Ablauf nutzen.
+- Neue Features dürfen keinen zweiten Neuanlage-Mechanismus einführen.
+- Bestehende direkte Neuanlage-Aufrufe im Source sind auf den Draft-Flow umzustellen.
+
 ### 2.6 Einheitlicher Edit-Frame (Dialoge)
 **Regel:** Alle Editoren verwenden denselben Edit-Rahmen.
 
@@ -193,6 +226,25 @@ Label-Regel:
 Templates:
 - `element_list` Templates liegen unter UID `5555...` in Gruppe `ELEMENTS`.
 
+### 2.9 Einheitlicher InputControl-Contract (edit_user + pdvm_edit)
+**Regel:** `edit_user` und `pdvm_edit` nutzen denselben `PdvmInputControl`-Contract und dieselbe Control-Resolution.
+
+- Control-Metadaten kommen aus `sys_control_dict` (inkl. Template `5555...`) fuer **beide** Edit-Typen.
+- Es gibt keine separaten Sonderpfade fuer Expert-Mode/Control-Debug pro Edit-Typ.
+- Es gibt keine Fallback-Renderer oder Edit-Type-spezifische Ersatz-Payloads fuer Control-Infos.
+- Unterschiedlich bleibt nur die Feldquelle (z. B. Frame-Definition), nicht die InputControl-Logik.
+
+Verbindliche Ableitung fuer Dialog-Editoren:
+- `pdvm_edit` ist das zentrale Edit-Frame mit kompletter Control-Steuerung.
+- `edit_user` ist technisch ein `pdvm_edit`-Ablauf plus User-spezifische Add-ons (z. B. Passwort/Account-Aktionen).
+- `edit_frame` wird nicht mehr verwendet; bestehende Einsaetze sind auf `pdvm_edit` umzustellen.
+
+Erweiterung `multi_dropdown` (verbindlich):
+- Auswahl erfolgt generisch im `PdvmInputControl` ueber einen einheitlichen Add/Remove-Mechanismus.
+- Mehrfachauswahlen muessen sichtbar als einzelne ausgewaehlte Eintraege dargestellt werden.
+- Eintraege koennen einzeln hinzugefuegt und einzeln entfernt werden.
+- Keine edit_type-spezifischen Multi-Select-Implementierungen.
+
 ---
 
 ## 3. Legacy Code
@@ -209,6 +261,9 @@ Bei der Implementierung von Kern-Funktionalitäten ist die Einhaltung der dedizi
 *   Das System verwendet eine **3-Ebenen-Matrix** für zeitbezogene Werte (Original, AB-Datum, Formatierung).
 *   Alle Zeitstempel müssen als `float` (PDVM-Format) gespeichert und verarbeitet werden.
 *   Jedes Widget, das Zeitdaten darstellt oder manipuliert (z.B. `PdvmDateTimePicker`), muss diese Spezifikation implementieren.
+*   Verbindliches Zeitformat: `YYYYDDD.FRACTION` mit Bruchteil des Tages.
+*   Normative Referenz fuer Konvertierung und Formatlogik ist `backend/app/core/pdvm_datetime.py`.
+*   Technische Weiterentwicklungen werden gesammelt in: `docs/specs/PDVM_DATETIME_FUNCTION_COLLECTION.md`.
 
 ### 4.2 Theming System V2 (`docs/specs/THEMING_SYSTEM.md`)
 **Regel:** Keine hardcodierten Farben oder Styles in CSS/Komponenten.

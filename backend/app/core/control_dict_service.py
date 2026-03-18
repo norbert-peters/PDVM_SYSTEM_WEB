@@ -18,6 +18,23 @@ from app.core.pdvm_datenbank import PdvmDatabase
 from app.core.pdvm_central_systemsteuerung import PdvmCentralSystemsteuerung
 
 
+def _table_prefix(table_name: str) -> str:
+    table = str(table_name or "").strip()
+    if not table:
+        return "SYS"
+    if "_" in table:
+        return table.split("_", 1)[0].upper()
+    return table[:3].upper() or "CTL"
+
+
+def _canonical_control_name(table_name: str, field_name: str) -> str:
+    prefix = _table_prefix(table_name)
+    field = str(field_name or "").strip().upper()
+    if not field:
+        return prefix
+    return f"{prefix}_{field}"
+
+
 class ControlDictService:
     def __init__(self, gcs: PdvmCentralSystemsteuerung):
         self.gcs = gcs
@@ -214,13 +231,29 @@ class ControlDictService:
         effective_data = await self._resolve_effective(source_data)
         effective_data.update(field_data or {})
 
-        if "name" in (field_data or {}):
-            table_name = str(effective_data.get("table") or "")
-            table_prefix = table_name.split("_")[0] + "_" if "_" in table_name else (table_name[:3] + "_" if table_name else "")
-            effective_data["SELF_NAME"] = f"{table_prefix}{field_data['name']}"
+        table_name = str(
+            effective_data.get("table")
+            or effective_data.get("TABLE")
+            or ""
+        ).strip()
+        field_name = str(
+            effective_data.get("field")
+            or effective_data.get("FIELD")
+            or effective_data.get("feld")
+            or effective_data.get("FELD")
+            or ""
+        ).strip().upper()
+        if field_name:
+            effective_data["field"] = field_name
+            effective_data["FIELD"] = field_name
+            effective_data["feld"] = field_name
+            effective_data["FELD"] = field_name
+            canonical_name = _canonical_control_name(table_name, field_name)
+            effective_data["name"] = canonical_name
+            effective_data["SELF_NAME"] = canonical_name
 
         data_to_store = await self._normalize_for_storage(effective_data)
-        new_name = str(effective_data.get("SELF_NAME") or row.get("name") or "")
+        new_name = str(effective_data.get("SELF_NAME") or effective_data.get("name") or row.get("name") or "")
 
         await self.db.update(uid=uid, daten=data_to_store, name=new_name)
 

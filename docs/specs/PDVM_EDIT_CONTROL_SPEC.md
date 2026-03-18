@@ -8,11 +8,11 @@ Status: implementiert
 `EDIT_TYPE = edit_control` erlaubt die direkte Bearbeitung der Properties eines Datensatzes, ohne dass beim Start von "Neuer Satz" bereits eine vollständige Template-Auflösung erzwungen wird.
 
 Neu (vereinheitlicht):
-- `pdvm_edit` und `edit_control` nutzen denselben technischen Ablauf ab der Control-Matrix.
+- `pdvm_edit`, `edit_user` und `edit_control` nutzen denselben technischen Ablauf ab der Control-Matrix.
 - Unterschiedlich ist nur der Aufbau bis zur Matrix (Control-Quelle).
 - Ab Matrix sind Darstellung, Typprüfung, Konvertierung und Speichern identisch.
 
-## 1.1 Gemeinsames Zielbild fuer `pdvm_edit` + `edit_control`
+## 1.1 Gemeinsames Zielbild fuer `pdvm_edit` + `edit_user` + `edit_control`
 
 Jede editierbare Eigenschaft wird als Control-Matrix-Eintrag behandelt.
 
@@ -59,9 +59,10 @@ Wichtig:
 ## 2. Neuer-Satz-Verhalten
 
 Für `edit_control` (und `sys_control_dict`) gilt im Draft/Create-Flow:
-- Template-Auflösung wird initial **deferred** (aufgeschoben).
-- Der Draft startet mit der Template-Basisstruktur, aber ohne vollständiges Ausrollen aller 555/666-Defaults.
-- Speicherung bleibt kompatibel zur Delta-Logik (effective on read, delta on write).
+- Neuer Satz folgt dem generischen linearen Standard-Flow.
+- Basis ist 666..., Gruppen werden über 555...`TEMPLATES` aufgelöst (z. B. `CONTROL` aus `TEMPLATE.CONTROL`).
+- Es gibt keinen separaten `edit_control`-Sonderpfad für die Neuanlage.
+- Kanonischer Ablauf: `draft/start` → Draft-Edit → `draft/commit`.
 
 ## 3. Edit-Modell
 
@@ -92,12 +93,11 @@ Fehlt diese Typisierung, wird ein Hinweis ausgegeben.
 Backend:
 - `backend/app/api/dialogs.py`
   - `edit_control` als erlaubter `edit_type`
-  - defer-Resolution im Draft/Create-Flow
   - hint-Codes sind im Commit nicht blockierend
 - `backend/app/core/dialog_service.py`
   - `validate_dialog_daten_generic(..., edit_type=...)`
   - edit_control-Hinweislogik für fehlende Collection-Typisierung
-  - optionales `resolve_templates` in Draft/Create-Builder
+  - einheitlicher 6er/5er-Gruppenmerge im Draft/Create-Builder
 
 Frontend:
 - `frontend/src/components/dialogs/PdvmDialogPage.tsx`
@@ -160,7 +160,12 @@ Ziel:
 - Neue Editoren sind nur freigegeben, wenn sie den zentralen Mapper und `PdvmInputControl` nutzen.
 - Sonderlogik pro Editor ist nur zulaessig fuer Darstellung, nicht fuer abweichende Fachvalidierung.
 
-### 7.7 Type-Fallback-Regel (verbindlich)
+### 7.7 Kein Edit-Type-Fallback fuer Control-Metadaten
+- `edit_user` und `pdvm_edit` muessen dieselbe Control-Resolution (`sys_control_dict` + Template) verwenden.
+- Es sind keine edit_type-spezifischen Ersatz-Payloads fuer Control-Debug/Expert-Mode erlaubt.
+- Fehlt eine Control-Aufloesung, darf kein separater Fallback-Pfad mit abweichender Expert-Mode-Logik greifen.
+
+### 7.8 Type-Fallback-Regel (verbindlich)
 - Wenn ein Control-Type fehlt, leer ist oder unbekannt ist, gilt im Frontend immer der Fallback auf `string`.
 - Diese Regel ist global und wird direkt im `PdvmInputControl` durchgesetzt (nicht nur im jeweiligen Editor).
 - Es gibt keine Ausschlusslogik fuer unbekannte Types; das Feld bleibt editierbar als Textfeld.

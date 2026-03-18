@@ -262,7 +262,6 @@ export function PdvmViewPageContent({
   editType?: string | null
   embedded?: boolean
 }) {
-  const [expertMode, setExpertMode] = useState(false)
   const [showColumns, setShowColumns] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const queryClient = useQueryClient()
@@ -303,6 +302,7 @@ export function PdvmViewPageContent({
     queryFn: () => viewsAPI.getDefinition(viewGuid),
     enabled: !!viewGuid,
   })
+  const expertMode = !!(defQuery.data as any)?.meta?.expert_mode
 
   const effectiveEditType = String(editType || 'view').trim().toLowerCase() || 'view'
   const effectiveTableOverride = tableOverride ? String(tableOverride).trim() : ''
@@ -763,9 +763,10 @@ export function PdvmViewPageContent({
                 <button
                   type="button"
                   className={`pdvm-view__settingsButton ${expertMode ? 'pdvm-view__settingsButton--active' : ''}`}
-                  onClick={() => setExpertMode((v) => !v)}
+                  disabled
+                  title="Zentraler GCS-Status"
                 >
-                  <span>{expertMode ? 'Expert: Rohdaten' : 'Normal: formatiert'}</span>
+                  <span>{expertMode ? 'Expert: Rohdaten (GCS)' : 'Normal: formatiert (GCS)'}</span>
                   <span style={{ opacity: 0.65 }}>⚙</span>
                 </button>
 

@@ -15,6 +15,7 @@ from app.core.user_manager import UserManager
 from app.core.pdvm_central_benutzer import PdvmCentralBenutzer
 from app.core.pdvm_datenbank import PdvmDatabase
 from app.core.email_service import send_email
+from app.core.pdvm_datetime import datetime_to_pdvm, pdvm_to_datetime
 
 logger = logging.getLogger(__name__)
 
@@ -23,13 +24,23 @@ def _now_utc() -> datetime:
     return datetime.utcnow()
 
 
-def _to_iso(dt: datetime) -> str:
-    return dt.isoformat() + "Z"
+def _to_pdvm(dt: datetime) -> float:
+    return float(datetime_to_pdvm(dt))
 
 
-def _parse_iso(value: Optional[str]) -> Optional[datetime]:
+def _parse_security_time(value: Any) -> Optional[datetime]:
     if not value:
         return None
+
+    # Primär: PDVM float/timestamp
+    try:
+        pdvm_val = float(value)
+        if pdvm_val >= 1001.0:
+            return pdvm_to_datetime(pdvm_val)
+    except Exception:
+        pass
+
+    # Fallback: legacy ISO-String
     s = str(value).replace("Z", "").strip()
     try:
         return datetime.fromisoformat(s)
@@ -204,7 +215,7 @@ async def issue_password_reset(
     window_start = None
     security = user.get("daten", {}).get("SECURITY", {}) if isinstance(user.get("daten"), dict) else {}
     if isinstance(security, dict):
-        window_start = _parse_iso(security.get("PASSWORD_RESET_SEND_WINDOW_START"))
+        window_start = _parse_security_time(security.get("PASSWORD_RESET_SEND_WINDOW_START"))
 
     if window_start is None or (now - window_start) > timedelta(minutes=expires_minutes):
         send_count = 0
@@ -229,11 +240,11 @@ async def issue_password_reset(
         user.get("daten") or {},
         {
             "PASSWORD_CHANGE_REQUIRED": True,
-            "PASSWORD_RESET_ISSUED_AT": _to_iso(now),
-            "PASSWORD_RESET_EXPIRES_AT": _to_iso(expires_at),
+            "PASSWORD_RESET_ISSUED_AT": _to_pdvm(now),
+            "PASSWORD_RESET_EXPIRES_AT": _to_pdvm(expires_at),
             "PASSWORD_RESET_TOKEN_HASH": otp_hash,
             "PASSWORD_RESET_SEND_COUNT": int(send_count) + 1,
-            "PASSWORD_RESET_SEND_WINDOW_START": _to_iso(window_start),
+            "PASSWORD_RESET_SEND_WINDOW_START": _to_pdvm(window_start),
         },
     )
 
@@ -262,7 +273,7 @@ async def issue_password_reset(
         "email": user_email,
         "email_sent": email_sent,
         "email_error": email_error,
-        "expires_at": _to_iso(expires_at),
+        "expires_at": str(_to_pdvm(expires_at)),
     }
 
 
@@ -307,6 +318,29 @@ async def clear_password_reset_flags(*, user_uid: str) -> None:
             "PASSWORD_RESET_ISSUED_AT": None,
             "PASSWORD_RESET_EXPIRES_AT": None,
             "PASSWORD_RESET_TOKEN_HASH": None,
+        },
+    )
+
+    db = PdvmDatabase("sys_benutzer")
+    await db.update(user_uuid, updated, name=user.get("name"), historisch=user.get("historisch"))
+
+
+async def mark_password_changed(*, user_uid: str) -> None:
+    """Setzt LAST_PASSWORD_CHANGE im SECURITY-Block auf den aktuellen PDVM-Zeitstempel."""
+    try:
+        user_uuid = uuid.UUID(str(user_uid))
+    except Exception:
+        raise ValueError("Ungültige User-GUID")
+
+    benutzer_mgr = PdvmCentralBenutzer(user_uuid)
+    user = await benutzer_mgr.get_user()
+    if not user:
+        raise ValueError("Benutzer nicht gefunden")
+
+    updated = _update_security(
+        user.get("daten") or {},
+        {
+            "LAST_PASSWORD_CHANGE": _to_pdvm(_now_utc()),
         },
     )
 

@@ -12,13 +12,27 @@ Diese Standards gelten ab sofort für **alle neuen Controls** in sys_control_dic
 
 ## 📋 Grundprinzipien
 
-### 1. Tabellenpräfix-Regel
-**SELF_NAME und name müssen IMMER Tabellenpräfix enthalten**
+### 0. Verbindliche Datensatz-Struktur (ohne Fallback)
+Jeder aktive Datensatz in `sys_control_dict` hat genau diese Top-Level-Gruppen:
 
 ```json
 {
-  "name": "sys_label",           // ✅ RICHTIG
-  "SELF_NAME": "sys_label",      // ✅ RICHTIG
+  "ROOT": { ... },
+  "CONTROL": { ... }
+}
+```
+
+- Keine flachen Legacy-Top-Level-Felder mehr.
+- Keine Mischformen (`ROOT` + zusätzliche alte Keys) mehr.
+- `PdvmInputControl` und Framedaten arbeiten durchgehend mit dieser Struktur.
+
+### 1. Tabellenpräfix-Regel
+**`name` und `SELF_NAME` werden IMMER aus `TABLE` + `FIELD` gebildet**
+
+```json
+{
+  "name": "SYS_LABEL",           // ✅ RICHTIG
+  "SELF_NAME": "SYS_LABEL",      // ✅ RICHTIG
   "table": "sys_control_dict"
 }
 ```
@@ -31,10 +45,14 @@ Diese Standards gelten ab sofort für **alle neuen Controls** in sys_control_dic
 }
 ```
 
-**Regel:** Präfix = Erste 3-4 Buchstaben der Tabelle + "_"
-- `sys_control_dict` → `sys_`
-- `persondaten` → `per_`
-- `finanzdaten` → `fin_`
+**Regel:** Präfix = Tabellenpräfix in Großbuchstaben + "_", danach `FIELD` in Großbuchstaben
+- `sys_control_dict` + `FIELD=LABEL` → `SYS_LABEL`
+- `persondaten` + `FIELD=VORNAME` → `PER_VORNAME`
+- `finanzdaten` + `FIELD=KONTO` → `FIN_KONTO`
+
+### 1.1 Feldnamen-Regel
+- `CONTROL.FIELD` und `CONTROL.FELD` sind immer GROSSBUCHSTABEN.
+- Alle aus `FIELD` abgeleiteten Namen sind ebenfalls GROSSBUCHSTABEN.
 
 ### 2. Referenzen über configs.element_list
 **KEINE fixen Texte in Controls - ALLES über Referenzen**
@@ -99,13 +117,13 @@ Diese Standards gelten ab sofort für **alle neuen Controls** in sys_control_dic
 ### Standard-Felder ALLE Modul-Typen
 ```json
 {
-  "name": "",           // DB-Feldname (ohne Präfix!)
+  "name": "",           // Wird aus TABLE + FIELD gebildet
   "type": "string",     // string, text, number, date, dropdown, etc.
   "label": "",          // UI-Label
   "table": "",          // Zieltabelle
   "gruppe": "",         // DB-Gruppe
-  "feld": "",           // DB-Feldname (redundant zu name - historisch)
-  "SELF_NAME": "",      // sys_[name] - Auto-generiert
+  "feld": "",           // DB-Feldname (GROSSBUCHSTABEN)
+  "SELF_NAME": "",      // wird identisch zu name gesetzt
   "modul_type": "",     // edit, view, tabs
   "parent_guid": null,  // Hierarchie
   "display_order": 0,   // Sortierung
@@ -256,11 +274,15 @@ INSERT INTO sys_systemdaten (gruppe, daten) VALUES
 3. MODUL wählen: edit / view / tabs
 4. Template wird aus 555555... geladen
 5. Felder ausfüllen:
-   - `name`: Feldname **OHNE** Präfix (z.B. "label")
-   - `SELF_NAME`: **MIT** Präfix (z.B. "sys_label")
+  - `FIELD/FELD`: Feldname in **GROSSBUCHSTABEN** (z.B. "LABEL")
+  - `name` und `SELF_NAME`: werden automatisch als `<PREFIX>_<FIELD>` gebildet (z.B. `SYS_LABEL`)
    - `table`: Zieltabelle
    - `gruppe`: DB-Gruppe
    - `configs.element_list`: Referenzen hinzufügen
+
+### 1.2 Keine Template-Direktkopien als Fachdaten
+- Neue Controls werden über den regulären Neuanlage-Weg erzeugt (API/Editor), nicht durch direktes Kopieren von Template-Sätzen.
+- Ziel: einheitliche `ROOT`/`CONTROL`-Struktur in allen Datensätzen.
 
 ### 2. MODUL_TYPE wechseln (während Bearbeitung)
 - MODUL_TYPE ändern → Neues Template wird geladen

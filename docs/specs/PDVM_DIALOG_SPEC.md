@@ -165,11 +165,11 @@ Request:
 Hinweis:
 - Der Endpoint ist nur aktiv, wenn der Dialog `EDIT_TYPE = edit_json` gesetzt hat.
 
-### `POST /api/dialogs/{dialog_guid}/record`
+### `POST /api/dialogs/{dialog_guid}/record` (Kompatibilitäts-Endpoint)
 Optionaler Query-Parameter:
 - `dialog_table=<tablename>`: überschreibt die Root-Tabelle (nur fuer `show_json`/`edit_json`).
 
-Erstellt einen neuen Datensatz anhand eines Template-Records.
+Kompatibilitätsaufruf. Verwendet intern denselben linearen Neuer-Satz-Flow wie Draft/Commit.
 
 Request:
 ```json
@@ -179,10 +179,9 @@ Request:
 Default-Verhalten (wenn `template_uid` fehlt):
 - `template_uid = 66666666-6666-6666-6666-666666666666`
 
-Neu fuer `EDIT_TYPE=edit_control` (und `sys_control_dict`):
-- Beim Start von „Neuer Satz" wird die Template-Auflösung bewusst aufgeschoben.
-- Es wird **nicht** sofort vollständig aus 555/666 aufgelöst, damit keine Vollkopie von Defaults in den Entwurf läuft.
-- Persistenz erfolgt weiterhin über Delta-Logik im Backend.
+Verbindliches Verhalten:
+- Neuer Satz basiert auf 666... und löst Gruppen über 555...`TEMPLATES` linear auf.
+- Es gibt keinen alternativen fachlichen Neuanlage-Algorithmus neben Draft/Commit.
 
 Beim Erstellen:
 - `daten` wird aus dem Template kopiert
@@ -191,13 +190,22 @@ Beim Erstellen:
 - Spalte `name` wird auf den übergebenen Namen gesetzt
 
 Einschränkungen:
-- Nur erlaubt für `EDIT_TYPE = edit_json` oder `EDIT_TYPE = menu`.
 - Für `EDIT_TYPE = show_json` (read-only) wird kein neuer Satz angelegt und der Button im Dialog bleibt ausgeblendet.
 - Ausnahme: `sys_benutzer` unterstützt diesen Template-Mechanismus nicht.
 
 UI-Hinweis:
 - Die Namensabfrage für „Neuer Satz“ erfolgt im Frontend über `PdvmDialogModal` (kein `window.prompt`).
 - Siehe `docs/specs/PDVM_DIALOG_MODAL_SPEC.md`.
+
+### Kanonischer Neuer-Satz-Flow (verbindlich)
+
+1. `POST /api/dialogs/{dialog_guid}/draft/start`
+2. Optional `PUT /api/dialogs/{dialog_guid}/draft/{draft_id}` (Edit auf Draft)
+3. `POST /api/dialogs/{dialog_guid}/draft/{draft_id}/commit`
+
+Regel:
+- Dieser Ablauf ist der einzige zu verwendende Neuanlage-Flow.
+- Alle Source-Stellen für Neuanlage sind auf diesen Ablauf auszurichten.
 
 ### `GET /api/systemdaten/menu-commands`
 Liefert den Command-Katalog für den Menüeditor.
@@ -239,6 +247,11 @@ Tabs:
 Für `edit_json`:
 - **Tab 2**: Text-Editor (monospace) + Buttons `Formatieren` und `Speichern`
 - Speichern ruft `PUT /api/dialogs/{dialog_guid}/record/{uid}` auf
+
+Verbindliche Trennung der Wege:
+- `show_json` und `edit_json` arbeiten immer direkt mit rohen DB-Werten (`daten`) und ohne effective-Auflösung.
+- InputControl/PIC-Wege (`edit_user`, `pdvm_edit`, `edit_control`, etc.) nutzen aufgelöste/effective Strukturen.
+- Beide Wege sind getrennt linear; Änderungen im InputControl-Weg dürfen den JSON-Weg nicht beeinflussen.
 
 Für `menu`:
 - Im Edit-Tab werden interne Tabs (Grundmenü/Vertikalmenü) gerendert.

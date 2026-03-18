@@ -5,28 +5,32 @@ Diese Spezifikation beschreibt die Implementierung des zentralen Datumsformats `
 
 ## 2. Kern-Konzept: PdvmDateTime
 
+Normative Definition (verbindlich):
+- PdvmDateTime ist immer `YYYYDDD.FRACTION`.
+- `FRACTION` ist der Bruchteil des Tages (`0.5 = 12:00:00`).
+- Diese Definition ist verbindlich fuer Backend, Frontend und Persistenz in JSONB-Feldern.
+- Normative Referenzimplementierung ist `backend/app/core/pdvm_datetime.py`.
+
 ### 2.1 Backend (Python)
-In der Business-Logik (Backend) ist `PdvmDateTime` das führende Format. Obwohl die Datenbank native Zeitstempel (`datetime`) speichert, kapselt die Applikationslogik diese Werte.
+In der Business-Logik (Backend) ist `PdvmDateTime` das führende Format.
 
 **Klasse:** `backend/app/core/pdvm_datetime.py`
 
 *   **Verantwortlichkeit:**
-    *   Konvertierung zwischen nativem Python `datetime` und dem `Pdvm`-Logik-Objekt.
+    *   Konvertierung zwischen nativem Python `datetime` und PDVM-Float `YYYYDDD.FRACTION`.
     *   Bereitstellung von Formatierungsfunktionen (z.B. "05.06.2025 12:00:00").
-    *   (Optional) Legacy-Support für das interne Float-Format (`YYYYDDD.TimeFraction`), falls für Berechnungen benötigt.
-    *   **Serialisierung:** Für die Kommunikation via API wird das Objekt standardmäßig nach **ISO-8601** (`YYYY-MM-DDTHH:mm:ss`) serialisiert, um maximale Kompatibilität mit dem Frontend zu gewährleisten.
+    *   Einheitliche Mathe-Logik fuer den Tagesbruchteil.
 
 **Datenbank-Schicht:**
-*   Spalten-Typ: `TIMESTAMP` (PostgreSQL) / `DATETIME` (SQLite).
-*   ORM: SQLAlchemy nutzt Python `datetime`.
-*   Regel: Die `PdvmCentralDatabase` liest `datetime` aus der DB und wrappt es bei Bedarf in `PdvmDateTime` für die Business-Logik-Verarbeitung.
+*   In JSONB-Daten werden Zeitwerte als PDVM-Float gespeichert.
+*   Nur systemeigene SQL-Spalten wie `created_at`/`modified_at` bleiben SQL-Timestamps.
 
 ### 2.2 Frontend (TypeScript/React)
-Im Frontend wird das Datum primär als ISO-String oder JavaScript `Date`-Objekt behandelt. Wir erstellen *keine* komplexe 1:1 Kopie der Python-Klasse mit mathematischer Logik (Prozentfaktoren), sondern nutzen moderne Web-Standards für die Darstellung.
+Im Frontend werden PDVM-Werte formatgleich zum Backend verarbeitet.
 
-*   **Transportschicht:** ISO-String ohne explizite Zeitzone (z.B. `"2025-06-05T12:00:00"`).
-    *   **Wichtig:** Keine automatische UTC-Konvertierung im Picker (`toISOString()`), da sonst Uhrzeiten „springen“.
-*   **Anzeige:** Formatierung gemäß Locale (z.B. `de-DE`).
+*   **Transportschicht:** PDVM-Float `YYYYDDD.FRACTION`.
+*   **Anzeige:** Aus PDVM abgeleitetes Datums-/Zeitformat (z.B. `de-DE`).
+*   Keine alternativen/legacy Zeitkodierungen im Nachkommateil.
 
 ---
 
@@ -135,10 +139,9 @@ Die Stichtagsbar ist die **einzige** Stelle, an der der systemweite Referenz-Zei
 ### 4.2 API-Kontrakt
 *   `GET /api/gcs/stichtag` → liefert
     *   `stichtag`: PDVM-float (YYYYDDD.Fraction)
-    *   `iso`: ISO-String (timezone-naiv)
     *   `display`: Anzeigeformat (z.B. `DD.MM.YYYY HH:MM`)
 *   `POST /api/gcs/stichtag`
-    *   akzeptiert `{ "iso": "YYYY-MM-DDTHH:mm:ss" }` (empfohlen) oder `{ "stichtag": 2025356.12345 }` (legacy)
+    *   akzeptiert `{ "stichtag": 2025356.12345 }`
     *   persistiert sofort in `sys_systemsteuerung`
 
 ### 4.3 Frontend-Integration

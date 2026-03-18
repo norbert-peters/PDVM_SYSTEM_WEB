@@ -36,7 +36,7 @@ async def full_api_test():
             dialog_daten = {
                 "ROOT": {
                     "TABLE": "sys_framedaten",
-                    "EDIT_TYPE": "edit_frame",
+                    "EDIT_TYPE": "pdvm_edit",
                     "VIEW_GUID": None,
                     "FRAME_GUID": dialog_guid  # Frame ist das Edit Frame selbst
                 }

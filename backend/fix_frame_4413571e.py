@@ -38,7 +38,7 @@ async def fix_frame():
         
         # Sicherstellen, dass EDIT_TYPE gesetzt ist
         if 'EDIT_TYPE' not in daten['ROOT']:
-            daten['ROOT']['EDIT_TYPE'] = 'edit_frame'
+            daten['ROOT']['EDIT_TYPE'] = 'pdvm_edit'
         
         # 3. Update in Datenbank
         await conn.execute(

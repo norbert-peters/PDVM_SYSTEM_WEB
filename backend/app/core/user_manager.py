@@ -296,7 +296,11 @@ class UserManager:
             async with pool.acquire() as conn:
                 # Aktuellen Counter holen
                 current = await conn.fetchval("""
-                    SELECT daten->'SECURITY'->>'FAILED_LOGIN_ATTEMPTS'
+                    SELECT COALESCE(
+                        daten->'SECURITY'->>'FAILED_LOGIN_ATTEMPTS',
+                        daten->'SECURITY'->>'FAILED_LOGINS',
+                        '0'
+                    )
                     FROM sys_benutzer
                     WHERE benutzer = $1
                 """, email)
@@ -312,8 +316,12 @@ class UserManager:
                 UPDATE sys_benutzer
                 SET daten = jsonb_set(
                     jsonb_set(
-                        daten,
-                        '{SECURITY,FAILED_LOGIN_ATTEMPTS}',
+                        jsonb_set(
+                            daten,
+                            '{SECURITY,FAILED_LOGIN_ATTEMPTS}',
+                            to_jsonb($2::int)
+                        ),
+                        '{SECURITY,FAILED_LOGINS}',
                         to_jsonb($2::int)
                     ),
                     '{SECURITY,ACCOUNT_LOCKED}',
@@ -341,7 +349,7 @@ class UserManager:
         email = self.normalize_email(email)
         
         try:
-            from app.core.pdvm_time import datetime_to_pdvm
+            from app.core.pdvm_datetime import datetime_to_pdvm
             pool = DatabasePool._pool_auth
             
             async with pool.acquire() as conn:
@@ -353,11 +361,15 @@ class UserManager:
                 UPDATE sys_benutzer
                 SET daten = jsonb_set(
                     jsonb_set(
-                        daten,
-                        '{SECURITY,LAST_LOGIN}',
-                        to_jsonb($2::numeric)
+                        jsonb_set(
+                            daten,
+                            '{SECURITY,LAST_LOGIN}',
+                            to_jsonb($2::numeric)
+                        ),
+                        '{SECURITY,FAILED_LOGIN_ATTEMPTS}',
+                        '0'::jsonb
                     ),
-                    '{SECURITY,FAILED_LOGIN_ATTEMPTS}',
+                    '{SECURITY,FAILED_LOGINS}',
                     '0'::jsonb
                 )
                 WHERE benutzer = $1
@@ -404,6 +416,18 @@ class UserManager:
         if not expires_at:
             return False
 
+        # Primärformat: PDVM-Float
+        try:
+            pdvm_val = float(expires_at)
+            if pdvm_val >= 1001.0:
+                from app.core.pdvm_time import pdvm_to_datetime
+
+                expires_dt = pdvm_to_datetime(pdvm_val)
+                return datetime.utcnow() > expires_dt
+        except Exception:
+            pass
+
+        # Legacy-Fallback: ISO-String
         try:
             value = str(expires_at).replace('Z', '').strip()
             expires_dt = datetime.fromisoformat(value)
@@ -433,11 +457,15 @@ class UserManager:
                     UPDATE sys_benutzer
                     SET daten = jsonb_set(
                         jsonb_set(
-                            daten,
-                            '{SECURITY,ACCOUNT_LOCKED}',
-                            'false'::jsonb
+                            jsonb_set(
+                                daten,
+                                '{SECURITY,ACCOUNT_LOCKED}',
+                                'false'::jsonb
+                            ),
+                            '{SECURITY,FAILED_LOGIN_ATTEMPTS}',
+                            '0'::jsonb
                         ),
-                        '{SECURITY,FAILED_LOGIN_ATTEMPTS}',
+                        '{SECURITY,FAILED_LOGINS}',
                         '0'::jsonb
                     )
                     WHERE benutzer = $1

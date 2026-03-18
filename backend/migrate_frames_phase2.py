@@ -12,7 +12,7 @@ DB_URL = "postgresql://postgres:Polari$55@localhost:5432/pdvm_system"
 # Mapping EDIT_TYPE → ROOT_TABLE (bekannte Zuordnungen)
 EDIT_TYPE_TO_TABLE = {
     "edit_user": "sys_login",
-    "edit_frame": "sys_framedaten",
+    "pdvm_edit": "sys_framedaten",
     "menu": "sys_menudaten",
     "edit_json": None,  # Generic JSON editor, no specific table
     "show_json": None,  # JSON viewer, no specific table

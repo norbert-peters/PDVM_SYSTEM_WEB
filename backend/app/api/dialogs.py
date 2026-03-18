@@ -15,7 +15,6 @@ import json
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from app.core.security import get_current_user
@@ -30,7 +29,6 @@ from app.core.dialog_service import (
     load_frame_definition,
     update_dialog_record_json,
     update_dialog_record_central,
-    ModulSelectionRequiredException,
     validate_dialog_daten_generic,
 )
 from app.core.pdvm_datenbank import PdvmDatabase
@@ -41,6 +39,7 @@ router = APIRouter()
 _SYS_FIELD_LAST_CALL = "LAST_CALL"
 _SYS_FIELD_UI_STATE = "UI_STATE"
 _SYS_FIELD_DRAFTS = "DRAFTS"
+_CENTRAL_EDIT_TYPES = {"edit_user", "import_data", "pdvm_edit", "edit_dict", "edit_control"}
 
 
 _TABLE_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -60,21 +59,26 @@ def _normalize_dialog_table(dialog_table: Optional[str]) -> Optional[str]:
 
 def _ensure_allowed_edit_type(edit_type: str):
     et = str(edit_type or "").strip().lower()
-    if et not in {"show_json", "edit_json", "menu", "edit_user", "import_data", "edit_frame", "pdvm_edit", "edit_dict", "edit_control"}:
+    if et not in {"show_json", "edit_json", "menu", "edit_user", "import_data", "pdvm_edit", "edit_dict", "edit_control"}:
         raise HTTPException(
             status_code=400,
-            detail="Nur EDIT_TYPE show_json, edit_json, menu, edit_user, import_data, edit_frame, pdvm_edit, edit_dict und edit_control sind erlaubt",
+            detail="Nur EDIT_TYPE show_json, edit_json, menu, edit_user, import_data, pdvm_edit, edit_dict und edit_control sind erlaubt",
         )
 
 
 def _should_defer_template_resolution(*, root_table: str, edit_type: str) -> bool:
-    et = str(edit_type or "").strip().lower()
-    rt = str(root_table or "").strip().lower()
-    return et == "edit_control" or rt == "sys_control_dict"
+    # Neuer-Satz muss den linearen 6er→5er-Merge immer ausführen.
+    # Defer wird hier bewusst deaktiviert.
+    return False
 
 
 def _normalize_table_name(value: Optional[str]) -> str:
     return str(value or "").strip().lower()
+
+
+def _use_raw_json_payload(edit_type: Optional[str]) -> bool:
+    et = str(edit_type or "").strip().lower()
+    return et in {"show_json", "edit_json"}
 
 
 def _table_key_upper(root_table: str) -> str:
@@ -168,22 +172,22 @@ async def _read_last_call_scoped_by_table(
         return None
 
 
-def _compute_last_call_key(runtime: Dict[str, Any]) -> Optional[str]:
+def _compute_last_call_key(runtime: Dict[str, Any], *, dialog_guid: Optional[str] = None) -> Optional[str]:
     """Berechnet den Persistenz-Key für last_call.
 
-    PDVM-Dialog-Regel (vereinfacht): last_call ist ausschließlich
-    an view_guid + table gekoppelt. Keine frame/dialog Fallbacks.
+    PDVM-Dialog-Regel: last_call ist dialog-gebunden.
+    Persistenz erfolgt pro dialog_guid + table.
 
     Returns:
-        view_guid als String oder None wenn nicht vorhanden/ungültig.
+        dialog_guid als String oder None wenn nicht vorhanden/ungültig.
     """
 
-    view_guid = runtime.get("view_guid")
-    if not view_guid:
+    dg = str(dialog_guid or "").strip()
+    if not dg:
         return None
 
     try:
-        return str(uuid.UUID(str(view_guid)))
+        return str(uuid.UUID(dg))
     except Exception:
         return None
 
@@ -447,9 +451,9 @@ async def get_dialog_definition(dialog_guid: str, dialog_table: Optional[str] = 
             # Frame ist optional; Dialog soll trotzdem rendern.
             frame_payload = None
 
-    # last_call aus sys_systemsteuerung (pro User): group = view_guid
+    # last_call aus sys_systemsteuerung (pro User): group = dialog_guid
     # table-scoped: TABLE + LAST_CALL (Objekt: {"LAST_CALL": <uid|null>})
-    last_call_key = _compute_last_call_key(runtime)
+    last_call_key = _compute_last_call_key(runtime, dialog_guid=str(dialog_uuid))
     root_table = runtime.get("root_table") or ""
     last_call_str = None
     if last_call_key:
@@ -484,8 +488,12 @@ async def get_dialog_definition(dialog_guid: str, dialog_table: Optional[str] = 
         "meta": {
             "tabs": runtime.get("tabs", 2),
             "dialog_table": dialog_table_norm,
+            "expert_mode": bool(gcs.get_expert_mode()),
             "last_call": last_call_str,
             "last_call_key": f"{last_call_key}::{_table_key_upper(root_table)}" if last_call_key and root_table else last_call_key,
+            "last_call_scope": "dialog_guid+table",
+            "last_call_scope_dialog_guid": str(dialog_uuid),
+            "last_call_scope_table": _table_key_upper(root_table),
         },
     }
 
@@ -509,7 +517,7 @@ async def get_dialog_last_call(dialog_guid: str, dialog_table: Optional[str] = N
         _ensure_allowed_edit_type(runtime.get("edit_type") or "show_json")
         runtime["root_table"] = dialog_table_norm
 
-    key = _compute_last_call_key(runtime)
+    key = _compute_last_call_key(runtime, dialog_guid=str(dialog_uuid))
     root_table = runtime.get("root_table") or ""
     if not key:
         return {"key": "", "last_call": None}
@@ -543,9 +551,9 @@ async def put_dialog_last_call(
         _ensure_allowed_edit_type(runtime.get("edit_type") or "show_json")
         runtime["root_table"] = dialog_table_norm
 
-    key = _compute_last_call_key(runtime)
+    key = _compute_last_call_key(runtime, dialog_guid=str(dialog_uuid))
     if not key:
-        raise HTTPException(status_code=400, detail="VIEW_GUID fehlt - last_call kann nicht gesetzt werden")
+        raise HTTPException(status_code=400, detail="dialog_guid fehlt/ungueltig - last_call kann nicht gesetzt werden")
 
     record_uid = payload.record_uid
     if record_uid is not None:
@@ -564,7 +572,7 @@ async def put_dialog_last_call(
     if not table_key:
         raise HTTPException(status_code=400, detail="ROOT.TABLE ist leer")
 
-    # Persist per view_guid + table (payload contains LAST_CALL only).
+    # Persist per dialog_guid + table (payload contains LAST_CALL only).
     payload = {_SYS_FIELD_LAST_CALL: record_uid if record_uid is not None else None}
     gcs.systemsteuerung.set_value(key, table_key, payload, gcs.stichtag)
     await gcs.systemsteuerung.save_all_values()
@@ -789,10 +797,16 @@ async def post_dialog_draft_commit(
         if not str(root_to_save.get("SELF_NAME") or "").strip():
             root_to_save["SELF_NAME"] = name
         daten_to_save["ROOT"] = root_to_save
-        if edit_type == "edit_user":
+        if edit_type in _CENTRAL_EDIT_TYPES:
             saved = await update_dialog_record_central(gcs, root_table=root_table, record_uuid=record_uuid, daten=daten_to_save)
         else:
-            saved = await update_dialog_record_json(gcs, root_table=root_table, record_uuid=record_uuid, daten=daten_to_save)
+            saved = await update_dialog_record_json(
+                gcs,
+                root_table=root_table,
+                record_uuid=record_uuid,
+                daten=daten_to_save,
+                resolve_response_effective=not _use_raw_json_payload(edit_type),
+            )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except KeyError as e:
@@ -861,8 +875,16 @@ async def get_dialog_record(dialog_guid: str, record_uid: str, dialog_table: Opt
     if not table:
         raise HTTPException(status_code=400, detail="Dialog ROOT.TABLE ist leer")
 
+    edit_type = str(runtime.get("edit_type") or "show_json").strip().lower()
+    resolve_effective = not _use_raw_json_payload(edit_type)
+
     try:
-        return await load_dialog_record(gcs, root_table=table, record_uuid=record_uuid)
+        return await load_dialog_record(
+            gcs,
+            root_table=table,
+            record_uuid=record_uuid,
+            resolve_effective=resolve_effective,
+        )
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Datensatz nicht gefunden: {record_uid}")
 
@@ -908,16 +930,23 @@ async def put_dialog_record(
         raise HTTPException(status_code=400, detail="Dialog ROOT.TABLE ist leer")
 
     edit_type = str(runtime.get("edit_type") or "show_json").strip().lower()
-    if edit_type not in {"edit_json", "edit_user", "import_data", "edit_frame", "pdvm_edit", "edit_dict", "edit_control"}:
+    if edit_type not in {"edit_json", "edit_user", "import_data", "pdvm_edit", "edit_dict", "edit_control"}:
         raise HTTPException(
             status_code=400,
-            detail="Dialog ist nicht für edit_json, edit_user, import_data, edit_frame, pdvm_edit, edit_dict oder edit_control konfiguriert",
+            detail="Dialog ist nicht für edit_json, edit_user, import_data, pdvm_edit, edit_dict oder edit_control konfiguriert",
         )
 
     try:
-        if edit_type == "edit_user":
+        if edit_type in _CENTRAL_EDIT_TYPES:
             return await update_dialog_record_central(gcs, root_table=table, record_uuid=record_uuid, daten=payload.daten)
-        return await update_dialog_record_json(gcs, root_table=table, record_uuid=record_uuid, daten=payload.daten)
+        resolve_response_effective = not _use_raw_json_payload(edit_type)
+        return await update_dialog_record_json(
+            gcs,
+            root_table=table,
+            record_uuid=record_uuid,
+            daten=payload.daten,
+            resolve_response_effective=resolve_response_effective,
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except KeyError:
@@ -1065,7 +1094,13 @@ async def post_dialog_record_create(
     dialog_table: Optional[str] = None,
     gcs=Depends(get_gcs_instance),
 ):
-    """Erstellt einen neuen Datensatz anhand eines Template-Records (Default: 6666...)."""
+    """Kompatibilitaets-Endpoint: nutzt denselben linearen Neuer-Satz-Flow wie Draft.
+
+    Verbindlicher Ablauf:
+    1) Build aus 666... + 5er-TEMPLATE-Gruppenmerge
+    2) Validierung
+    3) Persistenz ueber denselben Commit-Mechanismus
+    """
     try:
         dialog_uuid = uuid.UUID(dialog_guid)
     except Exception:
@@ -1105,50 +1140,62 @@ async def post_dialog_record_create(
         if str(table).strip().lower() == "sys_menudaten" and payload.is_template is not None:
             root_patch = {"is_template": bool(payload.is_template)}
 
-        # ===== GENERISCHE MODUL-TEMPLATE-MERGE =====
-        # Wird AUTOMATISCH verwendet wenn Template 666... Gruppe "MODUL" enthält
-        # Funktioniert für ALLE Tabellen (sys_control_dict, sys_framedaten, etc.)
-        
-        # modul_type durchreichen (falls vorhanden)
-        modul_type_param = None
-        if payload.modul_type:
-            modul_type_param = str(payload.modul_type).strip().lower()
-            if not modul_type_param:
-                modul_type_param = None
+        edit_type = runtime.get("edit_type") or "show_json"
+        defer_resolution = _should_defer_template_resolution(root_table=table, edit_type=edit_type)
+        effective_template_uuid = template_uuid or uuid.UUID("66666666-6666-6666-6666-666666666666")
 
-        # Normaler Flow MIT MODUL-Merge
-        if template_uuid is None:
-            defer_resolution = _should_defer_template_resolution(root_table=table, edit_type=runtime.get("edit_type") or "show_json")
-            return await create_dialog_record_from_template(
-                gcs, 
-                root_table=table, 
-                name=name, 
-                root_patch=root_patch,
-                modul_type=modul_type_param,
-                resolve_templates=not defer_resolution,
-            )
-        defer_resolution = _should_defer_template_resolution(root_table=table, edit_type=runtime.get("edit_type") or "show_json")
-        return await create_dialog_record_from_template(
-            gcs, 
-            root_table=table, 
-            name=name, 
-            template_uuid=template_uuid, 
+        built = await build_dialog_draft_from_template(
+            gcs,
+            root_table=table,
+            name=name,
+            template_uuid=effective_template_uuid,
             root_patch=root_patch,
-            modul_type=modul_type_param,
+            modul_type=payload.modul_type,
             resolve_templates=not defer_resolution,
         )
-    except ModulSelectionRequiredException as e:
-        # Template hat MODUL-Gruppe, aber modul_type fehlt
-        # → Frontend muss Modul-Auswahl-Dialog zeigen!
-        return JSONResponse(
-            status_code=428,  # Precondition Required
-            content={
-                "error": "modul_selection_required",
-                "message": str(e),
-                "available_moduls": e.available_moduls,
-                "modul_group_key": e.modul_group_key,
-                "help": f"Rufe GET /api/dialogs/{dialog_guid}/modul-selection auf oder übergebe modul_type im Body"
-            }
+
+        issues_raw = validate_dialog_daten_generic(built["daten"], edit_type=edit_type)
+        blocking_issues = [
+            issue for issue in issues_raw
+            if not str((issue or {}).get("code") or "").strip().lower().startswith("hint_")
+        ]
+        if blocking_issues:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "message": "Validierung fehlgeschlagen",
+                    "validation_errors": blocking_issues,
+                },
+            )
+
+        draft_root = built["daten"].get("ROOT") if isinstance(built["daten"], dict) else None
+        created = await create_dialog_record_from_template(
+            gcs,
+            root_table=table,
+            name=built["name"],
+            template_uuid=effective_template_uuid,
+            root_patch=dict(draft_root) if isinstance(draft_root, dict) else None,
+            modul_type=None,
+            resolve_templates=not defer_resolution,
+        )
+
+        record_uuid = uuid.UUID(created["uid"])
+        daten_to_save = dict(built["daten"])
+        root_to_save = daten_to_save.get("ROOT") if isinstance(daten_to_save.get("ROOT"), dict) else {}
+        root_to_save = dict(root_to_save)
+        root_to_save["SELF_GUID"] = str(record_uuid)
+        if not str(root_to_save.get("SELF_NAME") or "").strip():
+            root_to_save["SELF_NAME"] = built["name"]
+        daten_to_save["ROOT"] = root_to_save
+
+        if edit_type in _CENTRAL_EDIT_TYPES:
+            return await update_dialog_record_central(gcs, root_table=table, record_uuid=record_uuid, daten=daten_to_save)
+        return await update_dialog_record_json(
+            gcs,
+            root_table=table,
+            record_uuid=record_uuid,
+            daten=daten_to_save,
+            resolve_response_effective=not _use_raw_json_payload(edit_type),
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

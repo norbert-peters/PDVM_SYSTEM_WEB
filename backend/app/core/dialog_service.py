@@ -200,7 +200,11 @@ def _strip_template_meta_groups(daten_copy: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _apply_root_identity(root: Dict[str, Any], *, self_guid: str, self_name: str, root_patch: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-    """Appliziert ROOT-Patch ohne SELF_GUID/SELF_NAME zu überschreiben."""
+    """Appliziert ROOT-Patch ohne SELF_GUID/SELF_NAME zu überschreiben.
+
+    Regel für Neuer-Satz: nur bereits vorhandene ROOT-Felder dürfen überschrieben
+    werden (keine neuen ROOT-Keys aus root_patch einführen).
+    """
     out = dict(root or {})
 
     if root_patch and isinstance(root_patch, dict):
@@ -208,7 +212,8 @@ def _apply_root_identity(root: Dict[str, Any], *, self_guid: str, self_name: str
             key_upper = str(k or "").strip().upper()
             if key_upper in {"SELF_GUID", "SELF_NAME"}:
                 continue
-            out[k] = v
+            if k in out:
+                out[k] = v
 
     out["SELF_GUID"] = self_guid
     out["SELF_NAME"] = self_name
@@ -656,7 +661,13 @@ async def load_dialog_rows_uid_name(
     ]
 
 
-async def load_dialog_record(gcs, *, root_table: str, record_uuid: uuid.UUID) -> Dict[str, Any]:
+async def load_dialog_record(
+    gcs,
+    *,
+    root_table: str,
+    record_uuid: uuid.UUID,
+    resolve_effective: bool = True,
+) -> Dict[str, Any]:
     if not root_table:
         raise KeyError("ROOT.TABLE ist leer")
 
@@ -694,9 +705,9 @@ async def load_dialog_record(gcs, *, root_table: str, record_uuid: uuid.UUID) ->
 
     daten = row.get("daten") or {}
     table_norm = str(root_table).strip().lower()
-    if table_norm == "sys_control_dict":
+    if resolve_effective and table_norm == "sys_control_dict":
         daten = await _resolve_control_effective_data(gcs._system_pool, control_data=_as_object(daten))
-    elif table_norm == "sys_framedaten":
+    elif resolve_effective and table_norm == "sys_framedaten":
         daten = await _resolve_frame_fields(gcs, _as_object(daten))
 
     # Einheitliches Payload für show_json
@@ -715,6 +726,7 @@ async def update_dialog_record_json(
     root_table: str,
     record_uuid: uuid.UUID,
     daten: Dict[str, Any],
+    resolve_response_effective: bool = True,
 ) -> Dict[str, Any]:
     """Aktualisiert NUR das JSONB-Feld 'daten' eines Datensatzes.
 
@@ -752,7 +764,12 @@ async def update_dialog_record_json(
         historisch=existing.get("historisch"),
     )
 
-    return await load_dialog_record(gcs, root_table=root_table, record_uuid=record_uuid)
+    return await load_dialog_record(
+        gcs,
+        root_table=root_table,
+        record_uuid=record_uuid,
+        resolve_effective=resolve_response_effective,
+    )
 
 
 async def update_dialog_record_central(
@@ -775,6 +792,56 @@ async def update_dialog_record_central(
     if daten is None or not isinstance(daten, dict):
         raise ValueError("daten muss ein JSON-Objekt (dict) sein")
 
+    def _parse_pdvm_timestamp(value: Any) -> Optional[float]:
+        if value is None:
+            return None
+        try:
+            ts = float(value)
+        except Exception:
+            return None
+        if ts < 1001.0:
+            return None
+        return ts
+
+    def _extract_linear_value_and_timeline(raw_value: Any) -> tuple[Any, List[tuple[float, Any]]]:
+        if not isinstance(raw_value, dict):
+            return raw_value, []
+
+        value_container = raw_value.get("VALUE")
+        if isinstance(value_container, dict):
+            envelope = value_container
+            time_key_raw = raw_value.get("VALUE_TIME_KEY")
+        else:
+            # Direkte Envelope-Form: {"ORIGINAL": ..., "2026063.5": ...}
+            has_original = "ORIGINAL" in raw_value
+            has_ts_keys = any(_parse_pdvm_timestamp(k) is not None for k in raw_value.keys())
+            if not has_original and not has_ts_keys:
+                return raw_value, []
+            envelope = raw_value
+            time_key_raw = raw_value.get("VALUE_TIME_KEY")
+
+        original_value = envelope.get("ORIGINAL")
+        timeline: List[tuple[float, Any]] = []
+
+        for key, value in envelope.items():
+            if str(key).strip().upper() == "ORIGINAL":
+                continue
+            parsed_ts = _parse_pdvm_timestamp(key)
+            if parsed_ts is None:
+                continue
+            timeline.append((parsed_ts, value))
+
+        timeline.sort(key=lambda x: x[0])
+
+        if original_value is None:
+            active_ts = _parse_pdvm_timestamp(time_key_raw)
+            if active_ts is not None and str(active_ts) in envelope:
+                original_value = envelope.get(str(active_ts))
+            elif timeline:
+                original_value = timeline[-1][1]
+
+        return original_value, timeline
+
     central = await PdvmCentralDatabase.load(
         table_name=root_table,
         guid=str(record_uuid),
@@ -795,7 +862,12 @@ async def update_dialog_record_central(
             continue
 
         for feld, wert in gruppe_data.items():
-            central.set_value(str(gruppe), str(feld), wert)
+            linear_value, value_timeline = _extract_linear_value_and_timeline(wert)
+            central.set_value(str(gruppe), str(feld), linear_value)
+
+            if central.historisch and value_timeline:
+                for ts_value, timeline_value in value_timeline:
+                    central.set_value(str(gruppe), str(feld), timeline_value, ab_zeit=ts_value)
 
     await central.save_all_values()
 
@@ -1040,26 +1112,12 @@ async def build_dialog_draft_from_template(
     daten_copy: Dict[str, Any] = copy.deepcopy(template_daten)
 
     if resolve_templates:
-        # [1] Gruppen (außer ROOT/TEMPLATES) aus 555...daten.TEMPLATES auflösen
+        # Neuer-Satz Standard-Algorithmus (linear):
+        # 1) 666... Basis kopieren
+        # 2) Für jede vorhandene Basis-Gruppe passendes 555...TEMPLATES-Group-Template mergen
         daten_copy = await _resolve_groups_from_templates(
             gcs._system_pool,
             daten_copy=daten_copy,
-        )
-
-        # [1b] Benannte Gruppenlisten aus 555...daten.ELEMENTS.GROUP_LISTS auflösen
-        daten_copy = await _resolve_named_group_lists_from_elements(
-            gcs._system_pool,
-            daten_copy=daten_copy,
-        )
-
-        # [1c] Template-Metagruppen nicht in echten Datensatz übernehmen
-        daten_copy = _strip_template_meta_groups(daten_copy)
-
-        # [2] Optional MODUL-Merge auf bereits aufgelöster Struktur
-        daten_copy = await _resolve_modul_template(
-            gcs._system_pool,
-            daten_copy=daten_copy,
-            modul_type=modul_type,
         )
 
     root = daten_copy.get("ROOT")
@@ -1130,29 +1188,12 @@ async def create_dialog_record_from_template(
     daten_copy: Dict[str, Any] = copy.deepcopy(template_daten)
 
     if resolve_templates:
-        # [1] Gruppen (außer ROOT/TEMPLATES) aus 555...daten.TEMPLATES auflösen
+        # Neuer-Satz Standard-Algorithmus (linear):
+        # 1) 666... Basis kopieren
+        # 2) Für jede vorhandene Basis-Gruppe passendes 555...TEMPLATES-Group-Template mergen
         daten_copy = await _resolve_groups_from_templates(
             gcs._system_pool,
             daten_copy=daten_copy,
-        )
-
-        # [1b] Benannte Gruppenlisten aus 555...daten.ELEMENTS.GROUP_LISTS auflösen
-        daten_copy = await _resolve_named_group_lists_from_elements(
-            gcs._system_pool,
-            daten_copy=daten_copy,
-        )
-
-        # [1c] Template-Metagruppen nicht in echten Datensatz übernehmen
-        daten_copy = _strip_template_meta_groups(daten_copy)
-
-        # ===== GENERISCHE MODUL-TEMPLATE-MERGE =====
-        # Prüft ob Template Gruppe "MODUL" enthält
-        # Wenn ja → Merged mit Template 555555...MODUL[type]
-        # [2] Optional MODUL-Merge auf bereits aufgelöster Struktur
-        daten_copy = await _resolve_modul_template(
-            gcs._system_pool,
-            daten_copy=daten_copy,
-            modul_type=modul_type,
         )
 
     root = daten_copy.get("ROOT")

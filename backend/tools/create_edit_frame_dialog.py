@@ -1,4 +1,4 @@
-"""Create sys_viewdaten + sys_dialogdaten + sys_framedaten for edit_frame.
+"""Create sys_viewdaten + sys_dialogdaten + sys_framedaten for pdvm_edit.
 
 Usage:
   python backend/tools/create_edit_frame_dialog.py
@@ -117,7 +117,7 @@ def _build_frame_daten(dialog_guid: str) -> dict:
     return {
         "ROOT": {
             "DIALOG_GUID": dialog_guid,
-            "EDIT_TYPE": "edit_frame",
+            "EDIT_TYPE": "pdvm_edit",
             "SELF_NAME": "Edit Frame",
             "TABS": 2,
             "TAB_01": {"HEAD": "Root", "GRUPPE": "ROOT"},
@@ -354,7 +354,7 @@ async def _upsert_jsonb_record(
 
 
 async def main() -> int:
-    parser = argparse.ArgumentParser(description="Create edit_frame dialog + view + frame")
+    parser = argparse.ArgumentParser(description="Create pdvm_edit dialog + view + frame")
     parser.add_argument("--view-uid", help="Optional view UID")
     parser.add_argument("--dialog-uid", help="Optional dialog UID")
     parser.add_argument("--frame-uid", help="Optional frame UID")
@@ -383,7 +383,7 @@ async def main() -> int:
             "TABS": 2,
             "VIEW_GUID": str(view_id),
             "FRAME_GUID": str(frame_id),
-            "EDIT_TYPE": "edit_frame",
+            "EDIT_TYPE": "pdvm_edit",
             "SELECTION_MODE": "single",
             "OPEN_EDIT": "double_click",
         }
@@ -448,7 +448,7 @@ async def main() -> int:
             daten=frame_daten,
         )
 
-        print("✅ edit_frame records upserted:")
+        print("✅ pdvm_edit records upserted:")
         print(f"  sys_viewdaten:  {view_id}")
         print(f"  sys_dialogdaten: {dialog_id}")
         print(f"  sys_framedaten: {frame_id}")

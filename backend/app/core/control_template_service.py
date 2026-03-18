@@ -12,6 +12,23 @@ from uuid import UUID, uuid4
 import copy
 
 
+def _table_prefix(table_name: str) -> str:
+    table = str(table_name or '').strip()
+    if not table:
+        return 'SYS'
+    if '_' in table:
+        return table.split('_', 1)[0].upper()
+    return table[:3].upper() or 'CTL'
+
+
+def _canonical_control_name(table_name: str, field_name: str) -> str:
+    prefix = _table_prefix(table_name)
+    field = str(field_name or '').strip().upper()
+    if not field:
+        return prefix
+    return f"{prefix}_{field}"
+
+
 class ControlTemplateService:
     """Service für Control Template Operationen"""
     
@@ -196,9 +213,20 @@ class ControlTemplateService:
         if field_data:
             control_data.update(field_data)
         
-        # SELF_NAME generieren wenn name gesetzt
-        if 'name' in control_data and control_data['name']:
-            control_data['SELF_NAME'] = f"{table_prefix}{control_data['name']}"
+        # NAME/SELF_NAME immer aus TABLE + FIELD ableiten (linear, einheitlich)
+        table_name = str(control_data.get('table') or '').strip()
+        field_name = str(
+            control_data.get('field')
+            or control_data.get('feld')
+            or control_data.get('name')
+            or ''
+        ).strip().upper()
+        canonical_name = _canonical_control_name(table_name, field_name)
+        if field_name:
+            control_data['field'] = field_name
+            control_data['feld'] = field_name
+        control_data['name'] = canonical_name
+        control_data['SELF_NAME'] = canonical_name
         
         # UUID generieren
         new_uid = uuid4()
@@ -379,7 +407,7 @@ async def create_control(
     """
     service = ControlTemplateService(db_connection)
     
-    # Tabellepräfix extrahieren (erste 3-4 Zeichen)
+    # Tabellepräfix wird intern in create_new_control berechnet
     table_prefix = table_name.split('_')[0] + '_' if '_' in table_name else table_name[:3] + '_'
     
     # Control erstellen

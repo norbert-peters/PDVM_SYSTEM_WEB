@@ -99,6 +99,11 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     
     # 5. Last-Login aktualisieren + Failed-Attempts zurücksetzen
     await user_manager.update_last_login(email)
+
+    # 5b. User nach Security-Update neu laden, damit Token/GCS aktuelle Daten erhalten
+    refreshed_user = await user_manager.get_user_by_email(email)
+    if refreshed_user:
+        user = refreshed_user
     
     # 6. Prüfe ob Passwort geändert werden muss
     password_change_required = await user_manager.check_password_change_required(email)
@@ -201,7 +206,7 @@ async def change_password(payload: PasswordChangeRequest, current_user: dict = D
     Ändert Passwort des aktuellen Users (erforderlich bei PASSWORD_CHANGE_REQUIRED).
     """
     from app.core.pdvm_central_benutzer import PdvmCentralBenutzer
-    from app.core.password_reset_service import clear_password_reset_flags
+    from app.core.password_reset_service import clear_password_reset_flags, mark_password_changed
 
     new_password = str(payload.new_password or "").strip()
     confirm_password = str(payload.confirm_password or "").strip()
@@ -229,6 +234,7 @@ async def change_password(payload: PasswordChangeRequest, current_user: dict = D
     await mgr.change_password(new_hash)
 
     await clear_password_reset_flags(user_uid=str(user_id))
+    await mark_password_changed(user_uid=str(user_id))
 
     return {"success": True, "message": "Passwort wurde geändert"}
 
@@ -280,8 +286,22 @@ async def keep_alive(current_user: dict = Depends(get_current_user)):
 
 @router.get("/me")
 async def read_users_me(current_user: dict = Depends(get_current_user)):
-    """Get current user info"""
-    return current_user
+    """Get current user info (frisch aus DB für user_data/SECURITY)."""
+    user_id = str(current_user.get("sub") or "").strip()
+    if not user_id:
+        return current_user
+
+    user_manager = UserManager()
+    fresh_user = await user_manager.get_user_by_id(user_id)
+    if not fresh_user:
+        return current_user
+
+    return {
+        **current_user,
+        "email": fresh_user.get("benutzer") or current_user.get("email"),
+        "name": fresh_user.get("name") or current_user.get("name"),
+        "user_data": fresh_user.get("daten") or {},
+    }
 
 
 @router.post("/logout")
