@@ -11,6 +11,9 @@ import logging
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 from uuid import UUID, uuid4
+from urllib.parse import urlparse, unquote
+
+from .config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -32,22 +35,33 @@ class PdvmDatabaseService:
     - daten_backup: JSONB
     """
     
-    def __init__(self, database: str, table: str, password: str = "Polari$55"):
+    def __init__(self, database: str, table: str, password: Optional[str] = None):
         """
         Initialisiert Database Service für spezifische Tabelle
         
         Args:
             database: Datenbank-Name (z.B. "auth", "mandant")
             table: Tabellen-Name (z.B. "sys_mandanten", "persondaten")
-            password: PostgreSQL Passwort
+            password: Optionales PostgreSQL Passwort (überschreibt .env)
         """
         self.database = database
         self.table = table
-        self.db_url = f"postgresql://postgres:{password}@localhost:5432/{database}"
+        auth_url = urlparse(settings.DATABASE_URL_AUTH)
+
+        self._conn_params = {
+            "user": auth_url.username or "postgres",
+            "password": unquote(auth_url.password or ""),
+            "host": auth_url.hostname or "localhost",
+            "port": auth_url.port or 5432,
+            "database": database,
+        }
+
+        if password is not None:
+            self._conn_params["password"] = password
         
     async def _get_connection(self) -> asyncpg.Connection:
         """Erstellt DB-Connection"""
-        return await asyncpg.connect(self.db_url)
+        return await asyncpg.connect(**self._conn_params)
     
     async def list_all(
         self, 
