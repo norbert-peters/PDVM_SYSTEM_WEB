@@ -104,7 +104,11 @@ class ConnectionManager:
             user = mandant_info.get('USER')
             password = mandant_info.get('PASSWORD')
             database = mandant_info.get('DATABASE')
-            system_db = mandant_info.get('SYSTEM_DB', 'pdvm_system')
+            system_db = (
+                mandant_info.get('SYSTEM_DB')
+                or mandant_info.get('SYSTEM_DATABASE')
+                or 'pdvm_system'
+            )
             
             # Validierung
             missing = []

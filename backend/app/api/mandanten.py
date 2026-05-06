@@ -191,8 +191,12 @@ async def select_mandant(
         mandant_db_name = mandant_config.database
         mandant_db_url = mandant_config.to_url()
         
-        # System-DB Config (aus SYSTEM_DB-Name + gleiche Connection-Daten)
-        system_db_name = mandant_config_dict.get('SYSTEM_DB', 'pdvm_system')
+        # System-DB Config (unterstuetzt SYSTEM_DB und SYSTEM_DATABASE)
+        system_db_name = (
+            mandant_config_dict.get('SYSTEM_DB')
+            or mandant_config_dict.get('SYSTEM_DATABASE')
+            or 'pdvm_system'
+        )
         system_config = ConnectionConfig(
             host=host,
             port=port,
