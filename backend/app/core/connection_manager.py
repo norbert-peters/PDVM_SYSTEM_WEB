@@ -11,6 +11,7 @@ from typing import Optional, Dict, Tuple
 import asyncpg
 from .config import settings
 import logging
+from urllib.parse import urlparse, unquote
 
 logger = logging.getLogger(__name__)
 
@@ -56,20 +57,14 @@ class ConnectionManager:
         AUTH-DB ist die einzige fix konfigurierte Datenbank.
         Diese wird für Login/Token-Validierung verwendet.
         """
-        # Parse URL from settings
-        url = settings.DATABASE_URL_AUTH
-        # Format: postgresql://user:password@host:port/database
-        parts = url.replace("postgresql://", "").split("@")
-        user_pass = parts[0].split(":")
-        host_port_db = parts[1].split("/")
-        host_port = host_port_db[0].split(":")
-        
+        parsed = urlparse(settings.DATABASE_URL_AUTH)
+
         return ConnectionConfig(
-            host=host_port[0],
-            port=int(host_port[1]),
-            user=user_pass[0],
-            password=user_pass[1],
-            database=host_port_db[1]
+            host=parsed.hostname or "localhost",
+            port=int(parsed.port or 5432),
+            user=parsed.username or "postgres",
+            password=unquote(parsed.password or ""),
+            database=(parsed.path or "/auth").lstrip("/")
         )
     
     @staticmethod

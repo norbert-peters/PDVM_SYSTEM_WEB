@@ -169,13 +169,23 @@ async def select_mandant(
         
         mandant_data = mandant.get('daten', {})
         mandant_config_dict = mandant_data.get('MANDANT', {})
+
+        # Fallback: nutze funktionierende AUTH-DB Credentials aus .env,
+        # falls Mandanten-Connectiondaten fehlen oder auf Legacy-Defaults stehen.
+        auth_config = await ConnectionManager.get_auth_config()
+        host = mandant_config_dict.get('HOST') or auth_config.host
+        port = int(mandant_config_dict.get('PORT') or auth_config.port)
+        user = mandant_config_dict.get('USER') or auth_config.user
+        password = mandant_config_dict.get('PASSWORD')
+        if not password or password in {"postgres", "Polari$55"}:
+            password = auth_config.password
         
         # Mandanten-DB Config
         mandant_config = ConnectionConfig(
-            host=mandant_config_dict.get('HOST', 'localhost'),
-            port=mandant_config_dict.get('PORT', 5432),
-            user=mandant_config_dict.get('USER', 'postgres'),
-            password=mandant_config_dict.get('PASSWORD', 'postgres'),
+            host=host,
+            port=port,
+            user=user,
+            password=password,
             database=mandant_config_dict.get('DATABASE', database)
         )
         mandant_db_url = mandant_config.to_url()
@@ -183,10 +193,10 @@ async def select_mandant(
         # System-DB Config (aus SYSTEM_DB-Name + gleiche Connection-Daten)
         system_db_name = mandant_config_dict.get('SYSTEM_DB', 'pdvm_system')
         system_config = ConnectionConfig(
-            host=mandant_config_dict.get('HOST', 'localhost'),
-            port=mandant_config_dict.get('PORT', 5432),
-            user=mandant_config_dict.get('USER', 'postgres'),
-            password=mandant_config_dict.get('PASSWORD', 'postgres'),
+            host=host,
+            port=port,
+            user=user,
+            password=password,
             database=system_db_name
         )
         system_db_url = system_config.to_url()
