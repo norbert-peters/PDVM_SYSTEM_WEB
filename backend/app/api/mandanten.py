@@ -188,6 +188,7 @@ async def select_mandant(
             password=password,
             database=mandant_config_dict.get('DATABASE', database)
         )
+        mandant_db_name = mandant_config.database
         mandant_db_url = mandant_config.to_url()
         
         # System-DB Config (aus SYSTEM_DB-Name + gleiche Connection-Daten)
@@ -221,20 +222,29 @@ async def select_mandant(
             conn = await asyncpg.connect(**system_config.to_dict())
             try:
                 print(f"✅ Connection erfolgreich", flush=True)
-                print(f"🔍 Prüfe Datenbank '{database}' in pg_database...", flush=True)
+                print(f"🔍 Prüfe Datenbank '{mandant_db_name}' in pg_database...", flush=True)
                 
                 db_exists = await conn.fetchval(
                     "SELECT 1 FROM pg_database WHERE datname = $1",
-                    database
+                    mandant_db_name
                 )
                 print(f"✅ Query erfolgreich, db_exists={db_exists}", flush=True)
                 
                 if not db_exists:
-                    logger.info(f"📦 Datenbank '{database}' existiert nicht - erstelle sie...")
+                    if not settings.ALLOW_MANDANT_DB_AUTO_CREATE:
+                        raise HTTPException(
+                            status_code=500,
+                            detail=(
+                                f"Mandanten-Datenbank '{mandant_db_name}' existiert nicht. "
+                                "Auto-Create ist deaktiviert. Bitte MANDANT.DATABASE in sys_mandanten pruefen."
+                            )
+                        )
+
+                    logger.info(f"📦 Datenbank '{mandant_db_name}' existiert nicht - erstelle sie...")
                     
                     # CREATE DATABASE mit template0 (garantiert keine aktiven Verbindungen)
-                    await conn.execute(f'CREATE DATABASE "{database}" WITH TEMPLATE template0')
-                    logger.info(f"✅ Datenbank '{database}' erfolgreich erstellt")
+                    await conn.execute(f'CREATE DATABASE "{mandant_db_name}" WITH TEMPLATE template0')
+                    logger.info(f"✅ Datenbank '{mandant_db_name}' erfolgreich erstellt")
                     
                     # WICHTIG: Nach CREATE DATABASE warten auf PostgreSQL-Initialisierung
                     await asyncio.sleep(1.0)
@@ -259,7 +269,7 @@ async def select_mandant(
                             "INSERT INTO _db_init (info) VALUES ($1)",
                             f"Database created at {datetime.utcnow().isoformat()}"
                         )
-                        logger.info(f"✅ Init-Tabelle '_db_init' in '{database}' angelegt")
+                        logger.info(f"✅ Init-Tabelle '_db_init' in '{mandant_db_name}' angelegt")
                     finally:
                         await init_conn.close()
                     
@@ -273,7 +283,7 @@ async def select_mandant(
                         value=db_created_at
                     )
                 else:
-                    logger.info(f"✓ Datenbank '{database}' existiert bereits")
+                    logger.info(f"✓ Datenbank '{mandant_db_name}' existiert bereits")
             finally:
                 # Connection schließen
                 await conn.close()

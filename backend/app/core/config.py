@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     # CORS
     ALLOWED_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"]
 
+    # Mandanten-DB: In Produktion standardmaessig keine automatische CREATE DATABASE
+    # (verhindert versehentliches Anlegen bei fehlerhafter Mandanten-Konfiguration)
+    ALLOW_MANDANT_DB_AUTO_CREATE: bool = False
+
     # =========================================================================
     # VIEW PIPELINE SCALING
     # =========================================================================
