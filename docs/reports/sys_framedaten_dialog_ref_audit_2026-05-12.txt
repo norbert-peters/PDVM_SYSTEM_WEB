@@ -1,0 +1,151 @@
+﻿=== Audit sys_framedaten mit Dialog-Referenzen ===
+Gesamt aktive Saetze: 28
+Reserviert vorhanden: 000/555/666 OK
+Strukturkandidaten (nicht-reserviert): 25
+- ─ndern JSON [bdcc1303-ec4d-4fd6-8fc1-395961f6324e]
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+    * ROOT.TABLE fehlt (laut 666-Basis)
+    * ROOT.TAB_ELEMENTS fehlt (laut 666-Basis)
+    * dialog_refs: 2
+      - Anzeigen JSON [68d11a99-a0cd-4b10-a0f7-040fc71da546]
+      - Bearbeiten JSON [36b5afa0-18f7-4f1b-acd9-f21a9278f5f1]
+- Anzeige JSON [89f6c305-66d4-4ea7-965a-d8704502ee08]
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+    * ROOT.TABLE fehlt (laut 666-Basis)
+    * ROOT.TAB_ELEMENTS fehlt (laut 666-Basis)
+    * dialog_refs: 0
+- Benutzer Edit [0d024e06-e750-480d-b439-7241fbfc8886]
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+    * ROOT.TABLE fehlt (laut 666-Basis)
+    * dialog_refs: 1
+      - Benutzer bearbeiten [6269bbc6-9d02-49fb-b009-107acca56e08]
+- Config Reference Frame [c22edb00-c930-4a0b-8884-542b6d34e83d]
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+    * dialog_refs: 0
+- Edit Frame [4413571e-6bf6-4f42-b81a-bc898db4880c]
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+    * dialog_refs: 1
+      - Edit Frame Dialog [2faf05e6-007e-4f45-a1d3-a9e83dfd7d8b]
+- Edit Frame 1 [694e7fa7-3c6f-473b-9f7b-5233e73f5030]
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+    * ROOT.TABLE fehlt (laut 666-Basis)
+    * dialog_refs: 0
+- F³r Dialog Aufbau [20de7493-d648-41e2-87a0-7894de95af35]
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+    * ROOT.TABLE fehlt (laut 666-Basis)
+    * dialog_refs: 1
+      - Dialog Aufbau [9c245a60-7251-43c4-9d7d-d67af02c6144]
+- Import Data Frame [989dcd8e-c771-4c6b-b079-6ae21786fe12]
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+    * ROOT.TABLE fehlt (laut 666-Basis)
+    * ROOT.TAB_ELEMENTS fehlt (laut 666-Basis)
+    * dialog_refs: 0
+- Importe Daten 1 [56bdfdbe-cfd8-4ba0-b7ab-826b611de2ed]
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+    * ROOT.TABLE fehlt (laut 666-Basis)
+    * ROOT.TAB_ELEMENTS fehlt (laut 666-Basis)
+    * dialog_refs: 0
+- Men³daten Edit [405fa88b-8691-463e-ad11-e775ac3a52c5]
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+    * ROOT.TABLE fehlt (laut 666-Basis)
+    * dialog_refs: 1
+      - Men³s bearbeiten [7c1eff9d-79cb-4dea-94bb-601e96a10bdd]
+- sys_control_dict Frame [9f06711e-4ad8-4ea4-9837-2f40f3a6f103]
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+    * ROOT.TABLE fehlt (laut 666-Basis)
+    * dialog_refs: 1
+      - sys_control_dict Dialog [9f06711e-4ad8-4ea4-9837-2f40f3a6f101]
+- sys_dialogdaten Frame (Linear) [1f3a0e00-48bb-4a08-9cb8-7a7d52f23003]
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+    * ROOT.TABLE fehlt (laut 666-Basis)
+    * dialog_refs: 1
+      - Dialogdaten Editor [1f3a0e00-48bb-4a08-9cb8-7a7d52f23001]
+- Test Frame 11 [dd563c24-97b3-497b-8e5b-f2bc6f001c35]
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+    * ROOT.TABLE fehlt (laut 666-Basis)
+    * ROOT.TAB_ELEMENTS fehlt (laut 666-Basis)
+    * dialog_refs: 0
+- Test Frame 2 [74e17b11-ba5e-46e4-9e55-09dd9f51f622]
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+    * ROOT.TABLE fehlt (laut 666-Basis)
+    * ROOT.TAB_ELEMENTS fehlt (laut 666-Basis)
+    * dialog_refs: 0
+- WORKFLOW_APPLY_FRAME_TEMPLATE [9b534385-212a-51f4-8579-93516c964109]
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+    * ROOT.TABLE fehlt (laut 666-Basis)
+    * ROOT.TABS fehlt (laut 666-Basis)
+    * dialog_refs: 2
+      - WORKFLOW_DIALOG_PATCH_TEMPLATE [83c99302-91db-58ba-9ac8-a3e4dc202ca3]
+      - WORKFLOW_DIALOG_RELEASE_TEMPLATE [5d79b918-e617-55f2-bf5b-28200aca6a75]
+- WORKFLOW_DIALOG_CONFIG_FRAME_TEMPLATE [56842fa2-322a-5cad-843a-d20c53ce1d21]
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+    * ROOT.TABLE fehlt (laut 666-Basis)
+    * ROOT.TABS fehlt (laut 666-Basis)
+    * dialog_refs: 2
+      - WORKFLOW_DIALOG_PATCH_TEMPLATE [83c99302-91db-58ba-9ac8-a3e4dc202ca3]
+      - WORKFLOW_DIALOG_RELEASE_TEMPLATE [5d79b918-e617-55f2-bf5b-28200aca6a75]
+- WORKFLOW_DICTIONARY_FRAME_TEMPLATE [3a6e8cca-0f6f-5bd0-ba72-61c2c99942ac]
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+    * ROOT.TABLE fehlt (laut 666-Basis)
+    * ROOT.TABS fehlt (laut 666-Basis)
+    * dialog_refs: 1
+      - WORKFLOW_DICTIONARY_DIALOG_TEMPLATE [ad9db21a-82dd-5ad8-89a5-6836dbe4812f]
+- WORKFLOW_DRAFT_BUILD_FRAME_TEMPLATE [72d54053-8c4f-5a60-8abc-ed9bc0bf6c43]
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+    * ROOT.TABLE fehlt (laut 666-Basis)
+    * ROOT.TABS fehlt (laut 666-Basis)
+    * dialog_refs: 1
+      - WORKFLOW_DRAFT_BUILDER_DIALOG_TEMPLATE [14b932e7-451c-5509-b4b4-aac3199e2936]
+- WORKFLOW_DRAFT_CONTENT_FRAME_TEMPLATE [2ac77a9a-1a22-599a-8fa1-49ed5efb7bd8]
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+    * ROOT.TABLE fehlt (laut 666-Basis)
+    * ROOT.TABS fehlt (laut 666-Basis)
+    * dialog_refs: 1
+      - WORKFLOW_DRAFT_BUILDER_DIALOG_TEMPLATE [14b932e7-451c-5509-b4b4-aac3199e2936]
+- WORKFLOW_DRAFT_CREATE_FRAME_TEMPLATE [7f665745-872b-5726-a6b1-94a74dfc3023]
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+    * ROOT.TABLE fehlt (laut 666-Basis)
+    * ROOT.TABS fehlt (laut 666-Basis)
+    * dialog_refs: 1
+      - WORKFLOW_DRAFT_BUILDER_DIALOG_TEMPLATE [14b932e7-451c-5509-b4b4-aac3199e2936]
+- WORKFLOW_DRAFT_SETUP_FRAME_TEMPLATE [75e5262a-6b8a-5d23-bc4f-630d529526e5]
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+    * ROOT.TABLE fehlt (laut 666-Basis)
+    * ROOT.TABS fehlt (laut 666-Basis)
+    * dialog_refs: 1
+      - WORKFLOW_DRAFT_BUILDER_DIALOG_TEMPLATE [14b932e7-451c-5509-b4b4-aac3199e2936]
+- WORKFLOW_DRAFT_TABS_FRAME_TEMPLATE [886842eb-f62b-56d8-80cf-7d071264307b]
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+    * ROOT.TABLE fehlt (laut 666-Basis)
+    * ROOT.TABS fehlt (laut 666-Basis)
+    * dialog_refs: 1
+      - WORKFLOW_DRAFT_BUILDER_DIALOG_TEMPLATE [14b932e7-451c-5509-b4b4-aac3199e2936]
+- WORKFLOW_PROPERTY_MAPPING_FRAME_TEMPLATE [c3af9a12-377c-5ae0-bab9-9b30cd1e599d]
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+    * ROOT.TABLE fehlt (laut 666-Basis)
+    * ROOT.TABS fehlt (laut 666-Basis)
+    * dialog_refs: 2
+      - WORKFLOW_DIALOG_PATCH_TEMPLATE [83c99302-91db-58ba-9ac8-a3e4dc202ca3]
+      - WORKFLOW_DIALOG_RELEASE_TEMPLATE [5d79b918-e617-55f2-bf5b-28200aca6a75]
+- WORKFLOW_SETUP_FRAME_TEMPLATE [bd919b17-aae6-5b50-8308-670455ab14ed]
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+    * ROOT.TABLE fehlt (laut 666-Basis)
+    * ROOT.TABS fehlt (laut 666-Basis)
+    * dialog_refs: 2
+      - WORKFLOW_DIALOG_PATCH_TEMPLATE [83c99302-91db-58ba-9ac8-a3e4dc202ca3]
+      - WORKFLOW_DIALOG_RELEASE_TEMPLATE [5d79b918-e617-55f2-bf5b-28200aca6a75]
+- WORKFLOW_VIEW_CONFIG_FRAME_TEMPLATE [4f8537f8-152b-5599-ab37-fee4b01b1f9a]
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+    * ROOT.TABLE fehlt (laut 666-Basis)
+    * ROOT.TABS fehlt (laut 666-Basis)
+    * dialog_refs: 0
+
+Unreferenzierte Saetze (ohne Dialog-Bezug): 8
+- Anzeige JSON [89f6c305-66d4-4ea7-965a-d8704502ee08]
+- Config Reference Frame [c22edb00-c930-4a0b-8884-542b6d34e83d]
+- Edit Frame 1 [694e7fa7-3c6f-473b-9f7b-5233e73f5030]
+- Import Data Frame [989dcd8e-c771-4c6b-b079-6ae21786fe12]
+- Importe Daten 1 [56bdfdbe-cfd8-4ba0-b7ab-826b611de2ed]
+- Test Frame 11 [dd563c24-97b3-497b-8e5b-f2bc6f001c35]
+- Test Frame 2 [74e17b11-ba5e-46e4-9e55-09dd9f51f622]
+- WORKFLOW_VIEW_CONFIG_FRAME_TEMPLATE [4f8537f8-152b-5599-ab37-fee4b01b1f9a]

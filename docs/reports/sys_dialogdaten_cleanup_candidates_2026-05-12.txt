@@ -1,0 +1,55 @@
+﻿
+=== Audit sys_dialogdaten ===
+Gesamt: 21
+Reserviert vorhanden: 000/555/666 OK
+L÷schkandidaten (nicht-reserviert, strukturell fehlerhaft): 15
+- Anzeigen JSON [68d11a99-a0cd-4b10-a0f7-040fc71da546]
+    * ROOT.DIALOG_TYPE fehlt (laut 666-Basis)
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+- Bearbeiten JSON [36b5afa0-18f7-4f1b-acd9-f21a9278f5f1]
+    * ROOT.DIALOG_TYPE fehlt (laut 666-Basis)
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+- Benutzer bearbeiten [6269bbc6-9d02-49fb-b009-107acca56e08]
+    * ROOT.DIALOG_TYPE fehlt (laut 666-Basis)
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+- Dialogdaten Editor [1f3a0e00-48bb-4a08-9cb8-7a7d52f23001]
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+- Edit Frame Dialog [2faf05e6-007e-4f45-a1d3-a9e83dfd7d8b]
+    * ROOT.DIALOG_TYPE fehlt (laut 666-Basis)
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+    * ROOT.TABLE fehlt (laut 666-Basis)
+- Edit Frame Dialog 1 [d4f54e34-f66b-4831-a940-015ca708df9e]
+    * ROOT.DIALOG_TYPE fehlt (laut 666-Basis)
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+- Edit Frame Dialog x [4413571e-6bf6-4f42-b81a-bc898db4880c]
+    * ROOT.DIALOG_TYPE fehlt (laut 666-Basis)
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+    * ROOT.TABS fehlt (laut 666-Basis)
+- Import Data Dialog [aed43917-ed15-4afa-a027-5f2ee26fe9ee]
+    * ROOT.DIALOG_TYPE fehlt (laut 666-Basis)
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+- Import Data Dialog 1 [4392bf9a-064d-4080-a0a2-26e70a33642c]
+    * ROOT.DIALOG_TYPE fehlt (laut 666-Basis)
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+- Men³s bearbeiten [7c1eff9d-79cb-4dea-94bb-601e96a10bdd]
+    * ROOT.DIALOG_TYPE fehlt (laut 666-Basis)
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+- TST_Testen Neuanlage 1 [a0e75dea-c6c2-408e-986c-e55029631431]
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+- WORKFLOW_DIALOG_BASE_TEMPLATE [ca6d2a29-7fe8-50c1-887b-b6a42f46db5e]
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+    * ROOT.TABLE fehlt (laut 666-Basis)
+    * ROOT.TABS fehlt (laut 666-Basis)
+- WORKFLOW_DIALOG_PATCH_TEMPLATE [83c99302-91db-58ba-9ac8-a3e4dc202ca3]
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+    * ROOT.TABLE fehlt (laut 666-Basis)
+    * ROOT.TABS fehlt (laut 666-Basis)
+- WORKFLOW_DIALOG_RELEASE_TEMPLATE [5d79b918-e617-55f2-bf5b-28200aca6a75]
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+    * ROOT.TABLE fehlt (laut 666-Basis)
+    * ROOT.TABS fehlt (laut 666-Basis)
+- WORKFLOW_DICTIONARY_DIALOG_TEMPLATE [ad9db21a-82dd-5ad8-89a5-6836dbe4812f]
+    * ROOT.GO_NEW_SET fehlt (laut 666-Basis)
+    * ROOT.TABS fehlt (laut 666-Basis)
+
+Kein Loeschen durchgefuehrt (nur Angebot). Mit --delete-invalid aktivieren.

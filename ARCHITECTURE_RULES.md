@@ -124,6 +124,35 @@ Verbindliche Umwandlung:
 - Migrationsskripte fuer `sys_control_dict` muessen diese GUIDs explizit vom Update ausschliessen.
 - Automatische Umbenennung/Normalisierung dieser reservierten Saetze ist verboten.
 
+### 1.12 Verbindliche Tabellen-Basissaetze 000/555/666
+**Regel:** Jede fachliche PDVM-Tabelle hat drei fixe reservierte UIDs mit klarer Bedeutung.
+
+- `00000000-0000-0000-0000-000000000000`
+	Enthält Tabellen-Metadaten (informativ, keine feste fachliche Payloadstruktur).
+- `55555555-5555-5555-5555-555555555555`
+	Enthält Templates der Tabelle in den Gruppen `ROOT` und `TEMPLATES`.
+- `66666666-6666-6666-6666-666666666666`
+	Enthält den Basissatz fuer Neuanlagen.
+
+Pflicht:
+- Diese drei UIDs sind reserviert und dürfen nicht als normale Fachdaten verwendet werden.
+- Seeder/Migrationen müssen Existenz und Struktur dieser Basissätze prüfen.
+
+### 1.13 Einheitlicher Neuanlage-Algorithmus (tabellenweit)
+**Regel:** Neuanlage erfolgt immer aus dem 666-Basissatz derselben Tabelle.
+
+Verbindlicher Ablauf:
+1. Name ermitteln/abfragen (Pflicht).
+2. Neue GUID erzeugen.
+3. Daten aus UID `666...` laden und tief kopieren.
+4. `ROOT.SELF_GUID` auf neue GUID setzen.
+5. `ROOT.SELF_NAME` und SQL-Spalte `name` setzen.
+6. Datensatz speichern (direkt oder innerhalb eines Draft-Containers).
+
+Verboten:
+- Tabellen-/Feature-spezifische Sonder-Neuanlagen, die den 666-Flow umgehen.
+- Parallele zweite Neuanlage-Logik mit abweichender Basiserzeugung.
+
 ---
 
 ## 2. Frontend Architektur (React)

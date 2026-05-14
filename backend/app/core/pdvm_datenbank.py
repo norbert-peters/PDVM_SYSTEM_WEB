@@ -81,6 +81,8 @@ class PdvmDatabase:
             "sys_systemdaten",
             "sys_control_dict",
             "sys_control_dict_audit",
+            "dev_workflow_draft",
+            "dev_workflow_draft_item",
         ]:
             return "system"
         

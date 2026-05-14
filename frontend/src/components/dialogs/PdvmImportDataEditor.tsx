@@ -11,6 +11,8 @@ export type ImportDataEditorProps = {
   step?: number
   onStepChange?: (step: number) => void
   hideSteps?: boolean
+  canApplyWrite?: boolean
+  applyDeniedMessage?: string
 }
 
 type PreviewRow = Record<string, any>
@@ -48,6 +50,8 @@ export function PdvmImportDataEditor({
   step,
   onStepChange,
   hideSteps,
+  canApplyWrite = true,
+  applyDeniedMessage,
 }: ImportDataEditorProps) {
   const [internalStep, setInternalStep] = useState(1)
   const activeStep = step ?? internalStep
@@ -468,11 +472,15 @@ export function PdvmImportDataEditor({
               type="button"
               className="pdvm-dialog__toolBtn pdvm-dialog__toolBtn--primary"
               onClick={() => applyMutation.mutate()}
-              disabled={!tableName || !datasetUid || rows.length === 0 || applyMutation.isPending}
+              disabled={!canApplyWrite || !tableName || !datasetUid || rows.length === 0 || applyMutation.isPending}
+              title={!canApplyWrite ? (applyDeniedMessage || 'Apply ist fuer Ihre Rolle nicht freigegeben') : undefined}
             >
               Speichern
             </button>
           </div>
+          {!canApplyWrite ? (
+            <div className="pdvm-dialog__importNotice">{applyDeniedMessage || 'Apply ist fuer Ihre Rolle nicht freigegeben'}</div>
+          ) : null}
           <div className="pdvm-dialog__importNotice">Zeilen in Vorschau: {rows.length}</div>
         </div>
       ) : null}

@@ -9,6 +9,9 @@ export interface User {
   modeName?: string;
   benutzer?: string;
   email?: string;
+  roles?: string[];
+  isAdmin?: boolean;
+  isDevelop?: boolean;
 }
 
 export interface Mandant {
@@ -27,9 +30,45 @@ export interface AuthContextValue {
   logout: () => void;
   selectMandant: (mandant: Mandant) => void;
   mandantId: string | null;
+  canReleaseValidate: boolean;
+  canReleaseApply: boolean;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+function normalizeRoleToken(value: any): string {
+  return String(value || '').trim().toLowerCase();
+}
+
+function parseSecurityRoles(userData: any): Set<string> {
+  const roles = new Set<string>();
+  const security = userData?.SECURITY;
+  if (!security || typeof security !== 'object') return roles;
+
+  const role = normalizeRoleToken((security as any).ROLE);
+  if (role) roles.add(role);
+
+  const rolesRaw = (security as any).ROLES;
+  if (Array.isArray(rolesRaw)) {
+    rolesRaw.forEach((entry) => {
+      const token = normalizeRoleToken(entry);
+      if (token) roles.add(token);
+    });
+  } else if (typeof rolesRaw === 'string') {
+    rolesRaw
+      .split(',')
+      .map((entry) => normalizeRoleToken(entry))
+      .filter(Boolean)
+      .forEach((entry) => roles.add(entry));
+  }
+
+  const isAdminRaw = (security as any).IS_ADMIN;
+  if ([true, 1, '1', 'true', 'TRUE'].includes(isAdminRaw as any)) {
+    roles.add('admin');
+  }
+
+  return roles;
+}
 
 function parseUserFromStoredUserData(userData: any): User {
   const userNode = userData?.USER ?? {};
@@ -38,6 +77,10 @@ function parseUserFromStoredUserData(userData: any): User {
   const vorname: string | undefined = userNode?.VORNAME ?? userData?.vorname;
   const nachname: string | undefined = userNode?.NAME ?? userData?.nachname;
   const modeName: string | undefined = settingsNode?.MODE_NAME ?? userData?.modeName;
+  const roles = Array.from(parseSecurityRoles(userData));
+  const roleSet = new Set(roles);
+  const isAdmin = roleSet.has('admin') || roleSet.has('superadmin');
+  const isDevelop = roleSet.has('develop') || roleSet.has('developer');
 
   return {
     uid: userData.uid || userData.benutzer_uid,
@@ -49,6 +92,9 @@ function parseUserFromStoredUserData(userData: any): User {
     modeName,
     benutzer: userData.benutzer,
     email: userData.email,
+    roles,
+    isAdmin,
+    isDevelop,
   };
 }
 
@@ -122,6 +168,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCurrentMandant(mandant);
   }, []);
 
+  const canReleaseValidate = !!(currentUser?.isAdmin || currentUser?.isDevelop);
+  const canReleaseApply = !!currentUser?.isAdmin;
+
   return (
     <AuthContext.Provider value={{
       token,
@@ -131,7 +180,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       login,
       logout,
       selectMandant,
-      mandantId: currentMandant?.uid || null
+      mandantId: currentMandant?.uid || null,
+      canReleaseValidate,
+      canReleaseApply,
     }}>
       {children}
     </AuthContext.Provider>

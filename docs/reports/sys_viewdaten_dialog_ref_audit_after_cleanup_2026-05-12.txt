@@ -1,0 +1,8 @@
+﻿=== Audit sys_viewdaten mit Dialog-Referenzen ===
+Gesamt aktive Saetze: 11
+Reserviert vorhanden: 000/555/666 OK
+Finding: UID 555 ohne ROOT-Objekt
+Finding: UID 555 ohne TEMPLATES-Objekt
+Strukturkandidaten (nicht-reserviert): 0
+
+Unreferenzierte Saetze (ohne Dialog-Bezug): 0

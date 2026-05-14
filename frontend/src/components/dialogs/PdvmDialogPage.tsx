@@ -4,6 +4,7 @@ import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/rea
 import {
   controlDictAPI,
   dialogsAPI,
+  workflowDraftsAPI,
   systemdatenAPI,
   viewsAPI,
   usersAPI,
@@ -14,13 +15,15 @@ import {
   type DialogDraftResponse,
   type DialogUiStateResponse,
   type DialogValidationIssue,
+  type WorkflowDraftValidationResponse,
 } from '../../api/client'
 import { PdvmViewPageContent } from '../views/PdvmViewPage'
 import { PdvmMenuEditor } from './PdvmMenuEditor'
 import { PdvmImportDataEditor, PdvmImportDataSteps } from './PdvmImportDataEditor'
 import { PdvmJsonEditor, type PdvmJsonEditorHandle, type PdvmJsonEditorMode } from '../common/PdvmJsonEditor'
-import { PdvmDialogModal } from '../common/PdvmDialogModal'
+import { PdvmDialogModal, type PdvmDialogModalField } from '../common/PdvmDialogModal'
 import { PdvmInputControl, type PdvmDropdownOption, type PdvmElementField } from '../common/PdvmInputControl'
+import { useAuth } from '../../hooks/useAuth'
 import '../../styles/components/dialog.css'
 
 type ActiveTab = number
@@ -300,6 +303,75 @@ function toBoolean(value: any): boolean {
     if (['false', '0', 'nein', 'no', 'n', 'off'].includes(v)) return false
   }
   return !!value
+}
+
+function isApplyLikeActionControl(def: any): boolean {
+  const row = asObject(def)
+  const configs = asObject((row as any).configs)
+  const control = asObject((row as any).CONTROL)
+
+  const token = [
+    row.label,
+    row.name,
+    row.feld,
+    row.key,
+    (configs as any).action,
+    (configs as any).action_id,
+    (configs as any).action_key,
+    (configs as any).handler,
+    (configs as any).command,
+    (control as any).ACTION,
+    (control as any).ACTION_ID,
+    (control as any).ACTION_KEY,
+    (control as any).HANDLER,
+    (control as any).COMMAND,
+  ]
+    .filter((v) => v !== undefined && v !== null)
+    .map((v) => String(v).trim().toLowerCase())
+    .join(' ')
+
+  if (!token) return false
+
+  return ['apply', 'anwenden', 'release_apply', 'import_apply', 'paket angewendet'].some((kw) => token.includes(kw))
+}
+
+function buildActionToken(def: any): string {
+  const row = asObject(def)
+  const configs = asObject((row as any).configs)
+  const control = asObject((row as any).CONTROL)
+  return [
+    row.label,
+    row.name,
+    row.feld,
+    row.key,
+    (configs as any).action,
+    (configs as any).action_id,
+    (configs as any).action_key,
+    (configs as any).handler,
+    (configs as any).command,
+    (control as any).ACTION,
+    (control as any).ACTION_ID,
+    (control as any).ACTION_KEY,
+    (control as any).HANDLER,
+    (control as any).COMMAND,
+  ]
+    .filter((v) => v !== undefined && v !== null)
+    .map((v) => String(v).trim().toLowerCase())
+    .join(' ')
+}
+
+function collectWorkflowSetupPayload(datenRaw: Record<string, any> | null | undefined): Record<string, any> {
+  const daten = asObject(datenRaw)
+  const fromFields = (field: string) => getFieldValue(daten, 'FIELDS', field)
+  const fromRoot = (field: string) => getFieldValue(daten, 'ROOT', field)
+
+  const pickString = (value: any): string => String(value ?? '').trim()
+
+  return {
+    WORKFLOW_NAME: pickString(fromFields('WORKFLOW_NAME') ?? fromRoot('WORKFLOW_NAME')),
+    TARGET_TABLE: pickString(fromFields('TARGET_TABLE') ?? fromRoot('TARGET_TABLE') ?? 'sys_dialogdaten'),
+    DESCRIPTION: pickString(fromFields('DESCRIPTION') ?? fromRoot('DESCRIPTION')),
+  }
 }
 
 function buildElementFieldsFromFrameDaten(
@@ -615,6 +687,107 @@ function extractPicDefs(frameDaten: Record<string, any> | null | undefined): Pic
   return out
 }
 
+type CreateContextFieldDef = {
+  modalField: PdvmDialogModalField
+  contextKey: string
+  valueType: 'string' | 'number'
+  defaultValue?: string
+}
+
+function parseModalDropdownOptions(raw: any): Array<{ value: string; label: string }> {
+  if (!Array.isArray(raw)) return []
+  const out: Array<{ value: string; label: string }> = []
+  raw.forEach((entry) => {
+    if (entry == null) return
+    if (typeof entry === 'string' || typeof entry === 'number' || typeof entry === 'boolean') {
+      const s = String(entry)
+      out.push({ value: s, label: s })
+      return
+    }
+    if (typeof entry !== 'object') return
+    const obj = asObject(entry)
+    const value = String(readCfgValue(obj, ['value', 'uid', 'key', 'id']) ?? '').trim()
+    if (!value) return
+    const label =
+      String(readCfgValue(obj, ['label', 'name', 'title']) ?? '').trim() ||
+      value
+    out.push({ value, label })
+  })
+  return out
+}
+
+function buildCreateContextFieldsFromFrame(frameDaten: Record<string, any> | null | undefined): CreateContextFieldDef[] {
+  const defs = extractPicDefs(frameDaten)
+  const out: CreateContextFieldDef[] = []
+  const usedNames = new Set<string>()
+
+  defs.forEach((def, idx) => {
+    const gruppe = String(def.gruppe || '').trim().toUpperCase()
+    // Create-Frames verwenden je nach Konvention ROOT oder FIELDS als Gruppe.
+    if (gruppe && gruppe !== 'ROOT' && gruppe !== 'FIELDS') return
+    if (toBoolean(def.read_only)) return
+
+    const rawField = String(def.feld || def.name || '').trim().toUpperCase()
+    if (!rawField) return
+    if (rawField === 'SELF_GUID' || rawField === 'SELF_NAME') return
+
+    const rawType = normalizePicType(def.type)
+    if (rawType === 'action' || rawType === 'go_select_view' || rawType === 'element_list' || rawType === 'group_list' || rawType === 'multi_dropdown' || rawType === 'true_false' || rawType === 'datetime' || rawType === 'date' || rawType === 'time') {
+      return
+    }
+
+    const fieldNameBase = `create_ctx__${rawField.toLowerCase()}`
+    let fieldName = fieldNameBase
+    let suffix = 1
+    while (usedNames.has(fieldName)) {
+      suffix += 1
+      fieldName = `${fieldNameBase}_${suffix}`
+    }
+    usedNames.add(fieldName)
+
+    const cfg = asObject(def.configs)
+    const isRequired = toBoolean(readCfgValue(cfg, ['required', 'is_required', 'pflicht']))
+    const defaultRaw = readCfgValue(cfg, ['default', 'default_value', 'initial_value', 'value'])
+    const defaultValue = defaultRaw == null ? undefined : String(defaultRaw)
+
+    let modalType: PdvmDialogModalField['type'] = 'text'
+    let valueType: 'string' | 'number' = 'string'
+    let options: Array<{ value: string; label: string }> | undefined
+
+    if (rawType === 'number') {
+      modalType = 'number'
+      valueType = 'number'
+    } else if (rawType === 'text') {
+      modalType = 'textarea'
+    } else if (rawType === 'dropdown') {
+      const parsed = parseModalDropdownOptions(
+        readCfgValue(cfg, ['options', 'values', 'items']) ??
+          readCfgValue(asObject(cfg.dropdown), ['options', 'values', 'items'])
+      )
+      if (parsed.length > 0) {
+        modalType = 'dropdown'
+        options = parsed
+      }
+    }
+
+    out.push({
+      contextKey: rawField,
+      valueType,
+      defaultValue,
+      modalField: {
+        name: fieldName,
+        label: String(def.label || def.name || rawField).trim(),
+        type: modalType,
+        required: isRequired,
+        placeholder: String(def.tooltip || '').trim() || undefined,
+        options,
+      },
+    })
+  })
+
+  return out
+}
+
 function getFieldValue(daten: Record<string, any>, gruppe: string, feld: string) {
   const isTopLevel = gruppe === '__ROOT__' || gruppe === '__TOP__'
   const baseObj = isTopLevel ? asObject(daten) : asObject(daten[gruppe])
@@ -809,6 +982,7 @@ function defaultValueForControlType(controlTypeRaw: string): any {
 }
 
 export default function PdvmDialogPage() {
+  const { canReleaseApply, canReleaseValidate } = useAuth()
   const { dialogGuid } = useParams<{ dialogGuid: string }>()
   const [searchParams] = useSearchParams()
   const dialogTable = (searchParams.get('dialog_table') || searchParams.get('table') || '').trim() || null
@@ -860,6 +1034,18 @@ export default function PdvmDialogPage() {
     return moduleTabs.find((m) => Number(m?.index || 0) === activeTab) || null
   }, [moduleTabs, activeTab])
 
+  const activeModuleType = String(activeModule?.module || '').trim().toLowerCase()
+  const activeModuleGuid = String(activeModule?.guid || '').trim()
+  const isEditLikeModule = activeModuleType === 'edit' || activeModuleType === 'acti'
+  const activeModuleFrameQuery = useQuery<FrameDefinitionResponse>({
+    queryKey: ['dialog', 'module-frame', dialogGuid, activeTab, activeModuleGuid],
+    queryFn: () => dialogsAPI.getFrameDefinition(activeModuleGuid),
+    enabled: !!dialogGuid && isEditLikeModule && isUuidString(activeModuleGuid),
+  })
+  const effectiveFramePayload = useMemo(() => {
+    return (activeModuleFrameQuery.data || defQuery.data?.frame || null) as FrameDefinitionResponse | null
+  }, [activeModuleFrameQuery.data, defQuery.data?.frame])
+
   const tab1Module = useMemo(() => moduleTabs.find((t) => Number(t?.index || 0) === 1) || null, [moduleTabs])
   const tab2Module = useMemo(() => moduleTabs.find((t) => Number(t?.index || 0) === 2) || null, [moduleTabs])
 
@@ -872,14 +1058,29 @@ export default function PdvmDialogPage() {
   }, [tab1Module, defQuery.data?.view_guid])
 
   const effectiveEditType = useMemo(() => {
-    const module = String(activeModule?.module || '').trim().toLowerCase()
     const et = String(activeModule?.edit_type || '').trim().toLowerCase()
-    if (module === 'edit' && et) return et
+    if (et) return et
     return String(defQuery.data?.edit_type || 'show_json').trim().toLowerCase()
   }, [activeModule, defQuery.data?.edit_type])
 
   const dialogType = String(defQuery.data?.dialog_type || '').trim().toLowerCase() || 'norm'
   const isWorkflowDialog = dialogType === 'work' || dialogType === 'acti'
+  const blockApplyForRole = isWorkflowDialog && canReleaseValidate && !canReleaseApply
+  const isWorkflowDraftBuilderDialog = useMemo(() => {
+    const n1 = String(defQuery.data?.name || '').trim().toUpperCase()
+    const n2 = String((defQuery.data?.root as any)?.SELF_NAME || '').trim().toUpperCase()
+    return n1 === 'WORKFLOW_DRAFT_BUILDER_DIALOG_TEMPLATE' || n2 === 'WORKFLOW_DRAFT_BUILDER_DIALOG_TEMPLATE'
+  }, [defQuery.data?.name, defQuery.data?.root])
+
+  const workflowDraftTableOptions = useMemo(() => {
+    const root = asObject(defQuery.data?.root)
+    const draftTable = String(root.DRAFT_TABLE ?? root.draft_table ?? '').trim()
+    const draftItemTable = String(root.DRAFT_ITEM_TABLE ?? root.draft_item_table ?? '').trim()
+    return {
+      draft_table: draftTable || undefined,
+      draft_item_table: draftItemTable || undefined,
+    }
+  }, [defQuery.data?.root])
 
   const effectiveDialogTable = useMemo(() => {
     const override = String(dialogTable || '').trim()
@@ -887,6 +1088,96 @@ export default function PdvmDialogPage() {
     const rt = String(defQuery.data?.root_table || defQuery.data?.root?.TABLE || '').trim()
     return rt || null
   }, [dialogTable, defQuery.data?.root_table, defQuery.data?.root])
+
+  const createFrameGuid = useMemo(() => {
+    const root = asObject(defQuery.data?.root)
+    const guid = String(root.CREATE_FRAME_GUID ?? root.create_frame_guid ?? '').trim()
+    return guid
+  }, [defQuery.data?.root])
+
+  const createFrameQuery = useQuery<FrameDefinitionResponse>({
+    queryKey: ['dialog', 'create-frame', dialogGuid, createFrameGuid],
+    queryFn: () => dialogsAPI.getFrameDefinition(createFrameGuid),
+    enabled: !!dialogGuid && isUuidString(createFrameGuid),
+  })
+
+  const createContextFieldDefs = useMemo(() => {
+    return buildCreateContextFieldsFromFrame(createFrameQuery.data?.daten || null)
+  }, [createFrameQuery.data?.daten])
+
+  const createTableOptionsQuery = useQuery({
+    queryKey: ['dialog', 'create-table-options', dialogGuid, dialogTable],
+    queryFn: () => dialogsAPI.getCreateTableOptions(dialogGuid!, { dialog_table: dialogTable }),
+    enabled:
+      !!dialogGuid &&
+      createContextFieldDefs.some((x) => x.contextKey === 'TABLE'),
+  })
+
+  const createTableOptions = useMemo(() => {
+    return (createTableOptionsQuery.data?.tables || []).map((t) => ({
+      value: String(t.value || '').trim(),
+      label: String(t.label || t.value || '').trim(),
+    }))
+  }, [createTableOptionsQuery.data?.tables])
+
+  const createRequiredSet = useMemo(() => {
+    const out = new Set<string>()
+    const root = asObject(defQuery.data?.root)
+    const raw = readCfgValue(root, ['CREATE_REQUIRED', 'create_required'])
+    const values = Array.isArray(raw) ? raw : typeof raw === 'string' ? String(raw).split(',') : []
+    values.forEach((entry) => {
+      const key = String(entry || '').trim().toUpperCase()
+      if (key) out.add(key)
+    })
+    return out
+  }, [defQuery.data?.root])
+
+  const createDefaultsByContextKey = useMemo(() => {
+    const out: Record<string, string> = {}
+    const root = asObject(defQuery.data?.root)
+    const raw = readCfgValue(root, ['CREATE_DEFAULTS', 'create_defaults'])
+    const obj = asObject(raw)
+
+    Object.entries(obj).forEach(([k, v]) => {
+      const key = String(k || '').trim().toUpperCase()
+      if (!key) return
+      out[key] = String(v ?? '')
+    })
+
+    return out
+  }, [defQuery.data?.root])
+
+  const createContextModalFields = useMemo(() => {
+    return createContextFieldDefs.map((x) => ({
+      ...x.modalField,
+      type:
+        x.contextKey === 'TABLE' && (!Array.isArray(x.modalField.options) || x.modalField.options.length === 0)
+          ? 'dropdown'
+          : x.modalField.type,
+      options:
+        x.contextKey === 'TABLE' && (!Array.isArray(x.modalField.options) || x.modalField.options.length === 0)
+          ? createTableOptions
+          : x.modalField.options,
+      required: Boolean(x.modalField.required) || createRequiredSet.has(x.contextKey),
+    }))
+  }, [createContextFieldDefs, createRequiredSet, createTableOptions])
+
+  const createContextInitialValues = useMemo(() => {
+    const out: Record<string, string> = {}
+    createContextFieldDefs.forEach((x) => {
+      const dialogDefault = createDefaultsByContextKey[x.contextKey]
+      if (dialogDefault != null) {
+        out[x.modalField.name] = dialogDefault
+      } else if (x.defaultValue != null) {
+        out[x.modalField.name] = x.defaultValue
+      } else if (x.contextKey === 'TABLE' && createTableOptions.length > 0) {
+        out[x.modalField.name] = String(createTableOptions[0].value || '')
+      } else if (x.modalField.type === 'dropdown' && Array.isArray(x.modalField.options) && x.modalField.options.length > 0) {
+        out[x.modalField.name] = String(x.modalField.options[0].value || '')
+      }
+    })
+    return out
+  }, [createContextFieldDefs, createDefaultsByContextKey, createTableOptions])
 
   const lastCallScopeKey = useMemo(() => {
     const dg = String(dialogGuid || '').trim().toLowerCase()
@@ -1018,8 +1309,8 @@ export default function PdvmDialogPage() {
     if (!isImportEditor) return
     setImportStep(1)
   }, [isImportEditor, selectedUid, effectiveDialogTable])
-  const frameDaten = (defQuery.data?.frame?.daten || null) as Record<string, any> | null
-  const frameRoot = (defQuery.data?.frame?.root || {}) as Record<string, any>
+  const frameDaten = (effectiveFramePayload?.daten || null) as Record<string, any> | null
+  const frameRoot = (effectiveFramePayload?.root || {}) as Record<string, any>
 
   const picDefs = useMemo(() => extractPicDefs(frameDaten), [frameDaten])
 
@@ -1104,6 +1395,11 @@ export default function PdvmDialogPage() {
   const [picDirty, setPicDirty] = useState(false)
   const [activeDraft, setActiveDraft] = useState<DialogDraftResponse | null>(null)
   const [draftValidationIssues, setDraftValidationIssues] = useState<DialogValidationIssue[]>([])
+  const [workflowDraftGuid, setWorkflowDraftGuid] = useState<string | null>(null)
+  const [workflowDraftStatus, setWorkflowDraftStatus] = useState<string | null>(null)
+  const [workflowDraftError, setWorkflowDraftError] = useState<string | null>(null)
+  const [workflowDraftBusy, setWorkflowDraftBusy] = useState(false)
+  const [workflowDraftValidation, setWorkflowDraftValidation] = useState<WorkflowDraftValidationResponse | null>(null)
 
   const rowsQuery = useQuery<{ dialog_guid: string; table: string; rows: DialogRow[] }>({
     queryKey: ['dialog', 'rows', dialogGuid, dialogTable, pageLimit, pageOffset],
@@ -1822,15 +2118,17 @@ export default function PdvmDialogPage() {
   })
 
   const createMutation = useMutation({
-    mutationFn: async (payload: { name: string; is_template?: boolean }) => {
+    mutationFn: async (payload: { name: string; is_template?: boolean; create_context?: Record<string, any> }) => {
+      const tableOverride = String(effectiveDialogTable || dialogTable || '').trim()
       return dialogsAPI.startDraft(
         dialogGuid!,
         {
           name: payload.name,
           template_uid: '66666666-6666-6666-6666-666666666666',
           is_template: payload.is_template,
+          create_context: payload.create_context,
         },
-        { dialog_table: dialogTable }
+        tableOverride ? { dialog_table: tableOverride } : undefined
       )
     },
     onSuccess: async (draft) => {
@@ -1843,6 +2141,14 @@ export default function PdvmDialogPage() {
       setJsonSearchHits(null)
       setPicDraft(draft.daten || {})
       setPicDirty(false)
+
+      if (isWorkflowDraftBuilderDialog) {
+        const root = asObject((draft as any)?.daten?.ROOT)
+        const workflowDraftGuid = String(root.WORKFLOW_DRAFT_GUID || '').trim()
+        if (workflowDraftGuid && isUuidString(workflowDraftGuid)) {
+          setWorkflowDraftGuid(workflowDraftGuid)
+        }
+      }
     },
   })
 
@@ -2472,16 +2778,16 @@ export default function PdvmDialogPage() {
 
   // Menu editor tabs come from frame definition (sys_framedaten)
   const menuEditTabs = useMemo(() => {
-    const frameRoot = (defQuery.data?.frame?.root || {}) as Record<string, any>
+    const frameRootLocal = frameRoot
 
-    const tabsRaw = frameRoot.TABS ?? frameRoot.tabs
+    const tabsRaw = frameRootLocal.TABS ?? frameRootLocal.tabs
     const tabs = Number(tabsRaw || 0)
 
     const pickTabBlock = (tabIndex: number): Record<string, any> | null => {
       const rx = new RegExp(`^tab[_-]?0*${tabIndex}$`, 'i')
-      for (const key of Object.keys(frameRoot)) {
+      for (const key of Object.keys(frameRootLocal)) {
         if (!rx.test(String(key))) continue
-        const v = (frameRoot as any)[key]
+        const v = (frameRootLocal as any)[key]
         if (v && typeof v === 'object' && !Array.isArray(v)) return v
       }
       return null
@@ -2504,7 +2810,7 @@ export default function PdvmDialogPage() {
       out.push({ head, group })
     }
     return { tabs, items: out }
-  }, [defQuery.data?.frame?.root])
+  }, [frameRoot])
 
   const [menuActiveTab, setMenuActiveTab] = useState<'GRUND' | 'VERTIKAL'>('GRUND')
 
@@ -2550,7 +2856,160 @@ export default function PdvmDialogPage() {
       })
   }, [isWorkflowDialog, dialogGuid, dialogTable, activeTab, workflowMaxTab])
 
-  const activeModuleType = String(activeModule?.module || '').trim().toLowerCase()
+  const workflowDraftRuntimeQuery = useQuery<DialogUiStateResponse>({
+    queryKey: ['dialog', 'ui-state', 'workflow-draft-runtime', dialogGuid, dialogTable],
+    queryFn: () => dialogsAPI.getUiState(dialogGuid!, { dialog_table: dialogTable }),
+    enabled: !!dialogGuid && defQuery.isSuccess && isWorkflowDraftBuilderDialog,
+  })
+
+  const workflowOpenDraftsQuery = useQuery({
+    queryKey: ['workflow-drafts', 'open', dialogGuid, workflowDraftTableOptions.draft_table, workflowDraftTableOptions.draft_item_table],
+    queryFn: () => workflowDraftsAPI.listOpen(workflowDraftTableOptions),
+    enabled: !!dialogGuid && isWorkflowDraftBuilderDialog,
+  })
+
+  useEffect(() => {
+    if (!isWorkflowDraftBuilderDialog) return
+    const runtime = (workflowDraftRuntimeQuery.data?.ui_state as any)?.workflow_draft_runtime
+    const persistedGuid = String(runtime?.draft_guid || '').trim()
+    if (persistedGuid && isUuidString(persistedGuid)) {
+      setWorkflowDraftGuid(persistedGuid)
+      return
+    }
+
+    if (workflowDraftGuid) return
+    const firstOpenGuid = String(workflowOpenDraftsQuery.data?.drafts?.[0]?.draft_guid || '').trim()
+    if (firstOpenGuid && isUuidString(firstOpenGuid)) {
+      setWorkflowDraftGuid(firstOpenGuid)
+    }
+  }, [
+    isWorkflowDraftBuilderDialog,
+    workflowDraftRuntimeQuery.data,
+    workflowOpenDraftsQuery.data,
+    workflowDraftGuid,
+  ])
+
+  const persistWorkflowDraftGuid = (nextGuid: string | null) => {
+    setWorkflowDraftGuid(nextGuid)
+    if (!dialogGuid) return
+    dialogsAPI
+      .putUiState(
+        dialogGuid,
+        {
+          ui_state: {
+            workflow_draft_runtime: {
+              draft_guid: nextGuid,
+            },
+          },
+        },
+        { dialog_table: dialogTable }
+      )
+      .catch(() => {
+        // Best-effort persistence only.
+      })
+  }
+
+  const ensureWorkflowDraft = async (): Promise<string> => {
+    if (workflowDraftGuid && isUuidString(workflowDraftGuid)) return workflowDraftGuid
+
+    const source = (picDraft ? picDraft : currentDaten || {}) as Record<string, any>
+    const setup = collectWorkflowSetupPayload(source)
+    const title = setup.WORKFLOW_NAME || `WORKFLOW_DRAFT_${new Date().toISOString().slice(0, 19)}`
+
+    const created = await workflowDraftsAPI.create({
+      workflow_type: setup.WORKFLOW_TYPE || 'work',
+      title,
+      initial_setup: setup,
+      draft_table: workflowDraftTableOptions.draft_table || null,
+      draft_item_table: workflowDraftTableOptions.draft_item_table || null,
+    })
+
+    persistWorkflowDraftGuid(created.draft_guid)
+    setWorkflowDraftStatus(`Draft erstellt: ${created.draft_guid.slice(0, 8)}`)
+    return created.draft_guid
+  }
+
+  const saveWorkflowSetup = async (): Promise<string> => {
+    const draftGuid = await ensureWorkflowDraft()
+    const source = (picDraft ? picDraft : currentDaten || {}) as Record<string, any>
+    const setup = collectWorkflowSetupPayload(source)
+
+    await workflowDraftsAPI.saveItem(draftGuid, {
+      item_type: 'setup',
+      item_key: 'setup',
+      payload: setup,
+    }, workflowDraftTableOptions)
+
+    setWorkflowDraftStatus(`Setup gespeichert (${draftGuid.slice(0, 8)})`)
+    return draftGuid
+  }
+
+  const loadWorkflowSetup = async () => {
+    if (!workflowDraftGuid || !isUuidString(workflowDraftGuid)) {
+      setWorkflowDraftError('Kein Workflow-Draft vorhanden.')
+      return
+    }
+
+    const loaded = await workflowDraftsAPI.load(workflowDraftGuid, workflowDraftTableOptions)
+    const setupItem = (loaded.items || []).find((i) => String(i.item_type || '').toLowerCase() === 'setup')
+    const payload = asObject(setupItem?.payload)
+
+    if (!Object.keys(payload).length) {
+      setWorkflowDraftStatus('Kein Setup-Item im Draft gefunden.')
+      return
+    }
+
+    setPicDraft((prev) => {
+      let next = asObject(prev || currentDaten || {})
+      next = setFieldValue(next, 'FIELDS', 'WORKFLOW_NAME', String(payload.WORKFLOW_NAME || ''))
+      next = setFieldValue(next, 'FIELDS', 'TARGET_TABLE', String(payload.TARGET_TABLE || 'sys_dialogdaten'))
+      next = setFieldValue(next, 'FIELDS', 'DESCRIPTION', String(payload.DESCRIPTION || ''))
+      return next
+    })
+    setPicDirty(true)
+    setWorkflowDraftStatus(`Setup geladen (${workflowDraftGuid.slice(0, 8)})`)
+  }
+
+  const validateWorkflowDraft = async () => {
+    const draftGuid = await saveWorkflowSetup()
+    const result = await workflowDraftsAPI.validate(draftGuid, workflowDraftTableOptions)
+    setWorkflowDraftValidation(result)
+    if (result.valid) {
+      setWorkflowDraftStatus(`Validierung OK (${draftGuid.slice(0, 8)})`)
+    } else {
+      setWorkflowDraftStatus(`Validierung mit ${result.error_count} Fehler(n)`)
+    }
+  }
+
+  const runWorkflowDraftAction = async (def: any) => {
+    const token = buildActionToken(def)
+    if (!token) return
+
+    setWorkflowDraftError(null)
+    setWorkflowDraftStatus(null)
+
+    setWorkflowDraftBusy(true)
+    try {
+      if (token.includes('validate')) {
+        await validateWorkflowDraft()
+        return
+      }
+      if (token.includes('load')) {
+        await loadWorkflowSetup()
+        return
+      }
+      if (token.includes('save') || token.includes('build')) {
+        await saveWorkflowSetup()
+        return
+      }
+      setWorkflowDraftStatus('Aktion ist fuer den aktuellen Ausbau noch nicht verdrahtet.')
+    } catch (e: any) {
+      setWorkflowDraftError(String(e?.response?.data?.detail || e?.message || 'Workflow-Draft-Aktion fehlgeschlagen'))
+    } finally {
+      setWorkflowDraftBusy(false)
+    }
+  }
+
   const isDialogNewModule = activeModuleType === 'dialog_new'
   const [dialogNewDraft, setDialogNewDraft] = useState(dialogNewDefaults)
   const [dialogNewBusy, setDialogNewBusy] = useState(false)
@@ -2615,13 +3074,17 @@ export default function PdvmDialogPage() {
           name,
           template_uid: '66666666-6666-6666-6666-666666666666',
         },
-        { dialog_table: dialogTable }
+        String(effectiveDialogTable || dialogTable || '').trim()
+          ? { dialog_table: String(effectiveDialogTable || dialogTable || '').trim() }
+          : undefined
       )
       const created = await dialogsAPI.commitDraft(
         dialogGuid,
         draft.draft_id,
         { daten: draft.daten },
-        { dialog_table: dialogTable }
+        String(effectiveDialogTable || dialogTable || '').trim()
+          ? { dialog_table: String(effectiveDialogTable || dialogTable || '').trim() }
+          : undefined
       )
 
       const rootTable = String(dialogNewDraft.root_table || '').trim()
@@ -3042,7 +3505,13 @@ export default function PdvmDialogPage() {
         open={createModalOpen}
         kind="form"
         title="Neuer Datensatz"
-        message={isSysMenuTable ? 'Bitte Name und Menü-Typ auswählen. Es wird zuerst ein Draft erzeugt.' : 'Bitte Name eingeben (Template: 6666... → Draft → Edit → Speichern).'}
+        message={
+          createContextModalFields.length > 0
+            ? 'Bitte Name und Create-Parameter eingeben. Der Draft wird aus Template 6666... vorbereitet.'
+            : isSysMenuTable
+            ? 'Bitte Name und Menü-Typ auswählen. Es wird zuerst ein Draft erzeugt.'
+            : 'Bitte Name eingeben (Template: 6666... → Draft → Edit → Speichern).'
+        }
         fields={(
           [
             {
@@ -3056,28 +3525,42 @@ export default function PdvmDialogPage() {
               placeholder: 'z.B. Neuer Satz',
             },
           ] as any[]
-        ).concat(
-          isSysMenuTable
-            ? [
-                {
-                  name: 'menu_type',
-                  label: 'Menü-Typ',
-                  type: 'dropdown',
-                  options: [
-                    { value: 'standard', label: 'Standard-Menü' },
-                    { value: 'template', label: 'Template-Menü' },
-                  ],
-                },
-              ]
-            : []
-        )}
-        initialValues={isSysMenuTable ? { menu_type: 'standard' } : undefined}
+        )
+          .concat(createContextModalFields as any[])
+          .concat(
+            isSysMenuTable
+              ? [
+                  {
+                    name: 'menu_type',
+                    label: 'Menü-Typ',
+                    type: 'dropdown',
+                    options: [
+                      { value: 'standard', label: 'Standard-Menü' },
+                      { value: 'template', label: 'Template-Menü' },
+                    ],
+                  },
+                ]
+              : []
+          )}
+        initialValues={{
+          ...(isSysMenuTable ? { menu_type: 'standard' } : {}),
+          ...createContextInitialValues,
+        }}
         confirmLabel="Erstellen"
         cancelLabel="Abbrechen"
-        busy={createMutation.isPending || updateMutation.isPending || commitDraftMutation.isPending}
-        error={createModalError}
+        busy={createFrameQuery.isLoading || createMutation.isPending || updateMutation.isPending || commitDraftMutation.isPending}
+        error={
+          createModalError ||
+          (createFrameGuid && !isUuidString(createFrameGuid)
+            ? 'CREATE_FRAME_GUID ist keine gültige GUID.'
+            : (createFrameQuery.error as any)?.response?.data?.detail ||
+              (createFrameQuery.error as any)?.message ||
+              (createTableOptionsQuery.error as any)?.response?.data?.detail ||
+              (createTableOptionsQuery.error as any)?.message ||
+              null)
+        }
         onCancel={() => {
-          if (createMutation.isPending || updateMutation.isPending || commitDraftMutation.isPending) return
+          if (createFrameQuery.isLoading || createMutation.isPending || updateMutation.isPending || commitDraftMutation.isPending) return
           setCreateModalOpen(false)
           setCreateModalError(null)
         }}
@@ -3088,14 +3571,54 @@ export default function PdvmDialogPage() {
           const menuType = String(values?.menu_type || '').trim().toLowerCase()
           const isTemplate = menuType === 'template'
 
+          const createContext: Record<string, any> = {}
+          createContextFieldDefs.forEach((def) => {
+            const raw = values?.[def.modalField.name]
+            const text = String(raw ?? '').trim()
+            if (!text) return
+
+            if (def.valueType === 'number') {
+              const n = Number(text)
+              if (Number.isFinite(n)) {
+                createContext[def.contextKey] = n
+                return
+              }
+            }
+            createContext[def.contextKey] = text
+          })
+
           try {
             setAutoLastCallError(null)
             setCreateModalError(null)
-            await createMutation.mutateAsync({ name, is_template: isSysMenuTable ? isTemplate : undefined })
+            await createMutation.mutateAsync({
+              name,
+              is_template: isSysMenuTable ? isTemplate : undefined,
+              create_context: Object.keys(createContext).length > 0 ? createContext : undefined,
+            })
             setCreateModalOpen(false)
           } catch (e: any) {
             const detail = e?.response?.data?.detail
-            setCreateModalError(String(detail || e?.message || 'Neuer Datensatz konnte nicht angelegt werden'))
+            let message = 'Neuer Datensatz konnte nicht angelegt werden'
+            if (typeof detail === 'string' && detail.trim()) {
+              message = detail
+            } else if (detail && typeof detail === 'object') {
+              const detailMessage = String((detail as any).message || '').trim()
+              const missing = Array.isArray((detail as any).missing_fields)
+                ? (detail as any).missing_fields.join(', ')
+                : ''
+              if (detailMessage && missing) {
+                message = `${detailMessage}: ${missing}`
+              } else if (detailMessage) {
+                message = detailMessage
+              } else {
+                message = JSON.stringify(detail)
+              }
+            } else if (!e?.response && e?.request) {
+              message = 'Netzwerkfehler: Backend nicht erreichbar oder Request abgebrochen'
+            } else if (String(e?.message || '').trim()) {
+              message = String(e.message)
+            }
+            setCreateModalError(message)
           }
         }}
       />
@@ -3131,8 +3654,28 @@ export default function PdvmDialogPage() {
             {isWorkflowDialog && activeTab < tabs ? (
               <button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
                   const next = Math.min(tabs, activeTab + 1)
+
+                  if (isWorkflowDraftBuilderDialog) {
+                    try {
+                      setWorkflowDraftError(null)
+                      const draftGuid = await ensureWorkflowDraft()
+                      const nextTab = moduleTabs.find((m) => Number(m?.index || 0) === Number(next)) || null
+                      await workflowDraftsAPI.ensureStep(draftGuid, {
+                        step: next,
+                        table: String(nextTab?.table || '').trim() || undefined,
+                        module: String(nextTab?.module || '').trim().toLowerCase() || undefined,
+                        head: String(nextTab?.head || '').trim() || undefined,
+                        draft_table: workflowDraftTableOptions.draft_table || null,
+                        draft_item_table: workflowDraftTableOptions.draft_item_table || null,
+                      })
+                    } catch (e: any) {
+                      setWorkflowDraftError(String(e?.response?.data?.detail || e?.message || 'Workflow-Step konnte nicht vorbereitet werden'))
+                      return
+                    }
+                  }
+
                   setActiveTab(next)
                   setWorkflowMaxTab(next)
                 }}
@@ -3428,7 +3971,7 @@ export default function PdvmDialogPage() {
             </div>
           ) : null}
 
-          {activeModuleType === 'edit' || (!moduleTabs.length && activeTab === editTabIndex) ? (
+          {isEditLikeModule || (!moduleTabs.length && activeTab === editTabIndex) ? (
             <div className="pdvm-dialog__editArea">
               {isMenuEditor ? (
                 <>
@@ -3467,7 +4010,7 @@ export default function PdvmDialogPage() {
                               menuGuid={selectedUid}
                               group={menuActiveTab}
                               systemdatenUid={systemdatenUid}
-                              frameDaten={defQuery.data?.frame?.daten || null}
+                                frameDaten={frameDaten}
                               onMissingMenuGuid={handleMissingMenuGuid}
                             />
                           </div>
@@ -3480,7 +4023,7 @@ export default function PdvmDialogPage() {
                                 menuGuid={selectedUid}
                                 group="GRUND"
                                 systemdatenUid={systemdatenUid}
-                                frameDaten={defQuery.data?.frame?.daten || null}
+                                frameDaten={frameDaten}
                                 onMissingMenuGuid={handleMissingMenuGuid}
                               />
                             </div>
@@ -3491,7 +4034,7 @@ export default function PdvmDialogPage() {
                                 menuGuid={selectedUid}
                                 group="VERTIKAL"
                                 systemdatenUid={systemdatenUid}
-                                frameDaten={defQuery.data?.frame?.daten || null}
+                                frameDaten={frameDaten}
                                 onMissingMenuGuid={handleMissingMenuGuid}
                               />
                             </div>
@@ -3754,13 +4297,27 @@ export default function PdvmDialogPage() {
                           }
 
                           if (type === 'action') {
+                                    const blockedApplyAction = blockApplyForRole && isApplyLikeActionControl(d)
+                                    const actionDisabled = !!d.read_only || blockedApplyAction || (isWorkflowDraftBuilderDialog && workflowDraftBusy)
+                                    const actionTitle = blockedApplyAction
+                                      ? 'Apply ist fuer Ihre Rolle nicht freigegeben (nur Admin)'
+                                      : (d.tooltip || undefined)
                             return (
-                              <div key={fieldKey} className="pdvm-pic" title={d.tooltip || undefined}>
+                                      <div key={fieldKey} className="pdvm-pic" title={actionTitle}>
                                 <div className="pdvm-pic__labelRow">
                                   <label className="pdvm-pic__label">{d.label || d.name || feld}</label>
                                 </div>
                                 <div className="pdvm-pic__control">
-                                  <button type="button" className="pdvm-dialog__toolBtn" disabled={!!d.read_only}>
+                                          <button
+                                            type="button"
+                                            className="pdvm-dialog__toolBtn"
+                                            disabled={actionDisabled}
+                                            onClick={() => {
+                                              if (isWorkflowDraftBuilderDialog) {
+                                                runWorkflowDraftAction(d)
+                                              }
+                                            }}
+                                          >
                                     {d.label || d.name || feld}
                                   </button>
                                 </div>
@@ -3816,6 +4373,78 @@ export default function PdvmDialogPage() {
                     <div>
                       {!isImportEditor && editType !== 'edit_json' && editType !== 'show_json' ? (
                         <>
+                          {isWorkflowDraftBuilderDialog ? (
+                            <div style={{ marginBottom: 10, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                              <button
+                                type="button"
+                                className="pdvm-dialog__toolBtn"
+                                onClick={async () => {
+                                  setWorkflowDraftError(null)
+                                  setWorkflowDraftBusy(true)
+                                  try {
+                                    await loadWorkflowSetup()
+                                  } catch (e: any) {
+                                    setWorkflowDraftError(String(e?.response?.data?.detail || e?.message || 'Setup konnte nicht geladen werden'))
+                                  } finally {
+                                    setWorkflowDraftBusy(false)
+                                  }
+                                }}
+                                disabled={workflowDraftBusy}
+                              >
+                                Setup laden
+                              </button>
+                              <button
+                                type="button"
+                                className="pdvm-dialog__toolBtn"
+                                onClick={async () => {
+                                  setWorkflowDraftError(null)
+                                  setWorkflowDraftBusy(true)
+                                  try {
+                                    await saveWorkflowSetup()
+                                  } catch (e: any) {
+                                    setWorkflowDraftError(String(e?.response?.data?.detail || e?.message || 'Setup konnte nicht gespeichert werden'))
+                                  } finally {
+                                    setWorkflowDraftBusy(false)
+                                  }
+                                }}
+                                disabled={workflowDraftBusy}
+                              >
+                                Setup speichern
+                              </button>
+                              <button
+                                type="button"
+                                className="pdvm-dialog__toolBtn"
+                                onClick={async () => {
+                                  setWorkflowDraftError(null)
+                                  setWorkflowDraftBusy(true)
+                                  try {
+                                    await validateWorkflowDraft()
+                                  } catch (e: any) {
+                                    setWorkflowDraftError(String(e?.response?.data?.detail || e?.message || 'Validierung fehlgeschlagen'))
+                                  } finally {
+                                    setWorkflowDraftBusy(false)
+                                  }
+                                }}
+                                disabled={workflowDraftBusy}
+                              >
+                                Validieren
+                              </button>
+                              <div style={{ fontSize: 12, opacity: 0.8, marginLeft: 'auto' }}>
+                                Draft: <span style={{ fontFamily: 'monospace' }}>{workflowDraftGuid || 'neu'}</span>
+                              </div>
+                            </div>
+                          ) : null}
+                          {isWorkflowDraftBuilderDialog && (workflowDraftStatus || workflowDraftError || workflowDraftValidation) ? (
+                            <div style={{ marginBottom: 8, fontSize: 12, lineHeight: 1.35 }}>
+                              {workflowDraftStatus ? <div style={{ color: '#195e36' }}>{workflowDraftStatus}</div> : null}
+                              {workflowDraftError ? <div style={{ color: 'crimson' }}>{workflowDraftError}</div> : null}
+                              {workflowDraftValidation && !workflowDraftValidation.valid ? (
+                                <div style={{ color: '#9a4f00' }}>
+                                  Fehler: {workflowDraftValidation.errors.map((e) => e.message).join(' | ')}
+                                </div>
+                              ) : null}
+                            </div>
+                          ) : null}
                           <div style={{ marginBottom: 8, fontSize: 12, opacity: 0.8 }}>
                             UID: <span style={{ fontFamily: 'monospace' }}>{isDraftMode ? activeDraft?.draft_id : recordQuery.data?.uid}</span>
                           </div>
@@ -4187,13 +4816,27 @@ export default function PdvmDialogPage() {
                                   }
 
                                   if (type === 'action') {
+                                    const blockedApplyAction = blockApplyForRole && isApplyLikeActionControl(d)
+                                    const actionDisabled = !!d.read_only || blockedApplyAction || (isWorkflowDraftBuilderDialog && workflowDraftBusy)
+                                    const actionTitle = blockedApplyAction
+                                      ? 'Apply ist fuer Ihre Rolle nicht freigegeben (nur Admin)'
+                                      : (d.tooltip || undefined)
                                     return (
-                                      <div key={fieldKey} className="pdvm-pic" title={d.tooltip || undefined}>
+                                      <div key={fieldKey} className="pdvm-pic" title={actionTitle}>
                                         <div className="pdvm-pic__labelRow">
                                           <label className="pdvm-pic__label">{d.label || d.name || feld}</label>
                                         </div>
                                         <div className="pdvm-pic__control">
-                                          <button type="button" className="pdvm-dialog__toolBtn" disabled={!!d.read_only}>
+                                          <button
+                                            type="button"
+                                            className="pdvm-dialog__toolBtn"
+                                            disabled={actionDisabled}
+                                            onClick={() => {
+                                              if (isWorkflowDraftBuilderDialog) {
+                                                runWorkflowDraftAction(d)
+                                              }
+                                            }}
+                                          >
                                             {d.label || d.name || feld}
                                           </button>
                                         </div>
@@ -4234,6 +4877,8 @@ export default function PdvmDialogPage() {
                           step={importStep}
                           onStepChange={setImportStep}
                           hideSteps
+                          canApplyWrite={!blockApplyForRole}
+                          applyDeniedMessage="Apply ist fuer Ihre Rolle nicht freigegeben (nur Admin)."
                         />
                       ) : (
                         <pre
@@ -4256,11 +4901,6 @@ export default function PdvmDialogPage() {
                 </div>
                 </>
               )}
-            </div>
-          ) : activeModuleType === 'acti' ? (
-            <div style={{ padding: 12 }}>
-              <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 8 }}>Aktionen-Modul (work/acti)</div>
-              <div style={{ fontSize: 12, opacity: 0.8 }}>Ausgewaehlt: {selectedUids.length || (selectedUid ? 1 : 0)}</div>
             </div>
           ) : null}
           </div>

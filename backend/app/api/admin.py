@@ -8,7 +8,7 @@ from typing import List, Optional
 from pathlib import Path
 import asyncpg
 from urllib.parse import urlparse, urlunparse
-from app.core.security import get_current_user
+from app.core.security import require_admin_user
 from app.core.config import settings
 from app.core.database import DatabasePool, PdvmDatabase
 
@@ -35,11 +35,9 @@ class TableCreate(BaseModel):
     database: str = "mandant"  # system, auth, or mandant
 
 
-async def require_admin(current_user: dict = Depends(get_current_user)):
-    """Dependency to require admin role"""
-    # TODO: Check actual admin role from database
-    # For now: all authenticated users are considered admins
-    return current_user
+async def require_admin(admin_user: dict = Depends(require_admin_user)):
+    """Zentraler Admin-Guard aus app.core.security."""
+    return admin_user
 
 
 @router.get("/databases", response_model=List[DatabaseInfo])

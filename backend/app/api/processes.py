@@ -9,7 +9,7 @@ import psutil
 import subprocess
 import os
 from datetime import datetime
-from app.core.security import get_current_user
+from app.core.security import require_admin_user
 
 router = APIRouter()
 
@@ -35,10 +35,9 @@ class ServiceCommand(BaseModel):
     working_dir: Optional[str] = None
 
 
-async def require_admin(current_user: dict = Depends(get_current_user)):
-    """Require admin role for service management"""
-    # TODO: Check actual admin role
-    return current_user
+async def require_admin(admin_user: dict = Depends(require_admin_user)):
+    """Zentraler Admin-Guard aus app.core.security."""
+    return admin_user
 
 
 def get_process_info(pid: int) -> Optional[Dict]:

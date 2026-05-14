@@ -1,0 +1,85 @@
+﻿=== Audit sys_viewdaten mit Dialog-Referenzen ===
+Gesamt aktive Saetze: 21
+Reserviert vorhanden: 000/555/666 OK
+Finding: UID 555 ohne ROOT-Objekt
+Finding: UID 555 ohne TEMPLATES-Objekt
+Strukturkandidaten (nicht-reserviert): 7
+- CHANGE_LOG_VIEW_TEMPLATE [ef8348ac-4f9e-5252-9965-c11792ab9190]
+    * ROOT.ALLOW_FILTER fehlt (laut 666-Basis)
+    * ROOT.ALLOW_SORT fehlt (laut 666-Basis)
+    * ROOT.DEFAULT_SORT_COLUMN fehlt (laut 666-Basis)
+    * ROOT.DEFAULT_SORT_REVERSE fehlt (laut 666-Basis)
+    * ROOT.HEADER_TEXT fehlt (laut 666-Basis)
+    * ROOT.NO_DATA fehlt (laut 666-Basis)
+    * ROOT.PROJECTION_MODE fehlt (laut 666-Basis)
+    * dialog_refs: 0
+- RELEASE_CANDIDATE_VIEW_TEMPLATE [2160ff31-98d7-5ffe-8823-97359bfb3991]
+    * ROOT.ALLOW_FILTER fehlt (laut 666-Basis)
+    * ROOT.ALLOW_SORT fehlt (laut 666-Basis)
+    * ROOT.DEFAULT_SORT_COLUMN fehlt (laut 666-Basis)
+    * ROOT.DEFAULT_SORT_REVERSE fehlt (laut 666-Basis)
+    * ROOT.HEADER_TEXT fehlt (laut 666-Basis)
+    * ROOT.NO_DATA fehlt (laut 666-Basis)
+    * ROOT.PROJECTION_MODE fehlt (laut 666-Basis)
+    * dialog_refs: 2
+      - WORKFLOW_DIALOG_PATCH_TEMPLATE [83c99302-91db-58ba-9ac8-a3e4dc202ca3]
+      - WORKFLOW_DIALOG_RELEASE_TEMPLATE [5d79b918-e617-55f2-bf5b-28200aca6a75]
+- RELEASE_ITEMS_VIEW_TEMPLATE [0f46dd64-2ef7-5787-918b-ffa1647de801]
+    * ROOT.ALLOW_FILTER fehlt (laut 666-Basis)
+    * ROOT.ALLOW_SORT fehlt (laut 666-Basis)
+    * ROOT.DEFAULT_SORT_COLUMN fehlt (laut 666-Basis)
+    * ROOT.DEFAULT_SORT_REVERSE fehlt (laut 666-Basis)
+    * ROOT.HEADER_TEXT fehlt (laut 666-Basis)
+    * ROOT.NO_DATA fehlt (laut 666-Basis)
+    * ROOT.PROJECTION_MODE fehlt (laut 666-Basis)
+    * dialog_refs: 0
+- TARGET_STATE_VIEW_TEMPLATE [3f7ccfb0-d121-56c0-8d03-a41c991e29ef]
+    * ROOT.ALLOW_FILTER fehlt (laut 666-Basis)
+    * ROOT.ALLOW_SORT fehlt (laut 666-Basis)
+    * ROOT.DEFAULT_SORT_COLUMN fehlt (laut 666-Basis)
+    * ROOT.DEFAULT_SORT_REVERSE fehlt (laut 666-Basis)
+    * ROOT.HEADER_TEXT fehlt (laut 666-Basis)
+    * ROOT.NO_DATA fehlt (laut 666-Basis)
+    * ROOT.PROJECTION_MODE fehlt (laut 666-Basis)
+    * dialog_refs: 0
+- WORKFLOW_DICTIONARY_VIEW_TEMPLATE [78609ea1-6dc5-5d55-a061-b6ad6009baf8]
+    * ROOT.ALLOW_FILTER fehlt (laut 666-Basis)
+    * ROOT.ALLOW_SORT fehlt (laut 666-Basis)
+    * ROOT.DEFAULT_SORT_COLUMN fehlt (laut 666-Basis)
+    * ROOT.DEFAULT_SORT_REVERSE fehlt (laut 666-Basis)
+    * ROOT.HEADER_TEXT fehlt (laut 666-Basis)
+    * ROOT.NO_DATA fehlt (laut 666-Basis)
+    * ROOT.PROJECTION_MODE fehlt (laut 666-Basis)
+    * dialog_refs: 1
+      - WORKFLOW_DICTIONARY_DIALOG_TEMPLATE [ad9db21a-82dd-5ad8-89a5-6836dbe4812f]
+- WORKFLOW_DRAFT_ITEMS_VIEW_TEMPLATE [46ac9e21-e14a-5d08-86e5-70f95e786ece]
+    * ROOT.ALLOW_FILTER fehlt (laut 666-Basis)
+    * ROOT.ALLOW_SORT fehlt (laut 666-Basis)
+    * ROOT.DEFAULT_SORT_COLUMN fehlt (laut 666-Basis)
+    * ROOT.DEFAULT_SORT_REVERSE fehlt (laut 666-Basis)
+    * ROOT.HEADER_TEXT fehlt (laut 666-Basis)
+    * ROOT.NO_DATA fehlt (laut 666-Basis)
+    * ROOT.PROJECTION_MODE fehlt (laut 666-Basis)
+    * dialog_refs: 0
+- WORKFLOW_DRAFT_OVERVIEW_VIEW_TEMPLATE [eeeb3edb-0a42-54cc-9a67-a0e3e50959c5]
+    * ROOT.ALLOW_FILTER fehlt (laut 666-Basis)
+    * ROOT.ALLOW_SORT fehlt (laut 666-Basis)
+    * ROOT.DEFAULT_SORT_COLUMN fehlt (laut 666-Basis)
+    * ROOT.DEFAULT_SORT_REVERSE fehlt (laut 666-Basis)
+    * ROOT.HEADER_TEXT fehlt (laut 666-Basis)
+    * ROOT.NO_DATA fehlt (laut 666-Basis)
+    * ROOT.PROJECTION_MODE fehlt (laut 666-Basis)
+    * dialog_refs: 1
+      - WORKFLOW_DRAFT_BUILDER_DIALOG_TEMPLATE [14b932e7-451c-5509-b4b4-aac3199e2936]
+
+Unreferenzierte Saetze (ohne Dialog-Bezug): 10
+- CHANGE_LOG_VIEW_TEMPLATE [ef8348ac-4f9e-5252-9965-c11792ab9190]
+- Edit Frame View [015f1554-3772-47f9-a167-f8a84d7e6773]
+- Import Data View [d1d62ea6-9a51-4a54-94b6-6d1344c98486]
+- Import Data View 1 [f0304934-7d2b-4434-a403-679b41416b54]
+- RELEASE_ITEMS_VIEW_TEMPLATE [0f46dd64-2ef7-5787-918b-ffa1647de801]
+- TARGET_STATE_VIEW_TEMPLATE [3f7ccfb0-d121-56c0-8d03-a41c991e29ef]
+- ▄bersicht [a7cc4cd1-7d34-46ca-a371-011c9bf608ea]
+- View Test 2 [3f584bbc-4b39-4e9c-a7ac-1d0184ce449e]
+- ViewTest 1 Neuanlage [874d9169-d974-4c8f-81ae-41742cc142ec]
+- WORKFLOW_DRAFT_ITEMS_VIEW_TEMPLATE [46ac9e21-e14a-5d08-86e5-70f95e786ece]

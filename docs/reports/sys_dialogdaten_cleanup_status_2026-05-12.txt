@@ -1,0 +1,7 @@
+﻿
+=== Audit sys_dialogdaten ===
+Gesamt: 16
+Reserviert vorhanden: 000/555/666 OK
+L÷schkandidaten (nicht-reserviert, strukturell fehlerhaft): 0
+
+Kein Loeschen durchgefuehrt (nur Angebot). Mit --delete-invalid aktivieren.

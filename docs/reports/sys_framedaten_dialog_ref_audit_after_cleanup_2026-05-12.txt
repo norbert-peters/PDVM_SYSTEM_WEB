@@ -1,0 +1,6 @@
+﻿=== Audit sys_framedaten mit Dialog-Referenzen ===
+Gesamt aktive Saetze: 20
+Reserviert vorhanden: 000/555/666 OK
+Strukturkandidaten (nicht-reserviert): 0
+
+Unreferenzierte Saetze (ohne Dialog-Bezug): 0

@@ -29,6 +29,11 @@ class Settings(BaseSettings):
     # (verhindert versehentliches Anlegen bei fehlerhafter Mandanten-Konfiguration)
     ALLOW_MANDANT_DB_AUTO_CREATE: bool = False
 
+    # Release-Check (GitHub Katalog)
+    # Repo-Format: owner/name (z. B. norbert-peters/PDVM_SYSTEM_WEB)
+    GITHUB_RELEASE_REPO: str = ""
+    GITHUB_RELEASE_TOKEN: str = ""
+
     # =========================================================================
     # VIEW PIPELINE SCALING
     # =========================================================================

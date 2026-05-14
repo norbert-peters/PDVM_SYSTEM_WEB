@@ -4,7 +4,7 @@ JWT tokens, password hashing
 """
 from datetime import datetime, timedelta
 import uuid
-from typing import Optional
+from typing import Optional, Set
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
@@ -87,3 +87,119 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
     
     except JWTError:
         raise credentials_exception
+
+
+def has_admin_rights(current_user: dict) -> bool:
+    """
+    Zentraler Admin-Check fuer API-Guards.
+
+    Unterstützte Quellen:
+    - user_data.SECURITY.IS_ADMIN
+    - normalisierte Rollen aus SECURITY/PERMISSIONS/SETTINGS
+    """
+    if not isinstance(current_user, dict):
+        return False
+
+    user_data = current_user.get("user_data")
+    if not isinstance(user_data, dict):
+        return False
+
+    security = user_data.get("SECURITY") if isinstance(user_data.get("SECURITY"), dict) else {}
+    is_admin = security.get("IS_ADMIN")
+    roles = _normalized_security_roles(current_user)
+    return is_admin in (True, 1, "1", "true", "TRUE") or bool(roles.intersection({"admin", "superadmin"}))
+
+
+def _normalized_security_roles(current_user: dict) -> Set[str]:
+    """Liest und normalisiert Rollen aus user_data.SECURITY, PERMISSIONS und SETTINGS."""
+    if not isinstance(current_user, dict):
+        return set()
+
+    user_data = current_user.get("user_data")
+    if not isinstance(user_data, dict):
+        return set()
+
+    security = user_data.get("SECURITY")
+    permissions = user_data.get("PERMISSIONS")
+    settings_node = user_data.get("SETTINGS")
+
+    security = security if isinstance(security, dict) else {}
+    permissions = permissions if isinstance(permissions, dict) else {}
+    settings_node = settings_node if isinstance(settings_node, dict) else {}
+
+    roles: Set[str] = set()
+
+    role = str(security.get("ROLE") or "").strip().lower()
+    if role:
+        roles.add(role)
+
+    roles_raw = security.get("ROLES")
+    if isinstance(roles_raw, list):
+        for item in roles_raw:
+            item_norm = str(item or "").strip().lower()
+            if item_norm:
+                roles.add(item_norm)
+    elif isinstance(roles_raw, str):
+        for item in roles_raw.split(","):
+            item_norm = str(item or "").strip().lower()
+            if item_norm:
+                roles.add(item_norm)
+
+    # Zusätzliche Rollenquelle: PERMISSIONS.ROLES
+    permissions_roles = permissions.get("ROLES")
+    if isinstance(permissions_roles, list):
+        for item in permissions_roles:
+            item_norm = str(item or "").strip().lower()
+            if item_norm:
+                roles.add(item_norm)
+    elif isinstance(permissions_roles, str):
+        for item in permissions_roles.split(","):
+            item_norm = str(item or "").strip().lower()
+            if item_norm:
+                roles.add(item_norm)
+
+    # Fallback aus SETTINGS.MODE (z. B. admin/develop)
+    mode = str(settings_node.get("MODE") or "").strip().lower()
+    if mode:
+        roles.add(mode)
+
+    return roles
+
+
+def has_develop_rights(current_user: dict) -> bool:
+    """
+    Zentraler Develop-Check fuer API-Guards.
+
+    Unterstuetzte Quellen:
+    - user_data.SECURITY.ROLE (develop|developer)
+    - user_data.SECURITY.ROLES (Liste oder CSV)
+    """
+    roles = _normalized_security_roles(current_user)
+    return bool(roles.intersection({"develop", "developer"}))
+
+
+def has_admin_or_develop_rights(current_user: dict) -> bool:
+    """Erlaubt Zugriff fuer Admin oder Develop-Rollen."""
+    return has_admin_rights(current_user) or has_develop_rights(current_user)
+
+
+async def require_admin_user(current_user: dict = Depends(get_current_user)) -> dict:
+    """Dependency: erlaubt nur Admin-User."""
+    if has_admin_rights(current_user):
+        return current_user
+
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Admin-Recht erforderlich",
+    )
+
+
+async def require_admin_or_develop_user(current_user: dict = Depends(get_current_user)) -> dict:
+    """Dependency: erlaubt Admin- oder Develop-User."""
+    if has_admin_or_develop_rights(current_user):
+        return current_user
+
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Admin- oder Develop-Recht erforderlich",
+    )

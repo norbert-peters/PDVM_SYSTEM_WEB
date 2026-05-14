@@ -12,12 +12,13 @@ from __future__ import annotations
 import uuid
 import re
 import json
+import copy
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from app.core.security import get_current_user
+from app.core.security import get_current_user, has_admin_rights, has_develop_rights
 from app.core.pdvm_central_systemsteuerung import get_gcs_session
 from app.core.dialog_service import (
     build_dialog_draft_from_template,
@@ -33,6 +34,7 @@ from app.core.dialog_service import (
 )
 from app.core.pdvm_datenbank import PdvmDatabase
 from app.core.control_template_service import ControlTemplateService
+from app.core.workflow_draft_service import WorkflowDraftService
 
 router = APIRouter()
 
@@ -371,6 +373,7 @@ class DialogDraftStartRequest(BaseModel):
     template_uid: Optional[str] = None
     is_template: Optional[bool] = None
     modul_type: Optional[str] = Field(None, description="Für edit_dict: edit, view, tabs")
+    create_context: Optional[Dict[str, Any]] = None
 
 
 class DialogDraftUpdateRequest(BaseModel):
@@ -379,6 +382,7 @@ class DialogDraftUpdateRequest(BaseModel):
 
 class DialogDraftCommitRequest(BaseModel):
     daten: Optional[Dict[str, Any]] = None
+    create_context: Optional[Dict[str, Any]] = None
 
 
 class DialogDraftResponse(BaseModel):
@@ -388,6 +392,276 @@ class DialogDraftResponse(BaseModel):
     root_table: str
     edit_type: str
     validation_errors: List[DialogValidationIssue] = Field(default_factory=list)
+
+
+def _normalize_create_context(raw: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    if not isinstance(raw, dict):
+        return {}
+
+    out: Dict[str, Any] = {}
+    for k, v in raw.items():
+        key = str(k or "").strip().upper()
+        if not key:
+            continue
+        out[key] = v
+    return out
+
+
+def _normalize_create_context_with_alias(raw: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    ctx = _normalize_create_context(raw)
+
+    # Kompatible Alias-Auflösung: TABLE ist Pflicht in vielen Dialog-Validierungen.
+    if not str(ctx.get("TABLE") or "").strip():
+        for alias in ("ROOT_TABLE", "TARGET_TABLE", "DIALOG_TABLE"):
+            value = ctx.get(alias)
+            if str(value or "").strip():
+                ctx["TABLE"] = str(value).strip()
+                break
+
+    return ctx
+
+
+def _extract_create_required_fields(dialog_def: Optional[Dict[str, Any]]) -> List[str]:
+    if not isinstance(dialog_def, dict):
+        return []
+
+    root = dialog_def.get("root")
+    if not isinstance(root, dict):
+        root = ((dialog_def.get("daten") or {}) if isinstance(dialog_def.get("daten"), dict) else {}).get("ROOT")
+    if not isinstance(root, dict):
+        return []
+
+    raw = root.get("CREATE_REQUIRED")
+    if raw is None:
+        raw = root.get("create_required")
+
+    values: List[str] = []
+    if isinstance(raw, list):
+        values = [str(x or "").strip().upper() for x in raw]
+    elif isinstance(raw, str):
+        values = [str(x or "").strip().upper() for x in raw.split(",")]
+
+    out: List[str] = []
+    for value in values:
+        if not value:
+            continue
+        if value in out:
+            continue
+        out.append(value)
+    return out
+
+
+def _missing_required_create_fields(
+    *,
+    create_context: Optional[Dict[str, Any]],
+    required_fields: List[str],
+    draft_name: Optional[str] = None,
+) -> List[str]:
+    if not required_fields:
+        return []
+
+    ctx = _normalize_create_context_with_alias(create_context)
+    name_value = str(draft_name or "").strip()
+    missing: List[str] = []
+    for field in required_fields:
+        if field == "NAME" and name_value:
+            continue
+        value = ctx.get(field)
+        if value is None:
+            missing.append(field)
+            continue
+        if isinstance(value, str) and not value.strip():
+            missing.append(field)
+    return missing
+
+
+def _resolve_effective_root_table(
+    *,
+    runtime_root_table: str,
+    create_context: Optional[Dict[str, Any]],
+) -> str:
+    runtime_norm = _normalize_table_name(runtime_root_table)
+    ctx = _normalize_create_context_with_alias(create_context)
+    ctx_table = _normalize_table_name(ctx.get("TABLE"))
+
+    # Wenn TABLE im Create-Kontext gesetzt ist, gilt diese als Zieltabelle.
+    # Damit kann der Create-Dialog den Datensatz-Typ dynamisch steuern.
+    if ctx_table:
+        return ctx_table
+    return runtime_norm
+
+
+def _build_root_patch_from_create_context(
+    *,
+    create_context: Optional[Dict[str, Any]],
+    is_template: Optional[bool] = None,
+) -> Optional[Dict[str, Any]]:
+    ctx = _normalize_create_context_with_alias(create_context)
+    root_patch: Dict[str, Any] = {}
+
+    if is_template is not None:
+        # Rückwärtskompatibel: bestehende Daten nutzen das Feld in lowercase.
+        root_patch["is_template"] = bool(is_template)
+
+    # Alle Context-Werte als ROOT-Felder übernehmen (datengetriebenes Create-Frame-Verhalten).
+    for key, value in ctx.items():
+        root_patch[key] = value
+
+    return root_patch or None
+
+
+def _build_workflow_setup_payload(*, draft_name: str, create_context: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    ctx = _normalize_create_context_with_alias(create_context)
+    target_table = str(ctx.get("TARGET_TABLE") or "").strip() or "sys_dialogdaten"
+    workflow_name = str(ctx.get("WORKFLOW_NAME") or "").strip() or str(draft_name or "").strip()
+    description = str(ctx.get("DESCRIPTION") or "").strip()
+
+    return {
+        "WORKFLOW_NAME": workflow_name,
+        "DIALOG_TYPE": "work",
+        "TARGET_TABLE": target_table,
+        "DESCRIPTION": description,
+    }
+
+
+def _extract_work_draft_tables(dialog_def: Optional[Dict[str, Any]]) -> tuple[str, str]:
+    root = (dialog_def or {}).get("root") if isinstance((dialog_def or {}).get("root"), dict) else {}
+    if not isinstance(root, dict):
+        root = {}
+
+    draft_table = str(root.get("DRAFT_TABLE") or root.get("draft_table") or "dev_workflow_draft").strip().lower()
+    draft_item_table = str(root.get("DRAFT_ITEM_TABLE") or root.get("draft_item_table") or "dev_workflow_draft_item").strip().lower()
+    if not _TABLE_NAME_RE.match(draft_table):
+        raise HTTPException(status_code=422, detail="DRAFT_TABLE enthaelt ungueltige Zeichen")
+    if not _TABLE_NAME_RE.match(draft_item_table):
+        raise HTTPException(status_code=422, detail="DRAFT_ITEM_TABLE enthaelt ungueltige Zeichen")
+    return draft_table, draft_item_table
+
+
+def _extract_uuid_or_fail(*, label: str, value: Optional[str]) -> str:
+    token = str(value or "").strip()
+    if not token:
+        raise HTTPException(status_code=400, detail=f"{label} konnte nicht ermittelt werden")
+    try:
+        return str(uuid.UUID(token))
+    except Exception:
+        raise HTTPException(status_code=400, detail=f"{label} ist ungueltig")
+
+
+async def _bootstrap_workflow_draft_records(
+    *,
+    gcs,
+    current_user: Dict[str, Any],
+    draft_name: str,
+    create_context: Optional[Dict[str, Any]],
+    draft_table: str,
+    draft_item_table: str,
+) -> Dict[str, Any]:
+    system_pool = getattr(gcs, "_pool_system", None) or getattr(gcs, "_system_pool", None)
+    if not system_pool:
+        raise HTTPException(status_code=500, detail="Systemdatenbank-Pool nicht verfuegbar")
+
+    user_guid = _extract_uuid_or_fail(
+        label="user_guid",
+        value=str(getattr(gcs, "user_guid", "") or current_user.get("sub") or ""),
+    )
+    mandant_guid = _extract_uuid_or_fail(
+        label="mandant_guid",
+        value=str(getattr(gcs, "mandant_guid", "") or ""),
+    )
+
+    setup_payload = _build_workflow_setup_payload(draft_name=draft_name, create_context=create_context)
+    created = await WorkflowDraftService.create_draft(
+        system_pool,
+        workflow_type="work",
+        title=str(draft_name).strip(),
+        owner_user_guid=user_guid,
+        mandant_guid=mandant_guid,
+        initial_setup=setup_payload,
+        draft_table=draft_table,
+        draft_item_table=draft_item_table,
+    )
+
+    draft_guid = str(created.get("draft_guid") or "").strip()
+    if not draft_guid:
+        raise HTTPException(status_code=500, detail="Workflow-Draft konnte nicht angelegt werden")
+
+    await WorkflowDraftService.save_draft_item(
+        system_pool,
+        draft_guid=draft_guid,
+        item_type="setup",
+        item_key="setup",
+        payload=setup_payload,
+        updated_by_user_guid=user_guid,
+        draft_table=draft_table,
+        draft_item_table=draft_item_table,
+    )
+
+    work_container_payload = {
+        "WORKFLOW": {
+            "DRAFT_GUID": draft_guid,
+            "DRAFT_TABLE": draft_table,
+            "DRAFT_ITEM_TABLE": draft_item_table,
+            "WORKFLOW_NAME": setup_payload["WORKFLOW_NAME"],
+            "DIALOG_TYPE": "work",
+            "TARGET_TABLE": setup_payload["TARGET_TABLE"],
+            "DESCRIPTION": setup_payload.get("DESCRIPTION") or "",
+        },
+        "sys_dialogdaten": {},
+        "sys_viewdaten": {},
+        "sys_framedaten": {},
+    }
+
+    work_item_result = await WorkflowDraftService.save_draft_item(
+        system_pool,
+        draft_guid=draft_guid,
+        item_type="work",
+        item_key="container",
+        payload=work_container_payload,
+        updated_by_user_guid=user_guid,
+        draft_table=draft_table,
+        draft_item_table=draft_item_table,
+    )
+
+    async with system_pool.acquire() as conn:
+        row = await conn.fetchrow(
+            f"SELECT daten FROM {draft_table} WHERE uid = $1::uuid AND COALESCE(historisch, 0) = 0",
+            uuid.UUID(draft_guid),
+        )
+        if row:
+            data = row.get("daten")
+            draft_daten = data if isinstance(data, dict) else {}
+            if not draft_daten and isinstance(data, str):
+                try:
+                    parsed = json.loads(data)
+                    draft_daten = parsed if isinstance(parsed, dict) else {}
+                except Exception:
+                    draft_daten = {}
+            draft_root = draft_daten.get("ROOT") if isinstance(draft_daten.get("ROOT"), dict) else {}
+            draft_root = dict(draft_root)
+            draft_root["WORK_ITEM_UID"] = str(work_item_result.get("item_uid") or "")
+            draft_root["WORK_ITEM_TYPE"] = "work"
+            draft_root["WORK_ITEM_KEY"] = "container"
+            draft_daten["ROOT"] = draft_root
+            await conn.execute(
+                f"""
+                UPDATE {draft_table}
+                SET daten = $2::jsonb,
+                    modified_at = NOW()
+                WHERE uid = $1::uuid
+                """,
+                uuid.UUID(draft_guid),
+                json.dumps(draft_daten, ensure_ascii=False),
+            )
+
+    return {
+        "draft_guid": draft_guid,
+        "setup": setup_payload,
+        "dialog_uid": "",
+        "view_uid": "",
+        "frame_uid": "",
+        "work_item_uid": str(work_item_result.get("item_uid") or ""),
+    }
 
 
 class ModulSelectionRequiredResponse(BaseModel):
@@ -405,6 +679,95 @@ class DialogLastCallResponse(BaseModel):
 
 class DialogLastCallUpdateRequest(BaseModel):
     record_uid: Optional[str] = None
+
+
+class DialogCreateTableOption(BaseModel):
+    value: str
+    label: str
+    scope: str
+
+
+class DialogCreateTableOptionsResponse(BaseModel):
+    role: str
+    tables: List[DialogCreateTableOption] = Field(default_factory=list)
+
+
+async def _list_public_table_names(pool: Any) -> List[str]:
+    if pool is None:
+        return []
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = 'public'
+            ORDER BY table_name
+            """
+        )
+    return [str(r.get("table_name") or "").strip() for r in rows if str(r.get("table_name") or "").strip()]
+
+
+@router.get("/{dialog_guid}/create-table-options", response_model=DialogCreateTableOptionsResponse)
+async def get_create_table_options(
+    dialog_guid: str,
+    gcs=Depends(get_gcs_instance),
+    current_user: dict = Depends(get_current_user),
+):
+    try:
+        uuid.UUID(dialog_guid)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Ungültige dialog_guid")
+
+    is_develop = has_develop_rights(current_user)
+    is_admin = has_admin_rights(current_user)
+    if not is_admin and not is_develop:
+        raise HTTPException(status_code=403, detail="Admin- oder Develop-Recht erforderlich")
+
+    system_tables = await _list_public_table_names(getattr(gcs, "_system_pool", None))
+    mandant_tables = await _list_public_table_names(getattr(gcs, "_mandant_pool", None))
+
+    out: List[DialogCreateTableOption] = []
+    seen: set[str] = set()
+
+    def _append_tables(values: List[str], scope: str) -> None:
+        for t in values:
+            table_name = str(t or "").strip()
+            if not table_name:
+                continue
+            key = table_name.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(
+                DialogCreateTableOption(
+                    value=table_name,
+                    label=f"{table_name} ({scope})",
+                    scope=scope,
+                )
+            )
+
+    # Rollenregel:
+    # - admin: nur Mandanten-Tabellen
+    # - develop: System + Mandanten-Tabellen
+    # - admin+develop: System + Mandanten-Tabellen (Develop-Sicht)
+    if is_admin and is_develop:
+        _append_tables(system_tables, "system")
+        _append_tables(mandant_tables, "mandant")
+        role = "admin+develop"
+    elif is_admin:
+        _append_tables(mandant_tables, "mandant")
+        role = "admin"
+    elif is_develop:
+        _append_tables(system_tables, "system")
+        _append_tables(mandant_tables, "mandant")
+        role = "develop"
+    else:
+        role = "unknown"
+
+    return {
+        "role": role,
+        "tables": out,
+    }
 
 
 @router.get("/frame/{frame_guid}", response_model=FrameDefinitionResponse)
@@ -586,6 +949,7 @@ async def post_dialog_draft_start(
     payload: DialogDraftStartRequest,
     dialog_table: Optional[str] = None,
     gcs=Depends(get_gcs_instance),
+    current_user: dict = Depends(get_current_user),
 ):
     try:
         dialog_uuid = uuid.UUID(dialog_guid)
@@ -616,15 +980,49 @@ async def post_dialog_draft_start(
     if template_uuid is None:
         template_uuid = uuid.UUID("66666666-6666-6666-6666-666666666666")
 
-    root_patch = None
-    if str(root_table).strip().lower() == "sys_menudaten" and payload.is_template is not None:
-        root_patch = {"is_template": bool(payload.is_template)}
+    root_patch = _build_root_patch_from_create_context(
+        create_context=payload.create_context,
+        is_template=payload.is_template if str(root_table).strip().lower() == "sys_menudaten" else None,
+    )
+
+    effective_root_table = _resolve_effective_root_table(
+        runtime_root_table=root_table,
+        create_context=payload.create_context,
+    )
+    if not effective_root_table:
+        raise HTTPException(status_code=400, detail="ROOT.TABLE ist leer")
+
+    if str(runtime.get("dialog_type") or "").strip().lower() == "work":
+        system_pool = getattr(gcs, "_pool_system", None) or getattr(gcs, "_system_pool", None)
+        if not system_pool:
+            raise HTTPException(status_code=500, detail="Systemdatenbank-Pool nicht verfuegbar")
+        draft_table, draft_item_table = _extract_work_draft_tables(dialog_def)
+        await WorkflowDraftService.ensure_draft_tables(
+            system_pool,
+            draft_table=draft_table,
+            draft_item_table=draft_item_table,
+        )
+
+    required_create_fields = _extract_create_required_fields(dialog_def)
+    missing_create_fields = _missing_required_create_fields(
+        create_context=payload.create_context,
+        required_fields=required_create_fields,
+        draft_name=name,
+    )
+    if missing_create_fields:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "message": "Pflichtfelder für Create-Kontext fehlen",
+                "missing_fields": missing_create_fields,
+            },
+        )
 
     try:
         defer_resolution = _should_defer_template_resolution(root_table=root_table, edit_type=edit_type)
         built = await build_dialog_draft_from_template(
             gcs,
-            root_table=root_table,
+            root_table=effective_root_table,
             name=name,
             template_uuid=template_uuid,
             root_patch=root_patch,
@@ -636,6 +1034,42 @@ async def post_dialog_draft_start(
     except KeyError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
+    workflow_bootstrap: Optional[Dict[str, Any]] = None
+    if str(runtime.get("dialog_type") or "").strip().lower() == "work":
+        draft_table, draft_item_table = _extract_work_draft_tables(dialog_def)
+        workflow_bootstrap = await _bootstrap_workflow_draft_records(
+            gcs=gcs,
+            current_user=current_user,
+            draft_name=name,
+            create_context=payload.create_context,
+            draft_table=draft_table,
+            draft_item_table=draft_item_table,
+        )
+
+    if workflow_bootstrap:
+        daten_obj = built.get("daten") if isinstance(built, dict) else None
+        if not isinstance(daten_obj, dict):
+            daten_obj = {}
+
+        root_obj = daten_obj.get("ROOT") if isinstance(daten_obj.get("ROOT"), dict) else {}
+        root_obj = dict(root_obj)
+        root_obj["WORKFLOW_DRAFT_GUID"] = workflow_bootstrap["draft_guid"]
+        root_obj["DIALOG_TYPE"] = "work"
+        root_obj["TARGET_TABLE"] = workflow_bootstrap["setup"]["TARGET_TABLE"]
+        root_obj["WORKFLOW_NAME"] = workflow_bootstrap["setup"]["WORKFLOW_NAME"]
+        root_obj["DIALOG_UID"] = workflow_bootstrap["dialog_uid"]
+        root_obj["WORK_ITEM_UID"] = workflow_bootstrap.get("work_item_uid") or ""
+        daten_obj["ROOT"] = root_obj
+
+        fields_obj = daten_obj.get("FIELDS") if isinstance(daten_obj.get("FIELDS"), dict) else {}
+        fields_obj = dict(fields_obj)
+        fields_obj["WORKFLOW_NAME"] = workflow_bootstrap["setup"]["WORKFLOW_NAME"]
+        fields_obj["TARGET_TABLE"] = workflow_bootstrap["setup"]["TARGET_TABLE"]
+        fields_obj["DESCRIPTION"] = workflow_bootstrap["setup"].get("DESCRIPTION") or ""
+        daten_obj["FIELDS"] = fields_obj
+
+        built["daten"] = daten_obj
+
     draft_id = str(uuid.uuid4())
     scope = _resolve_dialog_scope(dialog_guid, runtime)
     drafts = await _read_dialog_drafts(gcs, group=scope)
@@ -643,10 +1077,11 @@ async def post_dialog_draft_start(
         "draft_id": draft_id,
         "name": built["name"],
         "daten": built["daten"],
-        "root_table": root_table,
+        "root_table": effective_root_table,
         "edit_type": edit_type,
         "template_uid": built.get("template_uid"),
         "sec_id": built.get("sec_id"),
+        "create_context": _normalize_create_context(payload.create_context),
     }
     await _write_dialog_drafts(gcs, group=scope, drafts=drafts)
 
@@ -658,7 +1093,7 @@ async def post_dialog_draft_start(
         "draft_id": draft_id,
         "name": built["name"],
         "daten": built["daten"],
-        "root_table": root_table,
+        "root_table": effective_root_table,
         "edit_type": edit_type,
         "validation_errors": issues,
     }
@@ -690,6 +1125,9 @@ async def put_dialog_draft(
     current = drafts.get(draft_id)
     if not isinstance(current, dict):
         raise HTTPException(status_code=404, detail="Draft nicht gefunden")
+
+    # Draft-Zieltabelle bleibt stabil aus dem Start-Flow.
+    root_table = str(current.get("root_table") or root_table).strip()
 
     daten = payload.daten
     if daten is None or not isinstance(daten, dict):
@@ -742,6 +1180,9 @@ async def post_dialog_draft_commit(
     if not isinstance(current, dict):
         raise HTTPException(status_code=404, detail="Draft nicht gefunden")
 
+    # Commit muss gegen dieselbe Zieltabelle laufen wie Draft-Start.
+    root_table = str(current.get("root_table") or root_table).strip()
+
     daten = payload.daten if isinstance(payload.daten, dict) else current.get("daten")
     if daten is None or not isinstance(daten, dict):
         raise HTTPException(status_code=400, detail="daten muss ein JSON-Objekt sein")
@@ -773,10 +1214,17 @@ async def post_dialog_draft_commit(
     except Exception:
         template_uuid = uuid.UUID("66666666-6666-6666-6666-666666666666")
 
-    root_patch = None
+    create_context = _normalize_create_context(payload.create_context)
+    if not create_context:
+        create_context = _normalize_create_context(current.get("create_context"))
+
+    root_patch = _build_root_patch_from_create_context(create_context=create_context)
     root = daten.get("ROOT") if isinstance(daten, dict) else None
     if isinstance(root, dict):
-        root_patch = dict(root)
+        root_patch = {
+            **(root_patch or {}),
+            **dict(root),
+        }
 
     try:
         defer_resolution = _should_defer_template_resolution(root_table=root_table, edit_type=edit_type)

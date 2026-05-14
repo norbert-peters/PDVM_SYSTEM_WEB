@@ -187,6 +187,7 @@ export interface DialogDraftStartRequest {
   template_uid?: string | null
   is_template?: boolean | null
   modul_type?: string | null
+  create_context?: Record<string, any> | null
 }
 
 export interface DialogDraftUpdateRequest {
@@ -195,6 +196,7 @@ export interface DialogDraftUpdateRequest {
 
 export interface DialogDraftCommitRequest {
   daten?: Record<string, any>
+  create_context?: Record<string, any> | null
 }
 
 export interface DialogDraftResponse {
@@ -218,6 +220,118 @@ export interface DialogUiStateResponse {
 
 export interface DialogUiStateUpdateRequest {
   ui_state: Record<string, any>
+}
+
+export interface DialogCreateTableOption {
+  value: string
+  label: string
+  scope: string
+}
+
+export interface DialogCreateTableOptionsResponse {
+  role: string
+  tables: DialogCreateTableOption[]
+}
+
+export interface WorkflowDraftCreateRequest {
+  workflow_type: string
+  title: string
+  initial_setup?: Record<string, any> | null
+  draft_table?: string | null
+  draft_item_table?: string | null
+}
+
+export interface WorkflowDraftItemSaveRequest {
+  item_type: string
+  item_key: string
+  payload: Record<string, any>
+}
+
+export interface WorkflowDraftValidationError {
+  code: string
+  field?: string | null
+  message: string
+}
+
+export interface WorkflowDraftValidationResponse {
+  success: boolean
+  message: string
+  draft_guid: string
+  valid: boolean
+  error_count: number
+  errors: WorkflowDraftValidationError[]
+}
+
+export interface WorkflowDraftLoadResponse {
+  success: boolean
+  message: string
+  draft_guid: string
+  name: string
+  root: Record<string, any>
+  items: Array<{
+    item_uid: string
+    item_type: string
+    item_key: string
+    payload: Record<string, any>
+    updated_at?: string | null
+  }>
+}
+
+export interface WorkflowDraftCreateResponse {
+  success: boolean
+  message: string
+  draft_guid: string
+  workflow_type: string
+  title: string
+  status: string
+}
+
+export interface WorkflowDraftSaveItemResponse {
+  success: boolean
+  message: string
+  draft_guid: string
+  item_uid: string
+  item_type: string
+  item_key: string
+  updated_at: string
+}
+
+export interface WorkflowDraftListOpenResponse {
+  success: boolean
+  message: string
+  drafts: Array<{
+    draft_guid: string
+    title: string
+    workflow_type: string
+    status: string
+    updated_at?: string | null
+    revision?: number
+  }>
+  count: number
+}
+
+export interface WorkflowDraftEnsureStepRequest {
+  step: number
+  table?: string
+  module?: string
+  head?: string
+  draft_table?: string | null
+  draft_item_table?: string | null
+}
+
+export interface WorkflowDraftTableOptions {
+  draft_table?: string | null
+  draft_item_table?: string | null
+}
+
+export interface WorkflowDraftEnsureStepResponse {
+  success: boolean
+  message: string
+  draft_guid: string
+  step: number
+  workflow_name: string
+  created_or_present: Record<string, string>
+  work_item_uid: string
 }
 
 export interface ImportPreviewResponse {
@@ -702,6 +816,85 @@ export const dialogsAPI = {
     const response = await api.put(`/dialogs/${dialogGuid}/ui-state`, payload, {
       params: opts?.dialog_table ? { dialog_table: opts.dialog_table } : undefined,
     })
+    return response.data
+  },
+
+  getCreateTableOptions: async (
+    dialogGuid: string,
+    opts?: DialogTableOverrideOptions
+  ): Promise<DialogCreateTableOptionsResponse> => {
+    const response = await api.get(`/dialogs/${dialogGuid}/create-table-options`, {
+      params: opts?.dialog_table ? { dialog_table: opts.dialog_table } : undefined,
+    })
+    return response.data
+  },
+}
+
+export const workflowDraftsAPI = {
+  bootstrap: async (opts?: WorkflowDraftTableOptions): Promise<{ success: boolean; message: string }> => {
+    const response = await api.post('/workflow-drafts/bootstrap', null, {
+      params: {
+        ...(opts?.draft_table ? { draft_table: opts.draft_table } : null),
+        ...(opts?.draft_item_table ? { draft_item_table: opts.draft_item_table } : null),
+      } as any,
+    })
+    return response.data
+  },
+
+  create: async (payload: WorkflowDraftCreateRequest): Promise<WorkflowDraftCreateResponse> => {
+    const response = await api.post('/workflow-drafts/create', payload)
+    return response.data
+  },
+
+  saveItem: async (
+    draftGuid: string,
+    payload: WorkflowDraftItemSaveRequest,
+    opts?: WorkflowDraftTableOptions
+  ): Promise<WorkflowDraftSaveItemResponse> => {
+    const response = await api.post(`/workflow-drafts/${draftGuid}/items`, payload, {
+      params: {
+        ...(opts?.draft_table ? { draft_table: opts.draft_table } : null),
+        ...(opts?.draft_item_table ? { draft_item_table: opts.draft_item_table } : null),
+      } as any,
+    })
+    return response.data
+  },
+
+  load: async (draftGuid: string, opts?: WorkflowDraftTableOptions): Promise<WorkflowDraftLoadResponse> => {
+    const response = await api.get(`/workflow-drafts/${draftGuid}`, {
+      params: {
+        ...(opts?.draft_table ? { draft_table: opts.draft_table } : null),
+        ...(opts?.draft_item_table ? { draft_item_table: opts.draft_item_table } : null),
+      } as any,
+    })
+    return response.data
+  },
+
+  listOpen: async (opts?: WorkflowDraftTableOptions): Promise<WorkflowDraftListOpenResponse> => {
+    const response = await api.get('/workflow-drafts/list/open', {
+      params: {
+        ...(opts?.draft_table ? { draft_table: opts.draft_table } : null),
+        ...(opts?.draft_item_table ? { draft_item_table: opts.draft_item_table } : null),
+      } as any,
+    })
+    return response.data
+  },
+
+  validate: async (draftGuid: string, opts?: WorkflowDraftTableOptions): Promise<WorkflowDraftValidationResponse> => {
+    const response = await api.post(`/workflow-drafts/${draftGuid}/validate`, null, {
+      params: {
+        ...(opts?.draft_table ? { draft_table: opts.draft_table } : null),
+        ...(opts?.draft_item_table ? { draft_item_table: opts.draft_item_table } : null),
+      } as any,
+    })
+    return response.data
+  },
+
+  ensureStep: async (
+    draftGuid: string,
+    payload: WorkflowDraftEnsureStepRequest
+  ): Promise<WorkflowDraftEnsureStepResponse> => {
+    const response = await api.post(`/workflow-drafts/${draftGuid}/ensure-step`, payload)
     return response.data
   },
 }
