@@ -12,8 +12,8 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, Optional, Tuple
 
 from app.core.user_manager import UserManager
+from app.core.central_write_service import update_record_central
 from app.core.pdvm_central_benutzer import PdvmCentralBenutzer
-from app.core.pdvm_datenbank import PdvmDatabase
 from app.core.email_service import send_email
 from app.core.pdvm_datetime import datetime_to_pdvm, pdvm_to_datetime
 
@@ -185,6 +185,13 @@ def _update_security(daten: Dict[str, Any], updates: Dict[str, Any]) -> Dict[str
     return next_data
 
 
+def _actor_user_uid_from_gcs(gcs) -> Optional[uuid.UUID]:
+    try:
+        return uuid.UUID(str(getattr(gcs, "user_guid", "") or ""))
+    except Exception:
+        return None
+
+
 async def issue_password_reset(
     *,
     gcs,
@@ -248,8 +255,16 @@ async def issue_password_reset(
         },
     )
 
-    db = PdvmDatabase("sys_benutzer")
-    await db.update(user_uuid, updated, name=user.get("name"), historisch=user.get("historisch"))
+    await update_record_central(
+        table_name="sys_benutzer",
+        uid=user_uuid,
+        daten=updated,
+        name=user.get("name"),
+        historisch=user.get("historisch"),
+        gcs=gcs,
+        actor_user_uid=_actor_user_uid_from_gcs(gcs),
+        actor_ip=getattr(gcs, "actor_ip", None) if gcs else None,
+    )
 
     # Send email
     subject = "PDVM Passwort zurücksetzen"
@@ -277,7 +292,14 @@ async def issue_password_reset(
     }
 
 
-async def update_account_lock(*, user_uid: str, locked: bool, reason: Optional[str] = None) -> None:
+async def update_account_lock(
+    *,
+    user_uid: str,
+    locked: bool,
+    reason: Optional[str] = None,
+    actor_user_uid: Optional[uuid.UUID] = None,
+    actor_ip: Optional[str] = None,
+) -> None:
     try:
         user_uuid = uuid.UUID(str(user_uid))
     except Exception:
@@ -296,11 +318,24 @@ async def update_account_lock(*, user_uid: str, locked: bool, reason: Optional[s
         },
     )
 
-    db = PdvmDatabase("sys_benutzer")
-    await db.update(user_uuid, updated, name=user.get("name"), historisch=user.get("historisch"))
+    await update_record_central(
+        table_name="sys_benutzer",
+        uid=user_uuid,
+        daten=updated,
+        name=user.get("name"),
+        historisch=user.get("historisch"),
+        gcs=None,
+        actor_user_uid=actor_user_uid,
+        actor_ip=actor_ip,
+    )
 
 
-async def clear_password_reset_flags(*, user_uid: str) -> None:
+async def clear_password_reset_flags(
+    *,
+    user_uid: str,
+    actor_user_uid: Optional[uuid.UUID] = None,
+    actor_ip: Optional[str] = None,
+) -> None:
     try:
         user_uuid = uuid.UUID(str(user_uid))
     except Exception:
@@ -321,11 +356,24 @@ async def clear_password_reset_flags(*, user_uid: str) -> None:
         },
     )
 
-    db = PdvmDatabase("sys_benutzer")
-    await db.update(user_uuid, updated, name=user.get("name"), historisch=user.get("historisch"))
+    await update_record_central(
+        table_name="sys_benutzer",
+        uid=user_uuid,
+        daten=updated,
+        name=user.get("name"),
+        historisch=user.get("historisch"),
+        gcs=None,
+        actor_user_uid=actor_user_uid,
+        actor_ip=actor_ip,
+    )
 
 
-async def mark_password_changed(*, user_uid: str) -> None:
+async def mark_password_changed(
+    *,
+    user_uid: str,
+    actor_user_uid: Optional[uuid.UUID] = None,
+    actor_ip: Optional[str] = None,
+) -> None:
     """Setzt LAST_PASSWORD_CHANGE im SECURITY-Block auf den aktuellen PDVM-Zeitstempel."""
     try:
         user_uuid = uuid.UUID(str(user_uid))
@@ -344,5 +392,13 @@ async def mark_password_changed(*, user_uid: str) -> None:
         },
     )
 
-    db = PdvmDatabase("sys_benutzer")
-    await db.update(user_uuid, updated, name=user.get("name"), historisch=user.get("historisch"))
+    await update_record_central(
+        table_name="sys_benutzer",
+        uid=user_uuid,
+        daten=updated,
+        name=user.get("name"),
+        historisch=user.get("historisch"),
+        gcs=None,
+        actor_user_uid=actor_user_uid,
+        actor_ip=actor_ip,
+    )

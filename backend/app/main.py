@@ -26,7 +26,15 @@ async def startup():
     try:
         import asyncpg
         from app.core.connection_manager import ConnectionManager
-        from app.core.mandant_db_maintenance import run_system_maintenance
+        from app.core.mandant_db_maintenance import run_system_maintenance, run_auth_maintenance
+
+        print("🔧 Starte Auth-Datenbank-Wartung...")
+        auth_stats = await run_auth_maintenance(DatabasePool._pool_auth)
+        print(
+            f"✅ Auth-Wartung: link_uid={auth_stats['link_uid_synced']}, "
+            f"ROOT={auth_stats['root_self_synced']}, "
+            f"neue link_uid-Spalten={auth_stats['link_uid_columns_added']}"
+        )
         
         print("🔧 Starte System-Datenbank-Wartung...")
         
@@ -41,7 +49,9 @@ async def startup():
             maintenance_stats = await run_system_maintenance(system_pool)
             print(f"✅ System-Wartung: {len(maintenance_stats['tables_created'])} Tabellen erstellt, "
                   f"{len(maintenance_stats['tables_updated'])} aktualisiert, "
-                  f"{maintenance_stats['records_updated']} Datensätze korrigiert")
+                f"{maintenance_stats['records_updated']} Datensätze korrigiert, "
+                f"link_uid={maintenance_stats['link_uid_synced']}, "
+                f"ROOT={maintenance_stats['root_self_synced']}")
         finally:
             await system_pool.close()
             

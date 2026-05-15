@@ -6,6 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, status, Path
 from typing import List
 from app.models.schemas import RecordCreate, RecordUpdate, RecordResponse, RecordListItem
 from app.core.database import PdvmDatabase
+from app.core.central_write_service import create_record_central, delete_record_central, update_record_central
+from app.core.pdvm_central_systemsteuerung import get_gcs_session
 from app.core.security import get_current_user
 
 router = APIRouter()
@@ -54,10 +56,23 @@ async def create_record(
     Create new record
     Returns created record UID
     """
-    db = PdvmDatabase(table_name)
-    uid = await db.create(record.daten, record.name)
+    token = current_user.get("token")
+    gcs = get_gcs_session(token) if token else None
+
+    try:
+        created = await create_record_central(
+            table_name=table_name,
+            daten=record.daten,
+            name=record.name,
+            gcs=gcs,
+        )
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
     
-    return {"uid": uid, "message": "Record created"}
+    return {"uid": str(created.get("uid")), "message": "Record created"}
 
 @router.put("/{table_name}/{uid}")
 async def update_record(
@@ -69,10 +84,26 @@ async def update_record(
     """
     Update existing record
     """
-    db = PdvmDatabase(table_name)
-    success = await db.update(uid, record.daten, record.name)
+    token = current_user.get("token")
+    gcs = get_gcs_session(token) if token else None
+
+    try:
+        updated = await update_record_central(
+            table_name=table_name,
+            uid=uid,
+            daten=record.daten,
+            name=record.name,
+            gcs=gcs,
+            actor_user_uid=current_user.get("sub"),
+            actor_ip=current_user.get("client_ip"),
+        )
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
     
-    if not success:
+    if not updated:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Record {uid} not found"
@@ -89,8 +120,21 @@ async def delete_record(
     """
     Delete record
     """
-    db = PdvmDatabase(table_name)
-    success = await db.delete(uid)
+    token = current_user.get("token")
+    gcs = get_gcs_session(token) if token else None
+
+    try:
+        success = await delete_record_central(
+            table_name=table_name,
+            uid=uid,
+            gcs=gcs,
+            soft_delete=True,
+        )
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
     
     if not success:
         raise HTTPException(

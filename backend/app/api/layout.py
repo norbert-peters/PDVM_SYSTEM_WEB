@@ -9,6 +9,7 @@ import logging
 import json
 
 from ..core.pdvm_database import PdvmDatabaseService
+from ..core.central_write_service import update_record_central
 from ..core.security import get_current_user
 from .gcs import get_gcs_instance
 
@@ -327,7 +328,8 @@ async def update_mandant_theme(
     mandant_uid: str,
     theme: str,
     layout_data: Dict[str, Any],
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    gcs = Depends(get_gcs_instance),
 ):
     """
     Aktualisiert Theme-Konfiguration für einen Mandanten
@@ -362,10 +364,14 @@ async def update_mandant_theme(
         updated_data = existing_layout.get('daten', {})
         updated_data.update(layout_data)
         
-        # Speichere Update
-        updated_layout = await db.update(
-            uid=existing_layout['uid'],
-            daten=updated_data
+        # Speichere Update ueber zentralen Write-Gateway
+        updated_layout = await update_record_central(
+            table_name="sys_layout",
+            uid=existing_layout["uid"],
+            daten=updated_data,
+            name=existing_layout.get("name"),
+            historisch=existing_layout.get("historisch"),
+            gcs=gcs,
         )
         
         logger.info(f"✅ Layout aktualisiert: {mandant_uid}/{theme}")

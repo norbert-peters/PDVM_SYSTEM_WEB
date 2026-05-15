@@ -23,6 +23,7 @@ from app.core.import_data_service import (
     load_dataset,
     parse_file_to_preview,
 )
+from app.core.central_write_service import update_record_central
 
 router = APIRouter()
 
@@ -44,6 +45,9 @@ async def get_gcs_instance(current_user: dict = Depends(get_current_user)):
     gcs = get_gcs_session(token)
     if not gcs:
         raise HTTPException(status_code=404, detail="Keine GCS-Session gefunden. Bitte Mandant auswaehlen.")
+
+    if hasattr(gcs, "set_request_context"):
+        gcs.set_request_context(actor_ip=current_user.get("client_ip"))
 
     return gcs
 
@@ -273,9 +277,13 @@ async def update_import_config(request: ImportConfigUpdateRequest, gcs=Depends(g
     daten["ROOT"] = root
     daten["CONFIG"] = config
 
-    from app.core.pdvm_datenbank import PdvmDatabase
-    db = PdvmDatabase(table, system_pool=gcs._system_pool, mandant_pool=gcs._mandant_pool)
-    await db.update(uuid.UUID(str(request.dataset_uid)), daten=daten, name=dataset.get("name"))
+    await update_record_central(
+        table_name=table,
+        uid=uuid.UUID(str(request.dataset_uid)),
+        daten=daten,
+        name=dataset.get("name"),
+        gcs=gcs,
+    )
 
     return {"uid": dataset["uid"], "name": dataset["name"], "daten": daten}
 
@@ -288,8 +296,12 @@ async def clear_import_data(request: ImportClearRequest, gcs=Depends(get_gcs_ins
     daten = dict(daten)
     daten["DATAS"] = {}
 
-    from app.core.pdvm_datenbank import PdvmDatabase
-    db = PdvmDatabase(table, system_pool=gcs._system_pool, mandant_pool=gcs._mandant_pool)
-    await db.update(uuid.UUID(str(request.dataset_uid)), daten=daten, name=dataset.get("name"))
+    await update_record_central(
+        table_name=table,
+        uid=uuid.UUID(str(request.dataset_uid)),
+        daten=daten,
+        name=dataset.get("name"),
+        gcs=gcs,
+    )
 
     return {"uid": dataset["uid"], "name": dataset["name"], "daten": daten}

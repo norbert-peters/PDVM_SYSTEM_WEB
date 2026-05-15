@@ -23,6 +23,9 @@ async def get_gcs_instance(current_user: dict = Depends(get_current_user)):
     if not gcs:
         raise HTTPException(status_code=404, detail="Keine GCS-Session gefunden. Bitte Mandant auswählen.")
 
+    if hasattr(gcs, "set_request_context"):
+        gcs.set_request_context(actor_ip=current_user.get("client_ip"))
+
     return gcs
 
 
@@ -57,7 +60,18 @@ async def post_password_reset(user_uid: str, gcs=Depends(get_gcs_instance)):
 @router.post("/{user_uid}/lock")
 async def post_lock_account(user_uid: str, payload: LockAccountRequest, gcs=Depends(get_gcs_instance)):
     try:
-        await update_account_lock(user_uid=user_uid, locked=True, reason=payload.reason)
+        actor_user_uid = None
+        try:
+            actor_user_uid = uuid.UUID(str(getattr(gcs, "user_guid", "") or ""))
+        except Exception:
+            actor_user_uid = None
+        await update_account_lock(
+            user_uid=user_uid,
+            locked=True,
+            reason=payload.reason,
+            actor_user_uid=actor_user_uid,
+            actor_ip=getattr(gcs, "actor_ip", None),
+        )
         return {"success": True, "message": "Account gesperrt"}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -68,7 +82,18 @@ async def post_lock_account(user_uid: str, payload: LockAccountRequest, gcs=Depe
 @router.post("/{user_uid}/unlock")
 async def post_unlock_account(user_uid: str, gcs=Depends(get_gcs_instance)):
     try:
-        await update_account_lock(user_uid=user_uid, locked=False, reason=None)
+        actor_user_uid = None
+        try:
+            actor_user_uid = uuid.UUID(str(getattr(gcs, "user_guid", "") or ""))
+        except Exception:
+            actor_user_uid = None
+        await update_account_lock(
+            user_uid=user_uid,
+            locked=False,
+            reason=None,
+            actor_user_uid=actor_user_uid,
+            actor_ip=getattr(gcs, "actor_ip", None),
+        )
         return {"success": True, "message": "Account entsperrt"}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

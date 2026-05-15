@@ -170,7 +170,14 @@ class PdvmDatabase:
             for row in rows
         ]
 
-    async def update(self, uid: str, daten: Dict[str, Any], name: Optional[str] = None) -> bool:
+    async def update(
+        self,
+        uid: str,
+        daten: Dict[str, Any],
+        name: Optional[str] = None,
+        actor_user_uid: Optional[str] = None,
+        actor_ip: Optional[str] = None,
+    ) -> bool:
         """Update record"""
         pool = self._get_pool()
 

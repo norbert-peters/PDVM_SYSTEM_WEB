@@ -10,6 +10,7 @@ Nach Desktop-Vorbild: v2_pdvm_central_datenbank.py
 """
 import uuid
 import logging
+import copy
 from typing import Dict, Optional, Any, List
 from app.core.pdvm_datenbank import PdvmDatabase
 from app.core.pdvm_datetime import PdvmDateTime
@@ -57,7 +58,10 @@ class PdvmCentralDatabase:
         
         # Daten-Cache (wird bei Bedarf geladen)
         self.data: Dict[str, Any] = {}
+        self._loaded_snapshot: Optional[Dict[str, Any]] = None
         self._data_loaded = False
+        self.actor_user_uid: Optional[str] = None
+        self.actor_ip: Optional[str] = None
         
         # Historisch-Status ermitteln
         self.historisch = False  # TODO: Aus Tabellen-Config holen
@@ -113,11 +117,13 @@ class PdvmCentralDatabase:
                 except Exception:
                     instance.historisch = False
                 instance.data = row["daten"]
+                instance._loaded_snapshot = copy.deepcopy(instance.data)
                 instance._data_loaded = True
                 logger.info(f"✅ Daten geladen für {table_name}.{guid}: {len(instance.data)} Gruppen")
             else:
                 logger.warning(f"⚠️ Keine Daten gefunden für {table_name}.{guid} - leere Instanz")
                 instance.data = {}
+                instance._loaded_snapshot = None
                 instance._data_loaded = True
                 
         except Exception as e:
@@ -170,6 +176,7 @@ class PdvmCentralDatabase:
             # Daten direkt setzen
             if isinstance(daten, dict):
                 self.data = daten.copy()
+                self._loaded_snapshot = copy.deepcopy(self.data)
                 gruppen_liste = list(self.data.keys())
                 logger.info(f"✅ Daten gesetzt: {len(self.data)} Gruppen: {gruppen_liste}")
                 
@@ -383,7 +390,11 @@ class PdvmCentralDatabase:
 
         return self.data.copy()
     
-    async def save_all_values(self) -> Optional[str]:
+    async def save_all_values(
+        self,
+        actor_user_uid: Optional[str] = None,
+        actor_ip: Optional[str] = None,
+    ) -> Optional[str]:
         """
         Speichert alle Daten in die Datenbank.
         
@@ -405,6 +416,8 @@ class PdvmCentralDatabase:
         
         try:
             guid_uuid = uuid.UUID(self.guid)
+            effective_actor_user_uid = actor_user_uid or self.actor_user_uid
+            effective_actor_ip = actor_ip if actor_ip is not None else self.actor_ip
             
             # NAME-SYNC: ROOT.NAME / ROOT.SELF_NAME für die 'name' Spalte
             name_value = None
@@ -420,9 +433,22 @@ class PdvmCentralDatabase:
             if existing:
                 # Update (only set name when present)
                 if name_value:
-                    await self.db.update(guid_uuid, self.data, name=name_value)
+                    await self.db.update(
+                        guid_uuid,
+                        self.data,
+                        name=name_value,
+                        expected_snapshot_daten=self._loaded_snapshot,
+                        actor_user_uid=effective_actor_user_uid,
+                        actor_ip=effective_actor_ip,
+                    )
                 else:
-                    await self.db.update(guid_uuid, self.data)
+                    await self.db.update(
+                        guid_uuid,
+                        self.data,
+                        expected_snapshot_daten=self._loaded_snapshot,
+                        actor_user_uid=effective_actor_user_uid,
+                        actor_ip=effective_actor_ip,
+                    )
                 logger.info(f"Daten aktualisiert für GUID {self.guid} mit name={name_value}")
             else:
                 # Create (name optional for non-dialog system saves)
@@ -433,6 +459,9 @@ class PdvmCentralDatabase:
                     historisch=1 if self.historisch else 0
                 )
                 logger.info(f"Neuer Datensatz erstellt mit GUID {self.guid} und name={name_value}")
+
+            # Snapshot nach erfolgreichem Save aktualisieren.
+            self._loaded_snapshot = copy.deepcopy(self.data)
             
             return self.guid
             

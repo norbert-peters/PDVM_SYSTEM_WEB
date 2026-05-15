@@ -25,6 +25,18 @@ row = await db.fetch_row(query)
 items = row["daten"]["GRUND"]  # Umgeht Historisierung und Logik!
 ```
 
+**Write-Pfad (verbindlich fuer neue/geaenderte Router-Pfade):**
+- Alle Schreiboperationen (`create`, `update`, `delete`) laufen über den zentralen Gateway
+	`app.core.central_write_service`.
+- Direkte Aufrufe wie `await db.update(...)`, `await db.create(...)` oder `await db.delete(...)`
+	im Router sind verboten.
+- Actor-Kontext wird primär aus der GCS-Session ermittelt (`user_guid`, `actor_ip`);
+	explizite Actor-Parameter sind nur als kontrollierter Override für Sonderfälle erlaubt.
+
+Hinweis zur Migration:
+- Bestehende Legacy-Router werden schrittweise umgestellt.
+- Bei Änderungen an einem Legacy-Router ist die Umstellung auf den zentralen Write-Gateway Pflicht.
+
 ### 1.2 Single Source of Configuration
 **Regel:** Es gibt keine hardcodierten Verbindungsdaten für Mandanten- oder System-Datenbanken (`config.py`).
 
@@ -152,6 +164,34 @@ Verbindlicher Ablauf:
 Verboten:
 - Tabellen-/Feature-spezifische Sonder-Neuanlagen, die den 666-Flow umgehen.
 - Parallele zweite Neuanlage-Logik mit abweichender Basiserzeugung.
+
+### 1.14 UID-, LINK_UID- und ROOT-SYSTEM-Felder
+**Regel:** `uid` bleibt der technische Primärschlüssel; `link_uid` bildet die fachliche Datensatz-Linie.
+
+Pflicht:
+- `uid` ist immer eindeutig pro Zeile (Primary Key) und darf sich nie ändern.
+- `link_uid` ist für neue Datensätze zu setzen; Standardfall: `link_uid = uid`.
+- Bei historisierten Folgezeilen oder Feld-Audits zeigt `link_uid` auf den fachlichen Ursprungssatz.
+- Systemspalten werden in `daten.ROOT` gespiegelt:
+	- `ROOT.SELF_LINK_UID`
+	- `ROOT.SELF_CREATED_AT`
+	- `ROOT.SELF_MODIFIED_AT`
+	- `ROOT.SELF_GILT_BIS`
+
+Zeitformat-Regel (verbindlich):
+- SQL-Spalten `created_at`, `modified_at`, `gilt_bis` bleiben native PostgreSQL `TIMESTAMP`.
+- In `daten` werden Datums-/Zeitwerte im PDVM-Format gespeichert (z. B. `YYYYDDD.00000`).
+- Damit sind `ROOT.SELF_CREATED_AT`, `ROOT.SELF_MODIFIED_AT`, `ROOT.SELF_GILT_BIS` im `daten`-JSON immer PDVM-formatiert.
+
+UID-/LINK_UID-Regel (verbindlich):
+- `uid` ist in allen Tabellen eine reine technische Row-ID (keine fachliche Verlinkungsbedeutung).
+- Fachliche Identität und exakte Adressierung laufen über `link_uid`.
+- Für GCS gilt speziell:
+	- `sys_systemsteuerung` wird über `link_uid = user_guid` gelesen/geschrieben.
+	- `sys_anwendungsdaten` wird über `link_uid = mandant_guid` gelesen/geschrieben.
+- Bei Migrationen dürfen für diese Tabellen neue `uid`-Werte vergeben werden; `link_uid` bleibt stabil.
+
+- Ausnahmen müssen explizit dokumentiert werden und dürfen die obige GCS-Link-UID-Regel nicht verletzen.
 
 ---
 

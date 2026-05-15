@@ -9,9 +9,14 @@ Verantwortlich für:
 """
 import logging
 import asyncpg
+import json
+import uuid
+import os
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 from app.core.pdvm_table_schema import PDVM_TABLE_COLUMNS, PDVM_TABLE_INDEXES, GILT_BIS_MAX
+from app.core.pdvm_datetime import datetime_to_pdvm, pdvm_to_str
+from app.core.feld_aenderungshistorie_service import FieldChangeHistoryService
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +50,11 @@ class MandantDatabaseMaintenance:
             'tables_created': [],
             'tables_updated': [],
             'records_updated': 0,
+            'link_uid_synced': 0,
+            'root_self_synced': 0,
+            'link_uid_columns_added': 0,
+            'row_uids_rekeyed': 0,
+            'history_rows_deleted': 0,
             'errors': []
         }
         
@@ -59,7 +69,8 @@ class MandantDatabaseMaintenance:
                 'sys_error_log',
                 'sys_error_acknowledgments',
                 'sys_contr_dict_man',
-                'sys_contr_dict_man_audit'
+                'sys_contr_dict_man_audit',
+                'sys_feld_aenderungshistorie',
             ]
             
             logger.info(f"📋 Phase 1: Standard-System-Tabellen ({len(standard_tables)})")
@@ -112,6 +123,31 @@ class MandantDatabaseMaintenance:
             all_tables = list(set(standard_tables + feature_tables_filtered))
             records_updated = await self._fix_gilt_bis_values(conn, all_tables)
             stats['records_updated'] = records_updated
+
+            # PHASE 5: link_uid auf uid synchronisieren (nur wenn Spalte existiert)
+            link_uid_synced = await self._sync_link_uid_values(conn, all_tables)
+            stats['link_uid_synced'] = link_uid_synced
+
+            # PHASE 5b: sys_systemsteuerung/sys_anwendungsdaten auf Row-UID umstellen
+            row_uids_rekeyed = await self._rekey_row_uids_for_link_tables(
+                conn,
+                ["sys_systemsteuerung", "sys_anwendungsdaten"],
+            )
+            stats['row_uids_rekeyed'] = row_uids_rekeyed
+
+            # PHASE 6: Voll-Normalisierung über ALLE Tabellen dieser DB
+            all_public_tables = await self._get_public_tables(conn)
+            logger.info(f"📋 Phase 6: Voll-Normalisierung ({len(all_public_tables)} Tabellen)")
+            link_uid_cols_added = await self._ensure_link_uid_columns(conn, all_public_tables)
+            root_self_synced = await self._sync_root_self_fields(conn, all_public_tables)
+            link_uid_synced_all = await self._sync_link_uid_values(conn, all_public_tables)
+
+            stats['link_uid_columns_added'] = link_uid_cols_added
+            stats['root_self_synced'] = root_self_synced
+            stats['link_uid_synced'] = stats['link_uid_synced'] + link_uid_synced_all
+
+            # PHASE 7: Retention-Cleanup für Feld-Aenderungshistorie
+            stats['history_rows_deleted'] = await self._cleanup_history_retention(conn)
             
         logger.info(f"✅ Wartung abgeschlossen: {stats}")
         return stats
@@ -171,6 +207,46 @@ class MandantDatabaseMaintenance:
                 WHERE table_name = $1
             )
         """, table_name)
+
+    async def _get_public_tables(self, conn: asyncpg.Connection) -> List[str]:
+        """Liefert alle Tabellen im public-Schema."""
+        rows = await conn.fetch(
+            """
+            SELECT tablename
+            FROM pg_tables
+            WHERE schemaname = 'public'
+            ORDER BY tablename
+            """
+        )
+        return [str(r['tablename']) for r in rows]
+
+    async def _get_column_types(self, conn: asyncpg.Connection, table_name: str) -> Dict[str, str]:
+        """Liefert Spaltennamen -> Datentyp für eine Tabelle."""
+        rows = await conn.fetch(
+            """
+            SELECT column_name, data_type
+            FROM information_schema.columns
+            WHERE table_name = $1
+            """,
+            table_name,
+        )
+        return {str(r['column_name']): str(r['data_type']).lower() for r in rows}
+
+    @staticmethod
+    def _quote_ident(identifier: str) -> str:
+        """Sicheres Quoting für SQL-Identifier."""
+        return '"' + str(identifier).replace('"', '""') + '"'
+
+    @staticmethod
+    def _build_safe_index_name(table_name: str, suffix: str) -> str:
+        """Erzeugt PostgreSQL-kompatiblen Indexnamen (max 63 Zeichen)."""
+        import hashlib
+
+        base = f"idx_{table_name}_{suffix}".lower()
+        if len(base) <= 63:
+            return base
+        digest = hashlib.md5(base.encode('utf-8')).hexdigest()[:10]
+        return f"idx_{digest}_{suffix}"[:63]
     
     async def _create_pdvm_table(self, conn: asyncpg.Connection, table_name: str):
         """
@@ -203,6 +279,34 @@ class MandantDatabaseMaintenance:
                     CREATE INDEX IF NOT EXISTS idx_{table_name}_{idx_col} 
                     ON {table_name}({idx_col})
                 """)
+
+    async def _ensure_link_uid_columns(self, conn: asyncpg.Connection, tables: List[str]) -> int:
+        """Fügt link_uid + Index in allen Tabellen mit uid-Spalte hinzu (falls fehlend)."""
+        added = 0
+
+        for table_name in tables:
+            try:
+                col_types = await self._get_column_types(conn, table_name)
+                if 'uid' not in col_types:
+                    continue
+
+                q_table = self._quote_ident(table_name)
+
+                if 'link_uid' not in col_types:
+                    await conn.execute(f"ALTER TABLE {q_table} ADD COLUMN link_uid UUID")
+                    added += 1
+                    logger.info(f"➕ {table_name}: Spalte link_uid ergänzt")
+
+                idx_name = self._build_safe_index_name(table_name, 'link_uid')
+                q_idx = self._quote_ident(idx_name)
+                await conn.execute(
+                    f"CREATE INDEX IF NOT EXISTS {q_idx} ON {q_table}(link_uid)"
+                )
+
+            except Exception as e:
+                logger.warning(f"⚠️ link_uid-Spaltenprüfung fehlgeschlagen ({table_name}): {e}")
+
+        return added
     
     def _get_expected_pg_type(self, col_name: str, col_definition: str) -> str:
         """
@@ -366,6 +470,221 @@ class MandantDatabaseMaintenance:
                         logger.error(traceback.format_exc())
         
         return updated
+
+    async def _sync_link_uid_values(self, conn: asyncpg.Connection, tables: List[str]) -> int:
+        """Synchronisiert link_uid = uid für Datensätze ohne link_uid."""
+        total_synced = 0
+
+        for table_name in tables:
+            try:
+                has_link_uid = await conn.fetchval(
+                    """
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.columns
+                        WHERE table_name = $1 AND column_name = 'link_uid'
+                    )
+                    """,
+                    table_name,
+                )
+
+                if not has_link_uid:
+                    continue
+
+                result = await conn.execute(
+                    f"""
+                    UPDATE {table_name}
+                    SET link_uid = uid
+                    WHERE link_uid IS NULL
+                    """
+                )
+
+                # asyncpg liefert z.B. "UPDATE 12"
+                synced = int(result.split(" ")[-1])
+                total_synced += synced
+
+                if synced > 0:
+                    logger.info(f"🔗 {table_name}: {synced} link_uid Werte synchronisiert")
+
+            except Exception as e:
+                logger.warning(f"⚠️ link_uid Sync in {table_name} fehlgeschlagen: {e}")
+
+        return total_synced
+
+    async def _rekey_row_uids_for_link_tables(self, conn: asyncpg.Connection, table_names: List[str]) -> int:
+        """Entkoppelt uid von link_uid für Tabellen mit exakter link_uid-Adressierung."""
+        total_rekeyed = 0
+
+        for table_name in table_names:
+            try:
+                exists = await self._table_exists(conn, table_name)
+                if not exists:
+                    continue
+
+                col_types = await self._get_column_types(conn, table_name)
+                if 'uid' not in col_types or 'link_uid' not in col_types:
+                    continue
+
+                q_table = self._quote_ident(table_name)
+                rows = await conn.fetch(
+                    f"""
+                    SELECT uid
+                    FROM {q_table}
+                    WHERE link_uid IS NOT NULL
+                      AND uid = link_uid
+                    """
+                )
+
+                rekeyed = 0
+                for r in rows:
+                    old_uid = r['uid']
+                    new_uid = uuid.uuid4()
+                    await conn.execute(
+                        f"UPDATE {q_table} SET uid = $1 WHERE uid = $2",
+                        new_uid,
+                        old_uid,
+                    )
+                    rekeyed += 1
+
+                total_rekeyed += rekeyed
+                if rekeyed > 0:
+                    logger.info(f"🆔 {table_name}: {rekeyed} Row-UIDs von link_uid entkoppelt")
+
+            except Exception as e:
+                logger.warning(f"⚠️ Row-UID Rekey fehlgeschlagen ({table_name}): {e}")
+
+        return total_rekeyed
+
+    async def _cleanup_history_retention(self, conn: asyncpg.Connection) -> int:
+        """Bereinigt alte Einträge aus sys_feld_aenderungshistorie."""
+        try:
+            exists = await self._table_exists(conn, FieldChangeHistoryService.HISTORY_TABLE)
+            if not exists:
+                return 0
+
+            retention_raw = str(os.getenv("PDVM_HISTORY_RETENTION_MONTHS", "36")).strip()
+            try:
+                retention_months = int(retention_raw)
+            except Exception:
+                retention_months = 36
+
+            # V1-Rahmen: 12-36 Monate
+            retention_months = max(12, min(36, retention_months))
+            deleted = await FieldChangeHistoryService.cleanup_retention(conn, retention_months)
+            if deleted > 0:
+                logger.info(
+                    f"🧹 Historie-Cleanup: {deleted} Zeilen älter als {retention_months} Monate gelöscht"
+                )
+            return deleted
+        except Exception as e:
+            logger.warning(f"⚠️ Historie-Cleanup fehlgeschlagen: {e}")
+            return 0
+
+    async def _sync_root_self_fields(self, conn: asyncpg.Connection, tables: List[str]) -> int:
+        """Synchronisiert ROOT.SELF_* Felder in daten JSONB (Zeitwerte immer im PDVM-Format)."""
+        total_synced = 0
+
+        for table_name in tables:
+            try:
+                col_types = await self._get_column_types(conn, table_name)
+                if 'uid' not in col_types or 'daten' not in col_types:
+                    continue
+                if col_types.get('daten') != 'jsonb':
+                    continue
+
+                q_table = self._quote_ident(table_name)
+
+                select_cols = ["uid", "daten"]
+                if 'link_uid' in col_types:
+                    select_cols.append("link_uid")
+                if 'created_at' in col_types:
+                    select_cols.append("created_at")
+                if 'modified_at' in col_types:
+                    select_cols.append("modified_at")
+                if 'gilt_bis' in col_types:
+                    select_cols.append("gilt_bis")
+
+                rows = await conn.fetch(
+                    f"SELECT {', '.join(select_cols)} FROM {q_table} WHERE uid IS NOT NULL"
+                )
+
+                synced = 0
+
+                def _to_pdvm_string(dt_val: Any) -> Optional[str]:
+                    if dt_val is None:
+                        return None
+                    try:
+                        return pdvm_to_str(datetime_to_pdvm(dt_val))
+                    except Exception:
+                        return None
+
+                for row in rows:
+                    uid_val = row['uid']
+                    link_uid_val = row['link_uid'] if 'link_uid' in row else None
+
+                    daten_obj = row['daten']
+                    if isinstance(daten_obj, str):
+                        try:
+                            daten_obj = json.loads(daten_obj)
+                        except Exception:
+                            daten_obj = {}
+                    if not isinstance(daten_obj, dict):
+                        daten_obj = {}
+
+                    root = daten_obj.get('ROOT')
+                    if not isinstance(root, dict):
+                        root = {}
+                    else:
+                        root = dict(root)
+
+                    before_root = dict(root)
+
+                    root['SELF_GUID'] = str(uid_val)
+                    root['SELF_LINK_UID'] = str(link_uid_val or uid_val)
+
+                    if 'created_at' in row:
+                        root['SELF_CREATED_AT'] = _to_pdvm_string(row['created_at'])
+                    if 'modified_at' in row:
+                        root['SELF_MODIFIED_AT'] = _to_pdvm_string(row['modified_at'])
+                    if 'gilt_bis' in row:
+                        root['SELF_GILT_BIS'] = _to_pdvm_string(row['gilt_bis'])
+
+                    duplicate_pairs = [
+                        ("GUID", "SELF_GUID"),
+                        ("LINK_UID", "SELF_LINK_UID"),
+                        ("CREATED_AT", "SELF_CREATED_AT"),
+                        ("MODIFIED_AT", "SELF_MODIFIED_AT"),
+                        ("GILT_BIS", "SELF_GILT_BIS"),
+                    ]
+                    for legacy_key, self_key in duplicate_pairs:
+                        if legacy_key in root and self_key in root and str(root.get(legacy_key)) == str(root.get(self_key)):
+                            root.pop(legacy_key, None)
+
+                    # Einmal-Bereinigung: In sys_mandanten sind SELF_* Zeitfelder führend.
+                    # Legacy ROOT.CREATED_AT/MODIFIED_AT werden entfernt, sobald SELF vorhanden ist.
+                    if str(table_name).strip().lower() == 'sys_mandanten':
+                        if 'SELF_CREATED_AT' in root:
+                            root.pop('CREATED_AT', None)
+                        if 'SELF_MODIFIED_AT' in root:
+                            root.pop('MODIFIED_AT', None)
+
+                    if root != before_root or daten_obj.get('ROOT') != root:
+                        daten_obj['ROOT'] = root
+                        await conn.execute(
+                            f"UPDATE {q_table} SET daten = $1::jsonb WHERE uid = $2",
+                            json.dumps(daten_obj, ensure_ascii=False),
+                            uid_val,
+                        )
+                        synced += 1
+
+                total_synced += synced
+
+                if synced > 0:
+                    logger.info(f"🧩 {table_name}: {synced} ROOT.SELF Felder synchronisiert und Duplikate bereinigt")
+
+            except Exception as e:
+                logger.warning(f"⚠️ ROOT.SELF Sync in {table_name} fehlgeschlagen: {e}")
+
+        return total_synced
     
     async def _fix_gilt_bis_values(self, conn: asyncpg.Connection, tables: List[str]) -> int:
         """
@@ -437,6 +756,9 @@ async def run_system_maintenance(system_pool: asyncpg.Pool) -> Dict[str, Any]:
         'tables_created': [],
         'tables_updated': [],
         'records_updated': 0,
+        'link_uid_synced': 0,
+        'root_self_synced': 0,
+        'link_uid_columns_added': 0,
         'errors': []
     }
     
@@ -466,6 +788,20 @@ async def run_system_maintenance(system_pool: asyncpg.Pool) -> Dict[str, Any]:
         # gilt_bis Werte korrigieren
         records_updated = await temp_maintenance._fix_gilt_bis_values(conn, PDVM_SYSTEM_TABLES)
         stats['records_updated'] = records_updated
+
+        # link_uid Werte synchronisieren
+        link_uid_synced = await temp_maintenance._sync_link_uid_values(conn, PDVM_SYSTEM_TABLES)
+        stats['link_uid_synced'] = link_uid_synced
+
+        # Voll-Normalisierung für alle Tabellen in pdvm_system
+        all_public_tables = await temp_maintenance._get_public_tables(conn)
+        link_uid_cols_added = await temp_maintenance._ensure_link_uid_columns(conn, all_public_tables)
+        root_self_synced = await temp_maintenance._sync_root_self_fields(conn, all_public_tables)
+        link_uid_synced_all = await temp_maintenance._sync_link_uid_values(conn, all_public_tables)
+
+        stats['link_uid_columns_added'] = link_uid_cols_added
+        stats['root_self_synced'] = root_self_synced
+        stats['link_uid_synced'] = stats['link_uid_synced'] + link_uid_synced_all
     
     logger.info(f"✅ System-Wartung abgeschlossen: {stats}")
     return stats
@@ -489,3 +825,53 @@ async def run_mandant_maintenance(
     """
     maintenance = MandantDatabaseMaintenance(mandant_pool, mandant_uid, mandant_daten)
     return await maintenance.run_maintenance()
+
+
+async def run_auth_maintenance(auth_pool: asyncpg.Pool) -> Dict[str, Any]:
+    """
+    Wartung für auth Datenbank (insb. sys_benutzer, sys_mandanten).
+    Führt Voll-Normalisierung für alle Tabellen aus.
+    """
+    logger.info("🔧 Starte Auth-Datenbank-Wartung (auth)")
+
+    stats = {
+        'tables_created': [],
+        'tables_updated': [],
+        'records_updated': 0,
+        'link_uid_synced': 0,
+        'root_self_synced': 0,
+        'link_uid_columns_added': 0,
+        'errors': [],
+    }
+
+    temp_maintenance = MandantDatabaseMaintenance(auth_pool, "", {})
+
+    async with auth_pool.acquire() as conn:
+        # Historie-Tabelle in auth-DB sicherstellen (für Änderungen an auth-Tabellen).
+        history_table = FieldChangeHistoryService.HISTORY_TABLE
+        try:
+            exists = await temp_maintenance._table_exists(conn, history_table)
+            if not exists:
+                await temp_maintenance._create_pdvm_table(conn, history_table)
+                stats['tables_created'].append(history_table)
+                logger.info(f"✅ Auth-Tabelle {history_table} erstellt")
+            else:
+                updated = await temp_maintenance._verify_and_fix_columns(conn, history_table)
+                if updated:
+                    stats['tables_updated'].append(history_table)
+                    logger.info(f"✅ Auth-Tabelle {history_table} aktualisiert")
+        except Exception as e:
+            logger.error(f"❌ Fehler bei Auth-Tabelle {history_table}: {e}")
+            stats['errors'].append(f"{history_table}: {e}")
+
+        all_public_tables = await temp_maintenance._get_public_tables(conn)
+        link_uid_cols_added = await temp_maintenance._ensure_link_uid_columns(conn, all_public_tables)
+        root_self_synced = await temp_maintenance._sync_root_self_fields(conn, all_public_tables)
+        link_uid_synced = await temp_maintenance._sync_link_uid_values(conn, all_public_tables)
+
+        stats['link_uid_columns_added'] = link_uid_cols_added
+        stats['root_self_synced'] = root_self_synced
+        stats['link_uid_synced'] = link_uid_synced
+
+    logger.info(f"✅ Auth-Wartung abgeschlossen: {stats}")
+    return stats

@@ -11,6 +11,7 @@ from urllib.parse import urlparse, urlunparse
 from app.core.security import require_admin_user
 from app.core.config import settings
 from app.core.database import DatabasePool, PdvmDatabase
+from app.core.central_write_service import create_record_central
 
 router = APIRouter()
 
@@ -136,14 +137,16 @@ async def create_mandant_database(
                 await mandant_conn.close()
         
         # Register in sys_mandanten table
-        db = PdvmDatabase("sys_mandanten")
-        await db.create(
+        await create_record_central(
+            table_name="sys_mandanten",
             daten={
                 "database_name": db_name,
                 "description": mandant.description or mandant.name,
-                "created_by": admin.get("email", "admin")
+                "created_by": admin.get("email", "admin"),
             },
-            name=mandant.name
+            name=mandant.name,
+            actor_user_uid=admin.get("sub"),
+            actor_ip=admin.get("client_ip"),
         )
         
         return {

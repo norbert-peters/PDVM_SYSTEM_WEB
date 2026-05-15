@@ -13,6 +13,8 @@ import json
 import asyncio
 import re
 import copy
+from app.core.pdvm_datetime import datetime_to_pdvm, pdvm_to_str
+from app.core.feld_aenderungshistorie_service import FieldChangeHistoryService
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 import asyncpg
@@ -34,7 +36,7 @@ class PdvmDatabase:
     - gilt_bis: TEXT (Gültigkeitsdatum im PDVM-Format)
     - created_at: TIMESTAMP
     - modified_at: TIMESTAMP
-    - daten_backup: JSONB
+    - backup_daten: JSONB
     
     Datenbank-Routing:
     - auth.db: sys_benutzer, sys_mandanten
@@ -96,6 +98,49 @@ class PdvmDatabase:
     }
 
     _GUID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+
+    @staticmethod
+    def _inject_root_meta_fields(row_dict: Dict[str, Any]) -> Dict[str, Any]:
+        """Projiziert Spaltenwerte kompatibel in daten.ROOT als SELF_* Felder."""
+        if not isinstance(row_dict, dict):
+            return row_dict
+
+        daten = row_dict.get("daten")
+        if not isinstance(daten, dict):
+            daten = {}
+
+        root = daten.get("ROOT") if isinstance(daten.get("ROOT"), dict) else {}
+        root = dict(root)
+
+        uid_value = row_dict.get("uid")
+        link_uid_value = row_dict.get("link_uid") or uid_value
+        created_at_value = row_dict.get("created_at")
+        modified_at_value = row_dict.get("modified_at")
+        gilt_bis_value = row_dict.get("gilt_bis")
+
+        if uid_value is not None:
+            root["SELF_GUID"] = str(uid_value)
+        if link_uid_value is not None:
+            root["SELF_LINK_UID"] = str(link_uid_value)
+
+        def _to_pdvm_str(dt_val: Any) -> Optional[str]:
+            if dt_val is None:
+                return None
+            try:
+                return pdvm_to_str(datetime_to_pdvm(dt_val))
+            except Exception:
+                return str(dt_val)
+
+        if created_at_value is not None:
+            root["SELF_CREATED_AT"] = _to_pdvm_str(created_at_value)
+        if modified_at_value is not None:
+            root["SELF_MODIFIED_AT"] = _to_pdvm_str(modified_at_value)
+        if gilt_bis_value is not None:
+            root["SELF_GILT_BIS"] = _to_pdvm_str(gilt_bis_value)
+
+        daten["ROOT"] = root
+        row_dict["daten"] = daten
+        return row_dict
 
     @staticmethod
     def _is_guid_key(value: str) -> bool:
@@ -289,7 +334,7 @@ class PdvmDatabase:
         pool = self.get_pool()
         async with pool.acquire() as conn:
             # Nur die Spalten lesen die garantiert existieren
-            # daten_backup wird bei Wartung hinzugefügt falls fehlend
+            # backup_daten wird bei Wartung hinzugefügt falls fehlend
             row = await conn.fetchrow(f"""
                 SELECT uid, daten, name, historisch, sec_id, gilt_bis, 
                        created_at, modified_at
@@ -305,8 +350,44 @@ class PdvmDatabase:
             # Parse JSONB fields (asyncpg gibt als String zurück)
             if result['daten'] and isinstance(result['daten'], str):
                 result['daten'] = json.loads(result['daten'])
-            
-            return result
+
+            return self._inject_root_meta_fields(result)
+
+    async def get_by_link_uid(self, link_uid: uuid.UUID) -> Optional[Dict[str, Any]]:
+        """Lädt den neuesten Datensatz anhand link_uid (fachliche Identität)."""
+        pool = self.get_pool()
+        async with pool.acquire() as conn:
+            try:
+                row = await conn.fetchrow(
+                    f"""
+                    SELECT uid, link_uid, daten, name, historisch, sec_id, gilt_bis,
+                           created_at, modified_at
+                    FROM {self.table_name}
+                    WHERE link_uid = $1
+                    ORDER BY modified_at DESC, created_at DESC
+                    LIMIT 1
+                    """,
+                    link_uid,
+                )
+            except Exception:
+                # Fallback für Altstände ohne link_uid-Spalte
+                row = await conn.fetchrow(
+                    f"""
+                    SELECT uid, daten, name, historisch, sec_id, gilt_bis,
+                           created_at, modified_at
+                    FROM {self.table_name}
+                    WHERE uid = $1
+                    """,
+                    link_uid,
+                )
+
+            if not row:
+                return None
+
+            result = dict(row)
+            if result.get('daten') and isinstance(result['daten'], str):
+                result['daten'] = json.loads(result['daten'])
+            return self._inject_root_meta_fields(result)
     
     async def get_row(self, uid: uuid.UUID) -> Optional[Dict[str, Any]]:
         """
@@ -401,6 +482,7 @@ class PdvmDatabase:
                 # Parse JSONB
                 if row_dict['daten'] and isinstance(row_dict['daten'], str):
                     row_dict['daten'] = json.loads(row_dict['daten'])
+                row_dict = self._inject_root_meta_fields(row_dict)
                 result.append(row_dict)
             
             return result
@@ -456,6 +538,7 @@ class PdvmDatabase:
                 row_dict = dict(row)
                 if row_dict.get('daten') and isinstance(row_dict['daten'], str):
                     row_dict['daten'] = json.loads(row_dict['daten'])
+                row_dict = self._inject_root_meta_fields(row_dict)
                 result.append(row_dict)
             return result
     
@@ -465,7 +548,8 @@ class PdvmDatabase:
         daten: Dict, 
         name: str = "", 
         historisch: int = 0, 
-        sec_id: Optional[uuid.UUID] = None
+        sec_id: Optional[uuid.UUID] = None,
+        link_uid: Optional[uuid.UUID] = None,
     ) -> Dict[str, Any]:
         """
         Erstellt einen neuen Datensatz
@@ -488,15 +572,48 @@ class PdvmDatabase:
                 (uid, daten, name, historisch, sec_id)
                 VALUES ($1, $2, $3, $4, $5)
             """, uid, json.dumps(daten), name, historisch, sec_id)
+
+            # Kompatibel: link_uid nur setzen wenn Spalte bereits vorhanden ist.
+            try:
+                await conn.execute(
+                    f"""
+                    UPDATE {self.table_name}
+                    SET link_uid = COALESCE($2, link_uid, uid)
+                    WHERE uid = $1
+                    """,
+                    uid,
+                    link_uid,
+                )
+            except Exception:
+                # Tabellen ohne link_uid (vor Migration) dürfen nicht brechen.
+                pass
             
             return await self.get_by_uid(uid)
+
+    async def rekey_uid(self, old_uid: uuid.UUID, new_uid: uuid.UUID) -> bool:
+        """Ändert die technische Row-UID eines Datensatzes."""
+        pool = self.get_pool()
+        async with pool.acquire() as conn:
+            result = await conn.execute(
+                f"""
+                UPDATE {self.table_name}
+                SET uid = $1, modified_at = NOW()
+                WHERE uid = $2
+                """,
+                new_uid,
+                old_uid,
+            )
+            return result != "UPDATE 0"
     
     async def update(
         self, 
         uid: uuid.UUID, 
         daten: Dict, 
         name: Optional[str] = None,
-        historisch: Optional[int] = None
+        historisch: Optional[int] = None,
+        expected_snapshot_daten: Optional[Dict[str, Any]] = None,
+        actor_user_uid: Optional[uuid.UUID] = None,
+        actor_ip: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Aktualisiert einen Datensatz
@@ -511,39 +628,95 @@ class PdvmDatabase:
             Aktualisierter Datensatz
         """
         pool = self.get_pool()
-        before_row = await self.get_by_uid(uid)
+
+        def _normalize_for_compare(value: Any) -> str:
+            return json.dumps(value, sort_keys=True, ensure_ascii=False, default=str)
+
+        def _parse_row(row: asyncpg.Record) -> Dict[str, Any]:
+            row_dict = dict(row)
+            if row_dict.get('daten') and isinstance(row_dict['daten'], str):
+                row_dict['daten'] = json.loads(row_dict['daten'])
+            return self._inject_root_meta_fields(row_dict)
+
+        uid_obj = uid if isinstance(uid, uuid.UUID) else uuid.UUID(str(uid))
+
         async with pool.acquire() as conn:
-            # gilt_bis wird immer auf höchstes Datum gesetzt
-            if name is not None and historisch is not None:
-                await conn.execute(f"""
-                    UPDATE {self.table_name}
-                    SET daten = $1, name = $2, historisch = $3, 
-                        gilt_bis = '9999-12-31 23:59:59', modified_at = NOW()
-                    WHERE uid = $4
-                """, json.dumps(daten), name, historisch, uid)
-            elif name is not None:
-                await conn.execute(f"""
-                    UPDATE {self.table_name}
-                    SET daten = $1, name = $2, 
-                        gilt_bis = '9999-12-31 23:59:59', modified_at = NOW()
-                    WHERE uid = $3
-                """, json.dumps(daten), name, uid)
-            elif historisch is not None:
-                await conn.execute(f"""
-                    UPDATE {self.table_name}
-                    SET daten = $1, historisch = $2, 
-                        gilt_bis = '9999-12-31 23:59:59', modified_at = NOW()
-                    WHERE uid = $3
-                """, json.dumps(daten), historisch, uid)
-            else:
-                await conn.execute(f"""
-                    UPDATE {self.table_name}
-                    SET daten = $1, 
-                        gilt_bis = '9999-12-31 23:59:59', modified_at = NOW()
-                    WHERE uid = $2
-                """, json.dumps(daten), uid)
-            
-            updated = await self.get_by_uid(uid)
+            async with conn.transaction():
+                before_raw = await conn.fetchrow(
+                    f"""
+                    SELECT uid, link_uid, daten, name, historisch, sec_id, gilt_bis,
+                           created_at, modified_at
+                    FROM {self.table_name}
+                    WHERE uid = $1
+                    FOR UPDATE
+                    """,
+                    uid_obj,
+                )
+
+                if not before_raw:
+                    return None
+
+                before_row = _parse_row(before_raw)
+
+                # Konfliktprüfung (optimistisches Concurrency-Guarding)
+                if expected_snapshot_daten is not None:
+                    if _normalize_for_compare(before_row.get('daten')) != _normalize_for_compare(expected_snapshot_daten):
+                        raise ValueError(FieldChangeHistoryService.CONFLICT_MESSAGE)
+
+                # gilt_bis wird immer auf höchstes Datum gesetzt
+                if name is not None and historisch is not None:
+                    await conn.execute(f"""
+                        UPDATE {self.table_name}
+                        SET daten = $1, name = $2, historisch = $3,
+                            gilt_bis = '9999-12-31 23:59:59', modified_at = NOW()
+                        WHERE uid = $4
+                    """, json.dumps(daten), name, historisch, uid_obj)
+                elif name is not None:
+                    await conn.execute(f"""
+                        UPDATE {self.table_name}
+                        SET daten = $1, name = $2,
+                            gilt_bis = '9999-12-31 23:59:59', modified_at = NOW()
+                        WHERE uid = $3
+                    """, json.dumps(daten), name, uid_obj)
+                elif historisch is not None:
+                    await conn.execute(f"""
+                        UPDATE {self.table_name}
+                        SET daten = $1, historisch = $2,
+                            gilt_bis = '9999-12-31 23:59:59', modified_at = NOW()
+                        WHERE uid = $3
+                    """, json.dumps(daten), historisch, uid_obj)
+                else:
+                    await conn.execute(f"""
+                        UPDATE {self.table_name}
+                        SET daten = $1,
+                            gilt_bis = '9999-12-31 23:59:59', modified_at = NOW()
+                        WHERE uid = $2
+                    """, json.dumps(daten), uid_obj)
+
+                after_raw = await conn.fetchrow(
+                    f"""
+                    SELECT uid, link_uid, daten, name, historisch, sec_id, gilt_bis,
+                           created_at, modified_at
+                    FROM {self.table_name}
+                    WHERE uid = $1
+                    """,
+                    uid_obj,
+                )
+                updated = _parse_row(after_raw) if after_raw else None
+
+                # V1 Änderungsnachweis: insert-only, nur geänderte Felder.
+                # Gilt für alle DB-Kontexte (auth/system/mandant) und schreibt
+                # jeweils lokal in die DB, in der auch die Zieltabelle liegt.
+                if updated and str(self.table_name).strip().lower() != FieldChangeHistoryService.HISTORY_TABLE:
+                    await FieldChangeHistoryService.write_history_entries(
+                        conn,
+                        target_table=self.table_name,
+                        target_uid=uid_obj,
+                        old_data=before_row.get("daten") or {},
+                        new_data=updated.get("daten") or {},
+                        actor_user_uid=actor_user_uid,
+                        actor_ip=actor_ip,
+                    )
 
         audit_table = self._get_audit_table()
         if audit_table and updated:
@@ -636,6 +809,7 @@ class PdvmDatabase:
             "sys_error_acknowledgments",
             "sys_contr_dict_man",
             "sys_contr_dict_man_audit",
+            "sys_feld_aenderungshistorie",
         ]
 
         all_tables = list(dict.fromkeys(mandatory_tables + sys_tables + features))

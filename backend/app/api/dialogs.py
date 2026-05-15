@@ -42,6 +42,7 @@ _SYS_FIELD_LAST_CALL = "LAST_CALL"
 _SYS_FIELD_UI_STATE = "UI_STATE"
 _SYS_FIELD_DRAFTS = "DRAFTS"
 _CENTRAL_EDIT_TYPES = {"edit_user", "import_data", "pdvm_edit", "edit_dict", "edit_control"}
+_CONFLICT_MESSAGE = "Daten zwischenzeitlich geändert. Bitte neu lesen"
 
 
 _TABLE_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -242,9 +243,47 @@ async def _read_dialog_drafts(gcs, *, group: str) -> Dict[str, Dict[str, Any]]:
     return _coerce_dialog_drafts(raw)
 
 
+def _is_snapshot_conflict(exc: Exception) -> bool:
+    return _CONFLICT_MESSAGE in str(exc or "")
+
+
+async def _reload_systemsteuerung_instance(gcs):
+    current = gcs.systemsteuerung
+    reloaded = await type(current).load(
+        table_name=current.table_name,
+        guid=str(current.guid),
+        no_save=bool(current.no_save),
+        stichtag=gcs.stichtag,
+        system_pool=getattr(gcs, "_system_pool", None),
+        mandant_pool=getattr(gcs, "_mandant_pool", None),
+    )
+    reloaded.actor_user_uid = getattr(current, "actor_user_uid", None)
+    reloaded.actor_ip = getattr(current, "actor_ip", None)
+    gcs.systemsteuerung = reloaded
+    return reloaded
+
+
 async def _write_dialog_drafts(gcs, *, group: str, drafts: Dict[str, Dict[str, Any]]) -> None:
-    gcs.systemsteuerung.set_value(group, _SYS_FIELD_DRAFTS, drafts, gcs.stichtag)
-    await gcs.systemsteuerung.save_all_values()
+    for attempt in range(3):
+        gcs.systemsteuerung.set_value(group, _SYS_FIELD_DRAFTS, drafts, gcs.stichtag)
+        try:
+            await gcs.systemsteuerung.save_all_values()
+            return
+        except ValueError as exc:
+            if not _is_snapshot_conflict(exc):
+                raise
+
+            if attempt == 0:
+                await _reload_systemsteuerung_instance(gcs)
+                continue
+
+            if attempt == 1:
+                # Letzter Fallback: ohne Snapshot-Guard speichern,
+                # damit reine UI-Draft-States nicht mit 500 abbrechen.
+                gcs.systemsteuerung._loaded_snapshot = None
+                continue
+
+            raise
 
 
 def _resolve_dialog_scope(dialog_guid: str, runtime: Dict[str, Any]) -> str:
@@ -296,6 +335,9 @@ async def get_gcs_instance(current_user: dict = Depends(get_current_user)):
     gcs = get_gcs_session(token)
     if not gcs:
         raise HTTPException(status_code=404, detail="Keine GCS-Session gefunden. Bitte Mandant auswählen.")
+
+    if hasattr(gcs, "set_request_context"):
+        gcs.set_request_context(actor_ip=current_user.get("client_ip"))
 
     return gcs
 
@@ -369,7 +411,8 @@ class DialogValidationIssue(BaseModel):
 
 
 class DialogDraftStartRequest(BaseModel):
-    name: str = Field(..., min_length=1, max_length=200)
+    # Rückwärtskompatibel: ältere Clients senden teils kein name beim Draft-Start.
+    name: Optional[str] = Field(None, min_length=1, max_length=200)
     template_uid: Optional[str] = None
     is_template: Optional[bool] = None
     modul_type: Optional[str] = Field(None, description="Für edit_dict: edit, view, tabs")
@@ -827,10 +870,9 @@ async def get_dialog_definition(dialog_guid: str, dialog_table: Optional[str] = 
             except Exception:
                 existing_raw = None
 
-            # Wenn Feld fehlt → initialisieren mit LAST_CALL = None
+            # Read-only in GET: fehlendes Feld nicht mehr sofort persistieren,
+            # um Snapshot-Konflikte in parallelen Requests zu vermeiden.
             if existing_raw is None:
-                gcs.systemsteuerung.set_value(last_call_key, table_key, {_SYS_FIELD_LAST_CALL: None}, gcs.stichtag)
-                await gcs.systemsteuerung.save_all_values()
                 last_call_str = None
             else:
                 payload = _normalize_last_call_payload(existing_raw)
@@ -967,7 +1009,8 @@ async def post_dialog_draft_start(
 
     name = str(payload.name or "").strip()
     if not name:
-        raise HTTPException(status_code=400, detail="name ist leer")
+        fallback_name = str(dialog_def.get("name") or "").strip()
+        name = fallback_name if fallback_name else "Neuer Datensatz"
 
     template_uuid = None
     if payload.template_uid is not None:

@@ -15,6 +15,7 @@ from __future__ import annotations
 import uuid
 from typing import Any, Dict, Iterable, Tuple
 
+from app.core.central_write_service import update_record_central
 from app.core.pdvm_datenbank import PdvmDatabase
 
 
@@ -245,11 +246,13 @@ async def update_menu_record(gcs, *, menu_uuid: uuid.UUID, daten: Dict[str, Any]
     cleaned = _strip_commands_from_parents(cleaned, groups)
     cleaned = _normalize_menu_types(cleaned, groups)
 
-    await db.update(
-        menu_uuid,
+    await update_record_central(
+        table_name="sys_menudaten",
+        uid=menu_uuid,
         daten=cleaned,
         name=existing.get("name"),
         historisch=existing.get("historisch"),
+        gcs=gcs,
     )
 
     return await load_menu_record(gcs, menu_uuid=menu_uuid)

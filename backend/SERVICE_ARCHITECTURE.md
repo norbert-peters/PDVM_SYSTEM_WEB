@@ -63,7 +63,7 @@ CREATE TABLE tabelle (
     gilt_bis TIMESTAMP DEFAULT '31.12.9999-59:59',  -- Gültigkeitsdatum default offen
     created_at TIMESTAMP DEFAULT NOW(),
     modified_at TIMESTAMP DEFAULT NOW(),
-    daten_backup JSONB                 -- Backup bei Änderungen
+    backup_daten JSONB                -- Backup bei Änderungen
 );
 ```
 

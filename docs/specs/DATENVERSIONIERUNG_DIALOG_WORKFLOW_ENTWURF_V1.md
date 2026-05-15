@@ -2,6 +2,192 @@
 
 Status: Entwurf
 
+## Verbindliche V1 Spezifikation: Historischer Feld-Aenderungsnachweis
+
+### 1. Ziel und Geltungsbereich
+
+Diese V1 spezifiziert den linearen Aenderungsnachweis fuer fachliche Datensaetze in Mandanten-Datenbanken.
+
+Ziele:
+1. Nur tatsaechlich geaenderte Felder werden protokolliert.
+2. Speicherung erfolgt in einer neuen sys_-Tabelle in jeder Mandanten-DB.
+3. Monatliche Ablage erfolgt automatisch, Monat wird aus created_at der Historienzeile bestimmt.
+4. Fachliche Referenz erfolgt ueber link_uid (Bezugsdatensatz), technische Zeilenadresse bleibt uid.
+5. Feldreferenz erfolgt ueber Feld-UID (name-Spalte); Uebergang via sys_control_dict ist erlaubt.
+
+### 2. Neue Tabelle
+
+Name:
+- sys_feld_aenderungshistorie
+
+Standardspalten (PDVM-Standard):
+- uid UUID PRIMARY KEY
+- link_uid UUID NOT NULL
+- daten JSONB NOT NULL
+- name TEXT NOT NULL
+- historisch INTEGER DEFAULT 0
+- source_hash TEXT
+- sec_id UUID
+- gilt_bis TIMESTAMP DEFAULT '9999-12-31 23:59:59'
+- created_at TIMESTAMP DEFAULT NOW()
+- modified_at TIMESTAMP DEFAULT NOW()
+- backup_daten JSONB DEFAULT '{}'
+
+Verbindliche Indizes:
+1. Index auf link_uid
+2. Index auf name
+3. Index auf created_at
+
+UID/LINK_UID-Regel:
+- uid = reine technische Row-ID
+- link_uid = UID des Bezugsdatensatzes
+
+### 3. JSON-Struktur in daten (V1)
+
+Verbindliche ROOT-Felder:
+- ROOT.SELF_GUID
+- ROOT.SELF_LINK_UID
+- ROOT.SELF_CREATED_AT
+- ROOT.SELF_MODIFIED_AT
+- ROOT.TABLE = sys_feld_aenderungshistorie
+
+Verbindliche Fachstruktur:
+1. META
+- month_key: YYYY-MM (aus created_at)
+- target_table: Name der geaenderten Zieltabelle
+- target_uid: UID des geaenderten Datensatzes
+- field_uid: UID des geaenderten Feldes
+- field_source: dictionary_uid | sys_control_dict_fallback
+
+2. CHANGE
+- old_value: alter Wert
+- new_value: neuer Wert
+- old_value_type: Typinformation (str/int/float/bool/null/object/array)
+- new_value_type: Typinformation
+
+3. ACTOR
+- user_uid: UID des aendernden Users
+- session_token_hash: optional
+- request_id: optional
+- client_ip: optional (sichtbar nur fuer Admin)
+
+4. TIME
+- changed_at_pdvm: Pflicht, PDVM-Format
+- changed_at_utc: optional ISO fuer Technik/Debug
+
+5. FLAGS
+- sensitive: true/false
+- sensitive_policy: none | mask | hash_only | skip
+
+Wichtig:
+- SQL-Zeitspalten bleiben TIMESTAMP.
+- JSON-Zeitwerte werden im PDVM-Format gespeichert.
+
+### 4. Save-Ablauf (linear, direkt)
+
+V1 wird synchron und direkt im Save-Pfad ausgefuehrt (kein Queue/Async).
+
+1. Erste Lesung (Snapshot A)
+- Vor Bearbeitung wird der aktuelle Datensatz intern als Snapshot A gehalten.
+
+2. Zweite Lesung kurz vor Save (Snapshot B)
+- Unmittelbar vor dem Schreiben wird derselbe Datensatz erneut aus DB gelesen.
+
+3. Parallelitaetspruefung A vs B
+- Wenn Snapshot A ungleich Snapshot B ist: Save abbrechen.
+- Verbindliche Fehlermeldung:
+  - Daten zwischenzeitlich geaendert. Bitte neu lesen
+
+4. Diff-Bildung B vs New
+- Feldweise Vergleich nur auf relevante fachliche Felder.
+- Nur geaenderte Felder werden in den Aenderungsnachweis aufgenommen.
+
+5. Datensatz speichern
+- Fachdatensatz wird geschrieben.
+
+6. Historie schreiben (Insert only)
+- Fuer jedes geaenderte Feld wird genau eine neue Historienzeile geschrieben.
+- Kein Update bestehender Historienzeilen.
+- Monatliche Buckets werden automatisch ueber created_at der neuen Historienzeile erzeugt.
+
+### 5. Monatliche Bucket-Regel
+
+Regel V1:
+1. Jeder Historien-Event ist eine eigene Zeile (Insert only).
+2. Monatliche Gruppierung erfolgt ausschliesslich ueber created_at.
+3. month_key in daten.META wird aus created_at abgeleitet und nur zur schnellen Auswertung abgelegt.
+
+Damit gibt es keine Konflikte durch JSON-Append in bestehende Monatszeilen.
+
+### 6. Feld-UID Referenzierung
+
+Verbindlich:
+1. name-Spalte enthaelt die Feld-UID.
+2. Feld-UID ist die langfristige, einzige Feldidentitaet.
+3. Uebergangsweise darf die Feld-UID ueber sys_control_dict aufgeloest werden.
+
+### 7. Sensitive-Felder-Policy (V1 sofort)
+
+Verbindlich ist eine zentrale Policy pro Feld-UID.
+
+Policy-Modi:
+1. none
+- old/new werden voll gespeichert.
+2. mask
+- old/new werden maskiert gespeichert.
+3. hash_only
+- old/new werden nur als Hash gespeichert.
+4. skip
+- fuer das Feld wird kein Aenderungsnachweis gespeichert.
+
+Mindestregel:
+- Zugangsdaten, Tokens, Secrets, Passwortbezogene Felder duerfen nie im Klartext gespeichert werden.
+
+### 8. Zugriff und Datenschutz
+
+Leserechte V1:
+1. Wer ein Feld aendern darf, darf dessen Aenderungsnachweis lesen.
+2. client_ip ist nur fuer Admin sichtbar.
+
+Antwortmaskierung API-seitig:
+1. Bei nicht-Admin wird client_ip entfernt.
+2. Sensitive-Felder folgen immer der Feld-Policy.
+
+### 9. Retention und automatische Bereinigung
+
+Aenderungsdaten sind zeitlich begrenzt relevant.
+
+V1-Regel:
+1. Konfigurierbare Aufbewahrung in Monaten (default 36 Monate, erlaubter Bereich 12-36 Monate).
+2. Geplanter Cleanup-Job loescht Historienzeilen, deren created_at aelter als retention ist.
+3. Loeschung erfolgt nur in sys_feld_aenderungshistorie (keine Aenderung von Fachdaten).
+
+### 10. Fehlerfaelle und Verhalten
+
+1. Snapshot-Konflikt
+- Save abweisen mit:
+  - Daten zwischenzeitlich geaendert. Bitte neu lesen
+
+2. Historie-Schreibfehler
+- V1 strict mode:
+  - Fachsave und Historie laufen in einer Transaktion.
+  - Wenn Historie fehlschlaegt, wird Fachsave zurueckgerollt.
+
+3. Ungueltige Feldreferenz
+- Wenn Feld-UID nicht aufloesbar ist und keine valide Uebergangsreferenz vorhanden ist: Fehler loggen und Save abbrechen (keine stillen Teilzustande).
+
+### 11. V1 Akzeptanzkriterien
+
+1. Neue Tabelle existiert in jeder Mandanten-DB mit Indizes auf link_uid, name, created_at.
+2. Bei Save ohne Feldaenderung entstehen keine Historienzeilen.
+3. Bei Save mit n Feldaenderungen entstehen genau n Historienzeilen.
+4. name enthaelt Feld-UID, link_uid enthaelt Bezugsdatensatz-UID.
+5. month_key entspricht dem Monat aus created_at.
+6. Parallelitaetskonflikte werden erkannt und mit der definierten Fehlermeldung beantwortet.
+7. Sensitive-Felder werden gemaess Policy geschrieben.
+8. Nicht-Admin sehen keine client_ip.
+9. Cleanup entfernt alte Historienzeilen gemaess Retention.
+
 ## Klarstellung Dialog Builder Ablauf (praxisnah)
 
 Diese Klarstellung beschreibt den Soll-Standard fuer DIALOG_TYPE=work.

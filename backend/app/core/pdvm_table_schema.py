@@ -10,6 +10,7 @@ GILT_BIS_MAX = "9999-12-31 23:59:59"
 # WICHTIG: Diese Struktur gilt für ALLE Tabellen außer sys_benutzer
 PDVM_TABLE_COLUMNS = {
     'uid': 'UUID PRIMARY KEY DEFAULT uuid_generate_v4()',
+    'link_uid': 'UUID',
     'daten': 'JSONB NOT NULL',
     'name': 'TEXT',
     'historisch': 'INTEGER DEFAULT 0',
@@ -18,11 +19,13 @@ PDVM_TABLE_COLUMNS = {
     'gilt_bis': f"TIMESTAMP DEFAULT '{GILT_BIS_MAX}'",
     'created_at': 'TIMESTAMP DEFAULT NOW()',
     'modified_at': 'TIMESTAMP DEFAULT NOW()',
-    'daten_backup': 'JSONB DEFAULT \'{}\'::jsonb'
+    'backup_daten': 'JSONB DEFAULT \'{}\'::jsonb'
 }
 
 # Standard-Indizes für PDVM-Tabellen
 PDVM_TABLE_INDEXES = [
+    'link_uid',
+    'created_at',
     'sec_id',
     'historisch',
     'name',
@@ -41,6 +44,7 @@ PDVM_SYSTEM_TABLES = [
     'sys_framedaten',
     'sys_layout',
     'sys_systemdaten',
+    'sys_feld_aenderungshistorie',
     'sys_control_dict',
     'sys_control_dict_audit'
 ]

@@ -32,7 +32,7 @@ class PdvmDatabaseService:
     - gilt_bis: TEXT (Gültigkeitsdatum)
     - created_at: TIMESTAMP
     - modified_at: TIMESTAMP
-    - daten_backup: JSONB
+    - backup_daten: JSONB
     """
     
     def __init__(self, database: str, table: str, password: Optional[str] = None):
@@ -108,7 +108,10 @@ class PdvmDatabaseService:
                 # Parse JSONB fields wenn String
                 if record.get('daten') and isinstance(record['daten'], str):
                     record['daten'] = json.loads(record['daten'])
-                if record.get('daten_backup') and isinstance(record['daten_backup'], str):
+                if record.get('backup_daten') and isinstance(record['backup_daten'], str):
+                    record['backup_daten'] = json.loads(record['backup_daten'])
+                elif record.get('daten_backup') and isinstance(record['daten_backup'], str):
+                    # Legacy alias
                     record['daten_backup'] = json.loads(record['daten_backup'])
                 result.append(record)
             
@@ -142,7 +145,9 @@ class PdvmDatabaseService:
             # Parse JSONB
             if record.get('daten') and isinstance(record['daten'], str):
                 record['daten'] = json.loads(record['daten'])
-            if record.get('daten_backup') and isinstance(record['daten_backup'], str):
+            if record.get('backup_daten') and isinstance(record['backup_daten'], str):
+                record['backup_daten'] = json.loads(record['backup_daten'])
+            elif record.get('daten_backup') and isinstance(record['daten_backup'], str):
                 record['daten_backup'] = json.loads(record['daten_backup'])
             
             return record
@@ -186,7 +191,7 @@ class PdvmDatabaseService:
                 'gilt_bis': kwargs.get('gilt_bis', '9999365.00000'),
                 'created_at': datetime.now(),
                 'modified_at': datetime.now(),
-                'daten_backup': None
+                'backup_daten': None
             }
             
             # INSERT
@@ -226,7 +231,7 @@ class PdvmDatabaseService:
             uid: UUID des Datensatzes
             daten: Neue Hauptdaten (optional)
             name: Neuer Name (optional)
-            backup_old: Alte Daten in daten_backup sichern
+            backup_old: Alte Daten in backup_daten sichern
             **kwargs: Weitere zu aktualisierende Spalten
             
         Returns:
@@ -247,7 +252,7 @@ class PdvmDatabaseService:
                     old_daten = old_record['daten']
                     if isinstance(old_daten, str):
                         old_daten = json.loads(old_daten)
-                    kwargs['daten_backup'] = json.dumps(old_daten)
+                    kwargs['backup_daten'] = json.dumps(old_daten)
             
             # Prepare UPDATE
             updates = {}

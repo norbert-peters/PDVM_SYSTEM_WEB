@@ -32,6 +32,9 @@ async def get_gcs_instance(current_user: dict = Depends(get_current_user)):
     if not gcs:
         raise HTTPException(status_code=404, detail="Keine GCS-Session gefunden. Bitte Mandant auswählen.")
 
+    if hasattr(gcs, "set_request_context"):
+        gcs.set_request_context(actor_ip=current_user.get("client_ip"))
+
     return gcs
 
 

@@ -7,7 +7,7 @@ import uuid
 from typing import Optional, Set
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from app.core.config import settings
 
@@ -49,7 +49,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     
     return encoded_jwt
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
+async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)) -> dict:
     """
     Validate JWT token and return user data from token payload.
     
@@ -80,7 +80,9 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
             "email": payload.get("email"),
             "name": payload.get("name"),
             "user_data": payload.get("user_data", {}),  # Vollständige JSONB-Daten (MEINEAPPS, etc.)
-            "token": token  # JWT-Token für GCS-Session-Lookup
+            "token": token,  # JWT-Token für GCS-Session-Lookup
+            "client_ip": request.client.host if request and request.client else None,
+            "user_agent": request.headers.get("user-agent") if request else None,
         }
         
         return user_data

@@ -13,6 +13,7 @@ import json
 import uuid
 from typing import Any, Dict, List, Optional
 
+from app.core.central_write_service import update_record_central
 from app.core.control_template_service import ControlTemplateService, create_control, switch_control_modul
 from app.core.pdvm_datenbank import PdvmDatabase
 from app.core.pdvm_central_systemsteuerung import PdvmCentralSystemsteuerung
@@ -116,6 +117,12 @@ class ControlDictService:
                 or source_control.get("FELD")
             ),
         }
+
+    def _actor_user_uid(self) -> Optional[uuid.UUID]:
+        try:
+            return uuid.UUID(str(getattr(self.gcs, "user_guid", "") or ""))
+        except Exception:
+            return None
 
     async def _resolve_effective(self, source_data: Dict[str, Any]) -> Dict[str, Any]:
         template_555 = self.gcs.get_control_template_555_cache()
@@ -255,7 +262,15 @@ class ControlDictService:
         data_to_store = await self._normalize_for_storage(effective_data)
         new_name = str(effective_data.get("SELF_NAME") or effective_data.get("name") or row.get("name") or "")
 
-        await self.db.update(uid=uid, daten=data_to_store, name=new_name)
+        await update_record_central(
+            table_name="sys_control_dict",
+            uid=uid,
+            daten=data_to_store,
+            name=new_name,
+            gcs=self.gcs,
+            actor_user_uid=self._actor_user_uid(),
+            actor_ip=getattr(self.gcs, "actor_ip", None),
+        )
 
         return {
             "uid": uid,
@@ -269,5 +284,13 @@ class ControlDictService:
         if not row:
             return False
         daten = self._as_dict(row.get("daten"))
-        await self.db.update(uid=uid, daten=daten, historisch=1)
+        await update_record_central(
+            table_name="sys_control_dict",
+            uid=uid,
+            daten=daten,
+            historisch=1,
+            gcs=self.gcs,
+            actor_user_uid=self._actor_user_uid(),
+            actor_ip=getattr(self.gcs, "actor_ip", None),
+        )
         return True

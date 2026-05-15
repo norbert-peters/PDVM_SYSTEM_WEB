@@ -221,6 +221,7 @@ class PdvmCentralSystemsteuerung:
         self.user_guid = user_guid
         self.mandant_guid = mandant_guid
         self.stichtag = stichtag
+        self.actor_ip: Optional[str] = None
         self._system_pool = system_pool
         self._mandant_pool = mandant_pool
 
@@ -304,6 +305,8 @@ class PdvmCentralSystemsteuerung:
             system_pool=system_pool,
             mandant_pool=mandant_pool
         )
+        self.systemsteuerung.actor_user_uid = str(self.user_guid)
+        self.anwendungsdaten.actor_user_uid = str(self.user_guid)
         
         # 5. Layout wird in initialize_from_db() geladen (linear)
 
@@ -390,17 +393,45 @@ class PdvmCentralSystemsteuerung:
                 if inst is not None:
                     inst.stichtag = float(new_stichtag)
 
+        async def _ensure_row_identity_via_link_uid(db: PdvmDatabase, row: Dict[str, Any], target_link_uuid: uuid.UUID, table_label: str) -> Dict[str, Any]:
+            """Stellt sicher: uid ist reine Row-ID; fachliche Identität liegt in link_uid."""
+            try:
+                row_uid = row.get("uid") if isinstance(row, dict) else None
+                if row_uid is None:
+                    return row
+                row_uid_str = str(row_uid)
+                if row_uid_str != str(target_link_uuid):
+                    return row
+
+                new_uid = uuid.uuid4()
+                changed = await db.rekey_uid(uuid.UUID(row_uid_str), new_uid)
+                if changed:
+                    logger.info(f"🔁 {table_label}: Row-UID von Link-UID entkoppelt ({row_uid_str} -> {new_uid})")
+                    refreshed = await db.get_by_uid(new_uid)
+                    return refreshed or row
+            except Exception as exc:
+                logger.warning(f"⚠️ {table_label}: Rekey auf Row-UID fehlgeschlagen: {exc}")
+            return row
+
         # --- sys_systemsteuerung (User) ---
-        row = await self.systemsteuerung.db.get_row(user_uuid)
+        row = await self.systemsteuerung.db.get_by_link_uid(user_uuid)
+        row = await _ensure_row_identity_via_link_uid(self.systemsteuerung.db, row, user_uuid, "sys_systemsteuerung") if row else row
         if row and row.get("daten"):
             self.systemsteuerung.set_data(row["daten"])
-            self.systemsteuerung.set_guid(user_guid_str)
+            self.systemsteuerung.set_guid(str(row.get("uid")))
         else:
             logger.info(f"📝 sys_systemsteuerung für User {user_guid_str} nicht gefunden - erstelle mit Defaults")
-            self.systemsteuerung.set_guid(user_guid_str)
+            new_row_uid = str(uuid.uuid4())
+            self.systemsteuerung.set_guid(new_row_uid)
             self.systemsteuerung.set_data({})
             self.systemsteuerung.set_value(user_guid_str, "THEME_MODE", "light", self.stichtag)
-            await self.systemsteuerung.save_all_values()
+            await self.systemsteuerung.db.create(
+                uid=uuid.UUID(new_row_uid),
+                daten=self.systemsteuerung.get_all_values(),
+                name="",
+                historisch=0,
+                link_uid=user_uuid,
+            )
             logger.info(f"✅ sys_systemsteuerung für User {user_guid_str} erstellt")
 
         # STICHTAG: load or initialize
@@ -427,16 +458,24 @@ class PdvmCentralSystemsteuerung:
                 logger.error(f"❌ Fehler beim Persistieren von STICHTAG: {e}")
 
         # --- sys_anwendungsdaten (Mandant) ---
-        row = await self.anwendungsdaten.db.get_row(mandant_uuid)
+        row = await self.anwendungsdaten.db.get_by_link_uid(mandant_uuid)
+        row = await _ensure_row_identity_via_link_uid(self.anwendungsdaten.db, row, mandant_uuid, "sys_anwendungsdaten") if row else row
         if row and row.get("daten"):
             self.anwendungsdaten.set_data(row["daten"])
-            self.anwendungsdaten.set_guid(mandant_guid_str)
+            self.anwendungsdaten.set_guid(str(row.get("uid")))
         else:
             logger.info(f"📝 sys_anwendungsdaten für Mandant {mandant_guid_str} nicht gefunden - erstelle mit Defaults")
-            self.anwendungsdaten.set_guid(mandant_guid_str)
+            new_row_uid = str(uuid.uuid4())
+            self.anwendungsdaten.set_guid(new_row_uid)
             self.anwendungsdaten.set_data({})
             self.anwendungsdaten.set_value("CONFIG", "THEME_GUID", "", self.stichtag)
-            await self.anwendungsdaten.save_all_values()
+            await self.anwendungsdaten.db.create(
+                uid=uuid.UUID(new_row_uid),
+                daten=self.anwendungsdaten.get_all_values(),
+                name="",
+                historisch=0,
+                link_uid=mandant_uuid,
+            )
             logger.info(f"✅ sys_anwendungsdaten für Mandant {mandant_guid_str} erstellt")
 
         # --- sys_layout (Theme) ---
@@ -514,12 +553,27 @@ class PdvmCentralSystemsteuerung:
         """
         self.systemsteuerung.set_value(gruppe, feld, wert, ab_zeit or self.stichtag)
     
-    async def save_all_values(self):
+    def set_request_context(self, actor_ip: Optional[str] = None) -> None:
+        """Setzt Request-Kontext (aktuell: Client-IP) für nachfolgende Saves."""
+        self.actor_ip = actor_ip
+        self.systemsteuerung.actor_ip = actor_ip
+        self.anwendungsdaten.actor_ip = actor_ip
+
+    async def save_all_values(
+        self,
+        actor_user_uid: Optional[str] = None,
+        actor_ip: Optional[str] = None,
+    ):
         """
         Delegiert an systemsteuerung.save_all_values()
         Für Kompatibilität mit GCS-API
         """
-        return await self.systemsteuerung.save_all_values()
+        effective_actor_user_uid = actor_user_uid or str(self.user_guid)
+        effective_actor_ip = actor_ip if actor_ip is not None else self.actor_ip
+        return await self.systemsteuerung.save_all_values(
+            actor_user_uid=effective_actor_user_uid,
+            actor_ip=effective_actor_ip,
+        )
     
     # === Theme-Einstellungen ===
     

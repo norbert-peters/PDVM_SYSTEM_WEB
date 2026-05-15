@@ -21,6 +21,7 @@ import json
 from typing import Any, Dict, List, Optional
 
 from app.core.pdvm_datenbank import PdvmDatabase
+from app.core.central_write_service import create_record_central, update_record_central
 from app.core.pdvm_central_datenbank import PdvmCentralDatabase
 from app.core.pdvm_central_benutzer import PdvmCentralBenutzer
 from app.core.user_manager import UserManager
@@ -497,7 +498,17 @@ async def load_dialog_definition(gcs, dialog_uuid: uuid.UUID) -> Dict[str, Any]:
         raise KeyError(f"Dialog nicht gefunden: {dialog_uuid}")
 
     daten = row.get("daten") or {}
+    if isinstance(daten, str):
+        try:
+            daten = json.loads(daten)
+        except Exception:
+            daten = {}
+    if not isinstance(daten, dict):
+        daten = {}
+
     root = daten.get("ROOT") or {}
+    if not isinstance(root, dict):
+        root = {}
 
     return {
         "uid": str(row.get("uid")),
@@ -757,11 +768,13 @@ async def update_dialog_record_json(
         )
 
     # Name/historisch bleiben unverändert.
-    await db.update(
-        record_uuid,
+    await update_record_central(
+        table_name=root_table,
+        uid=record_uuid,
         daten=daten_to_store,
         name=existing.get("name"),
         historisch=existing.get("historisch"),
+        gcs=gcs,
     )
 
     return await load_dialog_record(
@@ -1252,12 +1265,14 @@ async def create_dialog_record_from_template(
                 new_uuid,
             )
     else:
-        await db.create(
-            new_uuid,
+        await create_record_central(
+            table_name=root_table,
+            uid=new_uuid,
             daten=daten_copy,
             name=name_value,
             historisch=0,
             sec_id=template_row.get("sec_id"),
+            gcs=gcs,
         )
 
     return await load_dialog_record(gcs, root_table=root_table, record_uuid=new_uuid)

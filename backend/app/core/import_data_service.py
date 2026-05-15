@@ -13,6 +13,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import openpyxl
 
+from app.core.central_write_service import update_record_central
 from app.core.pdvm_datenbank import PdvmDatabase
 
 
@@ -383,8 +384,13 @@ async def apply_preview_rows(
     root["LAST_IMPORT_AT"] = datetime.utcnow().isoformat() + "Z"
     daten["ROOT"] = root
 
-    db = PdvmDatabase(table_name, system_pool=gcs._system_pool, mandant_pool=gcs._mandant_pool)
-    await db.update(uuid.UUID(str(dataset_uid)), daten=daten, name=dataset.get("name"))
+    await update_record_central(
+        table_name=table_name,
+        uid=uuid.UUID(str(dataset_uid)),
+        daten=daten,
+        name=dataset.get("name"),
+        gcs=gcs,
+    )
 
     return {
         "updated_count": len(merged),

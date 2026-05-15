@@ -773,6 +773,7 @@ async def create_mandant(
     }
     """
     from ..core.pdvm_datenbank import PdvmDatabase
+    from ..core.central_write_service import create_record_central
     from ..core.pdvm_datetime import PdvmDateTime
     from ..core.database import DatabasePool
     import asyncpg
@@ -894,9 +895,12 @@ async def create_mandant(
         
         # 7. Mandanten-Satz speichern
         mandant_name = template["ROOT"]["NAME"]
-        new_mandant = await db.create(
+        new_mandant = await create_record_central(
+            table_name="sys_mandanten",
             name=mandant_name,
-            daten=template
+            daten=template,
+            actor_user_uid=current_user.get("sub"),
+            actor_ip=current_user.get("client_ip"),
         )
         
         logger.info(f"✅ Mandant '{mandant_name}' angelegt (UID: {new_mandant['uid']})")
