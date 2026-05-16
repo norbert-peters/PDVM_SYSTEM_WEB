@@ -23,19 +23,38 @@ TABLE_DATABASE_MAP = {
     "sys_control_dict": "system",
     "sys_control_dict_audit": "system",
     
-    # Auth tables (auth database)
+    # Auth tables (auth database) - canonical
+    "asy_benutzer": "auth",
+    "asy_mandanten": "auth",
+    "asy_feld_aenderungshistorie": "auth",
+    # Auth tables (legacy compatibility)
     "sys_benutzer": "auth",
     "sys_mandanten": "auth",
     
-    # Mandant tables (mandant database)
+    # Mandant tables (mandant database) - canonical
+    "msy_anwendungsdaten": "mandant",
+    "msy_systemsteuerung": "mandant",
+    "msy_security": "mandant",
+    "msy_error_log": "mandant",
+    "msy_error_acknowledgments": "mandant",
+    "msy_layout": "mandant",
+    "msy_control_dict": "mandant",
+    "msy_control_dict_audit": "mandant",
+    "msy_systemdaten": "mandant",
+    "msy_ext_table": "mandant",
+    "msy_feld_aenderungshistorie": "mandant",
+    # Mandant tables (legacy compatibility)
     "sys_anwendungsdaten": "mandant",
     "sys_ext_table_man": "mandant",
     "sys_systemsteuerung": "mandant",
     "sys_security": "mandant",
     "sys_error_log": "mandant",
+    "sys_error_acknowledgements": "mandant",
     "sys_error_acknowledgments": "mandant",
+    "sys_layout": "mandant",
     "sys_contr_dict_man": "mandant",
     "sys_contr_dict_man_audit": "mandant",
+    "sys_feld_aenderungshistorie": "mandant",
     "tst_persondaten": "mandant",
     "tst_finanzdaten": "mandant",
 }

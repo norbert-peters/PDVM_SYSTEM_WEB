@@ -62,15 +62,17 @@ class MandantDatabaseMaintenance:
             # PHASE 1: Standard-System-Tabellen zuerst prüfen und warten
             # Diese müssen existieren bevor wir CONFIGS lesen können
             standard_tables = [
-                'sys_anwendungsdaten',
-                'sys_systemsteuerung',
-                'sys_layout',
-                'sys_security',
-                'sys_error_log',
-                'sys_error_acknowledgments',
-                'sys_contr_dict_man',
-                'sys_contr_dict_man_audit',
-                'sys_feld_aenderungshistorie',
+                'msy_anwendungsdaten',
+                'msy_systemsteuerung',
+                'msy_layout',
+                'msy_security',
+                'msy_error_log',
+                'msy_error_acknowledgments',
+                'msy_control_dict',
+                'msy_control_dict_audit',
+                'msy_systemdaten',
+                'msy_ext_table',
+                'msy_feld_aenderungshistorie',
             ]
             
             logger.info(f"📋 Phase 1: Standard-System-Tabellen ({len(standard_tables)})")
@@ -93,14 +95,29 @@ class MandantDatabaseMaintenance:
             
             # PHASE 2: Jetzt FEATURES/SYS_TABLES aus Mandanten-Daten lesen (OHNE DB-Query!)
             feature_tables = await self._get_feature_tables()
+            legacy_to_canonical = {
+                'sys_anwendungsdaten': 'msy_anwendungsdaten',
+                'sys_systemsteuerung': 'msy_systemsteuerung',
+                'sys_layout': 'msy_layout',
+                'sys_security': 'msy_security',
+                'sys_error_log': 'msy_error_log',
+                'sys_error_acknowledgements': 'msy_error_acknowledgments',
+                'sys_error_acknowledgments': 'msy_error_acknowledgments',
+                'sys_contr_dict_man': 'msy_control_dict',
+                'sys_contr_dict_man_audit': 'msy_control_dict_audit',
+                'sys_ext_table_man': 'msy_ext_table',
+                'sys_feld_aenderungshistorie': 'msy_feld_aenderungshistorie',
+            }
+            feature_tables = [legacy_to_canonical.get(str(t), str(t)) for t in feature_tables]
             logger.info(f"📋 Phase 2: Feature-Tabellen aus CONFIGS ({len(feature_tables)})")
             
             # PHASE 3: Feature-Tabellen prüfen und warten
-            # WICHTIG: sys_benutzer überspringen (hat Sonderschema mit benutzer + passwort)
-            feature_tables_filtered = [t for t in feature_tables if t != 'sys_benutzer']
+            # WICHTIG: Auth-Tabellen überspringen (haben Sonderschema)
+            skip_auth_tables = {'sys_benutzer', 'asy_benutzer'}
+            feature_tables_filtered = [t for t in feature_tables if t not in skip_auth_tables]
             logger.info(f"📋 Phase 3: Feature-Tabellen warten ({len(feature_tables_filtered)} Tabellen)")
-            if 'sys_benutzer' in feature_tables:
-                logger.info(f"⚠️ sys_benutzer übersprungen (Sonderschema)")
+            if any(t in feature_tables for t in skip_auth_tables):
+                logger.info(f"⚠️ Auth-Tabelle in Features übersprungen (Sonderschema)")
             
             for table_name in feature_tables_filtered:
                 try:
@@ -119,7 +136,7 @@ class MandantDatabaseMaintenance:
                     logger.error(f"❌ Fehler bei Feature-Tabelle {table_name}: {e}")
                     stats['errors'].append(f"{table_name}: {e}")
             
-            # PHASE 4: Korrigiere gilt_bis für alle Tabellen (außer sys_benutzer)
+            # PHASE 4: Korrigiere gilt_bis für alle Tabellen (außer Auth-Sondertabellen)
             all_tables = list(set(standard_tables + feature_tables_filtered))
             records_updated = await self._fix_gilt_bis_values(conn, all_tables)
             stats['records_updated'] = records_updated
@@ -128,10 +145,10 @@ class MandantDatabaseMaintenance:
             link_uid_synced = await self._sync_link_uid_values(conn, all_tables)
             stats['link_uid_synced'] = link_uid_synced
 
-            # PHASE 5b: sys_systemsteuerung/sys_anwendungsdaten auf Row-UID umstellen
+            # PHASE 5b: msy_systemsteuerung/msy_anwendungsdaten auf Row-UID umstellen
             row_uids_rekeyed = await self._rekey_row_uids_for_link_tables(
                 conn,
-                ["sys_systemsteuerung", "sys_anwendungsdaten"],
+                ["msy_systemsteuerung", "msy_anwendungsdaten"],
             )
             stats['row_uids_rekeyed'] = row_uids_rekeyed
 

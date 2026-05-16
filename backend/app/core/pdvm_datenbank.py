@@ -67,7 +67,7 @@ class PdvmDatabase:
             'auth', 'system' oder 'mandant'
         """
         # AUTH: Benutzer und Mandanten (zentral, einmalig)
-        if table_name in ["sys_benutzer", "sys_mandanten"]:
+        if table_name in ["asy_benutzer", "asy_mandanten", "sys_benutzer", "sys_mandanten"]:
             return "auth"
         
         # SYSTEM: Strukturdaten und Layouts (mandantenübergreifend)
@@ -95,6 +95,7 @@ class PdvmDatabase:
     _AUDIT_TABLE_MAP = {
         "sys_control_dict": "sys_control_dict_audit",
         "sys_contr_dict_man": "sys_contr_dict_man_audit",
+        "msy_control_dict": "msy_control_dict_audit",
     }
 
     _GUID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
@@ -800,16 +801,35 @@ class PdvmDatabase:
             sys_tables = []
         if not isinstance(features, list):
             features = []
+
+        legacy_to_canonical = {
+            "sys_anwendungsdaten": "msy_anwendungsdaten",
+            "sys_systemsteuerung": "msy_systemsteuerung",
+            "sys_layout": "msy_layout",
+            "sys_security": "msy_security",
+            "sys_error_log": "msy_error_log",
+            "sys_error_acknowledgements": "msy_error_acknowledgments",
+            "sys_error_acknowledgments": "msy_error_acknowledgments",
+            "sys_contr_dict_man": "msy_control_dict",
+            "sys_contr_dict_man_audit": "msy_control_dict_audit",
+            "sys_ext_table_man": "msy_ext_table",
+            "sys_feld_aenderungshistorie": "msy_feld_aenderungshistorie",
+        }
+        sys_tables = [legacy_to_canonical.get(str(t), str(t)) for t in sys_tables]
+        features = [legacy_to_canonical.get(str(t), str(t)) for t in features]
         
         mandatory_tables = [
-            "sys_anwendungsdaten",
-            "sys_systemsteuerung",
-            "sys_security",
-            "sys_error_log",
-            "sys_error_acknowledgments",
-            "sys_contr_dict_man",
-            "sys_contr_dict_man_audit",
-            "sys_feld_aenderungshistorie",
+            "msy_anwendungsdaten",
+            "msy_systemsteuerung",
+            "msy_layout",
+            "msy_security",
+            "msy_error_log",
+            "msy_error_acknowledgments",
+            "msy_control_dict",
+            "msy_control_dict_audit",
+            "msy_systemdaten",
+            "msy_ext_table",
+            "msy_feld_aenderungshistorie",
         ]
 
         all_tables = list(dict.fromkeys(mandatory_tables + sys_tables + features))
