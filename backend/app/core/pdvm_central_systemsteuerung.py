@@ -488,7 +488,7 @@ class PdvmCentralSystemsteuerung:
             )
             logger.info(f"✅ msy_anwendungsdaten für Mandant {mandant_guid_str} erstellt")
 
-        # --- sys_layout (Theme) ---
+        # --- Layout (Theme): canonical msy_layout, legacy self-heal from sys_layout ---
         theme_guid = None
         try:
             cfg = (self.mandant.data or {}).get("CONFIG") if isinstance(self.mandant.data, dict) else None
@@ -505,21 +505,55 @@ class PdvmCentralSystemsteuerung:
                 theme_uuid = None
 
             if theme_uuid is not None:
+                # Immer auf canonical msy_layout arbeiten.
                 self.layout = PdvmCentralDatabase(
-                    "sys_layout",
+                    "msy_layout",
                     guid=None,
                     no_save=True,
                     stichtag=float(self.stichtag),
                     system_pool=self._system_pool,
                     mandant_pool=self._mandant_pool,
                 )
+
                 row = await self.layout.db.get_row(theme_uuid)
+
+                # Migration-Heilung: Falls msy_layout leer ist, einmalig aus Legacy sys_layout uebernehmen.
+                if not row:
+                    try:
+                        legacy_layout_db = PdvmCentralDatabase(
+                            "sys_layout",
+                            guid=None,
+                            no_save=True,
+                            stichtag=float(self.stichtag),
+                            system_pool=self._system_pool,
+                            mandant_pool=self._mandant_pool,
+                        )
+                        legacy_row = await legacy_layout_db.db.get_row(theme_uuid)
+
+                        if legacy_row:
+                            try:
+                                await self.layout.db.create(
+                                    uid=theme_uuid,
+                                    daten=legacy_row.get("daten") or {},
+                                    name=legacy_row.get("name") or "",
+                                    historisch=int(legacy_row.get("historisch") or 0),
+                                )
+                                logger.info(f"✅ Layout-Migration: Theme {theme_guid_str} von sys_layout nach msy_layout uebernommen")
+                            except Exception as migration_exc:
+                                logger.warning(f"⚠️ Layout-Migration nach msy_layout fehlgeschlagen: {migration_exc}")
+
+                            row = await self.layout.db.get_row(theme_uuid)
+                        else:
+                            logger.warning(f"⚠️ Theme {theme_guid_str} weder in msy_layout noch in sys_layout gefunden")
+                    except Exception as legacy_exc:
+                        logger.warning(f"⚠️ Legacy-Layout-Lookup in sys_layout fehlgeschlagen: {legacy_exc}")
+
                 if row and row.get("daten"):
                     self.layout.set_data(row["daten"])
                 else:
                     self.layout.set_data({})
                 self.layout.set_guid(theme_guid_str)
-                logger.info(f"✅ Layout geladen: {theme_guid_str}")
+                logger.info(f"✅ Layout geladen aus msy_layout: {theme_guid_str}")
         else:
             logger.warning("⚠️ Keine THEME_GUID im Mandant-CONFIG gefunden")
 
