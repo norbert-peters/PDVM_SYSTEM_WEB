@@ -15,8 +15,8 @@ async def main() -> None:
     url = get_database_url("mandant")
     conn = await asyncpg.connect(url)
     try:
-        count = await conn.fetchval("SELECT COUNT(*) FROM persondaten")
-        print(f"persondaten_count={count}")
+        count = await conn.fetchval("SELECT COUNT(*) FROM tst_persondaten")
+        print(f"tst_persondaten_count={count}")
     finally:
         await conn.close()
 

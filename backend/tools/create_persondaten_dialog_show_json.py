@@ -1,8 +1,8 @@
-"""Create a PDVM dialog + frame for persondaten (show_json) in pdvm_system.
+"""Create a PDVM dialog + frame for tst_persondaten (show_json) in pdvm_system.
 
 - Inserts into sys_dialogdaten and sys_framedaten (schema auto-detected).
 - Dialog ROOT references:
-  - TABLE = persondaten
+    - TABLE = tst_persondaten
   - VIEW_GUID = provided view guid
   - FRAME_GUID = created frame guid
   - EDIT_TYPE = show_json
@@ -144,7 +144,7 @@ async def _upsert_jsonb_record(
 
 
 async def main() -> int:
-    parser = argparse.ArgumentParser(description="Create sys_dialogdaten + sys_framedaten for persondaten (show_json)")
+    parser = argparse.ArgumentParser(description="Create sys_dialogdaten + sys_framedaten for tst_persondaten (show_json)")
     parser.add_argument("--view-guid", required=True, help="Existing sys_viewdaten UID to use for Tab 1")
     parser.add_argument("--dialog-uid", help="Optional dialog UID to use")
     parser.add_argument("--frame-uid", help="Optional frame UID to use")
@@ -166,7 +166,7 @@ async def main() -> int:
 
     dialog_daten = {
         "ROOT": {
-            "TABLE": "persondaten",
+            "TABLE": "tst_persondaten",
             "TABS": 2,
             "VIEW_GUID": view_guid,
             "FRAME_GUID": str(frame_id),
@@ -228,7 +228,7 @@ async def main() -> int:
         print("✅ Dialog + Frame created/updated")
         print(f"   sys_dialogdaten: {dialog_rel}  {dialog_pk}={dialog_id}")
         print(f"   sys_framedaten:  {frame_rel}  {frame_pk}={frame_id}")
-        print(f"   ROOT.TABLE: persondaten")
+        print(f"   ROOT.TABLE: tst_persondaten")
         print(f"   ROOT.VIEW_GUID: {view_guid}")
         print(f"   ROOT.EDIT_TYPE: show_json")
 

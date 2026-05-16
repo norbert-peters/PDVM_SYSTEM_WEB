@@ -21,7 +21,7 @@ MVP (dieser Stand):
 Dialog-Metadaten und Root-Konfiguration.
 
 **Wichtige Felder in `daten.ROOT`:**
-- `TABLE` (string): Root-Tabelle des Dialogs (z.B. `persondaten` oder `sys_dropdowndaten`)
+- `TABLE` (string): Root-Tabelle des Dialogs (z.B. `tst_persondaten` oder `sys_dropdowndaten`)
 - `TABS` (int, min 2): Anzahl Tabs (MVP nutzt mind. 2)
 - `SELECTION_MODE` (string): `single` (Default) oder `multi` (vorbereitet für spätere Bereichsauswahl)
 - `OPEN_EDIT` (string): `button` (Default) oder `double_click` (öffnet Edit-Tab beim Doppelklick auf Datensatz)
@@ -50,7 +50,7 @@ Hinweis:
 ```json
 {
   "ROOT": {
-    "TABLE": "persondaten",
+    "TABLE": "tst_persondaten",
     "TABS": 2,
     "SELECTION_MODE": "single",
     "OPEN_EDIT": "button",
@@ -103,7 +103,7 @@ Menü-Item ruft den Dialog über den Handler `go_dialog` auf.
     "handler": "go_dialog",
     "params": {
       "dialog_guid": "22222222-2222-2222-2222-222222222222",
-      "dialog_table": "persondaten"
+      "dialog_table": "tst_persondaten"
     }
   }
 }
@@ -306,18 +306,13 @@ Beispiel:
 Tab 1 rendert eine View.
 
 Wichtig (Zielbild):
-- Die View ist ein **eigenständiges, zentrales Modul**.
-- Der Dialog bindet die View nur ein und enthält **keine View-Logik-Duplikate**.
-- Die View muss eine eindeutige Selektions-API/Events liefern (z.B. `selected_uids`).
-
-### View-Definition Semantik (neu)
-`sys_viewdaten.daten` nutzt standardisierte Sektionen:
+`TABLE` (string): Root-Tabelle des Dialogs (z.B. `tst_persondaten` oder `sys_dropdowndaten`)
 - Sektion `TABLENAME` (immer uppercase, z.B. `SYS_MENUDATEN`) → Controls für fachliche Datenfelder
 - Sektion `**System` → Controls für Systemspalten (`gruppe=SYSTEM`, z.B. `uid`, `name`, `created_at`, `modified_at`, ...)
 
 `ROOT.NO_DATA=true` bedeutet:
 - **Die `TABLENAME`-Sektion wird nicht ausgewertet**.
-- Die View rendert trotzdem vollständig über das View-Modul (typisch: nur `**System`).
+    "TABLE": "tst_persondaten",
 
 ### View `table` override (für `dialog_table`)
 Für Views mit `ROOT.NO_DATA=true` ist ein Table-Override erlaubt:
@@ -345,7 +340,7 @@ API-Nutzung:
 - Matrix-Load muss ebenfalls konsistent gescoped sein:
   - `POST /api/views/{view_guid}/matrix?table=<tablename>&edit_type=<edit_type>`
 
-Konventionen:
+      "dialog_table": "tst_persondaten"
 - Standalone-View nutzt `edit_type=view`.
 - Embedded-View im Dialog nutzt `edit_type = sys_dialogdaten.ROOT.EDIT_TYPE`.
 - `table` ist die effektive Tabelle (bei Override: `dialog_table`, ansonsten View/Dialog Root).

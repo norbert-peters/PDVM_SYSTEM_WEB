@@ -6,7 +6,7 @@ from pathlib import Path
 def main() -> None:
     parser = argparse.ArgumentParser(description="Inspect a SQLite DB table schema and basic stats")
     parser.add_argument("db_path", type=Path)
-    parser.add_argument("--table", default="persondaten")
+    parser.add_argument("--table", default="tst_persondaten")
     parser.add_argument("--limit", type=int, default=1)
     parser.add_argument(
         "--show-types",

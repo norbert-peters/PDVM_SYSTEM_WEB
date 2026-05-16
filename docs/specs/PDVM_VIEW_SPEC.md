@@ -60,7 +60,7 @@ Beispiel-Auszug (aus „Personen Sicht“):
 ```json
 {
   "ROOT": {
-    "TABLE": "persondaten",
+    "TABLE": "tst_persondaten",
     "ALLOW_FILTER": true,
     "ALLOW_SORT": true,
     "DEFAULT_SORT_COLUMN": "",
@@ -81,7 +81,7 @@ Beispiel-Auszug (aus „Personen Sicht“):
       "searchable": true,
       "sortable": true,
       "filterType": "contains",
-      "table": "persondaten"
+      "table": "tst_persondaten"
     }
   }
 }

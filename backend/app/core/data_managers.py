@@ -341,7 +341,7 @@ class PersonDataManager:
         """
         self.db_service = PdvmDatabaseService(
             database=mandant_database,
-            table="persondaten"
+            table="tst_persondaten"
         )
         self._cache: Dict[str, Dict[str, Any]] = {}
     

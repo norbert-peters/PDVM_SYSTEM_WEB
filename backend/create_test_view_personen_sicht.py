@@ -41,7 +41,7 @@ PERSONEN_SICHT_DATEN: Dict[str, Any] = {
         "ALLOW_SORT": True,
         "DEFAULT_SORT_COLUMN": "",
         "DEFAULT_SORT_REVERSE": False,
-        "TABLE": "persondaten",
+        "TABLE": "tst_persondaten",
     },
     "PERSONDATEN": {
         "a602ca3c-726d-4bb3-902b-fd00d23b9fa2": {
@@ -61,7 +61,7 @@ PERSONEN_SICHT_DATEN: Dict[str, Any] = {
             "sortDirection": "asc",
             "sortByOriginal": False,
             "filterType": "contains",
-            "table": "persondaten",
+            "table": "tst_persondaten",
         },
         "6e1c2e64-a871-47fb-bd60-f4655daa8387": {
             "gruppe": "PERSDATEN",
@@ -80,7 +80,7 @@ PERSONEN_SICHT_DATEN: Dict[str, Any] = {
             "sortDirection": "asc",
             "sortByOriginal": False,
             "filterType": "contains",
-            "table": "persondaten",
+            "table": "tst_persondaten",
         },
         "e6ab3d84-2477-4846-8241-a7e48e331ec3": {
             "gruppe": "PERSDATEN",
@@ -99,7 +99,7 @@ PERSONEN_SICHT_DATEN: Dict[str, Any] = {
             "sortDirection": "desc",
             "sortByOriginal": True,
             "filterType": "dateRange",
-            "table": "persondaten",
+            "table": "tst_persondaten",
         },
         "da773a33-1fe3-4bbe-8663-8fb92984d230": {
             "gruppe": "PERSDATEN",
@@ -117,7 +117,7 @@ PERSONEN_SICHT_DATEN: Dict[str, Any] = {
             "sortDirection": "asc",
             "sortByOriginal": False,
             "filterType": "dropdown",
-            "table": "persondaten",
+            "table": "tst_persondaten",
             "configs": {
                 "dropdown": {
                     "table": "dropdowndaten",
@@ -143,7 +143,7 @@ PERSONEN_SICHT_DATEN: Dict[str, Any] = {
             "sortDirection": "asc",
             "sortByOriginal": False,
             "filterType": "contains",
-            "table": "persondaten",
+            "table": "tst_persondaten",
         },
         "ab92f9e8-f019-4e7f-ba1e-fdb135f37c35": {
             "type": "string",
@@ -161,7 +161,7 @@ PERSONEN_SICHT_DATEN: Dict[str, Any] = {
             "gruppe": "ANSCHRIFT_PERSON",
             "feld": "ORT",
             "label": "Wohnort",
-            "table": "persondaten",
+            "table": "tst_persondaten",
         },
         "35ae6f54-d62c-459e-a52e-9e497eb2e773": {
             "gruppe": "SYSTEM",
@@ -180,7 +180,7 @@ PERSONEN_SICHT_DATEN: Dict[str, Any] = {
             "sortDirection": "asc",
             "sortByOriginal": False,
             "filterType": "contains",
-            "table": "persondaten",
+            "table": "tst_persondaten",
         },
         "8332d37c-ac7d-440c-996c-a871f4d8cbee": {
             "gruppe": "SYSTEM",

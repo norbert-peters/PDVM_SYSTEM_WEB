@@ -94,7 +94,7 @@ async def _upsert_finanzdaten(rows: list[dict[str, Any]], url: str, *, batch_siz
     conn = await asyncpg.connect(url)
     try:
         upsert_sql = """
-            INSERT INTO finanzdaten (uid, daten, name, modified_at)
+            INSERT INTO tst_finanzdaten (uid, daten, name, modified_at)
             VALUES ($1::uuid, $2::jsonb, $3, NOW())
             ON CONFLICT (uid) DO UPDATE
             SET daten = EXCLUDED.daten,
@@ -116,7 +116,7 @@ async def _upsert_finanzdaten(rows: list[dict[str, Any]], url: str, *, batch_siz
 
 async def main_async() -> int:
     parser = argparse.ArgumentParser(
-        description="Import finanzdaten from Desktop SQLite into Postgres mandant.finanzdaten (upsert by uid)"
+        description="Import finanzdaten from Desktop SQLite into Postgres mandant.tst_finanzdaten (upsert by uid)"
     )
     parser.add_argument("sqlite_db", type=Path, help="Path to Desktop SQLite datenbank.db")
     parser.add_argument("--dry-run", action="store_true")

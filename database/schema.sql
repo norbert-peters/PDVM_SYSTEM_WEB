@@ -75,8 +75,8 @@ SELECT create_pdvm_table('sys_error_log');
 -- ========================================
 -- BUSINESS DATA TABLES (Examples)
 -- ========================================
-SELECT create_pdvm_table('persondaten');
-SELECT create_pdvm_table('finanzdaten');
+SELECT create_pdvm_table('tst_persondaten');
+SELECT create_pdvm_table('tst_finanzdaten');
 
 -- ========================================
 -- DEMO DATA
@@ -93,7 +93,7 @@ VALUES (
 ) ON CONFLICT (benutzer) DO NOTHING;
 
 -- Create demo person
-INSERT INTO persondaten (uid, daten, name)
+INSERT INTO tst_persondaten (uid, daten, name)
 VALUES (
     'ed21cb69-046b-465f-b231-6e75852b50b3'::uuid,
     '{

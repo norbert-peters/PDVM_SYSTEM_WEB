@@ -96,7 +96,7 @@ async def _upsert_to_postgres(rows: list[PersonRow], *, dry_run: bool) -> None:
     pool = await asyncpg.create_pool(db_url, min_size=1, max_size=4)
     try:
         query = """
-            INSERT INTO persondaten (uid, daten, name, historisch)
+            INSERT INTO tst_persondaten (uid, daten, name, historisch)
             VALUES ($1::uuid, $2::jsonb, $3, $4)
             ON CONFLICT (uid) DO UPDATE SET
                 daten = EXCLUDED.daten,
@@ -122,7 +122,7 @@ async def _upsert_to_postgres(rows: list[PersonRow], *, dry_run: bool) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Import Desktop SQLite persondaten into Postgres mandant.persondaten (upsert by uid)"
+        description="Import Desktop SQLite persondaten into Postgres mandant.tst_persondaten (upsert by uid)"
     )
     parser.add_argument("sqlite_db", type=Path)
     parser.add_argument("--dry-run", action="store_true")

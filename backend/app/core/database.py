@@ -36,8 +36,8 @@ TABLE_DATABASE_MAP = {
     "sys_error_acknowledgments": "mandant",
     "sys_contr_dict_man": "mandant",
     "sys_contr_dict_man_audit": "mandant",
-    "persondaten": "mandant",
-    "finanzdaten": "mandant",
+    "tst_persondaten": "mandant",
+    "tst_finanzdaten": "mandant",
 }
 
 class DatabasePool:
