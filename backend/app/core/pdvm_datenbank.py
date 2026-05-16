@@ -13,6 +13,7 @@ import json
 import asyncio
 import re
 import copy
+import logging
 from app.core.pdvm_datetime import datetime_to_pdvm, pdvm_to_str
 from app.core.feld_aenderungshistorie_service import FieldChangeHistoryService
 from typing import Dict, List, Optional, Any
@@ -20,6 +21,8 @@ from datetime import datetime
 import asyncpg
 from app.core.database import DatabasePool
 from app.core.pdvm_table_schema import PDVM_TABLE_COLUMNS, PDVM_TABLE_INDEXES
+
+logger = logging.getLogger(__name__)
 
 
 class PdvmDatabase:
@@ -44,6 +47,25 @@ class PdvmDatabase:
                  sys_dialogdaten, sys_viewdaten, sys_framedaten, sys_layout
     - mandant.db: sys_anwendungsdaten, sys_systemsteuerung, Fachdaten
     """
+
+    _KNOWN_PREFIXES = {"asy_", "sys_", "dev_", "msy_", "tst_"}
+    _LEGACY_ROUTE_ALLOWLIST = {
+        # Auth legacy
+        "sys_benutzer": "auth",
+        "sys_mandanten": "auth",
+        # Mandant legacy (temporary rollout allowlist)
+        "sys_anwendungsdaten": "mandant",
+        "sys_systemsteuerung": "mandant",
+        "sys_layout": "mandant",
+        "sys_security": "mandant",
+        "sys_error_log": "mandant",
+        "sys_error_acknowledgements": "mandant",
+        "sys_error_acknowledgments": "mandant",
+        "sys_contr_dict_man": "mandant",
+        "sys_contr_dict_man_audit": "mandant",
+        "sys_ext_table_man": "mandant",
+        "sys_feld_aenderungshistorie": "mandant",
+    }
     
     def __init__(self, table_name: str, system_pool: Optional[asyncpg.Pool] = None, mandant_pool: Optional[asyncpg.Pool] = None):
         """
@@ -61,36 +83,42 @@ class PdvmDatabase:
     
     def _find_database(self, table_name: str) -> str:
         """
-        Ermittelt Datenbank anhand Tabellenname
+        Ermittelt Datenbank praefixbasiert anhand Tabellenname.
+
+        Phase-4 Routing-Regeln:
+        - asy_ -> auth
+        - sys_/dev_ -> system
+        - msy_/tst_/app-spezifische Praefixe -> mandant
+        - temporaere Legacy-Allowlist fuer Alt-Namen
+        - unbekanntes/nicht-praefixiertes Schema -> expliziter Fehler
         
         Returns:
             'auth', 'system' oder 'mandant'
         """
-        # AUTH: Benutzer und Mandanten (zentral, einmalig)
-        if table_name in ["asy_benutzer", "asy_mandanten", "sys_benutzer", "sys_mandanten"]:
+        table = str(table_name or "").strip().lower()
+        if not table:
+            raise ValueError("Leerer Tabellenname ist nicht erlaubt")
+
+        if table in self._LEGACY_ROUTE_ALLOWLIST:
+            return self._LEGACY_ROUTE_ALLOWLIST[table]
+
+        prefix = table.split("_", 1)[0] + "_" if "_" in table else ""
+
+        if prefix == "asy_":
             return "auth"
-        
-        # SYSTEM: Strukturdaten und Layouts (mandantenübergreifend)
-        elif table_name in [
-            "sys_beschreibungen",
-            "sys_ext_table",
-            "sys_dropdowndaten",
-            "sys_menudaten",
-            "sys_dialogdaten",
-            "sys_viewdaten",
-            "sys_framedaten",
-            "sys_layout",
-            "sys_systemdaten",
-            "sys_control_dict",
-            "sys_control_dict_audit",
-            "dev_workflow_draft",
-            "dev_workflow_draft_item",
-        ]:
+        if prefix in {"sys_", "dev_"}:
             return "system"
-        
-        # MANDANT: Anwendungsdaten und Fachdaten (pro Mandant)
-        else:
+        if prefix in {"msy_", "tst_"}:
             return "mandant"
+
+        # App-spezifische Praefixe (z.B. crm_, hrm_, pps_) laufen in Mandanten-DB.
+        if prefix:
+            if prefix not in self._KNOWN_PREFIXES:
+                logger.info(f"🔎 App-Praefix erkannt, route nach mandant: table={table} prefix={prefix}")
+            return "mandant"
+
+        logger.error(f"❌ Unbekanntes Tabellen-Praefix ohne Delimiter: table={table}")
+        raise ValueError(f"Unbekanntes Tabellen-Praefix fuer Routing: {table}")
 
     _AUDIT_TABLE_MAP = {
         "sys_control_dict": "sys_control_dict_audit",

@@ -6,58 +6,55 @@ import asyncpg
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 import json
+import logging
 from app.core.config import settings
 
-# Mapping: table_name -> database pool name
-TABLE_DATABASE_MAP = {
-    # System tables (pdvm_system database)
-    "sys_beschreibungen": "system",
-    "sys_ext_table": "system",
-    "sys_dialogdaten": "system",
-    "sys_framedaten": "system",
-    "sys_viewdaten": "system",
-    "sys_menudaten": "system",
-    "sys_layout": "system",
-    "sys_dropdowndaten": "system",
-    "sys_systemdaten": "system",
-    "sys_control_dict": "system",
-    "sys_control_dict_audit": "system",
-    
-    # Auth tables (auth database) - canonical
-    "asy_benutzer": "auth",
-    "asy_mandanten": "auth",
-    "asy_feld_aenderungshistorie": "auth",
-    # Auth tables (legacy compatibility)
+logger = logging.getLogger(__name__)
+
+KNOWN_PREFIXES = {"asy_", "sys_", "dev_", "msy_", "tst_"}
+
+# Temporary rollout allowlist for legacy tables that would otherwise route by sys_ prefix.
+LEGACY_ROUTE_ALLOWLIST = {
     "sys_benutzer": "auth",
     "sys_mandanten": "auth",
-    
-    # Mandant tables (mandant database) - canonical
-    "msy_anwendungsdaten": "mandant",
-    "msy_systemsteuerung": "mandant",
-    "msy_security": "mandant",
-    "msy_error_log": "mandant",
-    "msy_error_acknowledgments": "mandant",
-    "msy_layout": "mandant",
-    "msy_control_dict": "mandant",
-    "msy_control_dict_audit": "mandant",
-    "msy_systemdaten": "mandant",
-    "msy_ext_table": "mandant",
-    "msy_feld_aenderungshistorie": "mandant",
-    # Mandant tables (legacy compatibility)
     "sys_anwendungsdaten": "mandant",
-    "sys_ext_table_man": "mandant",
     "sys_systemsteuerung": "mandant",
+    "sys_layout": "mandant",
     "sys_security": "mandant",
     "sys_error_log": "mandant",
     "sys_error_acknowledgements": "mandant",
     "sys_error_acknowledgments": "mandant",
-    "sys_layout": "mandant",
     "sys_contr_dict_man": "mandant",
     "sys_contr_dict_man_audit": "mandant",
+    "sys_ext_table_man": "mandant",
     "sys_feld_aenderungshistorie": "mandant",
-    "tst_persondaten": "mandant",
-    "tst_finanzdaten": "mandant",
 }
+
+
+def resolve_db_name_by_prefix(table_name: str) -> str:
+    table = str(table_name or "").strip().lower()
+    if not table:
+        raise ValueError("Leerer Tabellenname ist nicht erlaubt")
+
+    if table in LEGACY_ROUTE_ALLOWLIST:
+        return LEGACY_ROUTE_ALLOWLIST[table]
+
+    prefix = table.split("_", 1)[0] + "_" if "_" in table else ""
+
+    if prefix == "asy_":
+        return "auth"
+    if prefix in {"sys_", "dev_"}:
+        return "system"
+    if prefix in {"msy_", "tst_"}:
+        return "mandant"
+
+    if prefix:
+        if prefix not in KNOWN_PREFIXES:
+            logger.info(f"🔎 App-Praefix erkannt, route nach mandant: table={table} prefix={prefix}")
+        return "mandant"
+
+    logger.error(f"❌ Unbekanntes Tabellen-Praefix ohne Delimiter: table={table}")
+    raise ValueError(f"Unbekanntes Tabellen-Praefix fuer Routing: {table}")
 
 class DatabasePool:
     """
@@ -101,7 +98,7 @@ class PdvmDatabase:
     def __init__(self, table_name: str):
         self.table_name = table_name
         # Determine which database this table belongs to
-        self.db_name = TABLE_DATABASE_MAP.get(table_name, "mandant")
+        self.db_name = resolve_db_name_by_prefix(table_name)
     
     def _get_pool(self) -> asyncpg.Pool:
         """Get the appropriate pool for this table's database"""
