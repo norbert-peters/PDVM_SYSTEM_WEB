@@ -17,7 +17,7 @@ from app.core.central_write_service import update_record_central
 from app.core.pdvm_datenbank import PdvmDatabase
 
 
-_ALLOWED_TABLES = {"sys_ext_table", "sys_ext_table_man"}
+_ALLOWED_TABLES = {"sys_ext_table", "msy_ext_table"}
 
 
 def _is_empty(value: Any) -> bool:
@@ -203,7 +203,7 @@ def _detect_format(filename: str) -> str:
 
 def _ensure_allowed_table(table_name: str) -> None:
     if table_name not in _ALLOWED_TABLES:
-        raise ValueError("Ungültige Zieltabelle (nur sys_ext_table oder sys_ext_table_man erlaubt)")
+        raise ValueError("Ungültige Zieltabelle (nur sys_ext_table oder msy_ext_table erlaubt)")
 
 
 def _merge_rows(

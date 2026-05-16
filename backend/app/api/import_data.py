@@ -32,7 +32,7 @@ def _normalize_table_name(table_name: Optional[str]) -> str:
     t = str(table_name or "").strip()
     if not t:
         raise HTTPException(status_code=400, detail="table_name fehlt")
-    if t not in {"sys_ext_table", "sys_ext_table_man"}:
+    if t not in {"sys_ext_table", "msy_ext_table"}:
         raise HTTPException(status_code=400, detail="Ungueltige table_name")
     return t
 
@@ -53,7 +53,7 @@ async def get_gcs_instance(current_user: dict = Depends(get_current_user)):
 
 
 class ImportApplyRequest(BaseModel):
-    table_name: str = Field(..., description="sys_ext_table or sys_ext_table_man")
+    table_name: str = Field(..., description="sys_ext_table or msy_ext_table")
     dataset_uid: str
     rows: List[Dict[str, Any]] = Field(default_factory=list)
 

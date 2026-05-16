@@ -24,9 +24,6 @@ LEGACY_ROUTE_ALLOWLIST = {
     "sys_error_log": "mandant",
     "sys_error_acknowledgements": "mandant",
     "sys_error_acknowledgments": "mandant",
-    "sys_contr_dict_man": "mandant",
-    "sys_contr_dict_man_audit": "mandant",
-    "sys_ext_table_man": "mandant",
     "sys_feld_aenderungshistorie": "mandant",
 }
 

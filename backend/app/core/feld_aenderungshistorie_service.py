@@ -114,7 +114,7 @@ class FieldChangeHistoryService:
         Liefert Feld-UID.
         Priorität:
         1) Feldname selbst ist GUID
-        2) sys_contr_dict_man.name
+        2) msy_control_dict.name
         3) sys_control_dict.name
         4) Fallback auf Feldname
         """
@@ -129,7 +129,7 @@ class FieldChangeHistoryService:
         if cache_key in cache:
             return cache[cache_key]
 
-        for table_name in ("sys_contr_dict_man", "sys_control_dict"):
+        for table_name in ("msy_control_dict", "sys_control_dict"):
             exists = table_exists_cache.get(table_name)
             if exists is None:
                 exists = bool(

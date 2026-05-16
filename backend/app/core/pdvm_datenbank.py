@@ -61,9 +61,6 @@ class PdvmDatabase:
         "sys_error_log": "mandant",
         "sys_error_acknowledgements": "mandant",
         "sys_error_acknowledgments": "mandant",
-        "sys_contr_dict_man": "mandant",
-        "sys_contr_dict_man_audit": "mandant",
-        "sys_ext_table_man": "mandant",
         "sys_feld_aenderungshistorie": "mandant",
     }
     
@@ -122,7 +119,6 @@ class PdvmDatabase:
 
     _AUDIT_TABLE_MAP = {
         "sys_control_dict": "sys_control_dict_audit",
-        "sys_contr_dict_man": "sys_contr_dict_man_audit",
         "msy_control_dict": "msy_control_dict_audit",
     }
 
@@ -299,7 +295,7 @@ class PdvmDatabase:
         mandant_pool: Optional[asyncpg.Pool],
     ) -> Optional[Dict[str, Any]]:
         """Lädt Control-Definition (Mandant zuerst, dann System)."""
-        mandant_db = PdvmDatabase("sys_contr_dict_man", system_pool=system_pool, mandant_pool=mandant_pool)
+        mandant_db = PdvmDatabase("msy_control_dict", system_pool=system_pool, mandant_pool=mandant_pool)
         row = await mandant_db.get_by_uid(feld_guid)
         if not row:
             system_db = PdvmDatabase("sys_control_dict", system_pool=system_pool, mandant_pool=mandant_pool)

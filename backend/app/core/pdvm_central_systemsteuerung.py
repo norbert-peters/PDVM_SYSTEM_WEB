@@ -298,7 +298,7 @@ class PdvmCentralSystemsteuerung:
         
         # 3. Systemsteuerung-Instanz (Benutzereinstellungen, read/write)
         self.systemsteuerung = PdvmCentralDatabase(
-            "sys_systemsteuerung",
+            "msy_systemsteuerung",
             guid=None,  # Keine GUID → kein DB-Lesen
             no_save=False,  # Speicherbar
             stichtag=stichtag,
@@ -308,7 +308,7 @@ class PdvmCentralSystemsteuerung:
         
         # 4. Anwendungsdaten-Instanz (Mandanteneinstellungen, read/write)
         self.anwendungsdaten = PdvmCentralDatabase(
-            "sys_anwendungsdaten",
+            "msy_anwendungsdaten",
             guid=None,  # Keine GUID → kein DB-Lesen
             no_save=False,  # Speicherbar
             stichtag=stichtag,
@@ -423,14 +423,14 @@ class PdvmCentralSystemsteuerung:
                 logger.warning(f"⚠️ {table_label}: Rekey auf Row-UID fehlgeschlagen: {exc}")
             return row
 
-        # --- sys_systemsteuerung (User) ---
+        # --- msy_systemsteuerung (User) ---
         row = await self.systemsteuerung.db.get_by_link_uid(user_uuid)
-        row = await _ensure_row_identity_via_link_uid(self.systemsteuerung.db, row, user_uuid, "sys_systemsteuerung") if row else row
+        row = await _ensure_row_identity_via_link_uid(self.systemsteuerung.db, row, user_uuid, "msy_systemsteuerung") if row else row
         if row and row.get("daten"):
             self.systemsteuerung.set_data(row["daten"])
             self.systemsteuerung.set_guid(str(row.get("uid")))
         else:
-            logger.info(f"📝 sys_systemsteuerung für User {user_guid_str} nicht gefunden - erstelle mit Defaults")
+            logger.info(f"📝 msy_systemsteuerung für User {user_guid_str} nicht gefunden - erstelle mit Defaults")
             new_row_uid = str(uuid.uuid4())
             self.systemsteuerung.set_guid(new_row_uid)
             self.systemsteuerung.set_data({})
@@ -442,7 +442,7 @@ class PdvmCentralSystemsteuerung:
                 historisch=0,
                 link_uid=user_uuid,
             )
-            logger.info(f"✅ sys_systemsteuerung für User {user_guid_str} erstellt")
+            logger.info(f"✅ msy_systemsteuerung für User {user_guid_str} erstellt")
 
         # STICHTAG: load or initialize
         stored = None
@@ -467,14 +467,14 @@ class PdvmCentralSystemsteuerung:
             except Exception as e:
                 logger.error(f"❌ Fehler beim Persistieren von STICHTAG: {e}")
 
-        # --- sys_anwendungsdaten (Mandant) ---
+        # --- msy_anwendungsdaten (Mandant) ---
         row = await self.anwendungsdaten.db.get_by_link_uid(mandant_uuid)
-        row = await _ensure_row_identity_via_link_uid(self.anwendungsdaten.db, row, mandant_uuid, "sys_anwendungsdaten") if row else row
+        row = await _ensure_row_identity_via_link_uid(self.anwendungsdaten.db, row, mandant_uuid, "msy_anwendungsdaten") if row else row
         if row and row.get("daten"):
             self.anwendungsdaten.set_data(row["daten"])
             self.anwendungsdaten.set_guid(str(row.get("uid")))
         else:
-            logger.info(f"📝 sys_anwendungsdaten für Mandant {mandant_guid_str} nicht gefunden - erstelle mit Defaults")
+            logger.info(f"📝 msy_anwendungsdaten für Mandant {mandant_guid_str} nicht gefunden - erstelle mit Defaults")
             new_row_uid = str(uuid.uuid4())
             self.anwendungsdaten.set_guid(new_row_uid)
             self.anwendungsdaten.set_data({})
@@ -486,7 +486,7 @@ class PdvmCentralSystemsteuerung:
                 historisch=0,
                 link_uid=mandant_uuid,
             )
-            logger.info(f"✅ sys_anwendungsdaten für Mandant {mandant_guid_str} erstellt")
+            logger.info(f"✅ msy_anwendungsdaten für Mandant {mandant_guid_str} erstellt")
 
         # --- sys_layout (Theme) ---
         theme_guid = None
