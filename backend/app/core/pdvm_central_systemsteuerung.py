@@ -253,6 +253,16 @@ class PdvmCentralSystemsteuerung:
         # Session-Cache: sys_control_dict Template 555 (nicht persistent)
         self._control_template_555_cache: Dict[str, Any] = {}
 
+        # Session-Cache: aufgeloeste Control-Listen (Phase 5)
+        # Key: CACHE.CONTROL_DICT::<table>::<edit_type>::<frame_guid>
+        self._pdvm_control_dict_cache: Dict[str, Any] = {}
+        self._pdvm_control_dict_cache_stats: Dict[str, int] = {
+            "hits": 0,
+            "persistent_hits": 0,
+            "misses": 0,
+            "rebuilds": 0,
+        }
+
         # Idle-Session-Management (Sekunden)
         self._idle_timeout_seconds: Optional[int] = None
         self._idle_warning_seconds: Optional[int] = None
