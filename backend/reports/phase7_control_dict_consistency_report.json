@@ -1,0 +1,1915 @@
+{
+  "phase": "phase7",
+  "title": "Control Dict Konsistenzreport",
+  "database": "pdvm_system",
+  "summary": {
+    "controls_active": 79,
+    "controls_duplicate_ref_names": 7,
+    "source_rows_total": 50,
+    "source_rows_by_table": {
+      "sys_framedaten": 21,
+      "sys_viewdaten": 12,
+      "sys_dialogdaten": 17
+    },
+    "referenced_control_uids": 0,
+    "referenced_control_names": 112,
+    "missing_uid_references": 0,
+    "missing_name_references": 161
+  },
+  "duplicates_by_ref_name": [
+    {
+      "ref_name": "sys_type",
+      "uids": [
+        "04d17765-de05-41d8-bbbf-1b2c34d543ba",
+        "0f83e550-6998-4e12-b452-a38b2aa70621",
+        "8cdad050-d285-46a0-8bf1-ae59c8cc620c",
+        "a4ae1328-40d9-4512-9dd3-b047896f58c9"
+      ],
+      "count": 4
+    },
+    {
+      "ref_name": "sys_name",
+      "uids": [
+        "e2d76b0d-2413-4af6-a65c-f28e7741e786",
+        "c75d12c6-b96f-4779-a728-d45a9ccf4a0e",
+        "d9e5f1b5-3c4f-4b92-93ce-0d6a01215555"
+      ],
+      "count": 3
+    },
+    {
+      "ref_name": "sys_666",
+      "uids": [
+        "71a0cde1-f005-4596-84cd-f68549da83b3",
+        "66666666-6666-6666-6666-666666666666"
+      ],
+      "count": 2
+    },
+    {
+      "ref_name": "sys_default",
+      "uids": [
+        "c611bdff-4608-49d0-9a8c-0d6a01220005",
+        "e3b3a161-2025-42bf-a0ab-e6fd1584f4cf"
+      ],
+      "count": 2
+    },
+    {
+      "ref_name": "sys_guid",
+      "uids": [
+        "6437c5a9-f267-476b-adf8-f08ad0d2104f",
+        "99ded5c7-a0c7-4ba8-81ae-321bf4a120b8"
+      ],
+      "count": 2
+    },
+    {
+      "ref_name": "sys_mode",
+      "uids": [
+        "aa4a0bc8-34a1-471b-b118-0d6a01218888",
+        "14c02cc7-410d-4e88-a00b-17fd37b82d42"
+      ],
+      "count": 2
+    },
+    {
+      "ref_name": "sys_table",
+      "uids": [
+        "c47b969a-466d-4494-ab7b-56a78a379fe9",
+        "9537bdcc-0164-4ef3-a7e6-9ddb672762c6"
+      ],
+      "count": 2
+    }
+  ],
+  "missing_uid_references": [],
+  "missing_name_references": [
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "72d54053-8c4f-5a60-8abc-ed9bc0bf6c43",
+      "row_name": "WORKFLOW_DRAFT_BUILD_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.5d53c6ce-78ec-5e02-9904-2ef639874108.feld",
+      "control_name": "VALIDATE_ACTION"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "72d54053-8c4f-5a60-8abc-ed9bc0bf6c43",
+      "row_name": "WORKFLOW_DRAFT_BUILD_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.6f965a0d-8cb4-5883-baec-a4bd9d3c7a49.feld",
+      "control_name": "BUILD_ACTION"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "72d54053-8c4f-5a60-8abc-ed9bc0bf6c43",
+      "row_name": "WORKFLOW_DRAFT_BUILD_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.ac1e2692-b97d-5116-9607-0d7222c73c98.feld",
+      "control_name": "ABORT_ACTION"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.00c08c90-d3aa-5fab-ad17-bee216da2436.feld",
+      "control_name": "TEMPLATES.CONTROL.HISTORICAL"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.014943cb-1656-58d0-8347-664d69b5e2f6.feld",
+      "control_name": "TEMPLATES.CONTROL.FIELDS_ELEMENTS"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.0220539e-d922-508f-8459-c87956bd8228.feld",
+      "control_name": "TEMPLATES.CONTROL.READ_ONLY"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.0539344f-557f-5e7c-ad1d-c14bed540c3c.feld",
+      "control_name": "TEMPLATES.CONFIGS_ELEMENTS.ELM_TYPE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.0948986c-01be-5fcb-b321-382abe273ac9.feld",
+      "control_name": "TEMPLATES.CONTROL.SORT_DIRECTION"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.0b580d4a-2952-52a6-abcb-a32ca2e09e7e.feld",
+      "control_name": "TEMPLATES.CONFIGS_ELEMENTS.TABLE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.11111111-e001-4001-8001-000000000001.feld",
+      "control_name": "name"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.11111111-e001-4001-8001-000000000002.feld",
+      "control_name": "label"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.11111111-e001-4001-8001-000000000003.feld",
+      "control_name": "table"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.11111111-e001-4001-8001-000000000004.feld",
+      "control_name": "gruppe"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.11111111-e001-4001-8001-000000000005.feld",
+      "control_name": "feld"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.11111111-e001-4001-8001-000000000006.feld",
+      "control_name": "type"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.13aef77a-cdb4-594b-852d-97b2c696c021.feld",
+      "control_name": "TEMPLATES.CONTROL.TYPE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.1df2c176-7d16-57ab-a65f-ff0106a29a71.feld",
+      "control_name": "TEMPLATES.CONTROL.DEFAULT"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.1f564feb-6b7a-5fd2-823c-d0097de51fcd.feld",
+      "control_name": "TEMPLATES.CONTROL.LABEL"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.22222222-e001-4001-8001-000000000001.feld",
+      "control_name": "read_only"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.22222222-e001-4001-8001-000000000002.feld",
+      "control_name": "historical"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.22222222-e001-4001-8001-000000000003.feld",
+      "control_name": "searchable"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.22222222-e001-4001-8001-000000000004.feld",
+      "control_name": "sortable"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.22222222-e001-4001-8001-000000000005.feld",
+      "control_name": "filter_type"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.22222222-e001-4001-8001-000000000006.feld",
+      "control_name": "default"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.31636ede-9f6b-57a4-b98b-b60b5063c1df.feld",
+      "control_name": "TEMPLATES.CONTROL.SORTABLE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.32178de3-7adb-5809-afd8-048834520f9b.feld",
+      "control_name": "TEMPLATES.CONTROL.EXPERT_ORDER"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.33333333-e001-4001-8001-000000000001.feld",
+      "control_name": "CONTROL"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.3a6db025-e5a0-5555-89e0-0b4e7b8c0b68.feld",
+      "control_name": "TEMPLATES.CONTROL.FIELD"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.44444444-e001-4001-8001-000000000001.feld",
+      "control_name": "ROOT.SELF_GUID"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.44444444-e001-4001-8001-000000000002.feld",
+      "control_name": "ROOT.SELF_NAME"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.4e552530-4205-5a4f-81de-096f7abe4117.feld",
+      "control_name": "TEMPLATES.CONFIGS_ELEMENTS.KEY"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.501f39f6-e9ba-5371-9b67-a587975b32a8.feld",
+      "control_name": "TEMPLATES.CONTROL.DISPLAY_SHOW"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.58c1b442-4cda-5a10-90a4-fddc96e429fc.feld",
+      "control_name": "TEMPLATES.CONTROL.GRUPPE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.5c58fe1b-322f-5b31-b6af-8b475ba02d81.feld",
+      "control_name": "TEMPLATES.FIELDS_ELEMENTS.BY_FRAME_GUID"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.67bee630-6d63-5ca0-b3c0-a5d6a3d112cd.feld",
+      "control_name": "TEMPLATES.CONTROL.CONFIGS_ELEMENTS"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.7b528d62-3891-5337-b824-4e2858ae6430.feld",
+      "control_name": "TEMPLATES.CONTROL.SEARCHABLE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.83831603-4474-5f12-93d1-f620e2a50556.feld",
+      "control_name": "TEMPLATES.CONTROL.NAME"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.8c745d53-268d-5785-808c-997b368e6e3b.feld",
+      "control_name": "TEMPLATES.CONTROL.PARENT_GUID"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.8e9d9d24-2ee9-5a57-9501-087ecb922c61.feld",
+      "control_name": "TEMPLATES.CONFIGS_ELEMENTS.FIELD"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.91826982-9089-5de5-9712-978825557c29.feld",
+      "control_name": "TEMPLATES.CONTROL.FILTER_TYPE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.9d1f6d5a-995a-57ce-9d44-f69121bffd18.feld",
+      "control_name": "TEMPLATES.CONFIGS_ELEMENTS.GRUPPE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.9e87ce82-a11d-5cb5-b323-72f3e7fc1e1f.feld",
+      "control_name": "TEMPLATES.CONTROL.SOURCE_PATH"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.a0a79b24-7187-59c2-a91e-d0f421ce2eef.feld",
+      "control_name": "TEMPLATES.CONTROL.DISPLAY_ORDER"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.c04587ef-7453-599d-8438-93d6071171fe.feld",
+      "control_name": "TEMPLATES.CONTROL.ABDATUM"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.dc455b04-2740-5322-9283-8a036fbb1de8.feld",
+      "control_name": "TEMPLATES.CONTROL.TABLE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.e794e6b4-9e2f-5a0c-b4b4-9a233d41d15f.feld",
+      "control_name": "TEMPLATES.CONTROL.EXPERT_MODE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "row_name": "sys_control_dict Frame",
+      "path": "daten.FIELDS.eeff7f8d-d8ae-5659-ba16-e2b560d6597d.feld",
+      "control_name": "TEMPLATES.CONTROL.SORT_BY_ORIGINAL"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.0f83e550-6998-4e12-b452-a38b2aa70621.ROOT.FIELD",
+      "control_name": "EDIT_TYPE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.0f83e550-6998-4e12-b452-a38b2aa70621.feld",
+      "control_name": "EDIT_TYPE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.0f83e550-6998-4e12-b452-a38b2aa70621.CONTROL",
+      "control_name": "{'FELD': 'EDIT_TYPE', 'NAME': 'SYS_EDIT_TYPE', 'TYPE': 'dropdown', 'FIELD': 'EDIT_TYPE', 'LABEL': 'Edit Modus', 'TABLE': 'sys_control_dict', 'GRUPPE': 'ROOT', 'ABDATUM': False, 'DEFAULT': '', 'SORTABLE': True, 'READ_ONLY': False, 'HISTORICAL': False, 'SEARCHABLE': True, 'UPPER_CASE': False, 'EXPERT_MODE': True, 'FILTER_TYPE': 'contains', 'PARENT_GUID': None, 'SOURCE_PATH': 'root', 'DISPLAY_SHOW': True, 'EXPERT_ORDER': 0, 'DISPLAY_ORDER': 0, 'SORT_DIRECTION': 'asc', 'FIELDS_ELEMENTS': {}, 'CONFIGS_ELEMENTS': {'dropdown': {'key': '4f290b6f-1205-494b-8f03-c6446c0df169', 'field': '55e5928c-4d9e-4f01-8018-8685489cfd06', 'group': '', 'table': 'sys_dropdowndaten'}}, 'SORT_BY_ORIGINAL': False}"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.0f83e550-6998-4e12-b452-a38b2aa70621.CONTROL.FELD",
+      "control_name": "EDIT_TYPE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.0f83e550-6998-4e12-b452-a38b2aa70621.CONTROL.FIELD",
+      "control_name": "EDIT_TYPE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.6437c5a9-f267-476b-adf8-f08ad0d2104f.ROOT.FIELD",
+      "control_name": "SELF_GUID"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.6437c5a9-f267-476b-adf8-f08ad0d2104f.feld",
+      "control_name": "SELF_GUID"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.6437c5a9-f267-476b-adf8-f08ad0d2104f.CONTROL",
+      "control_name": "{'FELD': 'SELF_GUID', 'NAME': 'SYS_SELF_GUID', 'TYPE': 'string', 'FIELD': 'SELF_GUID', 'LABEL': 'Eigener Schlüssel', 'TABLE': 'sys_control_dict', 'GRUPPE': '', 'ABDATUM': False, 'DEFAULT': '', 'SORTABLE': True, 'READ_ONLY': True, 'HISTORICAL': False, 'SEARCHABLE': True, 'UPPER_CASE': True, 'EXPERT_MODE': True, 'FILTER_TYPE': 'contains', 'PARENT_GUID': None, 'SOURCE_PATH': 'root', 'DISPLAY_SHOW': True, 'EXPERT_ORDER': 0, 'DISPLAY_ORDER': 0, 'SORT_DIRECTION': 'asc', 'FIELDS_ELEMENTS': {}, 'CONFIGS_ELEMENTS': {}, 'SORT_BY_ORIGINAL': False}"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.6437c5a9-f267-476b-adf8-f08ad0d2104f.CONTROL.FELD",
+      "control_name": "SELF_GUID"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.6437c5a9-f267-476b-adf8-f08ad0d2104f.CONTROL.FIELD",
+      "control_name": "SELF_GUID"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.8cdad050-d285-46a0-8bf1-ae59c8cc620c.ROOT.FIELD",
+      "control_name": "DIALOG_TYPE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.8cdad050-d285-46a0-8bf1-ae59c8cc620c.feld",
+      "control_name": "DIALOG_TYPE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.8cdad050-d285-46a0-8bf1-ae59c8cc620c.CONTROL",
+      "control_name": "{'FELD': 'DIALOG_TYPE', 'NAME': 'SYS_DIALOG_TYPE', 'TYPE': 'dropdown', 'FIELD': 'DIALOG_TYPE', 'LABEL': 'Dielog Typ', 'TABLE': 'sys_control_dict', 'GRUPPE': '', 'ABDATUM': False, 'DEFAULT': '', 'SORTABLE': True, 'READ_ONLY': False, 'HISTORICAL': False, 'SEARCHABLE': True, 'UPPER_CASE': False, 'EXPERT_MODE': True, 'FILTER_TYPE': 'contains', 'PARENT_GUID': None, 'SOURCE_PATH': 'root', 'DISPLAY_SHOW': True, 'EXPERT_ORDER': 0, 'DISPLAY_ORDER': 0, 'SORT_DIRECTION': 'asc', 'FIELDS_ELEMENTS': {}, 'CONFIGS_ELEMENTS': {'dropdown': {'key': '4f290b6f-1205-494b-8f03-c6446c0df169', 'field': '3d0cb56d-c86a-4d72-a9f6-bea0702debda', 'group': '', 'table': 'sys_dropdowndaten'}}, 'SORT_BY_ORIGINAL': False}"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.8cdad050-d285-46a0-8bf1-ae59c8cc620c.CONTROL.FELD",
+      "control_name": "DIALOG_TYPE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.8cdad050-d285-46a0-8bf1-ae59c8cc620c.CONTROL.FIELD",
+      "control_name": "DIALOG_TYPE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.9c74939e-8b9c-4ce5-b1ca-7ba82b75b4c7.ROOT.FIELD",
+      "control_name": "TAB_ELEMENTS"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.9c74939e-8b9c-4ce5-b1ca-7ba82b75b4c7.feld",
+      "control_name": "TAB_ELEMENTS"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.9c74939e-8b9c-4ce5-b1ca-7ba82b75b4c7.CONTROL",
+      "control_name": "{'FELD': 'TAB_ELEMENTS', 'NAME': 'SYS_TAB_ELEMENTS', 'TYPE': 'element_list', 'FIELD': 'TAB_ELEMENTS', 'LABEL': 'Tab Elemente', 'TABLE': 'sys_control_dict', 'GRUPPE': '', 'ABDATUM': False, 'DEFAULT': '', 'SORTABLE': True, 'READ_ONLY': False, 'HISTORICAL': False, 'SEARCHABLE': True, 'UPPER_CASE': False, 'EXPERT_MODE': True, 'FILTER_TYPE': 'contains', 'PARENT_GUID': None, 'SOURCE_PATH': 'root', 'DISPLAY_SHOW': True, 'EXPERT_ORDER': 0, 'DISPLAY_ORDER': 0, 'SORT_DIRECTION': 'asc', 'FIELDS_ELEMENTS': {}, 'CONFIGS_ELEMENTS': {}, 'SORT_BY_ORIGINAL': False}"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.9c74939e-8b9c-4ce5-b1ca-7ba82b75b4c7.CONTROL.FELD",
+      "control_name": "TAB_ELEMENTS"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.9c74939e-8b9c-4ce5-b1ca-7ba82b75b4c7.CONTROL.FIELD",
+      "control_name": "TAB_ELEMENTS"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.b78b41ec-5372-49e3-b34a-8ddb2fc25c98.ROOT.FIELD",
+      "control_name": "TABS"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.b78b41ec-5372-49e3-b34a-8ddb2fc25c98.feld",
+      "control_name": "TABS"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.b78b41ec-5372-49e3-b34a-8ddb2fc25c98.CONTROL",
+      "control_name": "{'FELD': 'TABS', 'NAME': 'SYS_TABS', 'TYPE': 'number', 'FIELD': 'TABS', 'LABEL': 'Tabs', 'TABLE': 'sys_control_dict', 'GRUPPE': '', 'ABDATUM': False, 'DEFAULT': '', 'SORTABLE': True, 'READ_ONLY': False, 'HISTORICAL': False, 'SEARCHABLE': True, 'UPPER_CASE': False, 'EXPERT_MODE': True, 'FILTER_TYPE': 'contains', 'PARENT_GUID': None, 'SOURCE_PATH': 'root', 'DISPLAY_SHOW': True, 'EXPERT_ORDER': 0, 'DISPLAY_ORDER': 0, 'SORT_DIRECTION': 'asc', 'FIELDS_ELEMENTS': {}, 'CONFIGS_ELEMENTS': {}, 'SORT_BY_ORIGINAL': False}"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.b78b41ec-5372-49e3-b34a-8ddb2fc25c98.CONTROL.FELD",
+      "control_name": "TABS"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.b78b41ec-5372-49e3-b34a-8ddb2fc25c98.CONTROL.FIELD",
+      "control_name": "TABS"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.c47b969a-466d-4494-ab7b-56a78a379fe9.ROOT.FIELD",
+      "control_name": "TABLE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.c47b969a-466d-4494-ab7b-56a78a379fe9.feld",
+      "control_name": "TABLE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.c47b969a-466d-4494-ab7b-56a78a379fe9.CONTROL",
+      "control_name": "{'FELD': 'TABLE', 'NAME': 'SYS_TABLE', 'TYPE': 'string', 'FIELD': 'TABLE', 'LABEL': 'Tabelle', 'TABLE': 'sys_control_dict', 'GRUPPE': '', 'ABDATUM': False, 'DEFAULT': '', 'SORTABLE': True, 'READ_ONLY': False, 'HISTORICAL': False, 'SEARCHABLE': True, 'UPPER_CASE': True, 'EXPERT_MODE': True, 'FILTER_TYPE': 'contains', 'PARENT_GUID': None, 'SOURCE_PATH': 'root', 'DISPLAY_SHOW': True, 'EXPERT_ORDER': 0, 'DISPLAY_ORDER': 0, 'SORT_DIRECTION': 'asc', 'FIELDS_ELEMENTS': {}, 'CONFIGS_ELEMENTS': {}, 'SORT_BY_ORIGINAL': False}"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.c47b969a-466d-4494-ab7b-56a78a379fe9.CONTROL.FELD",
+      "control_name": "TABLE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.c47b969a-466d-4494-ab7b-56a78a379fe9.CONTROL.FIELD",
+      "control_name": "TABLE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.c75d12c6-b96f-4779-a728-d45a9ccf4a0e.ROOT.FIELD",
+      "control_name": "SELF_NAME"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.c75d12c6-b96f-4779-a728-d45a9ccf4a0e.feld",
+      "control_name": "SELF_NAME"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.c75d12c6-b96f-4779-a728-d45a9ccf4a0e.CONTROL",
+      "control_name": "{'FELD': 'SELF_NAME', 'NAME': 'SYS_SELF_NAME', 'TYPE': 'string', 'FIELD': 'SELF_NAME', 'LABEL': 'eigener Name', 'TABLE': 'sys_control_dict', 'GRUPPE': '', 'ABDATUM': False, 'DEFAULT': '', 'SORTABLE': True, 'READ_ONLY': False, 'HISTORICAL': False, 'SEARCHABLE': True, 'UPPER_CASE': True, 'EXPERT_MODE': True, 'FILTER_TYPE': 'contains', 'PARENT_GUID': None, 'SOURCE_PATH': 'root', 'DISPLAY_SHOW': True, 'EXPERT_ORDER': 0, 'DISPLAY_ORDER': 0, 'SORT_DIRECTION': 'asc', 'FIELDS_ELEMENTS': {}, 'CONFIGS_ELEMENTS': {}, 'SORT_BY_ORIGINAL': False}"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.c75d12c6-b96f-4779-a728-d45a9ccf4a0e.CONTROL.FELD",
+      "control_name": "SELF_NAME"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+      "row_name": "Für Dialog Aufbau",
+      "path": "daten.FIELDS.c75d12c6-b96f-4779-a728-d45a9ccf4a0e.CONTROL.FIELD",
+      "control_name": "SELF_NAME"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "56842fa2-322a-5cad-843a-d20c53ce1d21",
+      "row_name": "WORKFLOW_DIALOG_CONFIG_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.0c1f400d-2695-56da-af04-55861b30815e.feld",
+      "control_name": "WORKFLOW_NAME"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "56842fa2-322a-5cad-843a-d20c53ce1d21",
+      "row_name": "WORKFLOW_DIALOG_CONFIG_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.4677f477-c4f5-5e8d-a8ff-27b3b0e729ba.feld",
+      "control_name": "DIALOG_TYPE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "56842fa2-322a-5cad-843a-d20c53ce1d21",
+      "row_name": "WORKFLOW_DIALOG_CONFIG_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.75c11f5f-c4b6-548a-9cad-4a6ad8213da7.feld",
+      "control_name": "OPEN_EDIT"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "56842fa2-322a-5cad-843a-d20c53ce1d21",
+      "row_name": "WORKFLOW_DIALOG_CONFIG_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.eef4b4bf-7282-5196-8391-bf0cd226136f.feld",
+      "control_name": "SELECTION_MODE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "3a6e8cca-0f6f-5bd0-ba72-61c2c99942ac",
+      "row_name": "WORKFLOW_DICTIONARY_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.6e5c5c95-03dc-52b1-afe1-13c822ec117f.feld",
+      "control_name": "CREATE_CONTROL_ACTION"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "3a6e8cca-0f6f-5bd0-ba72-61c2c99942ac",
+      "row_name": "WORKFLOW_DICTIONARY_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.7f8739fa-9e3b-5642-855f-744b23504899.feld",
+      "control_name": "DICTIONARY_SEARCH"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "3a6e8cca-0f6f-5bd0-ba72-61c2c99942ac",
+      "row_name": "WORKFLOW_DICTIONARY_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.cb7a1850-06e5-5432-9811-7d8be8524e3c.feld",
+      "control_name": "CONTROL_TYPE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "3a6e8cca-0f6f-5bd0-ba72-61c2c99942ac",
+      "row_name": "WORKFLOW_DICTIONARY_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.f12439a3-0b0f-52cc-8215-3d05f0d845f2.feld",
+      "control_name": "CONTROL_FIELD"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
+      "row_name": "sys_dialogdaten Frame (Linear)",
+      "path": "daten.FIELDS.11111111-e002-4001-8001-000000000001.feld",
+      "control_name": "SELF_GUID"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
+      "row_name": "sys_dialogdaten Frame (Linear)",
+      "path": "daten.FIELDS.11111111-e002-4001-8001-000000000002.feld",
+      "control_name": "SELF_NAME"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
+      "row_name": "sys_dialogdaten Frame (Linear)",
+      "path": "daten.FIELDS.11111111-e002-4001-8001-000000000003.feld",
+      "control_name": "TABLE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
+      "row_name": "sys_dialogdaten Frame (Linear)",
+      "path": "daten.FIELDS.11111111-e002-4001-8001-000000000004.feld",
+      "control_name": "DIALOG_TYPE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
+      "row_name": "sys_dialogdaten Frame (Linear)",
+      "path": "daten.FIELDS.11111111-e002-4001-8001-000000000005.feld",
+      "control_name": "TABS"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
+      "row_name": "sys_dialogdaten Frame (Linear)",
+      "path": "daten.FIELDS.1f87d3eb-fabc-594a-94f1-6e5464a31ea9.feld",
+      "control_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.MODULE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
+      "row_name": "sys_dialogdaten Frame (Linear)",
+      "path": "daten.FIELDS.22222222-e002-4001-8001-000000000001.feld",
+      "control_name": "TAB_ELEMENTS"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
+      "row_name": "sys_dialogdaten Frame (Linear)",
+      "path": "daten.FIELDS.40b932df-873b-5912-ab4b-7969f01c6cf3.feld",
+      "control_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.OPEN_EDIT"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
+      "row_name": "sys_dialogdaten Frame (Linear)",
+      "path": "daten.FIELDS.5c58971a-94f1-56bf-9382-5b990e7678d9.feld",
+      "control_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.TABLE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
+      "row_name": "sys_dialogdaten Frame (Linear)",
+      "path": "daten.FIELDS.82b20574-d26f-5c31-a5fe-ddf449cf4a9a.feld",
+      "control_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.HEAD"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
+      "row_name": "sys_dialogdaten Frame (Linear)",
+      "path": "daten.FIELDS.958c6e06-d3b2-5c0f-b9ef-0f20947d5506.feld",
+      "control_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.EDIT_TYPE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
+      "row_name": "sys_dialogdaten Frame (Linear)",
+      "path": "daten.FIELDS.a78992a9-6e6e-5c64-9f1c-402a7b83b883.feld",
+      "control_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.SELECTION_MODE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
+      "row_name": "sys_dialogdaten Frame (Linear)",
+      "path": "daten.FIELDS.b5cc762e-37ed-5d36-b828-58b0e49fc132.feld",
+      "control_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.GUID"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
+      "row_name": "sys_dialogdaten Frame (Linear)",
+      "path": "daten.FIELDS.facaa457-beae-53aa-adce-b8962cf7007f.feld",
+      "control_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.TAB"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "01a520ea-4003-590f-b69d-48fde60e7647",
+      "row_name": "WORKFLOW_DRAFT_VIEW_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.61b2a091-e10c-51b1-8731-5677c95bf56a.feld",
+      "control_name": "VIEW_TABLE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "01a520ea-4003-590f-b69d-48fde60e7647",
+      "row_name": "WORKFLOW_DRAFT_VIEW_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.75defedf-1c4e-56d7-adbb-8b634800bb21.feld",
+      "control_name": "SAVE_VIEW_ACTION"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "01a520ea-4003-590f-b69d-48fde60e7647",
+      "row_name": "WORKFLOW_DRAFT_VIEW_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.9d1aae3b-3cf2-5ce2-b5d2-a4142f847aab.feld",
+      "control_name": "VIEW_NAME"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "01a520ea-4003-590f-b69d-48fde60e7647",
+      "row_name": "WORKFLOW_DRAFT_VIEW_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.f5eea547-feb5-56e7-93bf-4b14e3ec3e0d.feld",
+      "control_name": "VIEW_PROJECTION"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "bd919b17-aae6-5b50-8308-670455ab14ed",
+      "row_name": "WORKFLOW_SETUP_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.67a2be22-d5dd-5d2c-92c4-d7d996ae463e.feld",
+      "control_name": "SOURCE_COMMIT"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "bd919b17-aae6-5b50-8308-670455ab14ed",
+      "row_name": "WORKFLOW_SETUP_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.72c58080-1a7a-5ff8-97aa-c8461f262332.feld",
+      "control_name": "RELEASE_TYPE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "bd919b17-aae6-5b50-8308-670455ab14ed",
+      "row_name": "WORKFLOW_SETUP_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.776676f6-c03b-5e76-98fd-4cee3b8b4e3e.feld",
+      "control_name": "TARGET_ENV"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "bd919b17-aae6-5b50-8308-670455ab14ed",
+      "row_name": "WORKFLOW_SETUP_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.87cc7ac2-3c14-5d51-974d-47909f394193.feld",
+      "control_name": "SOURCE_DB_ROLE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "bd919b17-aae6-5b50-8308-670455ab14ed",
+      "row_name": "WORKFLOW_SETUP_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.93139920-9109-535f-8409-96d5f54c083c.feld",
+      "control_name": "PACKAGE_HASH"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "bd919b17-aae6-5b50-8308-670455ab14ed",
+      "row_name": "WORKFLOW_SETUP_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.98e377f3-ec58-51c6-92a8-43bcab0d8a83.feld",
+      "control_name": "POLICY_MODE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "bd919b17-aae6-5b50-8308-670455ab14ed",
+      "row_name": "WORKFLOW_SETUP_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.d0dfbf3f-744f-5724-a72d-5cc8165dc651.feld",
+      "control_name": "TARGET_DB_ROLE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9b534385-212a-51f4-8579-93516c964109",
+      "row_name": "WORKFLOW_APPLY_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.62c736b3-04d6-5d26-9392-78ee017a5182.feld",
+      "control_name": "APPLY_ACTION"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9b534385-212a-51f4-8579-93516c964109",
+      "row_name": "WORKFLOW_APPLY_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.d87d080f-65cd-5526-97df-58d7e848fd7e.feld",
+      "control_name": "DRY_RUN_ACTION"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "2ac77a9a-1a22-599a-8fa1-49ed5efb7bd8",
+      "row_name": "WORKFLOW_DRAFT_CONTENT_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.11ed9f64-5c09-5fa8-ae97-0b8d8aa854b8.feld",
+      "control_name": "FRAME_GUID"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "2ac77a9a-1a22-599a-8fa1-49ed5efb7bd8",
+      "row_name": "WORKFLOW_DRAFT_CONTENT_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.179e8c6a-1b2e-58a0-adf5-fdda014c41d7.feld",
+      "control_name": "TAB_REF"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "2ac77a9a-1a22-599a-8fa1-49ed5efb7bd8",
+      "row_name": "WORKFLOW_DRAFT_CONTENT_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.94dcd843-599c-546f-ab1a-6a0bbc7c2345.feld",
+      "control_name": "VIEW_GUID"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "2ac77a9a-1a22-599a-8fa1-49ed5efb7bd8",
+      "row_name": "WORKFLOW_DRAFT_CONTENT_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.c6ee99aa-e223-5682-bccc-eb36864da68a.feld",
+      "control_name": "EDIT_TYPE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "2ac77a9a-1a22-599a-8fa1-49ed5efb7bd8",
+      "row_name": "WORKFLOW_DRAFT_CONTENT_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.f7fbc9b9-e537-5ab9-b96f-ddfe3b4a0fef.feld",
+      "control_name": "SAVE_CONTENT_ACTION"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "c3af9a12-377c-5ae0-bab9-9b30cd1e599d",
+      "row_name": "WORKFLOW_PROPERTY_MAPPING_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.9a84d71a-776f-500e-b706-408f160cdf31.feld",
+      "control_name": "CREATE_PROPERTY_ACTION"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "c3af9a12-377c-5ae0-bab9-9b30cd1e599d",
+      "row_name": "WORKFLOW_PROPERTY_MAPPING_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.ccb6cb77-5626-5641-b136-7346cb0c52d5.feld",
+      "control_name": "TABLE_PREFIX_FILTER"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "c3af9a12-377c-5ae0-bab9-9b30cd1e599d",
+      "row_name": "WORKFLOW_PROPERTY_MAPPING_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.efd82195-b2ad-5729-b619-808e29495969.feld",
+      "control_name": "DICTIONARY_SEARCH"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "75e5262a-6b8a-5d23-bc4f-630d529526e5",
+      "row_name": "WORKFLOW_DRAFT_SETUP_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.4c1e5a97-1151-5441-9fcc-cc7492080c26.feld",
+      "control_name": "WORKFLOW_NAME"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "75e5262a-6b8a-5d23-bc4f-630d529526e5",
+      "row_name": "WORKFLOW_DRAFT_SETUP_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.4ce4951c-6814-5420-87fb-211bf77341e5.feld",
+      "control_name": "DESCRIPTION"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "75e5262a-6b8a-5d23-bc4f-630d529526e5",
+      "row_name": "WORKFLOW_DRAFT_SETUP_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.b0bbfd48-9af3-5867-9346-b7c962b4588b.feld",
+      "control_name": "TARGET_TABLE"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "405fa88b-8691-463e-ad11-e775ac3a52c5",
+      "row_name": "Menüdaten Edit",
+      "path": "daten.FIELDS.43e41d7a-82d3-4ae8-ab34-4513ba9008c1.feld",
+      "control_name": "tooltip"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "405fa88b-8691-463e-ad11-e775ac3a52c5",
+      "row_name": "Menüdaten Edit",
+      "path": "daten.FIELDS.61cd8eff-29e9-4e88-8ab4-514e85420e38.feld",
+      "control_name": "icon"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "405fa88b-8691-463e-ad11-e775ac3a52c5",
+      "row_name": "Menüdaten Edit",
+      "path": "daten.FIELDS.8f7851aa-9c2c-49ea-8b1c-25857c18421c.feld",
+      "control_name": "template_guid"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "405fa88b-8691-463e-ad11-e775ac3a52c5",
+      "row_name": "Menüdaten Edit",
+      "path": "daten.FIELDS.94da8cae-ab00-4f6e-aa27-11472c916d8f.feld",
+      "control_name": "label"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "405fa88b-8691-463e-ad11-e775ac3a52c5",
+      "row_name": "Menüdaten Edit",
+      "path": "daten.FIELDS.ba2c2b00-b28f-4990-ba74-cf4f01688b11.feld",
+      "control_name": "enable"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "405fa88b-8691-463e-ad11-e775ac3a52c5",
+      "row_name": "Menüdaten Edit",
+      "path": "daten.FIELDS.be70a70f-eb8e-4e4d-8d41-7fd2b066b944.feld",
+      "control_name": "visible"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "405fa88b-8691-463e-ad11-e775ac3a52c5",
+      "row_name": "Menüdaten Edit",
+      "path": "daten.FIELDS.d22b4fe9-8f6c-41d4-a34a-dc67cfb1bc3b.feld",
+      "control_name": "command"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "405fa88b-8691-463e-ad11-e775ac3a52c5",
+      "row_name": "Menüdaten Edit",
+      "path": "daten.FIELDS.d22b4fe9-8f6c-41d4-a34a-dc67cfb1bc3b.configs.help.feld",
+      "control_name": "menu_command"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "886842eb-f62b-56d8-80cf-7d071264307b",
+      "row_name": "WORKFLOW_DRAFT_TABS_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.23f6ae50-40bb-54e6-9dd9-d6b4c7a435f4.feld",
+      "control_name": "ADD_TAB_ACTION"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "886842eb-f62b-56d8-80cf-7d071264307b",
+      "row_name": "WORKFLOW_DRAFT_TABS_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.3535d642-3a93-5a78-aae2-449ba94a6cd5.feld",
+      "control_name": "TAB_HEAD"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "886842eb-f62b-56d8-80cf-7d071264307b",
+      "row_name": "WORKFLOW_DRAFT_TABS_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.7aa01d94-918a-5e2f-b95c-e8248d6a4422.feld",
+      "control_name": "TAB_GUID"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "886842eb-f62b-56d8-80cf-7d071264307b",
+      "row_name": "WORKFLOW_DRAFT_TABS_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.a0369a53-20aa-5435-96d2-0deb247ad54f.feld",
+      "control_name": "REMOVE_TAB_ACTION"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "886842eb-f62b-56d8-80cf-7d071264307b",
+      "row_name": "WORKFLOW_DRAFT_TABS_FRAME_TEMPLATE",
+      "path": "daten.FIELDS.a5a5fe1f-726a-5a4e-ae8d-924b95489ec4.feld",
+      "control_name": "TAB_MODULE"
+    },
+    {
+      "source_table": "sys_viewdaten",
+      "row_uid": "9dc98052-4bc7-4b29-9eeb-107ab3d7811a",
+      "row_name": "Menüdaten",
+      "path": "daten.**SYSTEM.35ae6f54-d62c-459e-a52e-9e497eb2e773.feld",
+      "control_name": "uid"
+    },
+    {
+      "source_table": "sys_viewdaten",
+      "row_uid": "9dc98052-4bc7-4b29-9eeb-107ab3d7811a",
+      "row_name": "Menüdaten",
+      "path": "daten.**SYSTEM.8332d37c-ac7d-440c-996c-a871f4d8cbee.feld",
+      "control_name": "name"
+    },
+    {
+      "source_table": "sys_viewdaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f102",
+      "row_name": "sys_control_dict View",
+      "path": "daten.SYSTEM.11111111-1111-1111-1111-111111111111.feld",
+      "control_name": "uid"
+    },
+    {
+      "source_table": "sys_viewdaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f102",
+      "row_name": "sys_control_dict View",
+      "path": "daten.SYSTEM.22222222-2222-2222-2222-222222222222.feld",
+      "control_name": "name"
+    },
+    {
+      "source_table": "sys_viewdaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f102",
+      "row_name": "sys_control_dict View",
+      "path": "daten.SYSTEM.33333333-3333-3333-3333-333333333333.feld",
+      "control_name": "table"
+    },
+    {
+      "source_table": "sys_viewdaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f102",
+      "row_name": "sys_control_dict View",
+      "path": "daten.SYSTEM.44444444-4444-4444-4444-444444444444.feld",
+      "control_name": "gruppe"
+    },
+    {
+      "source_table": "sys_viewdaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f102",
+      "row_name": "sys_control_dict View",
+      "path": "daten.SYSTEM.55555555-6666-7777-8888-999999999999.feld",
+      "control_name": "type"
+    },
+    {
+      "source_table": "sys_viewdaten",
+      "row_uid": "5e59f511-2063-40ac-ace7-86f1b1ea4bd6",
+      "row_name": "Edit Frame View 1",
+      "path": "daten.SYSTEM.7a9483d9-db89-423a-8ec0-c06f02c6334a.feld",
+      "control_name": "uid"
+    },
+    {
+      "source_table": "sys_viewdaten",
+      "row_uid": "5e59f511-2063-40ac-ace7-86f1b1ea4bd6",
+      "row_name": "Edit Frame View 1",
+      "path": "daten.SYSTEM.e2d76b0d-2413-4af6-a65c-f28e7741e786.feld",
+      "control_name": "name"
+    },
+    {
+      "source_table": "sys_viewdaten",
+      "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23002",
+      "row_name": "Dialogdaten View",
+      "path": "daten.SYSTEM.11111111-1000-4000-8000-111111111111.feld",
+      "control_name": "uid"
+    },
+    {
+      "source_table": "sys_viewdaten",
+      "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23002",
+      "row_name": "Dialogdaten View",
+      "path": "daten.SYSTEM.22222222-2000-4000-8000-222222222222.feld",
+      "control_name": "name"
+    },
+    {
+      "source_table": "sys_viewdaten",
+      "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23002",
+      "row_name": "Dialogdaten View",
+      "path": "daten.SYSTEM.33333333-3000-4000-8000-333333333333.feld",
+      "control_name": "table"
+    },
+    {
+      "source_table": "sys_viewdaten",
+      "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23002",
+      "row_name": "Dialogdaten View",
+      "path": "daten.SYSTEM.44444444-4000-4000-8000-444444444444.feld",
+      "control_name": "edit_type"
+    },
+    {
+      "source_table": "sys_viewdaten",
+      "row_uid": "a311c396-5408-485b-b188-a3e28be7679e",
+      "row_name": "Benutzerdaten",
+      "path": "daten.**SYSTEM.35ae6f54-d62c-459e-a52e-9e497eb2e773.feld",
+      "control_name": "uid"
+    },
+    {
+      "source_table": "sys_viewdaten",
+      "row_uid": "a311c396-5408-485b-b188-a3e28be7679e",
+      "row_name": "Benutzerdaten",
+      "path": "daten.**SYSTEM.8332d37c-ac7d-440c-996c-a871f4d8cbee.feld",
+      "control_name": "name"
+    },
+    {
+      "source_table": "sys_viewdaten",
+      "row_uid": "a311c396-5408-485b-b188-a3e28be7679e",
+      "row_name": "Benutzerdaten",
+      "path": "daten.SYS_BENUTZERDATEN.19d53bda-03e1-49fe-b2d9-e1de35dc53c5.feld",
+      "control_name": "NAME"
+    },
+    {
+      "source_table": "sys_viewdaten",
+      "row_uid": "a311c396-5408-485b-b188-a3e28be7679e",
+      "row_name": "Benutzerdaten",
+      "path": "daten.SYS_BENUTZERDATEN.60784021-003b-4c6d-8ddf-ed28cbef63a6.feld",
+      "control_name": "VORNAME"
+    },
+    {
+      "source_table": "sys_viewdaten",
+      "row_uid": "a311c396-5408-485b-b188-a3e28be7679e",
+      "row_name": "Benutzerdaten",
+      "path": "daten.SYS_BENUTZERDATEN.62704829-708a-46aa-bf57-7fb9dcf2931a.feld",
+      "control_name": "EMAIL"
+    },
+    {
+      "source_table": "sys_viewdaten",
+      "row_uid": "a311c396-5408-485b-b188-a3e28be7679e",
+      "row_name": "Benutzerdaten",
+      "path": "daten.SYS_BENUTZERDATEN.da773a33-1fe3-4bbe-8663-8fb92984d230.feld",
+      "control_name": "ANREDE"
+    },
+    {
+      "source_table": "sys_viewdaten",
+      "row_uid": "a311c396-5408-485b-b188-a3e28be7679e",
+      "row_name": "Benutzerdaten",
+      "path": "daten.SYS_BENUTZERDATEN.da773a33-1fe3-4bbe-8663-8fb92984d230.configs.dropdown.feld",
+      "control_name": "anrede"
+    }
+  ],
+  "sample": {
+    "uid_refs": [],
+    "name_refs": [
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "72d54053-8c4f-5a60-8abc-ed9bc0bf6c43",
+        "row_name": "WORKFLOW_DRAFT_BUILD_FRAME_TEMPLATE",
+        "path": "daten.FIELDS.5d53c6ce-78ec-5e02-9904-2ef639874108.feld",
+        "control_name": "VALIDATE_ACTION"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "72d54053-8c4f-5a60-8abc-ed9bc0bf6c43",
+        "row_name": "WORKFLOW_DRAFT_BUILD_FRAME_TEMPLATE",
+        "path": "daten.FIELDS.6f965a0d-8cb4-5883-baec-a4bd9d3c7a49.feld",
+        "control_name": "BUILD_ACTION"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "72d54053-8c4f-5a60-8abc-ed9bc0bf6c43",
+        "row_name": "WORKFLOW_DRAFT_BUILD_FRAME_TEMPLATE",
+        "path": "daten.FIELDS.ac1e2692-b97d-5116-9607-0d7222c73c98.feld",
+        "control_name": "ABORT_ACTION"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.00c08c90-d3aa-5fab-ad17-bee216da2436.feld",
+        "control_name": "TEMPLATES.CONTROL.HISTORICAL"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.014943cb-1656-58d0-8347-664d69b5e2f6.feld",
+        "control_name": "TEMPLATES.CONTROL.FIELDS_ELEMENTS"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.0220539e-d922-508f-8459-c87956bd8228.feld",
+        "control_name": "TEMPLATES.CONTROL.READ_ONLY"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.0539344f-557f-5e7c-ad1d-c14bed540c3c.feld",
+        "control_name": "TEMPLATES.CONFIGS_ELEMENTS.ELM_TYPE"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.0948986c-01be-5fcb-b321-382abe273ac9.feld",
+        "control_name": "TEMPLATES.CONTROL.SORT_DIRECTION"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.0b580d4a-2952-52a6-abcb-a32ca2e09e7e.feld",
+        "control_name": "TEMPLATES.CONFIGS_ELEMENTS.TABLE"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.11111111-e001-4001-8001-000000000001.feld",
+        "control_name": "name"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.11111111-e001-4001-8001-000000000002.feld",
+        "control_name": "label"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.11111111-e001-4001-8001-000000000003.feld",
+        "control_name": "table"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.11111111-e001-4001-8001-000000000004.feld",
+        "control_name": "gruppe"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.11111111-e001-4001-8001-000000000005.feld",
+        "control_name": "feld"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.11111111-e001-4001-8001-000000000006.feld",
+        "control_name": "type"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.13aef77a-cdb4-594b-852d-97b2c696c021.feld",
+        "control_name": "TEMPLATES.CONTROL.TYPE"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.1df2c176-7d16-57ab-a65f-ff0106a29a71.feld",
+        "control_name": "TEMPLATES.CONTROL.DEFAULT"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.1f564feb-6b7a-5fd2-823c-d0097de51fcd.feld",
+        "control_name": "TEMPLATES.CONTROL.LABEL"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.22222222-e001-4001-8001-000000000001.feld",
+        "control_name": "read_only"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.22222222-e001-4001-8001-000000000002.feld",
+        "control_name": "historical"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.22222222-e001-4001-8001-000000000003.feld",
+        "control_name": "searchable"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.22222222-e001-4001-8001-000000000004.feld",
+        "control_name": "sortable"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.22222222-e001-4001-8001-000000000005.feld",
+        "control_name": "filter_type"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.22222222-e001-4001-8001-000000000006.feld",
+        "control_name": "default"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.31636ede-9f6b-57a4-b98b-b60b5063c1df.feld",
+        "control_name": "TEMPLATES.CONTROL.SORTABLE"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.32178de3-7adb-5809-afd8-048834520f9b.feld",
+        "control_name": "TEMPLATES.CONTROL.EXPERT_ORDER"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.33333333-e001-4001-8001-000000000001.feld",
+        "control_name": "CONTROL"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.3a6db025-e5a0-5555-89e0-0b4e7b8c0b68.feld",
+        "control_name": "TEMPLATES.CONTROL.FIELD"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.44444444-e001-4001-8001-000000000001.feld",
+        "control_name": "ROOT.SELF_GUID"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.44444444-e001-4001-8001-000000000002.feld",
+        "control_name": "ROOT.SELF_NAME"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.4e552530-4205-5a4f-81de-096f7abe4117.feld",
+        "control_name": "TEMPLATES.CONFIGS_ELEMENTS.KEY"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.501f39f6-e9ba-5371-9b67-a587975b32a8.feld",
+        "control_name": "TEMPLATES.CONTROL.DISPLAY_SHOW"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.58c1b442-4cda-5a10-90a4-fddc96e429fc.feld",
+        "control_name": "TEMPLATES.CONTROL.GRUPPE"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.5c58fe1b-322f-5b31-b6af-8b475ba02d81.feld",
+        "control_name": "TEMPLATES.FIELDS_ELEMENTS.BY_FRAME_GUID"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.67bee630-6d63-5ca0-b3c0-a5d6a3d112cd.feld",
+        "control_name": "TEMPLATES.CONTROL.CONFIGS_ELEMENTS"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.7b528d62-3891-5337-b824-4e2858ae6430.feld",
+        "control_name": "TEMPLATES.CONTROL.SEARCHABLE"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.83831603-4474-5f12-93d1-f620e2a50556.feld",
+        "control_name": "TEMPLATES.CONTROL.NAME"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.8c745d53-268d-5785-808c-997b368e6e3b.feld",
+        "control_name": "TEMPLATES.CONTROL.PARENT_GUID"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.8e9d9d24-2ee9-5a57-9501-087ecb922c61.feld",
+        "control_name": "TEMPLATES.CONFIGS_ELEMENTS.FIELD"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.91826982-9089-5de5-9712-978825557c29.feld",
+        "control_name": "TEMPLATES.CONTROL.FILTER_TYPE"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.9d1f6d5a-995a-57ce-9d44-f69121bffd18.feld",
+        "control_name": "TEMPLATES.CONFIGS_ELEMENTS.GRUPPE"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.9e87ce82-a11d-5cb5-b323-72f3e7fc1e1f.feld",
+        "control_name": "TEMPLATES.CONTROL.SOURCE_PATH"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.a0a79b24-7187-59c2-a91e-d0f421ce2eef.feld",
+        "control_name": "TEMPLATES.CONTROL.DISPLAY_ORDER"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.c04587ef-7453-599d-8438-93d6071171fe.feld",
+        "control_name": "TEMPLATES.CONTROL.ABDATUM"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.dc455b04-2740-5322-9283-8a036fbb1de8.feld",
+        "control_name": "TEMPLATES.CONTROL.TABLE"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.e794e6b4-9e2f-5a0c-b4b4-9a233d41d15f.feld",
+        "control_name": "TEMPLATES.CONTROL.EXPERT_MODE"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.eeff7f8d-d8ae-5659-ba16-e2b560d6597d.feld",
+        "control_name": "TEMPLATES.CONTROL.SORT_BY_ORIGINAL"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.0f83e550-6998-4e12-b452-a38b2aa70621.ROOT.FIELD",
+        "control_name": "EDIT_TYPE"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.0f83e550-6998-4e12-b452-a38b2aa70621.feld",
+        "control_name": "EDIT_TYPE"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.0f83e550-6998-4e12-b452-a38b2aa70621.CONTROL",
+        "control_name": "{'FELD': 'EDIT_TYPE', 'NAME': 'SYS_EDIT_TYPE', 'TYPE': 'dropdown', 'FIELD': 'EDIT_TYPE', 'LABEL': 'Edit Modus', 'TABLE': 'sys_control_dict', 'GRUPPE': 'ROOT', 'ABDATUM': False, 'DEFAULT': '', 'SORTABLE': True, 'READ_ONLY': False, 'HISTORICAL': False, 'SEARCHABLE': True, 'UPPER_CASE': False, 'EXPERT_MODE': True, 'FILTER_TYPE': 'contains', 'PARENT_GUID': None, 'SOURCE_PATH': 'root', 'DISPLAY_SHOW': True, 'EXPERT_ORDER': 0, 'DISPLAY_ORDER': 0, 'SORT_DIRECTION': 'asc', 'FIELDS_ELEMENTS': {}, 'CONFIGS_ELEMENTS': {'dropdown': {'key': '4f290b6f-1205-494b-8f03-c6446c0df169', 'field': '55e5928c-4d9e-4f01-8018-8685489cfd06', 'group': '', 'table': 'sys_dropdowndaten'}}, 'SORT_BY_ORIGINAL': False}"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.0f83e550-6998-4e12-b452-a38b2aa70621.CONTROL.FELD",
+        "control_name": "EDIT_TYPE"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.0f83e550-6998-4e12-b452-a38b2aa70621.CONTROL.FIELD",
+        "control_name": "EDIT_TYPE"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.6437c5a9-f267-476b-adf8-f08ad0d2104f.ROOT.FIELD",
+        "control_name": "SELF_GUID"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.6437c5a9-f267-476b-adf8-f08ad0d2104f.feld",
+        "control_name": "SELF_GUID"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.6437c5a9-f267-476b-adf8-f08ad0d2104f.CONTROL",
+        "control_name": "{'FELD': 'SELF_GUID', 'NAME': 'SYS_SELF_GUID', 'TYPE': 'string', 'FIELD': 'SELF_GUID', 'LABEL': 'Eigener Schlüssel', 'TABLE': 'sys_control_dict', 'GRUPPE': '', 'ABDATUM': False, 'DEFAULT': '', 'SORTABLE': True, 'READ_ONLY': True, 'HISTORICAL': False, 'SEARCHABLE': True, 'UPPER_CASE': True, 'EXPERT_MODE': True, 'FILTER_TYPE': 'contains', 'PARENT_GUID': None, 'SOURCE_PATH': 'root', 'DISPLAY_SHOW': True, 'EXPERT_ORDER': 0, 'DISPLAY_ORDER': 0, 'SORT_DIRECTION': 'asc', 'FIELDS_ELEMENTS': {}, 'CONFIGS_ELEMENTS': {}, 'SORT_BY_ORIGINAL': False}"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.6437c5a9-f267-476b-adf8-f08ad0d2104f.CONTROL.FELD",
+        "control_name": "SELF_GUID"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.6437c5a9-f267-476b-adf8-f08ad0d2104f.CONTROL.FIELD",
+        "control_name": "SELF_GUID"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.8cdad050-d285-46a0-8bf1-ae59c8cc620c.ROOT.FIELD",
+        "control_name": "DIALOG_TYPE"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.8cdad050-d285-46a0-8bf1-ae59c8cc620c.feld",
+        "control_name": "DIALOG_TYPE"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.8cdad050-d285-46a0-8bf1-ae59c8cc620c.CONTROL",
+        "control_name": "{'FELD': 'DIALOG_TYPE', 'NAME': 'SYS_DIALOG_TYPE', 'TYPE': 'dropdown', 'FIELD': 'DIALOG_TYPE', 'LABEL': 'Dielog Typ', 'TABLE': 'sys_control_dict', 'GRUPPE': '', 'ABDATUM': False, 'DEFAULT': '', 'SORTABLE': True, 'READ_ONLY': False, 'HISTORICAL': False, 'SEARCHABLE': True, 'UPPER_CASE': False, 'EXPERT_MODE': True, 'FILTER_TYPE': 'contains', 'PARENT_GUID': None, 'SOURCE_PATH': 'root', 'DISPLAY_SHOW': True, 'EXPERT_ORDER': 0, 'DISPLAY_ORDER': 0, 'SORT_DIRECTION': 'asc', 'FIELDS_ELEMENTS': {}, 'CONFIGS_ELEMENTS': {'dropdown': {'key': '4f290b6f-1205-494b-8f03-c6446c0df169', 'field': '3d0cb56d-c86a-4d72-a9f6-bea0702debda', 'group': '', 'table': 'sys_dropdowndaten'}}, 'SORT_BY_ORIGINAL': False}"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.8cdad050-d285-46a0-8bf1-ae59c8cc620c.CONTROL.FELD",
+        "control_name": "DIALOG_TYPE"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.8cdad050-d285-46a0-8bf1-ae59c8cc620c.CONTROL.FIELD",
+        "control_name": "DIALOG_TYPE"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.9c74939e-8b9c-4ce5-b1ca-7ba82b75b4c7.ROOT.FIELD",
+        "control_name": "TAB_ELEMENTS"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.9c74939e-8b9c-4ce5-b1ca-7ba82b75b4c7.feld",
+        "control_name": "TAB_ELEMENTS"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.9c74939e-8b9c-4ce5-b1ca-7ba82b75b4c7.CONTROL",
+        "control_name": "{'FELD': 'TAB_ELEMENTS', 'NAME': 'SYS_TAB_ELEMENTS', 'TYPE': 'element_list', 'FIELD': 'TAB_ELEMENTS', 'LABEL': 'Tab Elemente', 'TABLE': 'sys_control_dict', 'GRUPPE': '', 'ABDATUM': False, 'DEFAULT': '', 'SORTABLE': True, 'READ_ONLY': False, 'HISTORICAL': False, 'SEARCHABLE': True, 'UPPER_CASE': False, 'EXPERT_MODE': True, 'FILTER_TYPE': 'contains', 'PARENT_GUID': None, 'SOURCE_PATH': 'root', 'DISPLAY_SHOW': True, 'EXPERT_ORDER': 0, 'DISPLAY_ORDER': 0, 'SORT_DIRECTION': 'asc', 'FIELDS_ELEMENTS': {}, 'CONFIGS_ELEMENTS': {}, 'SORT_BY_ORIGINAL': False}"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.9c74939e-8b9c-4ce5-b1ca-7ba82b75b4c7.CONTROL.FELD",
+        "control_name": "TAB_ELEMENTS"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.9c74939e-8b9c-4ce5-b1ca-7ba82b75b4c7.CONTROL.FIELD",
+        "control_name": "TAB_ELEMENTS"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.b78b41ec-5372-49e3-b34a-8ddb2fc25c98.ROOT.FIELD",
+        "control_name": "TABS"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.b78b41ec-5372-49e3-b34a-8ddb2fc25c98.feld",
+        "control_name": "TABS"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.b78b41ec-5372-49e3-b34a-8ddb2fc25c98.CONTROL",
+        "control_name": "{'FELD': 'TABS', 'NAME': 'SYS_TABS', 'TYPE': 'number', 'FIELD': 'TABS', 'LABEL': 'Tabs', 'TABLE': 'sys_control_dict', 'GRUPPE': '', 'ABDATUM': False, 'DEFAULT': '', 'SORTABLE': True, 'READ_ONLY': False, 'HISTORICAL': False, 'SEARCHABLE': True, 'UPPER_CASE': False, 'EXPERT_MODE': True, 'FILTER_TYPE': 'contains', 'PARENT_GUID': None, 'SOURCE_PATH': 'root', 'DISPLAY_SHOW': True, 'EXPERT_ORDER': 0, 'DISPLAY_ORDER': 0, 'SORT_DIRECTION': 'asc', 'FIELDS_ELEMENTS': {}, 'CONFIGS_ELEMENTS': {}, 'SORT_BY_ORIGINAL': False}"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.b78b41ec-5372-49e3-b34a-8ddb2fc25c98.CONTROL.FELD",
+        "control_name": "TABS"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.b78b41ec-5372-49e3-b34a-8ddb2fc25c98.CONTROL.FIELD",
+        "control_name": "TABS"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.c47b969a-466d-4494-ab7b-56a78a379fe9.ROOT.FIELD",
+        "control_name": "TABLE"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.c47b969a-466d-4494-ab7b-56a78a379fe9.feld",
+        "control_name": "TABLE"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.c47b969a-466d-4494-ab7b-56a78a379fe9.CONTROL",
+        "control_name": "{'FELD': 'TABLE', 'NAME': 'SYS_TABLE', 'TYPE': 'string', 'FIELD': 'TABLE', 'LABEL': 'Tabelle', 'TABLE': 'sys_control_dict', 'GRUPPE': '', 'ABDATUM': False, 'DEFAULT': '', 'SORTABLE': True, 'READ_ONLY': False, 'HISTORICAL': False, 'SEARCHABLE': True, 'UPPER_CASE': True, 'EXPERT_MODE': True, 'FILTER_TYPE': 'contains', 'PARENT_GUID': None, 'SOURCE_PATH': 'root', 'DISPLAY_SHOW': True, 'EXPERT_ORDER': 0, 'DISPLAY_ORDER': 0, 'SORT_DIRECTION': 'asc', 'FIELDS_ELEMENTS': {}, 'CONFIGS_ELEMENTS': {}, 'SORT_BY_ORIGINAL': False}"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.c47b969a-466d-4494-ab7b-56a78a379fe9.CONTROL.FELD",
+        "control_name": "TABLE"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.c47b969a-466d-4494-ab7b-56a78a379fe9.CONTROL.FIELD",
+        "control_name": "TABLE"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.c75d12c6-b96f-4779-a728-d45a9ccf4a0e.ROOT.FIELD",
+        "control_name": "SELF_NAME"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.c75d12c6-b96f-4779-a728-d45a9ccf4a0e.feld",
+        "control_name": "SELF_NAME"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.c75d12c6-b96f-4779-a728-d45a9ccf4a0e.CONTROL",
+        "control_name": "{'FELD': 'SELF_NAME', 'NAME': 'SYS_SELF_NAME', 'TYPE': 'string', 'FIELD': 'SELF_NAME', 'LABEL': 'eigener Name', 'TABLE': 'sys_control_dict', 'GRUPPE': '', 'ABDATUM': False, 'DEFAULT': '', 'SORTABLE': True, 'READ_ONLY': False, 'HISTORICAL': False, 'SEARCHABLE': True, 'UPPER_CASE': True, 'EXPERT_MODE': True, 'FILTER_TYPE': 'contains', 'PARENT_GUID': None, 'SOURCE_PATH': 'root', 'DISPLAY_SHOW': True, 'EXPERT_ORDER': 0, 'DISPLAY_ORDER': 0, 'SORT_DIRECTION': 'asc', 'FIELDS_ELEMENTS': {}, 'CONFIGS_ELEMENTS': {}, 'SORT_BY_ORIGINAL': False}"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.c75d12c6-b96f-4779-a728-d45a9ccf4a0e.CONTROL.FELD",
+        "control_name": "SELF_NAME"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+        "row_name": "Für Dialog Aufbau",
+        "path": "daten.FIELDS.c75d12c6-b96f-4779-a728-d45a9ccf4a0e.CONTROL.FIELD",
+        "control_name": "SELF_NAME"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "56842fa2-322a-5cad-843a-d20c53ce1d21",
+        "row_name": "WORKFLOW_DIALOG_CONFIG_FRAME_TEMPLATE",
+        "path": "daten.FIELDS.0c1f400d-2695-56da-af04-55861b30815e.feld",
+        "control_name": "WORKFLOW_NAME"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "56842fa2-322a-5cad-843a-d20c53ce1d21",
+        "row_name": "WORKFLOW_DIALOG_CONFIG_FRAME_TEMPLATE",
+        "path": "daten.FIELDS.4677f477-c4f5-5e8d-a8ff-27b3b0e729ba.feld",
+        "control_name": "DIALOG_TYPE"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "56842fa2-322a-5cad-843a-d20c53ce1d21",
+        "row_name": "WORKFLOW_DIALOG_CONFIG_FRAME_TEMPLATE",
+        "path": "daten.FIELDS.75c11f5f-c4b6-548a-9cad-4a6ad8213da7.feld",
+        "control_name": "OPEN_EDIT"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "56842fa2-322a-5cad-843a-d20c53ce1d21",
+        "row_name": "WORKFLOW_DIALOG_CONFIG_FRAME_TEMPLATE",
+        "path": "daten.FIELDS.eef4b4bf-7282-5196-8391-bf0cd226136f.feld",
+        "control_name": "SELECTION_MODE"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "3a6e8cca-0f6f-5bd0-ba72-61c2c99942ac",
+        "row_name": "WORKFLOW_DICTIONARY_FRAME_TEMPLATE",
+        "path": "daten.FIELDS.6e5c5c95-03dc-52b1-afe1-13c822ec117f.feld",
+        "control_name": "CREATE_CONTROL_ACTION"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "3a6e8cca-0f6f-5bd0-ba72-61c2c99942ac",
+        "row_name": "WORKFLOW_DICTIONARY_FRAME_TEMPLATE",
+        "path": "daten.FIELDS.7f8739fa-9e3b-5642-855f-744b23504899.feld",
+        "control_name": "DICTIONARY_SEARCH"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "3a6e8cca-0f6f-5bd0-ba72-61c2c99942ac",
+        "row_name": "WORKFLOW_DICTIONARY_FRAME_TEMPLATE",
+        "path": "daten.FIELDS.cb7a1850-06e5-5432-9811-7d8be8524e3c.feld",
+        "control_name": "CONTROL_TYPE"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "3a6e8cca-0f6f-5bd0-ba72-61c2c99942ac",
+        "row_name": "WORKFLOW_DICTIONARY_FRAME_TEMPLATE",
+        "path": "daten.FIELDS.f12439a3-0b0f-52cc-8215-3d05f0d845f2.feld",
+        "control_name": "CONTROL_FIELD"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
+        "row_name": "sys_dialogdaten Frame (Linear)",
+        "path": "daten.FIELDS.11111111-e002-4001-8001-000000000001.feld",
+        "control_name": "SELF_GUID"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
+        "row_name": "sys_dialogdaten Frame (Linear)",
+        "path": "daten.FIELDS.11111111-e002-4001-8001-000000000002.feld",
+        "control_name": "SELF_NAME"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
+        "row_name": "sys_dialogdaten Frame (Linear)",
+        "path": "daten.FIELDS.11111111-e002-4001-8001-000000000003.feld",
+        "control_name": "TABLE"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
+        "row_name": "sys_dialogdaten Frame (Linear)",
+        "path": "daten.FIELDS.11111111-e002-4001-8001-000000000004.feld",
+        "control_name": "DIALOG_TYPE"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
+        "row_name": "sys_dialogdaten Frame (Linear)",
+        "path": "daten.FIELDS.11111111-e002-4001-8001-000000000005.feld",
+        "control_name": "TABS"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
+        "row_name": "sys_dialogdaten Frame (Linear)",
+        "path": "daten.FIELDS.1f87d3eb-fabc-594a-94f1-6e5464a31ea9.feld",
+        "control_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.MODULE"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
+        "row_name": "sys_dialogdaten Frame (Linear)",
+        "path": "daten.FIELDS.22222222-e002-4001-8001-000000000001.feld",
+        "control_name": "TAB_ELEMENTS"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
+        "row_name": "sys_dialogdaten Frame (Linear)",
+        "path": "daten.FIELDS.40b932df-873b-5912-ab4b-7969f01c6cf3.feld",
+        "control_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.OPEN_EDIT"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
+        "row_name": "sys_dialogdaten Frame (Linear)",
+        "path": "daten.FIELDS.5c58971a-94f1-56bf-9382-5b990e7678d9.feld",
+        "control_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.TABLE"
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
+        "row_name": "sys_dialogdaten Frame (Linear)",
+        "path": "daten.FIELDS.82b20574-d26f-5c31-a5fe-ddf449cf4a9a.feld",
+        "control_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.HEAD"
+      }
+    ]
+  }
+}

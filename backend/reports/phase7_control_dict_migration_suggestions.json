@@ -1,0 +1,719 @@
+{
+  "phase": "phase7",
+  "title": "Control Dict Migrationsvorschlaege",
+  "input_report_title": "Control Dict Konsistenzreport",
+  "summary": {
+    "duplicate_ref_groups": 12,
+    "duplicate_actions": 12,
+    "missing_name_references": 161,
+    "map_actions": 0,
+    "create_actions": 116,
+    "ignored_references": 0
+  },
+  "duplicate_resolution": [
+    {
+      "ref_name": "sys_type",
+      "count": 6,
+      "keep_uid": "a4ae1328-40d9-4512-9dd3-b047896f58c9",
+      "retire_uids": [
+        "04d17765-de05-41d8-bbbf-1b2c34d543ba",
+        "9f85a773-288a-49f6-93e8-63bcc298d8c9",
+        "78c03c20-d1fc-594d-86a8-cae8ad317ebc",
+        "0f83e550-6998-4e12-b452-a38b2aa70621",
+        "8cdad050-d285-46a0-8bf1-ae59c8cc620c"
+      ],
+      "priority": "high"
+    },
+    {
+      "ref_name": "sys_mode",
+      "count": 4,
+      "keep_uid": "14c02cc7-410d-4e88-a00b-17fd37b82d42",
+      "retire_uids": [
+        "c9044dc7-b82c-456b-9520-c67bbf2e710e",
+        "aa4a0bc8-34a1-471b-b118-0d6a01218888",
+        "309ea334-6519-5e2a-8aa3-6ff1f93d26a6"
+      ],
+      "priority": "high"
+    },
+    {
+      "ref_name": "sys_action",
+      "count": 3,
+      "keep_uid": "b4600749-9307-5bb7-9002-a1f5350cf10b",
+      "retire_uids": [
+        "1583c60a-b74d-5518-bc07-680d8b74bc99",
+        "6567aad6-5ab0-518f-ae76-51b297bb0829"
+      ],
+      "priority": "high"
+    },
+    {
+      "ref_name": "sys_elements",
+      "count": 3,
+      "keep_uid": "9c74939e-8b9c-4ce5-b1ca-7ba82b75b4c7",
+      "retire_uids": [
+        "998c4335-bc1b-4b9c-851a-5f3127c2fbc4",
+        "109097db-eba4-4d9a-8c2f-0317c66c4826"
+      ],
+      "priority": "high"
+    },
+    {
+      "ref_name": "sys_guid",
+      "count": 3,
+      "keep_uid": "99ded5c7-a0c7-4ba8-81ae-321bf4a120b8",
+      "retire_uids": [
+        "6690c5cc-1575-452d-be09-1ba05f54f0b3",
+        "6437c5a9-f267-476b-adf8-f08ad0d2104f"
+      ],
+      "priority": "high"
+    },
+    {
+      "ref_name": "sys_name",
+      "count": 3,
+      "keep_uid": "c75d12c6-b96f-4779-a728-d45a9ccf4a0e",
+      "retire_uids": [
+        "e2d76b0d-2413-4af6-a65c-f28e7741e786",
+        "d9e5f1b5-3c4f-4b92-93ce-0d6a01215555"
+      ],
+      "priority": "high"
+    },
+    {
+      "ref_name": "sys_666",
+      "count": 2,
+      "keep_uid": "71a0cde1-f005-4596-84cd-f68549da83b3",
+      "retire_uids": [
+        "66666666-6666-6666-6666-666666666666"
+      ],
+      "priority": "medium"
+    },
+    {
+      "ref_name": "sys_default",
+      "count": 2,
+      "keep_uid": "e3b3a161-2025-42bf-a0ab-e6fd1584f4cf",
+      "retire_uids": [
+        "c611bdff-4608-49d0-9a8c-0d6a01220005"
+      ],
+      "priority": "medium"
+    },
+    {
+      "ref_name": "sys_order",
+      "count": 2,
+      "keep_uid": "dc2ba257-a927-51d7-b605-e107b4afde42",
+      "retire_uids": [
+        "e36dcfcb-6496-5729-b507-259d0feb2f18"
+      ],
+      "priority": "medium"
+    },
+    {
+      "ref_name": "sys_role",
+      "count": 2,
+      "keep_uid": "64ebf200-5d5e-5dc2-afcf-beb19d1c9744",
+      "retire_uids": [
+        "696016e1-a37e-59f7-b3b1-b4bdf9826cb5"
+      ],
+      "priority": "medium"
+    },
+    {
+      "ref_name": "sys_tab",
+      "count": 2,
+      "keep_uid": "0fcfa8fb-6b53-4ac5-8b0c-2f372aa91fd3",
+      "retire_uids": [
+        "a6c0d956-19f1-4ac7-8161-bdafe5766756"
+      ],
+      "priority": "medium"
+    },
+    {
+      "ref_name": "sys_table",
+      "count": 2,
+      "keep_uid": "9537bdcc-0164-4ef3-a7e6-9ddb672762c6",
+      "retire_uids": [
+        "c47b969a-466d-4494-ab7b-56a78a379fe9"
+      ],
+      "priority": "medium"
+    }
+  ],
+  "missing_name_resolution": {
+    "map_actions": [],
+    "create_actions": [
+      {
+        "control_name": "DIALOG_TYPE",
+        "references": 6,
+        "priority": "high"
+      },
+      {
+        "control_name": "name",
+        "references": 6,
+        "priority": "high"
+      },
+      {
+        "control_name": "EDIT_TYPE",
+        "references": 5,
+        "priority": "high"
+      },
+      {
+        "control_name": "SELF_GUID",
+        "references": 5,
+        "priority": "high"
+      },
+      {
+        "control_name": "SELF_NAME",
+        "references": 5,
+        "priority": "high"
+      },
+      {
+        "control_name": "TABLE",
+        "references": 5,
+        "priority": "high"
+      },
+      {
+        "control_name": "TABS",
+        "references": 5,
+        "priority": "high"
+      },
+      {
+        "control_name": "TAB_ELEMENTS",
+        "references": 5,
+        "priority": "high"
+      },
+      {
+        "control_name": "uid",
+        "references": 5,
+        "priority": "high"
+      },
+      {
+        "control_name": "table",
+        "references": 3,
+        "priority": "high"
+      },
+      {
+        "control_name": "DICTIONARY_SEARCH",
+        "references": 2,
+        "priority": "medium"
+      },
+      {
+        "control_name": "WORKFLOW_NAME",
+        "references": 2,
+        "priority": "medium"
+      },
+      {
+        "control_name": "gruppe",
+        "references": 2,
+        "priority": "medium"
+      },
+      {
+        "control_name": "label",
+        "references": 2,
+        "priority": "medium"
+      },
+      {
+        "control_name": "type",
+        "references": 2,
+        "priority": "medium"
+      },
+      {
+        "control_name": "ABORT_ACTION",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "ADD_TAB_ACTION",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "ANREDE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "APPLY_ACTION",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "BUILD_ACTION",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "CONTROL",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "CONTROL_FIELD",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "CONTROL_TYPE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "CREATE_CONTROL_ACTION",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "CREATE_PROPERTY_ACTION",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "DESCRIPTION",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "DRY_RUN_ACTION",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "EMAIL",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "FRAME_GUID",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "NAME",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "OPEN_EDIT",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "PACKAGE_HASH",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "POLICY_MODE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "RELEASE_TYPE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "REMOVE_TAB_ACTION",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "ROOT.SELF_GUID",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "ROOT.SELF_NAME",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "SAVE_CONTENT_ACTION",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "SAVE_VIEW_ACTION",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "SELECTION_MODE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "SOURCE_COMMIT",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "SOURCE_DB_ROLE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TABLE_PREFIX_FILTER",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TAB_GUID",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TAB_HEAD",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TAB_MODULE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TAB_REF",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TARGET_DB_ROLE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TARGET_ENV",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TARGET_TABLE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.CONFIGS_ELEMENTS.ELM_TYPE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.CONFIGS_ELEMENTS.FIELD",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.CONFIGS_ELEMENTS.GRUPPE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.CONFIGS_ELEMENTS.KEY",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.CONFIGS_ELEMENTS.TABLE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.CONTROL.ABDATUM",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.CONTROL.CONFIGS_ELEMENTS",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.CONTROL.DEFAULT",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.CONTROL.DISPLAY_ORDER",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.CONTROL.DISPLAY_SHOW",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.CONTROL.EXPERT_MODE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.CONTROL.EXPERT_ORDER",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.CONTROL.FIELD",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.CONTROL.FIELDS_ELEMENTS",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.CONTROL.FILTER_TYPE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.CONTROL.GRUPPE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.CONTROL.HISTORICAL",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.CONTROL.LABEL",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.CONTROL.NAME",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.CONTROL.PARENT_GUID",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.CONTROL.READ_ONLY",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.CONTROL.SEARCHABLE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.CONTROL.SORTABLE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.CONTROL.SORT_BY_ORIGINAL",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.CONTROL.SORT_DIRECTION",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.CONTROL.SOURCE_PATH",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.CONTROL.TABLE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.CONTROL.TYPE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.FIELDS_ELEMENTS.BY_FRAME_GUID",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.EDIT_TYPE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.GUID",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.HEAD",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.MODULE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.OPEN_EDIT",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.SELECTION_MODE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.TAB",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.TABLE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "VALIDATE_ACTION",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "VIEW_GUID",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "VIEW_NAME",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "VIEW_PROJECTION",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "VIEW_TABLE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "VORNAME",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "anrede",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "command",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "default",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "edit_type",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "enable",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "feld",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "filter_type",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "historical",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "icon",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "menu_command",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "read_only",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "searchable",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "sortable",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "template_guid",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "tooltip",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "visible",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "{'FELD': 'DIALOG_TYPE', 'NAME': 'SYS_DIALOG_TYPE', 'TYPE': 'dropdown', 'FIELD': 'DIALOG_TYPE', 'LABEL': 'Dielog Typ', 'TABLE': 'sys_control_dict', 'GRUPPE': '', 'ABDATUM': False, 'DEFAULT': '', 'SORTABLE': True, 'READ_ONLY': False, 'HISTORICAL': False, 'SEARCHABLE': True, 'UPPER_CASE': False, 'EXPERT_MODE': True, 'FILTER_TYPE': 'contains', 'PARENT_GUID': None, 'SOURCE_PATH': 'root', 'DISPLAY_SHOW': True, 'EXPERT_ORDER': 0, 'DISPLAY_ORDER': 0, 'SORT_DIRECTION': 'asc', 'FIELDS_ELEMENTS': {}, 'CONFIGS_ELEMENTS': {'dropdown': {'key': '4f290b6f-1205-494b-8f03-c6446c0df169', 'field': '3d0cb56d-c86a-4d72-a9f6-bea0702debda', 'group': '', 'table': 'sys_dropdowndaten'}}, 'SORT_BY_ORIGINAL': False}",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "{'FELD': 'EDIT_TYPE', 'NAME': 'SYS_EDIT_TYPE', 'TYPE': 'dropdown', 'FIELD': 'EDIT_TYPE', 'LABEL': 'Edit Modus', 'TABLE': 'sys_control_dict', 'GRUPPE': 'ROOT', 'ABDATUM': False, 'DEFAULT': '', 'SORTABLE': True, 'READ_ONLY': False, 'HISTORICAL': False, 'SEARCHABLE': True, 'UPPER_CASE': False, 'EXPERT_MODE': True, 'FILTER_TYPE': 'contains', 'PARENT_GUID': None, 'SOURCE_PATH': 'root', 'DISPLAY_SHOW': True, 'EXPERT_ORDER': 0, 'DISPLAY_ORDER': 0, 'SORT_DIRECTION': 'asc', 'FIELDS_ELEMENTS': {}, 'CONFIGS_ELEMENTS': {'dropdown': {'key': '4f290b6f-1205-494b-8f03-c6446c0df169', 'field': '55e5928c-4d9e-4f01-8018-8685489cfd06', 'group': '', 'table': 'sys_dropdowndaten'}}, 'SORT_BY_ORIGINAL': False}",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "{'FELD': 'SELF_GUID', 'NAME': 'SYS_SELF_GUID', 'TYPE': 'string', 'FIELD': 'SELF_GUID', 'LABEL': 'Eigener Schlüssel', 'TABLE': 'sys_control_dict', 'GRUPPE': '', 'ABDATUM': False, 'DEFAULT': '', 'SORTABLE': True, 'READ_ONLY': True, 'HISTORICAL': False, 'SEARCHABLE': True, 'UPPER_CASE': True, 'EXPERT_MODE': True, 'FILTER_TYPE': 'contains', 'PARENT_GUID': None, 'SOURCE_PATH': 'root', 'DISPLAY_SHOW': True, 'EXPERT_ORDER': 0, 'DISPLAY_ORDER': 0, 'SORT_DIRECTION': 'asc', 'FIELDS_ELEMENTS': {}, 'CONFIGS_ELEMENTS': {}, 'SORT_BY_ORIGINAL': False}",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "{'FELD': 'SELF_NAME', 'NAME': 'SYS_SELF_NAME', 'TYPE': 'string', 'FIELD': 'SELF_NAME', 'LABEL': 'eigener Name', 'TABLE': 'sys_control_dict', 'GRUPPE': '', 'ABDATUM': False, 'DEFAULT': '', 'SORTABLE': True, 'READ_ONLY': False, 'HISTORICAL': False, 'SEARCHABLE': True, 'UPPER_CASE': True, 'EXPERT_MODE': True, 'FILTER_TYPE': 'contains', 'PARENT_GUID': None, 'SOURCE_PATH': 'root', 'DISPLAY_SHOW': True, 'EXPERT_ORDER': 0, 'DISPLAY_ORDER': 0, 'SORT_DIRECTION': 'asc', 'FIELDS_ELEMENTS': {}, 'CONFIGS_ELEMENTS': {}, 'SORT_BY_ORIGINAL': False}",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "{'FELD': 'TABLE', 'NAME': 'SYS_TABLE', 'TYPE': 'string', 'FIELD': 'TABLE', 'LABEL': 'Tabelle', 'TABLE': 'sys_control_dict', 'GRUPPE': '', 'ABDATUM': False, 'DEFAULT': '', 'SORTABLE': True, 'READ_ONLY': False, 'HISTORICAL': False, 'SEARCHABLE': True, 'UPPER_CASE': True, 'EXPERT_MODE': True, 'FILTER_TYPE': 'contains', 'PARENT_GUID': None, 'SOURCE_PATH': 'root', 'DISPLAY_SHOW': True, 'EXPERT_ORDER': 0, 'DISPLAY_ORDER': 0, 'SORT_DIRECTION': 'asc', 'FIELDS_ELEMENTS': {}, 'CONFIGS_ELEMENTS': {}, 'SORT_BY_ORIGINAL': False}",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "{'FELD': 'TABS', 'NAME': 'SYS_TABS', 'TYPE': 'number', 'FIELD': 'TABS', 'LABEL': 'Tabs', 'TABLE': 'sys_control_dict', 'GRUPPE': '', 'ABDATUM': False, 'DEFAULT': '', 'SORTABLE': True, 'READ_ONLY': False, 'HISTORICAL': False, 'SEARCHABLE': True, 'UPPER_CASE': False, 'EXPERT_MODE': True, 'FILTER_TYPE': 'contains', 'PARENT_GUID': None, 'SOURCE_PATH': 'root', 'DISPLAY_SHOW': True, 'EXPERT_ORDER': 0, 'DISPLAY_ORDER': 0, 'SORT_DIRECTION': 'asc', 'FIELDS_ELEMENTS': {}, 'CONFIGS_ELEMENTS': {}, 'SORT_BY_ORIGINAL': False}",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "{'FELD': 'TAB_ELEMENTS', 'NAME': 'SYS_TAB_ELEMENTS', 'TYPE': 'element_list', 'FIELD': 'TAB_ELEMENTS', 'LABEL': 'Tab Elemente', 'TABLE': 'sys_control_dict', 'GRUPPE': '', 'ABDATUM': False, 'DEFAULT': '', 'SORTABLE': True, 'READ_ONLY': False, 'HISTORICAL': False, 'SEARCHABLE': True, 'UPPER_CASE': False, 'EXPERT_MODE': True, 'FILTER_TYPE': 'contains', 'PARENT_GUID': None, 'SOURCE_PATH': 'root', 'DISPLAY_SHOW': True, 'EXPERT_ORDER': 0, 'DISPLAY_ORDER': 0, 'SORT_DIRECTION': 'asc', 'FIELDS_ELEMENTS': {}, 'CONFIGS_ELEMENTS': {}, 'SORT_BY_ORIGINAL': False}",
+        "references": 1,
+        "priority": "medium"
+      }
+    ],
+    "ignored_references": []
+  }
+}

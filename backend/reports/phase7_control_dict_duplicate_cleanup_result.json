@@ -1,0 +1,192 @@
+{
+  "phase": "phase7",
+  "title": "Apply Duplicate Cleanup",
+  "database": "pdvm_system",
+  "mode": "apply",
+  "summary": {
+    "duplicate_groups": 12,
+    "uids_requested_for_retire": 22,
+    "uids_safe_to_retire": 12,
+    "uids_skipped": 10
+  },
+  "actions": [
+    {
+      "ref_name": "sys_type",
+      "keep_uid": "a4ae1328-40d9-4512-9dd3-b047896f58c9",
+      "retire_uids_requested": [
+        "04d17765-de05-41d8-bbbf-1b2c34d543ba",
+        "9f85a773-288a-49f6-93e8-63bcc298d8c9",
+        "78c03c20-d1fc-594d-86a8-cae8ad317ebc",
+        "0f83e550-6998-4e12-b452-a38b2aa70621",
+        "8cdad050-d285-46a0-8bf1-ae59c8cc620c"
+      ],
+      "retire_uids_safe": [
+        "9f85a773-288a-49f6-93e8-63bcc298d8c9",
+        "78c03c20-d1fc-594d-86a8-cae8ad317ebc"
+      ]
+    },
+    {
+      "ref_name": "sys_mode",
+      "keep_uid": "14c02cc7-410d-4e88-a00b-17fd37b82d42",
+      "retire_uids_requested": [
+        "c9044dc7-b82c-456b-9520-c67bbf2e710e",
+        "aa4a0bc8-34a1-471b-b118-0d6a01218888",
+        "309ea334-6519-5e2a-8aa3-6ff1f93d26a6"
+      ],
+      "retire_uids_safe": [
+        "c9044dc7-b82c-456b-9520-c67bbf2e710e",
+        "309ea334-6519-5e2a-8aa3-6ff1f93d26a6"
+      ]
+    },
+    {
+      "ref_name": "sys_action",
+      "keep_uid": "b4600749-9307-5bb7-9002-a1f5350cf10b",
+      "retire_uids_requested": [
+        "1583c60a-b74d-5518-bc07-680d8b74bc99",
+        "6567aad6-5ab0-518f-ae76-51b297bb0829"
+      ],
+      "retire_uids_safe": [
+        "1583c60a-b74d-5518-bc07-680d8b74bc99",
+        "6567aad6-5ab0-518f-ae76-51b297bb0829"
+      ]
+    },
+    {
+      "ref_name": "sys_elements",
+      "keep_uid": "9c74939e-8b9c-4ce5-b1ca-7ba82b75b4c7",
+      "retire_uids_requested": [
+        "998c4335-bc1b-4b9c-851a-5f3127c2fbc4",
+        "109097db-eba4-4d9a-8c2f-0317c66c4826"
+      ],
+      "retire_uids_safe": [
+        "998c4335-bc1b-4b9c-851a-5f3127c2fbc4",
+        "109097db-eba4-4d9a-8c2f-0317c66c4826"
+      ]
+    },
+    {
+      "ref_name": "sys_guid",
+      "keep_uid": "99ded5c7-a0c7-4ba8-81ae-321bf4a120b8",
+      "retire_uids_requested": [
+        "6690c5cc-1575-452d-be09-1ba05f54f0b3",
+        "6437c5a9-f267-476b-adf8-f08ad0d2104f"
+      ],
+      "retire_uids_safe": [
+        "6690c5cc-1575-452d-be09-1ba05f54f0b3"
+      ]
+    },
+    {
+      "ref_name": "sys_name",
+      "keep_uid": "c75d12c6-b96f-4779-a728-d45a9ccf4a0e",
+      "retire_uids_requested": [
+        "e2d76b0d-2413-4af6-a65c-f28e7741e786",
+        "d9e5f1b5-3c4f-4b92-93ce-0d6a01215555"
+      ],
+      "retire_uids_safe": []
+    },
+    {
+      "ref_name": "sys_666",
+      "keep_uid": "71a0cde1-f005-4596-84cd-f68549da83b3",
+      "retire_uids_requested": [
+        "66666666-6666-6666-6666-666666666666"
+      ],
+      "retire_uids_safe": []
+    },
+    {
+      "ref_name": "sys_default",
+      "keep_uid": "e3b3a161-2025-42bf-a0ab-e6fd1584f4cf",
+      "retire_uids_requested": [
+        "c611bdff-4608-49d0-9a8c-0d6a01220005"
+      ],
+      "retire_uids_safe": []
+    },
+    {
+      "ref_name": "sys_order",
+      "keep_uid": "dc2ba257-a927-51d7-b605-e107b4afde42",
+      "retire_uids_requested": [
+        "e36dcfcb-6496-5729-b507-259d0feb2f18"
+      ],
+      "retire_uids_safe": [
+        "e36dcfcb-6496-5729-b507-259d0feb2f18"
+      ]
+    },
+    {
+      "ref_name": "sys_role",
+      "keep_uid": "64ebf200-5d5e-5dc2-afcf-beb19d1c9744",
+      "retire_uids_requested": [
+        "696016e1-a37e-59f7-b3b1-b4bdf9826cb5"
+      ],
+      "retire_uids_safe": [
+        "696016e1-a37e-59f7-b3b1-b4bdf9826cb5"
+      ]
+    },
+    {
+      "ref_name": "sys_tab",
+      "keep_uid": "0fcfa8fb-6b53-4ac5-8b0c-2f372aa91fd3",
+      "retire_uids_requested": [
+        "a6c0d956-19f1-4ac7-8161-bdafe5766756"
+      ],
+      "retire_uids_safe": [
+        "a6c0d956-19f1-4ac7-8161-bdafe5766756"
+      ]
+    },
+    {
+      "ref_name": "sys_table",
+      "keep_uid": "9537bdcc-0164-4ef3-a7e6-9ddb672762c6",
+      "retire_uids_requested": [
+        "c47b969a-466d-4494-ab7b-56a78a379fe9"
+      ],
+      "retire_uids_safe": []
+    }
+  ],
+  "skipped": [
+    {
+      "uid": "04d17765-de05-41d8-bbbf-1b2c34d543ba",
+      "ref_name": "sys_type",
+      "reason": "explicitly_referenced_in_source_tables"
+    },
+    {
+      "uid": "0f83e550-6998-4e12-b452-a38b2aa70621",
+      "ref_name": "sys_type",
+      "reason": "explicitly_referenced_in_source_tables"
+    },
+    {
+      "uid": "8cdad050-d285-46a0-8bf1-ae59c8cc620c",
+      "ref_name": "sys_type",
+      "reason": "explicitly_referenced_in_source_tables"
+    },
+    {
+      "uid": "aa4a0bc8-34a1-471b-b118-0d6a01218888",
+      "ref_name": "sys_mode",
+      "reason": "explicitly_referenced_in_source_tables"
+    },
+    {
+      "uid": "6437c5a9-f267-476b-adf8-f08ad0d2104f",
+      "ref_name": "sys_guid",
+      "reason": "explicitly_referenced_in_source_tables"
+    },
+    {
+      "uid": "e2d76b0d-2413-4af6-a65c-f28e7741e786",
+      "ref_name": "sys_name",
+      "reason": "explicitly_referenced_in_source_tables"
+    },
+    {
+      "uid": "d9e5f1b5-3c4f-4b92-93ce-0d6a01215555",
+      "ref_name": "sys_name",
+      "reason": "explicitly_referenced_in_source_tables"
+    },
+    {
+      "uid": "66666666-6666-6666-6666-666666666666",
+      "ref_name": "sys_666",
+      "reason": "template_uid_protected"
+    },
+    {
+      "uid": "c611bdff-4608-49d0-9a8c-0d6a01220005",
+      "ref_name": "sys_default",
+      "reason": "explicitly_referenced_in_source_tables"
+    },
+    {
+      "uid": "c47b969a-466d-4494-ab7b-56a78a379fe9",
+      "ref_name": "sys_table",
+      "reason": "explicitly_referenced_in_source_tables"
+    }
+  ]
+}
