@@ -3,7 +3,7 @@ Mandanten-Datenbank Wartung
 Wird nach Mandant-Login ausgeführt, bevor PdvmCentralSystemsteuerung initialisiert wird.
 
 Verantwortlich für:
-1. Prüfung und Anlage fehlender Tabellen (aus CONFIGS.FEATURES und CONFIGS.SYS_TABLES)
+1. Prüfung und Anlage fehlender Tabellen (aus CONFIG.FEATURES)
 2. Prüfung und Korrektur der Spalten-Struktur
 3. Korrektur von gilt_bis Werten (Standard: 9999-12-31 23:59:59)
 """
@@ -93,7 +93,7 @@ class MandantDatabaseMaintenance:
                     logger.error(f"❌ Fehler bei Tabelle {table_name}: {e}")
                     stats['errors'].append(f"{table_name}: {e}")
             
-            # PHASE 2: Jetzt FEATURES/SYS_TABLES aus Mandanten-Daten lesen (OHNE DB-Query!)
+            # PHASE 2: Jetzt FEATURES aus Mandanten-Daten lesen (OHNE DB-Query!)
             feature_tables = await self._get_feature_tables()
             legacy_to_canonical = {
                 'sys_anwendungsdaten': 'msy_anwendungsdaten',
@@ -171,19 +171,19 @@ class MandantDatabaseMaintenance:
     
     async def _get_feature_tables(self) -> List[str]:
         """
-        Extrahiert Feature-Tabellen aus Mandanten-Daten (CONFIG.FEATURES, CONFIG.SYS_TABLES)
+        Extrahiert Feature-Tabellen aus Mandanten-Daten (CONFIG.FEATURES)
         
         Nutzt die bereits beim Login geladenen Mandanten-Daten - KEINE DB-Abfrage!
         
         Returns:
-            Liste der Tabellennamen aus FEATURES und SYS_TABLES
+            Liste der Tabellennamen aus FEATURES
         """
         tables = set()
         
         try:
             logger.debug(f"📖 Mandanten-Daten Gruppen: {list(self.mandant_daten.keys())}")
             
-            # CONFIG.FEATURES und CONFIG.SYS_TABLES
+            # CONFIG.FEATURES
             if 'CONFIG' in self.mandant_daten:
                 configs = self.mandant_daten['CONFIG']
                 logger.debug(f"📖 CONFIG gefunden, Keys: {list(configs.keys())}")
@@ -197,14 +197,6 @@ class MandantDatabaseMaintenance:
                         # Manchmal als Dict gespeichert
                         tables.update(features.keys())
                 
-                if 'SYS_TABLES' in configs:
-                    sys_tables = configs['SYS_TABLES']
-                    logger.info(f"📋 SYS_TABLES gefunden: {sys_tables}")
-                    if isinstance(sys_tables, list):
-                        tables.update(sys_tables)
-                    elif isinstance(sys_tables, dict):
-                        # Manchmal als Dict gespeichert
-                        tables.update(sys_tables.keys())
             else:
                 logger.warning(f"⚠️ Keine CONFIG Gruppe in Mandanten-Daten gefunden")
                 logger.warning(f"   Verfügbare Gruppen: {list(self.mandant_daten.keys())}")

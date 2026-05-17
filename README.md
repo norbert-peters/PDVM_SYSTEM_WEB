@@ -27,6 +27,11 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
+Alternative (Start aus Projekt-Root):
+```bash
+python -m uvicorn --app-dir backend app.main:app --reload --reload-dir backend --host 0.0.0.0 --port 8000
+```
+
 ### Frontend Setup
 ```bash
 cd frontend

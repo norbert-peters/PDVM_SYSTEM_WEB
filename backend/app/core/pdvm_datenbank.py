@@ -56,7 +56,6 @@ class PdvmDatabase:
         # Mandant legacy (temporary rollout allowlist)
         "sys_anwendungsdaten": "mandant",
         "sys_systemsteuerung": "mandant",
-        "sys_layout": "mandant",
         "sys_security": "mandant",
         "sys_error_log": "mandant",
         "sys_error_acknowledgements": "mandant",
@@ -803,7 +802,7 @@ class PdvmDatabase:
         Prüft und erstellt fehlende Tabellen für einen Mandanten beim Login
         
         Verwendet direkte Connection statt DatabasePool.
-        Lädt CONFIG.SYS_TABLES und CONFIG.FEATURES aus mandant_record
+        Lädt CONFIG.FEATURES aus mandant_record
         und erstellt alle fehlenden Tabellen in der Mandanten-Datenbank.
         
         Args:
@@ -818,11 +817,8 @@ class PdvmDatabase:
         # 1. Tabellen-Liste aus Mandanten-Config laden
         daten = mandant_record.get("daten", {})
         config = daten.get("CONFIG", {})
-        sys_tables = config.get("SYS_TABLES", [])
         features = config.get("FEATURES", [])
         
-        if not isinstance(sys_tables, list):
-            sys_tables = []
         if not isinstance(features, list):
             features = []
 
@@ -839,7 +835,6 @@ class PdvmDatabase:
             "sys_ext_table_man": "msy_ext_table",
             "sys_feld_aenderungshistorie": "msy_feld_aenderungshistorie",
         }
-        sys_tables = [legacy_to_canonical.get(str(t), str(t)) for t in sys_tables]
         features = [legacy_to_canonical.get(str(t), str(t)) for t in features]
         
         mandatory_tables = [
@@ -856,7 +851,7 @@ class PdvmDatabase:
             "msy_feld_aenderungshistorie",
         ]
 
-        all_tables = list(dict.fromkeys(mandatory_tables + sys_tables + features))
+        all_tables = list(dict.fromkeys(mandatory_tables + features))
         
         if not all_tables:
             logger.info(f"Keine Tabellen für Mandant {mandant_id} konfiguriert")

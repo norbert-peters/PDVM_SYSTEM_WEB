@@ -310,7 +310,7 @@ async def select_mandant(
         # ========================================
         # DATENBANK-WARTUNG VOR GCS-INITIALISIERUNG
         # Prüft und korrigiert:
-        # - Fehlende Tabellen aus CONFIGS.FEATURES/SYS_TABLES (NEU ANLEGEN mit Standard-Schema)
+        # - Fehlende Tabellen aus CONFIG.FEATURES (NEU ANLEGEN mit Standard-Schema)
         # - Existierende Tabellen: Fehlende Spalten (daten_backup, gilt_bis, etc.)
         # - Existierende Tabellen: Falsche Datentypen korrigieren (gilt_bis TEXT → TIMESTAMP)
         # - gilt_bis Werte für alte Datensätze korrigieren
@@ -325,11 +325,11 @@ async def select_mandant(
             mandant_pool = await asyncpg.create_pool(mandant_db_url, min_size=1, max_size=2)
             
             try:
-                # Führe Wartung aus - übergebe mandant['daten'] mit CONFIGS
+                # Führe Wartung aus - übergebe mandant['daten'] mit CONFIG
                 maintenance_stats = await run_mandant_maintenance(
                     mandant_pool, 
                     mandant_id,
-                    mandant['daten']  # Login-Daten enthält CONFIGS.FEATURES/SYS_TABLES
+                    mandant['daten']  # Login-Daten enthält CONFIG.FEATURES
                 )
                 
                 logger.info(f"✅ Wartung abgeschlossen: {maintenance_stats}")
@@ -372,6 +372,25 @@ async def select_mandant(
         
         # Mandanten-Daten aus DB laden
         mandant_data = mandant.get('daten', {})
+
+        # Deprecated Cleanup: CONFIG.SYS_TABLES wird nicht mehr verwendet.
+        try:
+            cfg = mandant_data.get("CONFIG") if isinstance(mandant_data, dict) else None
+            if isinstance(cfg, dict) and "SYS_TABLES" in cfg:
+                cfg.pop("SYS_TABLES", None)
+                if isinstance(mandant_data.get("MANDANT"), dict):
+                    mandant_data["MANDANT"]["MODIFIED"] = datetime.now().isoformat()
+                updated_mandant = await manager.db_service.update(
+                    uid=mandant_id,
+                    daten=mandant_data,
+                    name=mandant.get("name"),
+                    backup_old=True,
+                )
+                mandant = updated_mandant if isinstance(updated_mandant, dict) else mandant
+                mandant_data = mandant.get("daten", mandant_data)
+                logger.info(f"✅ Deprecated CONFIG.SYS_TABLES aus Mandant {mandant_id} entfernt")
+        except Exception as cleanup_exc:
+            logger.warning(f"⚠️ CONFIG.SYS_TABLES Cleanup fehlgeschlagen: {cleanup_exc}")
         
         # TODO: Mandanten_access und Berechtigungen beim Login laden
         # Für jetzt: Platzhalter-Werte
@@ -603,8 +622,8 @@ async def setup_mandant_database(
     Workflow:
     1. Mandanten-Daten laden
     2. Datenbank erstellen (aus MANDANT.DATABASE)
-    3. CONFIG.SYS_TABLES Tabellen anlegen
-    4. CONFIG.FEATURES Tabellen anlegen
+    3. CONFIG.FEATURES Tabellen anlegen
+    4. ROOT.DB_CREATED_AT Zeitstempel setzen
     5. ROOT.DB_CREATED_AT Zeitstempel setzen
     
     Args:
@@ -756,7 +775,7 @@ async def create_mandant(
     1. Template laden und mit Daten füllen
     2. Validierung (DB-Name, Verbindung)
     3. Datenbank anlegen
-    4. Schema ausführen (sys_tables aus CONFIG)
+    4. Schema ausführen (features aus CONFIG)
     5. Mandanten-Satz speichern
     6. Connection Pool anlegen
     

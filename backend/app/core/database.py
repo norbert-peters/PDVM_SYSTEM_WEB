@@ -19,7 +19,6 @@ LEGACY_ROUTE_ALLOWLIST = {
     "sys_mandanten": "auth",
     "sys_anwendungsdaten": "mandant",
     "sys_systemsteuerung": "mandant",
-    "sys_layout": "mandant",
     "sys_security": "mandant",
     "sys_error_log": "mandant",
     "sys_error_acknowledgements": "mandant",

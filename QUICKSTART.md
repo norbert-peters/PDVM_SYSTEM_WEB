@@ -39,6 +39,9 @@ Copy-Item .env.example .env
 uvicorn app.main:app --reload
 # Backend runs at http://localhost:8000
 # API docs at http://localhost:8000/docs
+
+# Alternative from project root (if current directory is not backend)
+# python -m uvicorn --app-dir backend app.main:app --reload --reload-dir backend --host 0.0.0.0 --port 8000
 ```
 
 ### 3. Frontend Setup

@@ -531,6 +531,8 @@ class PdvmCentralSystemsteuerung:
                         legacy_row = await legacy_layout_db.db.get_row(theme_uuid)
 
                         if legacy_row:
+                            # Legacy-Daten sofort fuer diese Session verwenden (auch wenn Persistierung spaeter fehlschlaegt).
+                            row = legacy_row
                             try:
                                 await self.layout.db.create(
                                     uid=theme_uuid,
@@ -539,10 +541,10 @@ class PdvmCentralSystemsteuerung:
                                     historisch=int(legacy_row.get("historisch") or 0),
                                 )
                                 logger.info(f"✅ Layout-Migration: Theme {theme_guid_str} von sys_layout nach msy_layout uebernommen")
+                                # Nach erfolgreicher Persistierung canonical row erneut laden.
+                                row = await self.layout.db.get_row(theme_uuid) or row
                             except Exception as migration_exc:
                                 logger.warning(f"⚠️ Layout-Migration nach msy_layout fehlgeschlagen: {migration_exc}")
-
-                            row = await self.layout.db.get_row(theme_uuid)
                         else:
                             logger.warning(f"⚠️ Theme {theme_guid_str} weder in msy_layout noch in sys_layout gefunden")
                     except Exception as legacy_exc:

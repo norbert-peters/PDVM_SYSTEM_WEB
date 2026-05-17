@@ -324,6 +324,31 @@ Festlegungen aus dem Review:
 5. Keine neue Sonderausnahme in ARCHITECTURE_RULES durch CONTROL_KEY oder harte control_dict-spezifische DB-Constraints.
 6. Da der aktuelle Stand ein Entwicklungsdatenbestand ist, wird die Umstellung als vollstaendige strukturelle Bereinigung in Phase 7 umgesetzt.
 
+## 12.1 Layout-Read-Policy fuer Mandanten (verbindlich)
+
+Festlegung fuer THEME_GUID-Aufloesung beim Login/Mandantenstart:
+1. Primäre Quelle ist msy_layout in der Mandanten-DB.
+2. Falls der Datensatz zur THEME_GUID in msy_layout fehlt, wird einmalig in sys_layout (Legacy) gesucht.
+3. Wird der Legacy-Datensatz gefunden, wird er nach msy_layout uebernommen (Self-Heal fuer kommende Anmeldungen).
+4. Der gefundene Legacy-Datensatz wird in derselben Anmeldung sofort angewendet.
+5. Wird weder in msy_layout noch in sys_layout ein Datensatz gefunden, wird ein expliziter Warn-Log geschrieben.
+
+Ziel:
+- Keine regressiven Login-/Mandantenstarts waehrend der Umstellung.
+- Kanonischer Betrieb auf msy_layout nach der ersten erfolgreichen Legacy-Aufloesung.
+
+## 12.2 Mandanten-Config: SYS_TABLES entfernt (verbindlich)
+
+Festlegung:
+1. CONFIG.SYS_TABLES ist deprecated und wird nicht mehr fuer Tabellen-Setup/Wartung verwendet.
+2. Tabellenbereitstellung in der Mandanten-DB basiert auf:
+  - festen msy_ Pflichttabellen,
+  - plus optionalen CONFIG.FEATURES.
+3. Vorhandene CONFIG.SYS_TABLES Eintraege in Mandantensaetzen werden bei Mandanten-Select bereinigt.
+
+Ziel:
+- ein eindeutiger, konfliktfreier Tabellen-Setup-Pfad ohne doppelte Konfigurationsquelle.
+
 ## 13. Festlegungen (freigegeben)
 
 1. Auth-Domain-Präfixe
