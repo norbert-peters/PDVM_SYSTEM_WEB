@@ -3,65 +3,74 @@
   "title": "Control Dict Migrationsvorschlaege",
   "input_report_title": "Control Dict Konsistenzreport",
   "summary": {
-    "duplicate_ref_groups": 12,
-    "duplicate_actions": 12,
-    "missing_name_references": 161,
-    "map_actions": 0,
-    "create_actions": 116,
+    "duplicate_ref_groups": 16,
+    "duplicate_actions": 16,
+    "missing_name_references": 100,
+    "map_actions": 19,
+    "create_actions": 80,
     "ignored_references": 0
   },
   "duplicate_resolution": [
     {
+      "ref_name": "table",
+      "count": 5,
+      "keep_uid": "c5caa42c-ae8c-4e11-bd71-c21f5082c8ae",
+      "retire_uids": [
+        "0340d05c-b966-49df-a4aa-628b3cae7ee1",
+        "7a1a6080-94c0-4916-bce1-a97ed58874f8",
+        "365ce764-187e-484d-a5eb-cf062366b33f",
+        "f657d8da-97b6-438d-866f-b61a3a9a5f27"
+      ],
+      "priority": "high"
+    },
+    {
       "ref_name": "sys_type",
-      "count": 6,
+      "count": 4,
       "keep_uid": "a4ae1328-40d9-4512-9dd3-b047896f58c9",
       "retire_uids": [
         "04d17765-de05-41d8-bbbf-1b2c34d543ba",
-        "9f85a773-288a-49f6-93e8-63bcc298d8c9",
-        "78c03c20-d1fc-594d-86a8-cae8ad317ebc",
         "0f83e550-6998-4e12-b452-a38b2aa70621",
         "8cdad050-d285-46a0-8bf1-ae59c8cc620c"
       ],
       "priority": "high"
     },
     {
-      "ref_name": "sys_mode",
-      "count": 4,
-      "keep_uid": "14c02cc7-410d-4e88-a00b-17fd37b82d42",
+      "ref_name": "edit_type",
+      "count": 3,
+      "keep_uid": "8cadb9df-e610-4c9e-9384-0dd55574c9bd",
       "retire_uids": [
-        "c9044dc7-b82c-456b-9520-c67bbf2e710e",
-        "aa4a0bc8-34a1-471b-b118-0d6a01218888",
-        "309ea334-6519-5e2a-8aa3-6ff1f93d26a6"
+        "2527428c-bbf6-47a2-b281-44f6b746e959",
+        "d22cd284-8c91-41ae-80d8-2eab1f4931be"
       ],
       "priority": "high"
     },
     {
-      "ref_name": "sys_action",
+      "ref_name": "feld",
       "count": 3,
-      "keep_uid": "b4600749-9307-5bb7-9002-a1f5350cf10b",
+      "keep_uid": "31941830-eaed-4cb7-a0d6-40908badc5fe",
       "retire_uids": [
-        "1583c60a-b74d-5518-bc07-680d8b74bc99",
-        "6567aad6-5ab0-518f-ae76-51b297bb0829"
+        "b9b5ee07-973e-468c-a90d-ceb4be912a6e",
+        "94cee68f-20c8-44e4-885e-7db81c5ffd09"
       ],
       "priority": "high"
     },
     {
-      "ref_name": "sys_elements",
+      "ref_name": "gruppe",
       "count": 3,
-      "keep_uid": "9c74939e-8b9c-4ce5-b1ca-7ba82b75b4c7",
+      "keep_uid": "1439ad2b-2a15-4748-bcc9-d17aa10b3e2d",
       "retire_uids": [
-        "998c4335-bc1b-4b9c-851a-5f3127c2fbc4",
-        "109097db-eba4-4d9a-8c2f-0317c66c4826"
+        "c543556b-b1a6-46db-94d9-1c1b0742e07d",
+        "c055e0bc-db69-4462-8c0b-99a079860093"
       ],
       "priority": "high"
     },
     {
-      "ref_name": "sys_guid",
+      "ref_name": "name",
       "count": 3,
-      "keep_uid": "99ded5c7-a0c7-4ba8-81ae-321bf4a120b8",
+      "keep_uid": "3098c0df-3f77-43bb-916c-8052cab22e4a",
       "retire_uids": [
-        "6690c5cc-1575-452d-be09-1ba05f54f0b3",
-        "6437c5a9-f267-476b-adf8-f08ad0d2104f"
+        "d4dfad59-49cf-493e-8ba4-8a8822334df5",
+        "45e5cc7f-bb4e-4708-8045-0d7da1419d1f"
       ],
       "priority": "high"
     },
@@ -74,6 +83,33 @@
         "d9e5f1b5-3c4f-4b92-93ce-0d6a01215555"
       ],
       "priority": "high"
+    },
+    {
+      "ref_name": "label",
+      "count": 2,
+      "keep_uid": "a8c7eab3-9790-48d9-a9c9-0f0c810ed50a",
+      "retire_uids": [
+        "ebf671cf-6877-44ce-9b5b-86007f0147ed"
+      ],
+      "priority": "medium"
+    },
+    {
+      "ref_name": "self_guid",
+      "count": 2,
+      "keep_uid": "88a008ce-f8cd-46e4-8600-91cb949d9c12",
+      "retire_uids": [
+        "cf0f7114-1d98-441d-b4df-365c4a2fedd7"
+      ],
+      "priority": "medium"
+    },
+    {
+      "ref_name": "self_name",
+      "count": 2,
+      "keep_uid": "1fe73111-4ba9-4322-b02a-ff3b6f97ede8",
+      "retire_uids": [
+        "a7a57a0b-d8b1-444d-8d02-e9d34b82d8eb"
+      ],
+      "priority": "medium"
     },
     {
       "ref_name": "sys_666",
@@ -94,29 +130,20 @@
       "priority": "medium"
     },
     {
-      "ref_name": "sys_order",
+      "ref_name": "sys_guid",
       "count": 2,
-      "keep_uid": "dc2ba257-a927-51d7-b605-e107b4afde42",
+      "keep_uid": "99ded5c7-a0c7-4ba8-81ae-321bf4a120b8",
       "retire_uids": [
-        "e36dcfcb-6496-5729-b507-259d0feb2f18"
+        "6437c5a9-f267-476b-adf8-f08ad0d2104f"
       ],
       "priority": "medium"
     },
     {
-      "ref_name": "sys_role",
+      "ref_name": "sys_mode",
       "count": 2,
-      "keep_uid": "64ebf200-5d5e-5dc2-afcf-beb19d1c9744",
+      "keep_uid": "14c02cc7-410d-4e88-a00b-17fd37b82d42",
       "retire_uids": [
-        "696016e1-a37e-59f7-b3b1-b4bdf9826cb5"
-      ],
-      "priority": "medium"
-    },
-    {
-      "ref_name": "sys_tab",
-      "count": 2,
-      "keep_uid": "0fcfa8fb-6b53-4ac5-8b0c-2f372aa91fd3",
-      "retire_uids": [
-        "a6c0d956-19f1-4ac7-8161-bdafe5766756"
+        "aa4a0bc8-34a1-471b-b118-0d6a01218888"
       ],
       "priority": "medium"
     },
@@ -128,83 +155,314 @@
         "c47b969a-466d-4494-ab7b-56a78a379fe9"
       ],
       "priority": "medium"
+    },
+    {
+      "ref_name": "type",
+      "count": 2,
+      "keep_uid": "4763a9e7-d54b-4cc3-b1c0-170a84455b88",
+      "retire_uids": [
+        "bfc3327c-b8a0-4a18-814f-a6d747986fd6"
+      ],
+      "priority": "medium"
     }
   ],
   "missing_name_resolution": {
-    "map_actions": [],
+    "map_actions": [
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.0539344f-557f-5e7c-ad1d-c14bed540c3c.feld",
+        "from_name": "TEMPLATES.CONFIGS_ELEMENTS.ELM_TYPE",
+        "candidate_uids": [
+          "4763a9e7-d54b-4cc3-b1c0-170a84455b88",
+          "bfc3327c-b8a0-4a18-814f-a6d747986fd6"
+        ],
+        "matched_variant": "TYPE",
+        "confidence": "medium",
+        "needs_review": true
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.0b580d4a-2952-52a6-abcb-a32ca2e09e7e.feld",
+        "from_name": "TEMPLATES.CONFIGS_ELEMENTS.TABLE",
+        "candidate_uids": [
+          "0340d05c-b966-49df-a4aa-628b3cae7ee1",
+          "365ce764-187e-484d-a5eb-cf062366b33f",
+          "7a1a6080-94c0-4916-bce1-a97ed58874f8",
+          "c5caa42c-ae8c-4e11-bd71-c21f5082c8ae",
+          "f657d8da-97b6-438d-866f-b61a3a9a5f27"
+        ],
+        "matched_variant": "table",
+        "confidence": "medium",
+        "needs_review": true
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.13aef77a-cdb4-594b-852d-97b2c696c021.feld",
+        "from_name": "TEMPLATES.CONTROL.TYPE",
+        "candidate_uids": [
+          "4763a9e7-d54b-4cc3-b1c0-170a84455b88",
+          "bfc3327c-b8a0-4a18-814f-a6d747986fd6"
+        ],
+        "matched_variant": "TYPE",
+        "confidence": "medium",
+        "needs_review": true
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.1f564feb-6b7a-5fd2-823c-d0097de51fcd.feld",
+        "from_name": "TEMPLATES.CONTROL.LABEL",
+        "candidate_uids": [
+          "a8c7eab3-9790-48d9-a9c9-0f0c810ed50a",
+          "ebf671cf-6877-44ce-9b5b-86007f0147ed"
+        ],
+        "matched_variant": "label",
+        "confidence": "medium",
+        "needs_review": true
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.22222222-e001-4001-8001-000000000005.feld",
+        "from_name": "filter_type",
+        "candidate_uids": [
+          "4763a9e7-d54b-4cc3-b1c0-170a84455b88",
+          "bfc3327c-b8a0-4a18-814f-a6d747986fd6"
+        ],
+        "matched_variant": "TYPE",
+        "confidence": "medium",
+        "needs_review": true
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.44444444-e001-4001-8001-000000000001.feld",
+        "from_name": "ROOT.SELF_GUID",
+        "candidate_uids": [
+          "88a008ce-f8cd-46e4-8600-91cb949d9c12",
+          "cf0f7114-1d98-441d-b4df-365c4a2fedd7"
+        ],
+        "matched_variant": "self_guid",
+        "confidence": "medium",
+        "needs_review": true
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.44444444-e001-4001-8001-000000000002.feld",
+        "from_name": "ROOT.SELF_NAME",
+        "candidate_uids": [
+          "1fe73111-4ba9-4322-b02a-ff3b6f97ede8",
+          "3098c0df-3f77-43bb-916c-8052cab22e4a",
+          "45e5cc7f-bb4e-4708-8045-0d7da1419d1f",
+          "a7a57a0b-d8b1-444d-8d02-e9d34b82d8eb",
+          "d4dfad59-49cf-493e-8ba4-8a8822334df5"
+        ],
+        "matched_variant": "name",
+        "confidence": "medium",
+        "needs_review": true
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.58c1b442-4cda-5a10-90a4-fddc96e429fc.feld",
+        "from_name": "TEMPLATES.CONTROL.GRUPPE",
+        "candidate_uids": [
+          "1439ad2b-2a15-4748-bcc9-d17aa10b3e2d",
+          "c055e0bc-db69-4462-8c0b-99a079860093",
+          "c543556b-b1a6-46db-94d9-1c1b0742e07d"
+        ],
+        "matched_variant": "GRUPPE",
+        "confidence": "medium",
+        "needs_review": true
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.83831603-4474-5f12-93d1-f620e2a50556.feld",
+        "from_name": "TEMPLATES.CONTROL.NAME",
+        "candidate_uids": [
+          "3098c0df-3f77-43bb-916c-8052cab22e4a",
+          "45e5cc7f-bb4e-4708-8045-0d7da1419d1f",
+          "d4dfad59-49cf-493e-8ba4-8a8822334df5"
+        ],
+        "matched_variant": "name",
+        "confidence": "medium",
+        "needs_review": true
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.91826982-9089-5de5-9712-978825557c29.feld",
+        "from_name": "TEMPLATES.CONTROL.FILTER_TYPE",
+        "candidate_uids": [
+          "4763a9e7-d54b-4cc3-b1c0-170a84455b88",
+          "bfc3327c-b8a0-4a18-814f-a6d747986fd6"
+        ],
+        "matched_variant": "TYPE",
+        "confidence": "medium",
+        "needs_review": true
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.9d1f6d5a-995a-57ce-9d44-f69121bffd18.feld",
+        "from_name": "TEMPLATES.CONFIGS_ELEMENTS.GRUPPE",
+        "candidate_uids": [
+          "1439ad2b-2a15-4748-bcc9-d17aa10b3e2d",
+          "c055e0bc-db69-4462-8c0b-99a079860093",
+          "c543556b-b1a6-46db-94d9-1c1b0742e07d"
+        ],
+        "matched_variant": "GRUPPE",
+        "confidence": "medium",
+        "needs_review": true
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+        "row_name": "sys_control_dict Frame",
+        "path": "daten.FIELDS.dc455b04-2740-5322-9283-8a036fbb1de8.feld",
+        "from_name": "TEMPLATES.CONTROL.TABLE",
+        "candidate_uids": [
+          "0340d05c-b966-49df-a4aa-628b3cae7ee1",
+          "365ce764-187e-484d-a5eb-cf062366b33f",
+          "7a1a6080-94c0-4916-bce1-a97ed58874f8",
+          "c5caa42c-ae8c-4e11-bd71-c21f5082c8ae",
+          "f657d8da-97b6-438d-866f-b61a3a9a5f27"
+        ],
+        "matched_variant": "table",
+        "confidence": "medium",
+        "needs_review": true
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "3a6e8cca-0f6f-5bd0-ba72-61c2c99942ac",
+        "row_name": "WORKFLOW_DICTIONARY_FRAME_TEMPLATE",
+        "path": "daten.FIELDS.cb7a1850-06e5-5432-9811-7d8be8524e3c.feld",
+        "from_name": "CONTROL_TYPE",
+        "candidate_uids": [
+          "4763a9e7-d54b-4cc3-b1c0-170a84455b88",
+          "bfc3327c-b8a0-4a18-814f-a6d747986fd6"
+        ],
+        "matched_variant": "type",
+        "confidence": "medium",
+        "needs_review": true
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
+        "row_name": "sys_dialogdaten Frame (Linear)",
+        "path": "daten.FIELDS.5c58971a-94f1-56bf-9382-5b990e7678d9.feld",
+        "from_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.TABLE",
+        "candidate_uids": [
+          "0340d05c-b966-49df-a4aa-628b3cae7ee1",
+          "365ce764-187e-484d-a5eb-cf062366b33f",
+          "7a1a6080-94c0-4916-bce1-a97ed58874f8",
+          "c5caa42c-ae8c-4e11-bd71-c21f5082c8ae",
+          "f657d8da-97b6-438d-866f-b61a3a9a5f27"
+        ],
+        "matched_variant": "table",
+        "confidence": "medium",
+        "needs_review": true
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
+        "row_name": "sys_dialogdaten Frame (Linear)",
+        "path": "daten.FIELDS.958c6e06-d3b2-5c0f-b9ef-0f20947d5506.feld",
+        "from_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.EDIT_TYPE",
+        "candidate_uids": [
+          "2527428c-bbf6-47a2-b281-44f6b746e959",
+          "4763a9e7-d54b-4cc3-b1c0-170a84455b88",
+          "8cadb9df-e610-4c9e-9384-0dd55574c9bd",
+          "bfc3327c-b8a0-4a18-814f-a6d747986fd6",
+          "d22cd284-8c91-41ae-80d8-2eab1f4931be"
+        ],
+        "matched_variant": "edit_type",
+        "confidence": "medium",
+        "needs_review": true
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "01a520ea-4003-590f-b69d-48fde60e7647",
+        "row_name": "WORKFLOW_DRAFT_VIEW_FRAME_TEMPLATE",
+        "path": "daten.FIELDS.61b2a091-e10c-51b1-8731-5677c95bf56a.feld",
+        "from_name": "VIEW_TABLE",
+        "candidate_uids": [
+          "0340d05c-b966-49df-a4aa-628b3cae7ee1",
+          "365ce764-187e-484d-a5eb-cf062366b33f",
+          "7a1a6080-94c0-4916-bce1-a97ed58874f8",
+          "c5caa42c-ae8c-4e11-bd71-c21f5082c8ae",
+          "f657d8da-97b6-438d-866f-b61a3a9a5f27"
+        ],
+        "matched_variant": "TABLE",
+        "confidence": "medium",
+        "needs_review": true
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "01a520ea-4003-590f-b69d-48fde60e7647",
+        "row_name": "WORKFLOW_DRAFT_VIEW_FRAME_TEMPLATE",
+        "path": "daten.FIELDS.9d1aae3b-3cf2-5ce2-b5d2-a4142f847aab.feld",
+        "from_name": "VIEW_NAME",
+        "candidate_uids": [
+          "3098c0df-3f77-43bb-916c-8052cab22e4a",
+          "45e5cc7f-bb4e-4708-8045-0d7da1419d1f",
+          "d4dfad59-49cf-493e-8ba4-8a8822334df5"
+        ],
+        "matched_variant": "name",
+        "confidence": "medium",
+        "needs_review": true
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "bd919b17-aae6-5b50-8308-670455ab14ed",
+        "row_name": "WORKFLOW_SETUP_FRAME_TEMPLATE",
+        "path": "daten.FIELDS.72c58080-1a7a-5ff8-97aa-c8461f262332.feld",
+        "from_name": "RELEASE_TYPE",
+        "candidate_uids": [
+          "4763a9e7-d54b-4cc3-b1c0-170a84455b88",
+          "bfc3327c-b8a0-4a18-814f-a6d747986fd6"
+        ],
+        "matched_variant": "type",
+        "confidence": "medium",
+        "needs_review": true
+      },
+      {
+        "source_table": "sys_framedaten",
+        "row_uid": "75e5262a-6b8a-5d23-bc4f-630d529526e5",
+        "row_name": "WORKFLOW_DRAFT_SETUP_FRAME_TEMPLATE",
+        "path": "daten.FIELDS.b0bbfd48-9af3-5867-9346-b7c962b4588b.feld",
+        "from_name": "TARGET_TABLE",
+        "candidate_uids": [
+          "0340d05c-b966-49df-a4aa-628b3cae7ee1",
+          "365ce764-187e-484d-a5eb-cf062366b33f",
+          "7a1a6080-94c0-4916-bce1-a97ed58874f8",
+          "c5caa42c-ae8c-4e11-bd71-c21f5082c8ae",
+          "f657d8da-97b6-438d-866f-b61a3a9a5f27"
+        ],
+        "matched_variant": "TABLE",
+        "confidence": "medium",
+        "needs_review": true
+      }
+    ],
     "create_actions": [
       {
-        "control_name": "DIALOG_TYPE",
-        "references": 6,
-        "priority": "high"
-      },
-      {
-        "control_name": "name",
-        "references": 6,
-        "priority": "high"
-      },
-      {
-        "control_name": "EDIT_TYPE",
-        "references": 5,
-        "priority": "high"
-      },
-      {
-        "control_name": "SELF_GUID",
-        "references": 5,
-        "priority": "high"
-      },
-      {
-        "control_name": "SELF_NAME",
-        "references": 5,
-        "priority": "high"
-      },
-      {
-        "control_name": "TABLE",
-        "references": 5,
-        "priority": "high"
-      },
-      {
-        "control_name": "TABS",
-        "references": 5,
-        "priority": "high"
-      },
-      {
-        "control_name": "TAB_ELEMENTS",
-        "references": 5,
-        "priority": "high"
-      },
-      {
-        "control_name": "uid",
-        "references": 5,
-        "priority": "high"
-      },
-      {
-        "control_name": "table",
-        "references": 3,
-        "priority": "high"
-      },
-      {
         "control_name": "DICTIONARY_SEARCH",
-        "references": 2,
-        "priority": "medium"
-      },
-      {
-        "control_name": "WORKFLOW_NAME",
-        "references": 2,
-        "priority": "medium"
-      },
-      {
-        "control_name": "gruppe",
-        "references": 2,
-        "priority": "medium"
-      },
-      {
-        "control_name": "label",
-        "references": 2,
-        "priority": "medium"
-      },
-      {
-        "control_name": "type",
         "references": 2,
         "priority": "medium"
       },
@@ -244,11 +502,6 @@
         "priority": "medium"
       },
       {
-        "control_name": "CONTROL_TYPE",
-        "references": 1,
-        "priority": "medium"
-      },
-      {
         "control_name": "CREATE_CONTROL_ACTION",
         "references": 1,
         "priority": "medium"
@@ -279,11 +532,6 @@
         "priority": "medium"
       },
       {
-        "control_name": "NAME",
-        "references": 1,
-        "priority": "medium"
-      },
-      {
         "control_name": "OPEN_EDIT",
         "references": 1,
         "priority": "medium"
@@ -299,22 +547,7 @@
         "priority": "medium"
       },
       {
-        "control_name": "RELEASE_TYPE",
-        "references": 1,
-        "priority": "medium"
-      },
-      {
         "control_name": "REMOVE_TAB_ACTION",
-        "references": 1,
-        "priority": "medium"
-      },
-      {
-        "control_name": "ROOT.SELF_GUID",
-        "references": 1,
-        "priority": "medium"
-      },
-      {
-        "control_name": "ROOT.SELF_NAME",
         "references": 1,
         "priority": "medium"
       },
@@ -379,32 +612,12 @@
         "priority": "medium"
       },
       {
-        "control_name": "TARGET_TABLE",
-        "references": 1,
-        "priority": "medium"
-      },
-      {
-        "control_name": "TEMPLATES.CONFIGS_ELEMENTS.ELM_TYPE",
-        "references": 1,
-        "priority": "medium"
-      },
-      {
         "control_name": "TEMPLATES.CONFIGS_ELEMENTS.FIELD",
         "references": 1,
         "priority": "medium"
       },
       {
-        "control_name": "TEMPLATES.CONFIGS_ELEMENTS.GRUPPE",
-        "references": 1,
-        "priority": "medium"
-      },
-      {
         "control_name": "TEMPLATES.CONFIGS_ELEMENTS.KEY",
-        "references": 1,
-        "priority": "medium"
-      },
-      {
-        "control_name": "TEMPLATES.CONFIGS_ELEMENTS.TABLE",
         "references": 1,
         "priority": "medium"
       },
@@ -454,27 +667,7 @@
         "priority": "medium"
       },
       {
-        "control_name": "TEMPLATES.CONTROL.FILTER_TYPE",
-        "references": 1,
-        "priority": "medium"
-      },
-      {
-        "control_name": "TEMPLATES.CONTROL.GRUPPE",
-        "references": 1,
-        "priority": "medium"
-      },
-      {
         "control_name": "TEMPLATES.CONTROL.HISTORICAL",
-        "references": 1,
-        "priority": "medium"
-      },
-      {
-        "control_name": "TEMPLATES.CONTROL.LABEL",
-        "references": 1,
-        "priority": "medium"
-      },
-      {
-        "control_name": "TEMPLATES.CONTROL.NAME",
         "references": 1,
         "priority": "medium"
       },
@@ -514,22 +707,7 @@
         "priority": "medium"
       },
       {
-        "control_name": "TEMPLATES.CONTROL.TABLE",
-        "references": 1,
-        "priority": "medium"
-      },
-      {
-        "control_name": "TEMPLATES.CONTROL.TYPE",
-        "references": 1,
-        "priority": "medium"
-      },
-      {
         "control_name": "TEMPLATES.FIELDS_ELEMENTS.BY_FRAME_GUID",
-        "references": 1,
-        "priority": "medium"
-      },
-      {
-        "control_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.EDIT_TYPE",
         "references": 1,
         "priority": "medium"
       },
@@ -564,11 +742,6 @@
         "priority": "medium"
       },
       {
-        "control_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.TABLE",
-        "references": 1,
-        "priority": "medium"
-      },
-      {
         "control_name": "VALIDATE_ACTION",
         "references": 1,
         "priority": "medium"
@@ -579,17 +752,7 @@
         "priority": "medium"
       },
       {
-        "control_name": "VIEW_NAME",
-        "references": 1,
-        "priority": "medium"
-      },
-      {
         "control_name": "VIEW_PROJECTION",
-        "references": 1,
-        "priority": "medium"
-      },
-      {
-        "control_name": "VIEW_TABLE",
         "references": 1,
         "priority": "medium"
       },
@@ -614,22 +777,7 @@
         "priority": "medium"
       },
       {
-        "control_name": "edit_type",
-        "references": 1,
-        "priority": "medium"
-      },
-      {
         "control_name": "enable",
-        "references": 1,
-        "priority": "medium"
-      },
-      {
-        "control_name": "feld",
-        "references": 1,
-        "priority": "medium"
-      },
-      {
-        "control_name": "filter_type",
         "references": 1,
         "priority": "medium"
       },
