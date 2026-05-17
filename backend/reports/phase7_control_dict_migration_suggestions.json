@@ -3,26 +3,14 @@
   "title": "Control Dict Migrationsvorschlaege",
   "input_report_title": "Control Dict Konsistenzreport",
   "summary": {
-    "duplicate_ref_groups": 16,
-    "duplicate_actions": 16,
-    "missing_name_references": 100,
-    "map_actions": 19,
+    "duplicate_ref_groups": 7,
+    "duplicate_actions": 7,
+    "missing_name_references": 83,
+    "map_actions": 2,
     "create_actions": 80,
     "ignored_references": 0
   },
   "duplicate_resolution": [
-    {
-      "ref_name": "table",
-      "count": 5,
-      "keep_uid": "c5caa42c-ae8c-4e11-bd71-c21f5082c8ae",
-      "retire_uids": [
-        "0340d05c-b966-49df-a4aa-628b3cae7ee1",
-        "7a1a6080-94c0-4916-bce1-a97ed58874f8",
-        "365ce764-187e-484d-a5eb-cf062366b33f",
-        "f657d8da-97b6-438d-866f-b61a3a9a5f27"
-      ],
-      "priority": "high"
-    },
     {
       "ref_name": "sys_type",
       "count": 4,
@@ -35,46 +23,6 @@
       "priority": "high"
     },
     {
-      "ref_name": "edit_type",
-      "count": 3,
-      "keep_uid": "8cadb9df-e610-4c9e-9384-0dd55574c9bd",
-      "retire_uids": [
-        "2527428c-bbf6-47a2-b281-44f6b746e959",
-        "d22cd284-8c91-41ae-80d8-2eab1f4931be"
-      ],
-      "priority": "high"
-    },
-    {
-      "ref_name": "feld",
-      "count": 3,
-      "keep_uid": "31941830-eaed-4cb7-a0d6-40908badc5fe",
-      "retire_uids": [
-        "b9b5ee07-973e-468c-a90d-ceb4be912a6e",
-        "94cee68f-20c8-44e4-885e-7db81c5ffd09"
-      ],
-      "priority": "high"
-    },
-    {
-      "ref_name": "gruppe",
-      "count": 3,
-      "keep_uid": "1439ad2b-2a15-4748-bcc9-d17aa10b3e2d",
-      "retire_uids": [
-        "c543556b-b1a6-46db-94d9-1c1b0742e07d",
-        "c055e0bc-db69-4462-8c0b-99a079860093"
-      ],
-      "priority": "high"
-    },
-    {
-      "ref_name": "name",
-      "count": 3,
-      "keep_uid": "3098c0df-3f77-43bb-916c-8052cab22e4a",
-      "retire_uids": [
-        "d4dfad59-49cf-493e-8ba4-8a8822334df5",
-        "45e5cc7f-bb4e-4708-8045-0d7da1419d1f"
-      ],
-      "priority": "high"
-    },
-    {
       "ref_name": "sys_name",
       "count": 3,
       "keep_uid": "c75d12c6-b96f-4779-a728-d45a9ccf4a0e",
@@ -83,33 +31,6 @@
         "d9e5f1b5-3c4f-4b92-93ce-0d6a01215555"
       ],
       "priority": "high"
-    },
-    {
-      "ref_name": "label",
-      "count": 2,
-      "keep_uid": "a8c7eab3-9790-48d9-a9c9-0f0c810ed50a",
-      "retire_uids": [
-        "ebf671cf-6877-44ce-9b5b-86007f0147ed"
-      ],
-      "priority": "medium"
-    },
-    {
-      "ref_name": "self_guid",
-      "count": 2,
-      "keep_uid": "88a008ce-f8cd-46e4-8600-91cb949d9c12",
-      "retire_uids": [
-        "cf0f7114-1d98-441d-b4df-365c4a2fedd7"
-      ],
-      "priority": "medium"
-    },
-    {
-      "ref_name": "self_name",
-      "count": 2,
-      "keep_uid": "1fe73111-4ba9-4322-b02a-ff3b6f97ede8",
-      "retire_uids": [
-        "a7a57a0b-d8b1-444d-8d02-e9d34b82d8eb"
-      ],
-      "priority": "medium"
     },
     {
       "ref_name": "sys_666",
@@ -155,15 +76,6 @@
         "c47b969a-466d-4494-ab7b-56a78a379fe9"
       ],
       "priority": "medium"
-    },
-    {
-      "ref_name": "type",
-      "count": 2,
-      "keep_uid": "4763a9e7-d54b-4cc3-b1c0-170a84455b88",
-      "retire_uids": [
-        "bfc3327c-b8a0-4a18-814f-a6d747986fd6"
-      ],
-      "priority": "medium"
     }
   ],
   "missing_name_resolution": {
@@ -172,212 +84,11 @@
         "source_table": "sys_framedaten",
         "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
         "row_name": "sys_control_dict Frame",
-        "path": "daten.FIELDS.0539344f-557f-5e7c-ad1d-c14bed540c3c.feld",
-        "from_name": "TEMPLATES.CONFIGS_ELEMENTS.ELM_TYPE",
-        "candidate_uids": [
-          "4763a9e7-d54b-4cc3-b1c0-170a84455b88",
-          "bfc3327c-b8a0-4a18-814f-a6d747986fd6"
-        ],
-        "matched_variant": "TYPE",
-        "confidence": "medium",
-        "needs_review": true
-      },
-      {
-        "source_table": "sys_framedaten",
-        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
-        "row_name": "sys_control_dict Frame",
-        "path": "daten.FIELDS.0b580d4a-2952-52a6-abcb-a32ca2e09e7e.feld",
-        "from_name": "TEMPLATES.CONFIGS_ELEMENTS.TABLE",
-        "candidate_uids": [
-          "0340d05c-b966-49df-a4aa-628b3cae7ee1",
-          "365ce764-187e-484d-a5eb-cf062366b33f",
-          "7a1a6080-94c0-4916-bce1-a97ed58874f8",
-          "c5caa42c-ae8c-4e11-bd71-c21f5082c8ae",
-          "f657d8da-97b6-438d-866f-b61a3a9a5f27"
-        ],
-        "matched_variant": "table",
-        "confidence": "medium",
-        "needs_review": true
-      },
-      {
-        "source_table": "sys_framedaten",
-        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
-        "row_name": "sys_control_dict Frame",
-        "path": "daten.FIELDS.13aef77a-cdb4-594b-852d-97b2c696c021.feld",
-        "from_name": "TEMPLATES.CONTROL.TYPE",
-        "candidate_uids": [
-          "4763a9e7-d54b-4cc3-b1c0-170a84455b88",
-          "bfc3327c-b8a0-4a18-814f-a6d747986fd6"
-        ],
-        "matched_variant": "TYPE",
-        "confidence": "medium",
-        "needs_review": true
-      },
-      {
-        "source_table": "sys_framedaten",
-        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
-        "row_name": "sys_control_dict Frame",
-        "path": "daten.FIELDS.1f564feb-6b7a-5fd2-823c-d0097de51fcd.feld",
-        "from_name": "TEMPLATES.CONTROL.LABEL",
-        "candidate_uids": [
-          "a8c7eab3-9790-48d9-a9c9-0f0c810ed50a",
-          "ebf671cf-6877-44ce-9b5b-86007f0147ed"
-        ],
-        "matched_variant": "label",
-        "confidence": "medium",
-        "needs_review": true
-      },
-      {
-        "source_table": "sys_framedaten",
-        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
-        "row_name": "sys_control_dict Frame",
-        "path": "daten.FIELDS.22222222-e001-4001-8001-000000000005.feld",
-        "from_name": "filter_type",
-        "candidate_uids": [
-          "4763a9e7-d54b-4cc3-b1c0-170a84455b88",
-          "bfc3327c-b8a0-4a18-814f-a6d747986fd6"
-        ],
-        "matched_variant": "TYPE",
-        "confidence": "medium",
-        "needs_review": true
-      },
-      {
-        "source_table": "sys_framedaten",
-        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
-        "row_name": "sys_control_dict Frame",
-        "path": "daten.FIELDS.44444444-e001-4001-8001-000000000001.feld",
-        "from_name": "ROOT.SELF_GUID",
-        "candidate_uids": [
-          "88a008ce-f8cd-46e4-8600-91cb949d9c12",
-          "cf0f7114-1d98-441d-b4df-365c4a2fedd7"
-        ],
-        "matched_variant": "self_guid",
-        "confidence": "medium",
-        "needs_review": true
-      },
-      {
-        "source_table": "sys_framedaten",
-        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
-        "row_name": "sys_control_dict Frame",
         "path": "daten.FIELDS.44444444-e001-4001-8001-000000000002.feld",
         "from_name": "ROOT.SELF_NAME",
-        "candidate_uids": [
-          "1fe73111-4ba9-4322-b02a-ff3b6f97ede8",
-          "3098c0df-3f77-43bb-916c-8052cab22e4a",
-          "45e5cc7f-bb4e-4708-8045-0d7da1419d1f",
-          "a7a57a0b-d8b1-444d-8d02-e9d34b82d8eb",
-          "d4dfad59-49cf-493e-8ba4-8a8822334df5"
-        ],
+        "to_uid": "3098c0df-3f77-43bb-916c-8052cab22e4a",
         "matched_variant": "name",
-        "confidence": "medium",
-        "needs_review": true
-      },
-      {
-        "source_table": "sys_framedaten",
-        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
-        "row_name": "sys_control_dict Frame",
-        "path": "daten.FIELDS.58c1b442-4cda-5a10-90a4-fddc96e429fc.feld",
-        "from_name": "TEMPLATES.CONTROL.GRUPPE",
-        "candidate_uids": [
-          "1439ad2b-2a15-4748-bcc9-d17aa10b3e2d",
-          "c055e0bc-db69-4462-8c0b-99a079860093",
-          "c543556b-b1a6-46db-94d9-1c1b0742e07d"
-        ],
-        "matched_variant": "GRUPPE",
-        "confidence": "medium",
-        "needs_review": true
-      },
-      {
-        "source_table": "sys_framedaten",
-        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
-        "row_name": "sys_control_dict Frame",
-        "path": "daten.FIELDS.83831603-4474-5f12-93d1-f620e2a50556.feld",
-        "from_name": "TEMPLATES.CONTROL.NAME",
-        "candidate_uids": [
-          "3098c0df-3f77-43bb-916c-8052cab22e4a",
-          "45e5cc7f-bb4e-4708-8045-0d7da1419d1f",
-          "d4dfad59-49cf-493e-8ba4-8a8822334df5"
-        ],
-        "matched_variant": "name",
-        "confidence": "medium",
-        "needs_review": true
-      },
-      {
-        "source_table": "sys_framedaten",
-        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
-        "row_name": "sys_control_dict Frame",
-        "path": "daten.FIELDS.91826982-9089-5de5-9712-978825557c29.feld",
-        "from_name": "TEMPLATES.CONTROL.FILTER_TYPE",
-        "candidate_uids": [
-          "4763a9e7-d54b-4cc3-b1c0-170a84455b88",
-          "bfc3327c-b8a0-4a18-814f-a6d747986fd6"
-        ],
-        "matched_variant": "TYPE",
-        "confidence": "medium",
-        "needs_review": true
-      },
-      {
-        "source_table": "sys_framedaten",
-        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
-        "row_name": "sys_control_dict Frame",
-        "path": "daten.FIELDS.9d1f6d5a-995a-57ce-9d44-f69121bffd18.feld",
-        "from_name": "TEMPLATES.CONFIGS_ELEMENTS.GRUPPE",
-        "candidate_uids": [
-          "1439ad2b-2a15-4748-bcc9-d17aa10b3e2d",
-          "c055e0bc-db69-4462-8c0b-99a079860093",
-          "c543556b-b1a6-46db-94d9-1c1b0742e07d"
-        ],
-        "matched_variant": "GRUPPE",
-        "confidence": "medium",
-        "needs_review": true
-      },
-      {
-        "source_table": "sys_framedaten",
-        "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
-        "row_name": "sys_control_dict Frame",
-        "path": "daten.FIELDS.dc455b04-2740-5322-9283-8a036fbb1de8.feld",
-        "from_name": "TEMPLATES.CONTROL.TABLE",
-        "candidate_uids": [
-          "0340d05c-b966-49df-a4aa-628b3cae7ee1",
-          "365ce764-187e-484d-a5eb-cf062366b33f",
-          "7a1a6080-94c0-4916-bce1-a97ed58874f8",
-          "c5caa42c-ae8c-4e11-bd71-c21f5082c8ae",
-          "f657d8da-97b6-438d-866f-b61a3a9a5f27"
-        ],
-        "matched_variant": "table",
-        "confidence": "medium",
-        "needs_review": true
-      },
-      {
-        "source_table": "sys_framedaten",
-        "row_uid": "3a6e8cca-0f6f-5bd0-ba72-61c2c99942ac",
-        "row_name": "WORKFLOW_DICTIONARY_FRAME_TEMPLATE",
-        "path": "daten.FIELDS.cb7a1850-06e5-5432-9811-7d8be8524e3c.feld",
-        "from_name": "CONTROL_TYPE",
-        "candidate_uids": [
-          "4763a9e7-d54b-4cc3-b1c0-170a84455b88",
-          "bfc3327c-b8a0-4a18-814f-a6d747986fd6"
-        ],
-        "matched_variant": "type",
-        "confidence": "medium",
-        "needs_review": true
-      },
-      {
-        "source_table": "sys_framedaten",
-        "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
-        "row_name": "sys_dialogdaten Frame (Linear)",
-        "path": "daten.FIELDS.5c58971a-94f1-56bf-9382-5b990e7678d9.feld",
-        "from_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.TABLE",
-        "candidate_uids": [
-          "0340d05c-b966-49df-a4aa-628b3cae7ee1",
-          "365ce764-187e-484d-a5eb-cf062366b33f",
-          "7a1a6080-94c0-4916-bce1-a97ed58874f8",
-          "c5caa42c-ae8c-4e11-bd71-c21f5082c8ae",
-          "f657d8da-97b6-438d-866f-b61a3a9a5f27"
-        ],
-        "matched_variant": "table",
-        "confidence": "medium",
-        "needs_review": true
+        "confidence": "high"
       },
       {
         "source_table": "sys_framedaten",
@@ -385,79 +96,9 @@
         "row_name": "sys_dialogdaten Frame (Linear)",
         "path": "daten.FIELDS.958c6e06-d3b2-5c0f-b9ef-0f20947d5506.feld",
         "from_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.EDIT_TYPE",
-        "candidate_uids": [
-          "2527428c-bbf6-47a2-b281-44f6b746e959",
-          "4763a9e7-d54b-4cc3-b1c0-170a84455b88",
-          "8cadb9df-e610-4c9e-9384-0dd55574c9bd",
-          "bfc3327c-b8a0-4a18-814f-a6d747986fd6",
-          "d22cd284-8c91-41ae-80d8-2eab1f4931be"
-        ],
+        "to_uid": "8cadb9df-e610-4c9e-9384-0dd55574c9bd",
         "matched_variant": "edit_type",
-        "confidence": "medium",
-        "needs_review": true
-      },
-      {
-        "source_table": "sys_framedaten",
-        "row_uid": "01a520ea-4003-590f-b69d-48fde60e7647",
-        "row_name": "WORKFLOW_DRAFT_VIEW_FRAME_TEMPLATE",
-        "path": "daten.FIELDS.61b2a091-e10c-51b1-8731-5677c95bf56a.feld",
-        "from_name": "VIEW_TABLE",
-        "candidate_uids": [
-          "0340d05c-b966-49df-a4aa-628b3cae7ee1",
-          "365ce764-187e-484d-a5eb-cf062366b33f",
-          "7a1a6080-94c0-4916-bce1-a97ed58874f8",
-          "c5caa42c-ae8c-4e11-bd71-c21f5082c8ae",
-          "f657d8da-97b6-438d-866f-b61a3a9a5f27"
-        ],
-        "matched_variant": "TABLE",
-        "confidence": "medium",
-        "needs_review": true
-      },
-      {
-        "source_table": "sys_framedaten",
-        "row_uid": "01a520ea-4003-590f-b69d-48fde60e7647",
-        "row_name": "WORKFLOW_DRAFT_VIEW_FRAME_TEMPLATE",
-        "path": "daten.FIELDS.9d1aae3b-3cf2-5ce2-b5d2-a4142f847aab.feld",
-        "from_name": "VIEW_NAME",
-        "candidate_uids": [
-          "3098c0df-3f77-43bb-916c-8052cab22e4a",
-          "45e5cc7f-bb4e-4708-8045-0d7da1419d1f",
-          "d4dfad59-49cf-493e-8ba4-8a8822334df5"
-        ],
-        "matched_variant": "name",
-        "confidence": "medium",
-        "needs_review": true
-      },
-      {
-        "source_table": "sys_framedaten",
-        "row_uid": "bd919b17-aae6-5b50-8308-670455ab14ed",
-        "row_name": "WORKFLOW_SETUP_FRAME_TEMPLATE",
-        "path": "daten.FIELDS.72c58080-1a7a-5ff8-97aa-c8461f262332.feld",
-        "from_name": "RELEASE_TYPE",
-        "candidate_uids": [
-          "4763a9e7-d54b-4cc3-b1c0-170a84455b88",
-          "bfc3327c-b8a0-4a18-814f-a6d747986fd6"
-        ],
-        "matched_variant": "type",
-        "confidence": "medium",
-        "needs_review": true
-      },
-      {
-        "source_table": "sys_framedaten",
-        "row_uid": "75e5262a-6b8a-5d23-bc4f-630d529526e5",
-        "row_name": "WORKFLOW_DRAFT_SETUP_FRAME_TEMPLATE",
-        "path": "daten.FIELDS.b0bbfd48-9af3-5867-9346-b7c962b4588b.feld",
-        "from_name": "TARGET_TABLE",
-        "candidate_uids": [
-          "0340d05c-b966-49df-a4aa-628b3cae7ee1",
-          "365ce764-187e-484d-a5eb-cf062366b33f",
-          "7a1a6080-94c0-4916-bce1-a97ed58874f8",
-          "c5caa42c-ae8c-4e11-bd71-c21f5082c8ae",
-          "f657d8da-97b6-438d-866f-b61a3a9a5f27"
-        ],
-        "matched_variant": "TABLE",
-        "confidence": "medium",
-        "needs_review": true
+        "confidence": "high"
       }
     ],
     "create_actions": [

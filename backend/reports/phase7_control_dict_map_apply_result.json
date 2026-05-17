@@ -1,0 +1,155 @@
+{
+  "phase": "phase7",
+  "title": "Apply Name Map Actions",
+  "database": "pdvm_system",
+  "mode": "apply",
+  "value_mode": "name",
+  "allow_medium": true,
+  "summary": {
+    "map_actions_input": 19,
+    "safe_actions": 17,
+    "medium_promoted": 17,
+    "touched_rows": 6,
+    "changed_references": 17,
+    "skipped": 0
+  },
+  "changed": [
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "path": "daten.FIELDS.0539344f-557f-5e7c-ad1d-c14bed540c3c.feld",
+      "from": "TEMPLATES.CONFIGS_ELEMENTS.ELM_TYPE",
+      "to": "TYPE",
+      "to_uid": "4763a9e7-d54b-4cc3-b1c0-170a84455b88"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "path": "daten.FIELDS.0b580d4a-2952-52a6-abcb-a32ca2e09e7e.feld",
+      "from": "TEMPLATES.CONFIGS_ELEMENTS.TABLE",
+      "to": "TABLE",
+      "to_uid": "c5caa42c-ae8c-4e11-bd71-c21f5082c8ae"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "path": "daten.FIELDS.13aef77a-cdb4-594b-852d-97b2c696c021.feld",
+      "from": "TEMPLATES.CONTROL.TYPE",
+      "to": "TYPE",
+      "to_uid": "4763a9e7-d54b-4cc3-b1c0-170a84455b88"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "path": "daten.FIELDS.1f564feb-6b7a-5fd2-823c-d0097de51fcd.feld",
+      "from": "TEMPLATES.CONTROL.LABEL",
+      "to": "LABEL",
+      "to_uid": "a8c7eab3-9790-48d9-a9c9-0f0c810ed50a"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "path": "daten.FIELDS.22222222-e001-4001-8001-000000000005.feld",
+      "from": "filter_type",
+      "to": "TYPE",
+      "to_uid": "4763a9e7-d54b-4cc3-b1c0-170a84455b88"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "path": "daten.FIELDS.44444444-e001-4001-8001-000000000001.feld",
+      "from": "ROOT.SELF_GUID",
+      "to": "SELF_GUID",
+      "to_uid": "88a008ce-f8cd-46e4-8600-91cb949d9c12"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "path": "daten.FIELDS.58c1b442-4cda-5a10-90a4-fddc96e429fc.feld",
+      "from": "TEMPLATES.CONTROL.GRUPPE",
+      "to": "GRUPPE",
+      "to_uid": "1439ad2b-2a15-4748-bcc9-d17aa10b3e2d"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "path": "daten.FIELDS.83831603-4474-5f12-93d1-f620e2a50556.feld",
+      "from": "TEMPLATES.CONTROL.NAME",
+      "to": "NAME",
+      "to_uid": "3098c0df-3f77-43bb-916c-8052cab22e4a"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "path": "daten.FIELDS.91826982-9089-5de5-9712-978825557c29.feld",
+      "from": "TEMPLATES.CONTROL.FILTER_TYPE",
+      "to": "TYPE",
+      "to_uid": "4763a9e7-d54b-4cc3-b1c0-170a84455b88"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "path": "daten.FIELDS.9d1f6d5a-995a-57ce-9d44-f69121bffd18.feld",
+      "from": "TEMPLATES.CONFIGS_ELEMENTS.GRUPPE",
+      "to": "GRUPPE",
+      "to_uid": "1439ad2b-2a15-4748-bcc9-d17aa10b3e2d"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+      "path": "daten.FIELDS.dc455b04-2740-5322-9283-8a036fbb1de8.feld",
+      "from": "TEMPLATES.CONTROL.TABLE",
+      "to": "TABLE",
+      "to_uid": "c5caa42c-ae8c-4e11-bd71-c21f5082c8ae"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "3a6e8cca-0f6f-5bd0-ba72-61c2c99942ac",
+      "path": "daten.FIELDS.cb7a1850-06e5-5432-9811-7d8be8524e3c.feld",
+      "from": "CONTROL_TYPE",
+      "to": "TYPE",
+      "to_uid": "4763a9e7-d54b-4cc3-b1c0-170a84455b88"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
+      "path": "daten.FIELDS.5c58971a-94f1-56bf-9382-5b990e7678d9.feld",
+      "from": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.TABLE",
+      "to": "TABLE",
+      "to_uid": "c5caa42c-ae8c-4e11-bd71-c21f5082c8ae"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "01a520ea-4003-590f-b69d-48fde60e7647",
+      "path": "daten.FIELDS.61b2a091-e10c-51b1-8731-5677c95bf56a.feld",
+      "from": "VIEW_TABLE",
+      "to": "TABLE",
+      "to_uid": "c5caa42c-ae8c-4e11-bd71-c21f5082c8ae"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "01a520ea-4003-590f-b69d-48fde60e7647",
+      "path": "daten.FIELDS.9d1aae3b-3cf2-5ce2-b5d2-a4142f847aab.feld",
+      "from": "VIEW_NAME",
+      "to": "NAME",
+      "to_uid": "3098c0df-3f77-43bb-916c-8052cab22e4a"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "bd919b17-aae6-5b50-8308-670455ab14ed",
+      "path": "daten.FIELDS.72c58080-1a7a-5ff8-97aa-c8461f262332.feld",
+      "from": "RELEASE_TYPE",
+      "to": "TYPE",
+      "to_uid": "4763a9e7-d54b-4cc3-b1c0-170a84455b88"
+    },
+    {
+      "source_table": "sys_framedaten",
+      "row_uid": "75e5262a-6b8a-5d23-bc4f-630d529526e5",
+      "path": "daten.FIELDS.b0bbfd48-9af3-5867-9346-b7c962b4588b.feld",
+      "from": "TARGET_TABLE",
+      "to": "TABLE",
+      "to_uid": "c5caa42c-ae8c-4e11-bd71-c21f5082c8ae"
+    }
+  ],
+  "skipped": []
+}
