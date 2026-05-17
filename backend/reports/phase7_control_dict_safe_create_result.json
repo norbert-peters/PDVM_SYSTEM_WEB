@@ -2,164 +2,21 @@
   "phase": "phase7",
   "title": "Apply Safe Control Creates",
   "database": "pdvm_system",
-  "mode": "dry-run",
+  "mode": "apply",
+  "allow_identifiers": true,
+  "min_references": 1,
   "summary": {
-    "create_candidates_input": 80,
+    "create_candidates_input": 9,
     "safe_selected": 0,
     "created": 0,
-    "skipped": 80
+    "skipped": 9
   },
   "selected": [],
   "created": [],
   "skipped": [
     {
-      "control_name": "DICTIONARY_SEARCH",
-      "canonical": "DICTIONARY_SEARCH",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "ABORT_ACTION",
-      "canonical": "ABORT_ACTION",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "ADD_TAB_ACTION",
-      "canonical": "ADD_TAB_ACTION",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "ANREDE",
-      "canonical": "ANREDE",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "APPLY_ACTION",
-      "canonical": "APPLY_ACTION",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "BUILD_ACTION",
-      "canonical": "BUILD_ACTION",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
       "control_name": "CONTROL",
       "canonical": "CONTROL",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "CONTROL_FIELD",
-      "canonical": "CONTROL_FIELD",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "CREATE_CONTROL_ACTION",
-      "canonical": "CREATE_CONTROL_ACTION",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "CREATE_PROPERTY_ACTION",
-      "canonical": "CREATE_PROPERTY_ACTION",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "DESCRIPTION",
-      "canonical": "DESCRIPTION",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "DRY_RUN_ACTION",
-      "canonical": "DRY_RUN_ACTION",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "EMAIL",
-      "canonical": "EMAIL",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "FRAME_GUID",
-      "canonical": "FRAME_GUID",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "OPEN_EDIT",
-      "canonical": "OPEN_EDIT",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "PACKAGE_HASH",
-      "canonical": "PACKAGE_HASH",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "POLICY_MODE",
-      "canonical": "POLICY_MODE",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "REMOVE_TAB_ACTION",
-      "canonical": "REMOVE_TAB_ACTION",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "SAVE_CONTENT_ACTION",
-      "canonical": "SAVE_CONTENT_ACTION",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "SAVE_VIEW_ACTION",
-      "canonical": "SAVE_VIEW_ACTION",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "SELECTION_MODE",
-      "canonical": "SELECTION_MODE",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "SOURCE_COMMIT",
-      "canonical": "SOURCE_COMMIT",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "SOURCE_DB_ROLE",
-      "canonical": "SOURCE_DB_ROLE",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "TABLE_PREFIX_FILTER",
-      "canonical": "TABLE_PREFIX_FILTER",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "TAB_GUID",
-      "canonical": "TAB_GUID",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "TAB_HEAD",
-      "canonical": "TAB_HEAD",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "TAB_MODULE",
-      "canonical": "TAB_MODULE",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "TAB_REF",
-      "canonical": "TAB_REF",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "TARGET_DB_ROLE",
-      "canonical": "TARGET_DB_ROLE",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "TARGET_ENV",
-      "canonical": "TARGET_ENV",
       "reason": "not_in_safe_whitelist"
     },
     {
@@ -168,249 +25,39 @@
       "reason": "already_exists"
     },
     {
-      "control_name": "TEMPLATES.CONFIGS_ELEMENTS.KEY",
-      "canonical": "KEY",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "TEMPLATES.CONTROL.ABDATUM",
-      "canonical": "ABDATUM",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "TEMPLATES.CONTROL.CONFIGS_ELEMENTS",
-      "canonical": "CONFIGS_ELEMENTS",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "TEMPLATES.CONTROL.DEFAULT",
-      "canonical": "DEFAULT",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "TEMPLATES.CONTROL.DISPLAY_ORDER",
-      "canonical": "DISPLAY_ORDER",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "TEMPLATES.CONTROL.DISPLAY_SHOW",
-      "canonical": "DISPLAY_SHOW",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "TEMPLATES.CONTROL.EXPERT_MODE",
-      "canonical": "EXPERT_MODE",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "TEMPLATES.CONTROL.EXPERT_ORDER",
-      "canonical": "EXPERT_ORDER",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "TEMPLATES.CONTROL.FIELD",
-      "canonical": "FELD",
+      "control_name": "{'FELD': 'DIALOG_TYPE', 'NAME': 'SYS_DIALOG_TYPE', 'TYPE': 'dropdown', 'FIELD': 'DIALOG_TYPE', 'LABEL': 'Dielog Typ', 'TABLE': 'sys_control_dict', 'GRUPPE': '', 'ABDATUM': False, 'DEFAULT': '', 'SORTABLE': True, 'READ_ONLY': False, 'HISTORICAL': False, 'SEARCHABLE': True, 'UPPER_CASE': False, 'EXPERT_MODE': True, 'FILTER_TYPE': 'contains', 'PARENT_GUID': None, 'SOURCE_PATH': 'root', 'DISPLAY_SHOW': True, 'EXPERT_ORDER': 0, 'DISPLAY_ORDER': 0, 'SORT_DIRECTION': 'asc', 'FIELDS_ELEMENTS': {}, 'CONFIGS_ELEMENTS': {'dropdown': {'key': '4f290b6f-1205-494b-8f03-c6446c0df169', 'field': '3d0cb56d-c86a-4d72-a9f6-bea0702debda', 'group': '', 'table': 'sys_dropdowndaten'}}, 'SORT_BY_ORIGINAL': False}",
+      "canonical": "DIALOG_TYPE",
       "reason": "already_exists"
     },
     {
-      "control_name": "TEMPLATES.CONTROL.FIELDS_ELEMENTS",
-      "canonical": "FIELDS_ELEMENTS",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "TEMPLATES.CONTROL.HISTORICAL",
-      "canonical": "HISTORICAL",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "TEMPLATES.CONTROL.PARENT_GUID",
-      "canonical": "PARENT_GUID",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "TEMPLATES.CONTROL.READ_ONLY",
-      "canonical": "READ_ONLY",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "TEMPLATES.CONTROL.SEARCHABLE",
-      "canonical": "SEARCHABLE",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "TEMPLATES.CONTROL.SORTABLE",
-      "canonical": "SORTABLE",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "TEMPLATES.CONTROL.SORT_BY_ORIGINAL",
-      "canonical": "SORT_BY_ORIGINAL",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "TEMPLATES.CONTROL.SORT_DIRECTION",
-      "canonical": "SORT_DIRECTION",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "TEMPLATES.CONTROL.SOURCE_PATH",
-      "canonical": "SOURCE_PATH",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "TEMPLATES.FIELDS_ELEMENTS.BY_FRAME_GUID",
-      "canonical": "BY_FRAME_GUID",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.GUID",
-      "canonical": "GUID",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.HEAD",
-      "canonical": "HEAD",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.MODULE",
-      "canonical": "MODULE",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.OPEN_EDIT",
-      "canonical": "OPEN_EDIT",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.SELECTION_MODE",
-      "canonical": "SELECTION_MODE",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "TEMPLATES.TAB_ELEMENTS.TAB_GUID.TAB",
-      "canonical": "TAB",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "VALIDATE_ACTION",
-      "canonical": "VALIDATE_ACTION",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "VIEW_GUID",
-      "canonical": "VIEW_GUID",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "VIEW_PROJECTION",
-      "canonical": "VIEW_PROJECTION",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "VORNAME",
-      "canonical": "VORNAME",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "anrede",
-      "canonical": "ANREDE",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "command",
-      "canonical": "COMMAND",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "default",
-      "canonical": "DEFAULT",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "enable",
-      "canonical": "ENABLE",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "historical",
-      "canonical": "HISTORICAL",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "icon",
-      "canonical": "ICON",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "menu_command",
-      "canonical": "MENU_COMMAND",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "read_only",
-      "canonical": "READ_ONLY",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "searchable",
-      "canonical": "SEARCHABLE",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "sortable",
-      "canonical": "SORTABLE",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "template_guid",
-      "canonical": "TEMPLATE_GUID",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "tooltip",
-      "canonical": "TOOLTIP",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "visible",
-      "canonical": "VISIBLE",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
-      "control_name": "{'FELD': 'DIALOG_TYPE', 'NAME': 'SYS_DIALOG_TYPE', 'TYPE': 'dropdown', 'FIELD': 'DIALOG_TYPE', 'LABEL': 'Dielog Typ', 'TABLE': 'sys_control_dict', 'GRUPPE': '', 'ABDATUM': False, 'DEFAULT': '', 'SORTABLE': True, 'READ_ONLY': False, 'HISTORICAL': False, 'SEARCHABLE': True, 'UPPER_CASE': False, 'EXPERT_MODE': True, 'FILTER_TYPE': 'contains', 'PARENT_GUID': None, 'SOURCE_PATH': 'root', 'DISPLAY_SHOW': True, 'EXPERT_ORDER': 0, 'DISPLAY_ORDER': 0, 'SORT_DIRECTION': 'asc', 'FIELDS_ELEMENTS': {}, 'CONFIGS_ELEMENTS': {'dropdown': {'key': '4f290b6f-1205-494b-8f03-c6446c0df169', 'field': '3d0cb56d-c86a-4d72-a9f6-bea0702debda', 'group': '', 'table': 'sys_dropdowndaten'}}, 'SORT_BY_ORIGINAL': False}",
-      "canonical": "{'FELD':_'DIALOG_TYPE',_'NAME':_'SYS_DIALOG_TYPE',_'TYPE':_'DROPDOWN',_'FIELD':_'DIALOG_TYPE',_'LABEL':_'DIELOG_TYP',_'TABLE':_'SYS_CONTROL_DICT',_'GRUPPE':_'',_'ABDATUM':_FALSE,_'DEFAULT':_'',_'SORTABLE':_TRUE,_'READ_ONLY':_FALSE,_'HISTORICAL':_FALSE,_'SEARCHABLE':_TRUE,_'UPPER_CASE':_FALSE,_'EXPERT_MODE':_TRUE,_'FILTER_TYPE':_'CONTAINS',_'PARENT_GUID':_NONE,_'SOURCE_PATH':_'ROOT',_'DISPLAY_SHOW':_TRUE,_'EXPERT_ORDER':_0,_'DISPLAY_ORDER':_0,_'SORT_DIRECTION':_'ASC',_'FIELDS_ELEMENTS':_{},_'CONFIGS_ELEMENTS':_{'DROPDOWN':_{'KEY':_'4F290B6F_1205_494B_8F03_C6446C0DF169',_'FIELD':_'3D0CB56D_C86A_4D72_A9F6_BEA0702DEBDA',_'GROUP':_'',_'TABLE':_'SYS_DROPDOWNDATEN'}},_'SORT_BY_ORIGINAL':_FALSE}",
-      "reason": "not_in_safe_whitelist"
-    },
-    {
       "control_name": "{'FELD': 'EDIT_TYPE', 'NAME': 'SYS_EDIT_TYPE', 'TYPE': 'dropdown', 'FIELD': 'EDIT_TYPE', 'LABEL': 'Edit Modus', 'TABLE': 'sys_control_dict', 'GRUPPE': 'ROOT', 'ABDATUM': False, 'DEFAULT': '', 'SORTABLE': True, 'READ_ONLY': False, 'HISTORICAL': False, 'SEARCHABLE': True, 'UPPER_CASE': False, 'EXPERT_MODE': True, 'FILTER_TYPE': 'contains', 'PARENT_GUID': None, 'SOURCE_PATH': 'root', 'DISPLAY_SHOW': True, 'EXPERT_ORDER': 0, 'DISPLAY_ORDER': 0, 'SORT_DIRECTION': 'asc', 'FIELDS_ELEMENTS': {}, 'CONFIGS_ELEMENTS': {'dropdown': {'key': '4f290b6f-1205-494b-8f03-c6446c0df169', 'field': '55e5928c-4d9e-4f01-8018-8685489cfd06', 'group': '', 'table': 'sys_dropdowndaten'}}, 'SORT_BY_ORIGINAL': False}",
-      "canonical": "{'FELD':_'EDIT_TYPE',_'NAME':_'SYS_EDIT_TYPE',_'TYPE':_'DROPDOWN',_'FIELD':_'EDIT_TYPE',_'LABEL':_'EDIT_MODUS',_'TABLE':_'SYS_CONTROL_DICT',_'GRUPPE':_'ROOT',_'ABDATUM':_FALSE,_'DEFAULT':_'',_'SORTABLE':_TRUE,_'READ_ONLY':_FALSE,_'HISTORICAL':_FALSE,_'SEARCHABLE':_TRUE,_'UPPER_CASE':_FALSE,_'EXPERT_MODE':_TRUE,_'FILTER_TYPE':_'CONTAINS',_'PARENT_GUID':_NONE,_'SOURCE_PATH':_'ROOT',_'DISPLAY_SHOW':_TRUE,_'EXPERT_ORDER':_0,_'DISPLAY_ORDER':_0,_'SORT_DIRECTION':_'ASC',_'FIELDS_ELEMENTS':_{},_'CONFIGS_ELEMENTS':_{'DROPDOWN':_{'KEY':_'4F290B6F_1205_494B_8F03_C6446C0DF169',_'FIELD':_'55E5928C_4D9E_4F01_8018_8685489CFD06',_'GROUP':_'',_'TABLE':_'SYS_DROPDOWNDATEN'}},_'SORT_BY_ORIGINAL':_FALSE}",
-      "reason": "not_in_safe_whitelist"
+      "canonical": "EDIT_TYPE",
+      "reason": "already_exists"
     },
     {
       "control_name": "{'FELD': 'SELF_GUID', 'NAME': 'SYS_SELF_GUID', 'TYPE': 'string', 'FIELD': 'SELF_GUID', 'LABEL': 'Eigener Schlüssel', 'TABLE': 'sys_control_dict', 'GRUPPE': '', 'ABDATUM': False, 'DEFAULT': '', 'SORTABLE': True, 'READ_ONLY': True, 'HISTORICAL': False, 'SEARCHABLE': True, 'UPPER_CASE': True, 'EXPERT_MODE': True, 'FILTER_TYPE': 'contains', 'PARENT_GUID': None, 'SOURCE_PATH': 'root', 'DISPLAY_SHOW': True, 'EXPERT_ORDER': 0, 'DISPLAY_ORDER': 0, 'SORT_DIRECTION': 'asc', 'FIELDS_ELEMENTS': {}, 'CONFIGS_ELEMENTS': {}, 'SORT_BY_ORIGINAL': False}",
-      "canonical": "{'FELD':_'SELF_GUID',_'NAME':_'SYS_SELF_GUID',_'TYPE':_'STRING',_'FIELD':_'SELF_GUID',_'LABEL':_'EIGENER_SCHLÜSSEL',_'TABLE':_'SYS_CONTROL_DICT',_'GRUPPE':_'',_'ABDATUM':_FALSE,_'DEFAULT':_'',_'SORTABLE':_TRUE,_'READ_ONLY':_TRUE,_'HISTORICAL':_FALSE,_'SEARCHABLE':_TRUE,_'UPPER_CASE':_TRUE,_'EXPERT_MODE':_TRUE,_'FILTER_TYPE':_'CONTAINS',_'PARENT_GUID':_NONE,_'SOURCE_PATH':_'ROOT',_'DISPLAY_SHOW':_TRUE,_'EXPERT_ORDER':_0,_'DISPLAY_ORDER':_0,_'SORT_DIRECTION':_'ASC',_'FIELDS_ELEMENTS':_{},_'CONFIGS_ELEMENTS':_{},_'SORT_BY_ORIGINAL':_FALSE}",
-      "reason": "not_in_safe_whitelist"
+      "canonical": "SELF_GUID",
+      "reason": "already_exists"
     },
     {
       "control_name": "{'FELD': 'SELF_NAME', 'NAME': 'SYS_SELF_NAME', 'TYPE': 'string', 'FIELD': 'SELF_NAME', 'LABEL': 'eigener Name', 'TABLE': 'sys_control_dict', 'GRUPPE': '', 'ABDATUM': False, 'DEFAULT': '', 'SORTABLE': True, 'READ_ONLY': False, 'HISTORICAL': False, 'SEARCHABLE': True, 'UPPER_CASE': True, 'EXPERT_MODE': True, 'FILTER_TYPE': 'contains', 'PARENT_GUID': None, 'SOURCE_PATH': 'root', 'DISPLAY_SHOW': True, 'EXPERT_ORDER': 0, 'DISPLAY_ORDER': 0, 'SORT_DIRECTION': 'asc', 'FIELDS_ELEMENTS': {}, 'CONFIGS_ELEMENTS': {}, 'SORT_BY_ORIGINAL': False}",
-      "canonical": "{'FELD':_'SELF_NAME',_'NAME':_'SYS_SELF_NAME',_'TYPE':_'STRING',_'FIELD':_'SELF_NAME',_'LABEL':_'EIGENER_NAME',_'TABLE':_'SYS_CONTROL_DICT',_'GRUPPE':_'',_'ABDATUM':_FALSE,_'DEFAULT':_'',_'SORTABLE':_TRUE,_'READ_ONLY':_FALSE,_'HISTORICAL':_FALSE,_'SEARCHABLE':_TRUE,_'UPPER_CASE':_TRUE,_'EXPERT_MODE':_TRUE,_'FILTER_TYPE':_'CONTAINS',_'PARENT_GUID':_NONE,_'SOURCE_PATH':_'ROOT',_'DISPLAY_SHOW':_TRUE,_'EXPERT_ORDER':_0,_'DISPLAY_ORDER':_0,_'SORT_DIRECTION':_'ASC',_'FIELDS_ELEMENTS':_{},_'CONFIGS_ELEMENTS':_{},_'SORT_BY_ORIGINAL':_FALSE}",
-      "reason": "not_in_safe_whitelist"
+      "canonical": "SELF_NAME",
+      "reason": "already_exists"
     },
     {
       "control_name": "{'FELD': 'TABLE', 'NAME': 'SYS_TABLE', 'TYPE': 'string', 'FIELD': 'TABLE', 'LABEL': 'Tabelle', 'TABLE': 'sys_control_dict', 'GRUPPE': '', 'ABDATUM': False, 'DEFAULT': '', 'SORTABLE': True, 'READ_ONLY': False, 'HISTORICAL': False, 'SEARCHABLE': True, 'UPPER_CASE': True, 'EXPERT_MODE': True, 'FILTER_TYPE': 'contains', 'PARENT_GUID': None, 'SOURCE_PATH': 'root', 'DISPLAY_SHOW': True, 'EXPERT_ORDER': 0, 'DISPLAY_ORDER': 0, 'SORT_DIRECTION': 'asc', 'FIELDS_ELEMENTS': {}, 'CONFIGS_ELEMENTS': {}, 'SORT_BY_ORIGINAL': False}",
-      "canonical": "{'FELD':_'TABLE',_'NAME':_'SYS_TABLE',_'TYPE':_'STRING',_'FIELD':_'TABLE',_'LABEL':_'TABELLE',_'TABLE':_'SYS_CONTROL_DICT',_'GRUPPE':_'',_'ABDATUM':_FALSE,_'DEFAULT':_'',_'SORTABLE':_TRUE,_'READ_ONLY':_FALSE,_'HISTORICAL':_FALSE,_'SEARCHABLE':_TRUE,_'UPPER_CASE':_TRUE,_'EXPERT_MODE':_TRUE,_'FILTER_TYPE':_'CONTAINS',_'PARENT_GUID':_NONE,_'SOURCE_PATH':_'ROOT',_'DISPLAY_SHOW':_TRUE,_'EXPERT_ORDER':_0,_'DISPLAY_ORDER':_0,_'SORT_DIRECTION':_'ASC',_'FIELDS_ELEMENTS':_{},_'CONFIGS_ELEMENTS':_{},_'SORT_BY_ORIGINAL':_FALSE}",
-      "reason": "not_in_safe_whitelist"
+      "canonical": "TABLE",
+      "reason": "already_exists"
     },
     {
       "control_name": "{'FELD': 'TABS', 'NAME': 'SYS_TABS', 'TYPE': 'number', 'FIELD': 'TABS', 'LABEL': 'Tabs', 'TABLE': 'sys_control_dict', 'GRUPPE': '', 'ABDATUM': False, 'DEFAULT': '', 'SORTABLE': True, 'READ_ONLY': False, 'HISTORICAL': False, 'SEARCHABLE': True, 'UPPER_CASE': False, 'EXPERT_MODE': True, 'FILTER_TYPE': 'contains', 'PARENT_GUID': None, 'SOURCE_PATH': 'root', 'DISPLAY_SHOW': True, 'EXPERT_ORDER': 0, 'DISPLAY_ORDER': 0, 'SORT_DIRECTION': 'asc', 'FIELDS_ELEMENTS': {}, 'CONFIGS_ELEMENTS': {}, 'SORT_BY_ORIGINAL': False}",
-      "canonical": "{'FELD':_'TABS',_'NAME':_'SYS_TABS',_'TYPE':_'NUMBER',_'FIELD':_'TABS',_'LABEL':_'TABS',_'TABLE':_'SYS_CONTROL_DICT',_'GRUPPE':_'',_'ABDATUM':_FALSE,_'DEFAULT':_'',_'SORTABLE':_TRUE,_'READ_ONLY':_FALSE,_'HISTORICAL':_FALSE,_'SEARCHABLE':_TRUE,_'UPPER_CASE':_FALSE,_'EXPERT_MODE':_TRUE,_'FILTER_TYPE':_'CONTAINS',_'PARENT_GUID':_NONE,_'SOURCE_PATH':_'ROOT',_'DISPLAY_SHOW':_TRUE,_'EXPERT_ORDER':_0,_'DISPLAY_ORDER':_0,_'SORT_DIRECTION':_'ASC',_'FIELDS_ELEMENTS':_{},_'CONFIGS_ELEMENTS':_{},_'SORT_BY_ORIGINAL':_FALSE}",
-      "reason": "not_in_safe_whitelist"
+      "canonical": "TABS",
+      "reason": "already_exists"
     },
     {
       "control_name": "{'FELD': 'TAB_ELEMENTS', 'NAME': 'SYS_TAB_ELEMENTS', 'TYPE': 'element_list', 'FIELD': 'TAB_ELEMENTS', 'LABEL': 'Tab Elemente', 'TABLE': 'sys_control_dict', 'GRUPPE': '', 'ABDATUM': False, 'DEFAULT': '', 'SORTABLE': True, 'READ_ONLY': False, 'HISTORICAL': False, 'SEARCHABLE': True, 'UPPER_CASE': False, 'EXPERT_MODE': True, 'FILTER_TYPE': 'contains', 'PARENT_GUID': None, 'SOURCE_PATH': 'root', 'DISPLAY_SHOW': True, 'EXPERT_ORDER': 0, 'DISPLAY_ORDER': 0, 'SORT_DIRECTION': 'asc', 'FIELDS_ELEMENTS': {}, 'CONFIGS_ELEMENTS': {}, 'SORT_BY_ORIGINAL': False}",
-      "canonical": "{'FELD':_'TAB_ELEMENTS',_'NAME':_'SYS_TAB_ELEMENTS',_'TYPE':_'ELEMENT_LIST',_'FIELD':_'TAB_ELEMENTS',_'LABEL':_'TAB_ELEMENTE',_'TABLE':_'SYS_CONTROL_DICT',_'GRUPPE':_'',_'ABDATUM':_FALSE,_'DEFAULT':_'',_'SORTABLE':_TRUE,_'READ_ONLY':_FALSE,_'HISTORICAL':_FALSE,_'SEARCHABLE':_TRUE,_'UPPER_CASE':_FALSE,_'EXPERT_MODE':_TRUE,_'FILTER_TYPE':_'CONTAINS',_'PARENT_GUID':_NONE,_'SOURCE_PATH':_'ROOT',_'DISPLAY_SHOW':_TRUE,_'EXPERT_ORDER':_0,_'DISPLAY_ORDER':_0,_'SORT_DIRECTION':_'ASC',_'FIELDS_ELEMENTS':_{},_'CONFIGS_ELEMENTS':_{},_'SORT_BY_ORIGINAL':_FALSE}",
-      "reason": "not_in_safe_whitelist"
+      "canonical": "TAB_ELEMENTS",
+      "reason": "already_exists"
     }
   ]
 }

@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import re
 import sys
 import uuid
 from pathlib import Path
@@ -48,6 +49,15 @@ SAFE_BASE_CONTROLS: Set[str] = {
     "WORKFLOW_NAME",
 }
 
+IDENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,63}$")
+BLOCKED_CANONICAL = {
+    "ROOT",
+    "CONTROL",
+    "FIELDS",
+    "CONFIGS",
+    "TEMPLATES",
+}
+
 
 def _norm(value: Any) -> str:
     return str(value or "").strip()
@@ -57,6 +67,12 @@ def _normalize_control_name(raw_name: str) -> str:
     name = _norm(raw_name)
     if not name:
         return ""
+
+    # Aus Legacy-Ausreissern wie "{'FELD': 'SELF_NAME', ...}" den Feldnamen extrahieren.
+    if name.startswith("{") and "FELD" in name:
+        m = re.search(r"['\"]FELD['\"]\s*:\s*['\"]([^'\"]+)['\"]", name)
+        if m:
+            name = str(m.group(1) or "").strip()
 
     # Template-Pfade auf den letzten logischen Feldteil reduzieren.
     if "." in name:
@@ -123,7 +139,21 @@ def _build_control_payload(control_name: str) -> Dict[str, Any]:
     }
 
 
-async def _run(apply_changes: bool, suggestions_path: Path, output_path: Path) -> Dict[str, Any]:
+def _is_identifier_safe(canonical: str) -> bool:
+    if not canonical:
+        return False
+    if canonical in BLOCKED_CANONICAL:
+        return False
+    return bool(IDENT_RE.match(canonical))
+
+
+async def _run(
+    apply_changes: bool,
+    allow_identifiers: bool,
+    min_references: int,
+    suggestions_path: Path,
+    output_path: Path,
+) -> Dict[str, Any]:
     suggestions = _load_json(suggestions_path)
     create_actions = (((suggestions.get("missing_name_resolution") or {}).get("create_actions")) or [])
 
@@ -148,7 +178,20 @@ async def _run(apply_changes: bool, suggestions_path: Path, output_path: Path) -
                 continue
 
             if canonical not in SAFE_BASE_CONTROLS:
-                skipped.append({"control_name": raw_name, "canonical": canonical, "reason": "not_in_safe_whitelist"})
+                if not (allow_identifiers and _is_identifier_safe(canonical)):
+                    skipped.append({"control_name": raw_name, "canonical": canonical, "reason": "not_in_safe_whitelist"})
+                    continue
+
+            refs = int(action.get("references") or 0)
+            if refs < int(min_references):
+                skipped.append(
+                    {
+                        "control_name": raw_name,
+                        "canonical": canonical,
+                        "reason": "below_min_references",
+                        "references": refs,
+                    }
+                )
                 continue
 
             if canonical in planned_names:
@@ -159,7 +202,7 @@ async def _run(apply_changes: bool, suggestions_path: Path, output_path: Path) -
                 {
                     "control_name": raw_name,
                     "canonical": canonical,
-                    "references": int(action.get("references") or 0),
+                    "references": refs,
                 }
             )
             planned_names.add(canonical)
@@ -191,6 +234,8 @@ async def _run(apply_changes: bool, suggestions_path: Path, output_path: Path) -
             "title": "Apply Safe Control Creates",
             "database": cfg.database,
             "mode": "apply" if apply_changes else "dry-run",
+            "allow_identifiers": bool(allow_identifiers),
+            "min_references": int(min_references),
             "summary": {
                 "create_candidates_input": len(create_actions),
                 "safe_selected": len(selected),
@@ -221,6 +266,17 @@ def main() -> int:
         default=str(BACKEND_DIR / "reports" / "phase7_control_dict_safe_create_result.json"),
         help="Ausgabe JSON",
     )
+    parser.add_argument(
+        "--allow-identifiers",
+        action="store_true",
+        help="Erlaubt zusaetzlich saubere Identifier-Namen (A-Z, 0-9, _) ausserhalb der Basis-Whitelist",
+    )
+    parser.add_argument(
+        "--min-references",
+        type=int,
+        default=1,
+        help="Nur Kandidaten mit mindestens N Referenzen beruecksichtigen",
+    )
     parser.add_argument("--apply", action="store_true", help="Schreibt Controls wirklich in DB")
     args = parser.parse_args()
 
@@ -229,11 +285,21 @@ def main() -> int:
         print(f"ERROR: suggestions not found: {suggestions_path}")
         return 2
 
-    result = asyncio.run(_run(args.apply, suggestions_path, Path(args.output)))
+    result = asyncio.run(
+        _run(
+            apply_changes=args.apply,
+            allow_identifiers=args.allow_identifiers,
+            min_references=max(1, int(args.min_references or 1)),
+            suggestions_path=suggestions_path,
+            output_path=Path(args.output),
+        )
+    )
     summary = result.get("summary", {})
 
     print("PHASE7_SAFE_CREATE")
     print(f"mode={result.get('mode')}")
+    print(f"allow_identifiers={result.get('allow_identifiers')}")
+    print(f"min_references={result.get('min_references')}")
     print(f"output={args.output}")
     for key in ["create_candidates_input", "safe_selected", "created", "skipped"]:
         print(f"{key}={summary.get(key)}")

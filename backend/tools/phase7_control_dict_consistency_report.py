@@ -132,17 +132,20 @@ def _collect_control_references_from_node(
                 )
 
             if key_l in CONTROL_NAME_KEYS:
-                value_s = str(value or "").strip()
-                if value_s and not _is_uuid(value_s):
-                    out_name_refs.append(
-                        {
-                            "source_table": source_table,
-                            "row_uid": row_uid,
-                            "row_name": row_name,
-                            "path": next_path,
-                            "control_name": value_s,
-                        }
-                    )
+                # Nur echte skalare Referenzwerte als Namens-Referenzen werten.
+                # Dict/List unter "CONTROL" sind strukturierte Payload und keine Namen.
+                if isinstance(value, str):
+                    value_s = value.strip()
+                    if value_s and not _is_uuid(value_s):
+                        out_name_refs.append(
+                            {
+                                "source_table": source_table,
+                                "row_uid": row_uid,
+                                "row_name": row_name,
+                                "path": next_path,
+                                "control_name": value_s,
+                            }
+                        )
 
             _collect_control_references_from_node(
                 value,
