@@ -650,11 +650,13 @@ class PdvmDatabase:
         def _normalize_for_compare(value: Any) -> str:
             return json.dumps(value, sort_keys=True, ensure_ascii=False, default=str)
 
-        def _parse_row(row: asyncpg.Record) -> Dict[str, Any]:
+        def _parse_row(row: asyncpg.Record, *, inject_root_meta: bool = True) -> Dict[str, Any]:
             row_dict = dict(row)
             if row_dict.get('daten') and isinstance(row_dict['daten'], str):
                 row_dict['daten'] = json.loads(row_dict['daten'])
-            return self._inject_root_meta_fields(row_dict)
+            if inject_root_meta:
+                return self._inject_root_meta_fields(row_dict)
+            return row_dict
 
         uid_obj = uid if isinstance(uid, uuid.UUID) else uuid.UUID(str(uid))
 
@@ -675,10 +677,11 @@ class PdvmDatabase:
                     return None
 
                 before_row = _parse_row(before_raw)
+                before_row_plain = _parse_row(before_raw, inject_root_meta=False)
 
                 # Konfliktprüfung (optimistisches Concurrency-Guarding)
                 if expected_snapshot_daten is not None:
-                    if _normalize_for_compare(before_row.get('daten')) != _normalize_for_compare(expected_snapshot_daten):
+                    if _normalize_for_compare(before_row_plain.get('daten')) != _normalize_for_compare(expected_snapshot_daten):
                         raise ValueError(FieldChangeHistoryService.CONFLICT_MESSAGE)
 
                 # gilt_bis wird immer auf höchstes Datum gesetzt
@@ -721,6 +724,7 @@ class PdvmDatabase:
                     uid_obj,
                 )
                 updated = _parse_row(after_raw) if after_raw else None
+                updated_plain = _parse_row(after_raw, inject_root_meta=False) if after_raw else None
 
                 # V1 Änderungsnachweis: insert-only, nur geänderte Felder.
                 # Gilt für alle DB-Kontexte (auth/system/mandant) und schreibt
@@ -731,8 +735,8 @@ class PdvmDatabase:
                         conn,
                         target_table=self.table_name,
                         target_uid=uid_obj,
-                        old_data=before_row.get("daten") or {},
-                        new_data=updated.get("daten") or {},
+                        old_data=before_row_plain.get("daten") or {},
+                        new_data=updated_plain.get("daten") or {},
                         actor_user_uid=actor_user_uid,
                         actor_ip=actor_ip,
                     )
