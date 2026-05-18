@@ -283,6 +283,15 @@ Kompatibilitätsfenster:
   - verwaiste UID-Referenzen,
 - optionales Bereinigungswerkzeug bereitstellen (auto-fix nur fuer sichere Faelle).
 
+### Phase 8: Deprecated Control-Tabellen physisch entfernen
+- System-DB: Tabelle sys_control_dict_audit entfernen.
+- Mandanten-DBs: Tabellen msy_control_dict_audit und msy_control_dict entfernen.
+- Vor jedem Drop ist ein Referenz-Report fuer DB-Objekte Pflicht:
+  - Views / Materialized Views,
+  - Funktionen / Prozeduren,
+  - Trigger / Rules.
+- Wenn Referenzen gefunden werden, zuerst strukturgerecht anpassen/entfernen, erst danach Tabellen droppen.
+
 ## 10. Datenkonsistenz-Checks (pflicht)
 
 Checks nach Migration:

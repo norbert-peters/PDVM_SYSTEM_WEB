@@ -1,0 +1,219 @@
+{
+  "phase": "phase8_remove_deprecated_control_tables",
+  "apply": true,
+  "summary": {
+    "system_dbs": 1,
+    "mandant_dbs": 5,
+    "tables_existing": 0,
+    "tables_dropped": 0,
+    "tables_blocked_by_references": 0,
+    "errors": 0
+  },
+  "system": [
+    {
+      "db_kind": "system",
+      "database": "pdvm_system",
+      "host": "localhost",
+      "port": 5432,
+      "tables": [
+        {
+          "table": "sys_control_dict_audit",
+          "exists": false,
+          "row_count": null,
+          "reference_count": 0,
+          "references": {
+            "views": [],
+            "materialized_views": [],
+            "functions": [],
+            "triggers": [],
+            "rules": []
+          }
+        }
+      ],
+      "drop_actions": [],
+      "error": null
+    }
+  ],
+  "mandant": [
+    {
+      "db_kind": "mandant",
+      "database": "filiale_test_2",
+      "host": "localhost",
+      "port": 5432,
+      "tables": [
+        {
+          "table": "msy_control_dict_audit",
+          "exists": false,
+          "row_count": null,
+          "reference_count": 0,
+          "references": {
+            "views": [],
+            "materialized_views": [],
+            "functions": [],
+            "triggers": [],
+            "rules": []
+          }
+        },
+        {
+          "table": "msy_control_dict",
+          "exists": false,
+          "row_count": null,
+          "reference_count": 0,
+          "references": {
+            "views": [],
+            "materialized_views": [],
+            "functions": [],
+            "triggers": [],
+            "rules": []
+          }
+        }
+      ],
+      "drop_actions": [],
+      "error": null
+    },
+    {
+      "db_kind": "mandant",
+      "database": "ganz_neu1",
+      "host": "localhost",
+      "port": 5432,
+      "tables": [
+        {
+          "table": "msy_control_dict_audit",
+          "exists": false,
+          "row_count": null,
+          "reference_count": 0,
+          "references": {
+            "views": [],
+            "materialized_views": [],
+            "functions": [],
+            "triggers": [],
+            "rules": []
+          }
+        },
+        {
+          "table": "msy_control_dict",
+          "exists": false,
+          "row_count": null,
+          "reference_count": 0,
+          "references": {
+            "views": [],
+            "materialized_views": [],
+            "functions": [],
+            "triggers": [],
+            "rules": []
+          }
+        }
+      ],
+      "drop_actions": [],
+      "error": null
+    },
+    {
+      "db_kind": "mandant",
+      "database": "filale_test_1",
+      "host": "localhost",
+      "port": 5432,
+      "tables": [
+        {
+          "table": "msy_control_dict_audit",
+          "exists": false,
+          "row_count": null,
+          "reference_count": 0,
+          "references": {
+            "views": [],
+            "materialized_views": [],
+            "functions": [],
+            "triggers": [],
+            "rules": []
+          }
+        },
+        {
+          "table": "msy_control_dict",
+          "exists": false,
+          "row_count": null,
+          "reference_count": 0,
+          "references": {
+            "views": [],
+            "materialized_views": [],
+            "functions": [],
+            "triggers": [],
+            "rules": []
+          }
+        }
+      ],
+      "drop_actions": [],
+      "error": null
+    },
+    {
+      "db_kind": "mandant",
+      "database": "pdvm_standard",
+      "host": "localhost",
+      "port": 5432,
+      "tables": [
+        {
+          "table": "msy_control_dict_audit",
+          "exists": false,
+          "row_count": null,
+          "reference_count": 0,
+          "references": {
+            "views": [],
+            "materialized_views": [],
+            "functions": [],
+            "triggers": [],
+            "rules": []
+          }
+        },
+        {
+          "table": "msy_control_dict",
+          "exists": false,
+          "row_count": null,
+          "reference_count": 0,
+          "references": {
+            "views": [],
+            "materialized_views": [],
+            "functions": [],
+            "triggers": [],
+            "rules": []
+          }
+        }
+      ],
+      "drop_actions": [],
+      "error": null
+    },
+    {
+      "db_kind": "mandant",
+      "database": "mandant",
+      "host": "localhost",
+      "port": 5432,
+      "tables": [
+        {
+          "table": "msy_control_dict_audit",
+          "exists": false,
+          "row_count": null,
+          "reference_count": 0,
+          "references": {
+            "views": [],
+            "materialized_views": [],
+            "functions": [],
+            "triggers": [],
+            "rules": []
+          }
+        },
+        {
+          "table": "msy_control_dict",
+          "exists": false,
+          "row_count": null,
+          "reference_count": 0,
+          "references": {
+            "views": [],
+            "materialized_views": [],
+            "functions": [],
+            "triggers": [],
+            "rules": []
+          }
+        }
+      ],
+      "drop_actions": [],
+      "error": null
+    }
+  ]
+}

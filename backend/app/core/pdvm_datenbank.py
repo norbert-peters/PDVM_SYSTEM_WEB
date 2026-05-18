@@ -116,10 +116,7 @@ class PdvmDatabase:
         logger.error(f"❌ Unbekanntes Tabellen-Praefix ohne Delimiter: table={table}")
         raise ValueError(f"Unbekanntes Tabellen-Praefix fuer Routing: {table}")
 
-    _AUDIT_TABLE_MAP = {
-        "sys_control_dict": "sys_control_dict_audit",
-        "msy_control_dict": "msy_control_dict_audit",
-    }
+    _AUDIT_TABLE_MAP = {}
 
     _GUID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
@@ -293,12 +290,9 @@ class PdvmDatabase:
         system_pool: Optional[asyncpg.Pool],
         mandant_pool: Optional[asyncpg.Pool],
     ) -> Optional[Dict[str, Any]]:
-        """Lädt Control-Definition (Mandant zuerst, dann System)."""
-        mandant_db = PdvmDatabase("msy_control_dict", system_pool=system_pool, mandant_pool=mandant_pool)
-        row = await mandant_db.get_by_uid(feld_guid)
-        if not row:
-            system_db = PdvmDatabase("sys_control_dict", system_pool=system_pool, mandant_pool=mandant_pool)
-            row = await system_db.get_by_uid(feld_guid)
+        """Laedt Control-Definition aus der zentralen sys_control_dict."""
+        system_db = PdvmDatabase("sys_control_dict", system_pool=system_pool, mandant_pool=mandant_pool)
+        row = await system_db.get_by_uid(feld_guid)
 
         if not row:
             return None
@@ -830,12 +824,16 @@ class PdvmDatabase:
             "sys_error_log": "msy_error_log",
             "sys_error_acknowledgements": "msy_error_acknowledgments",
             "sys_error_acknowledgments": "msy_error_acknowledgments",
-            "sys_contr_dict_man": "msy_control_dict",
-            "sys_contr_dict_man_audit": "msy_control_dict_audit",
             "sys_ext_table_man": "msy_ext_table",
             "sys_feld_aenderungshistorie": "msy_feld_aenderungshistorie",
         }
         features = [legacy_to_canonical.get(str(t), str(t)) for t in features]
+        # Entfernte Tabellen aus Features explizit ausfiltern.
+        features = [
+            t
+            for t in features
+            if t not in {"msy_control_dict", "msy_control_dict_audit", "sys_contr_dict_man", "sys_contr_dict_man_audit"}
+        ]
         
         mandatory_tables = [
             "msy_anwendungsdaten",
@@ -844,8 +842,6 @@ class PdvmDatabase:
             "msy_security",
             "msy_error_log",
             "msy_error_acknowledgments",
-            "msy_control_dict",
-            "msy_control_dict_audit",
             "msy_systemdaten",
             "msy_ext_table",
             "msy_feld_aenderungshistorie",

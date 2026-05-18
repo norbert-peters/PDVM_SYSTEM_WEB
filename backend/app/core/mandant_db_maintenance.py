@@ -68,8 +68,6 @@ class MandantDatabaseMaintenance:
                 'msy_security',
                 'msy_error_log',
                 'msy_error_acknowledgments',
-                'msy_control_dict',
-                'msy_control_dict_audit',
                 'msy_systemdaten',
                 'msy_ext_table',
                 'msy_feld_aenderungshistorie',
@@ -103,12 +101,15 @@ class MandantDatabaseMaintenance:
                 'sys_error_log': 'msy_error_log',
                 'sys_error_acknowledgements': 'msy_error_acknowledgments',
                 'sys_error_acknowledgments': 'msy_error_acknowledgments',
-                'sys_contr_dict_man': 'msy_control_dict',
-                'sys_contr_dict_man_audit': 'msy_control_dict_audit',
                 'sys_ext_table_man': 'msy_ext_table',
                 'sys_feld_aenderungshistorie': 'msy_feld_aenderungshistorie',
             }
             feature_tables = [legacy_to_canonical.get(str(t), str(t)) for t in feature_tables]
+            feature_tables = [
+                t
+                for t in feature_tables
+                if t not in {'msy_control_dict', 'msy_control_dict_audit', 'sys_contr_dict_man', 'sys_contr_dict_man_audit'}
+            ]
             logger.info(f"📋 Phase 2: Feature-Tabellen aus CONFIGS ({len(feature_tables)})")
             
             # PHASE 3: Feature-Tabellen prüfen und warten

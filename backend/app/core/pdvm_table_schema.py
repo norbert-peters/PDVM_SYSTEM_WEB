@@ -45,7 +45,6 @@ PDVM_SYSTEM_TABLES = [
     'sys_layout',
     'sys_systemdaten',
     'sys_feld_aenderungshistorie',
-    'sys_control_dict',
-    'sys_control_dict_audit'
+    'sys_control_dict'
 ]
 
