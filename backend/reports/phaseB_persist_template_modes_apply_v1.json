@@ -1,0 +1,310 @@
+{
+  "phase": "phaseB_persist_template_modes",
+  "apply": true,
+  "main_mandant": {
+    "uid": "e51a8688-2cca-4a16-855d-52a69677fb50",
+    "name": "Filiale Test 1 Mandant",
+    "database": "filale_test_1",
+    "host": "localhost",
+    "port": 5432,
+    "user": "postgres",
+    "password": "Polari$55",
+    "source_table": "asy_mandanten"
+  },
+  "databases": [
+    {
+      "db_label": "system",
+      "database": "pdvm_system",
+      "meta_table": "sys_systemdaten",
+      "summary": {
+        "tables_total": 13,
+        "meta_rows_planned": 13,
+        "meta_rows_inserted": 13,
+        "meta_rows_updated": 0,
+        "meta_rows_skipped_blocked": 0
+      },
+      "tables": [
+        {
+          "table": "dev_workflow_draft",
+          "mode": "ausgenommen",
+          "record_uid": "c7b71ca1-38b4-5667-be5f-2a056133653a",
+          "record_name": "TEMPLATE_META::dev_workflow_draft",
+          "action": "insert",
+          "note": null
+        },
+        {
+          "table": "dev_workflow_draft_item",
+          "mode": "ausgenommen",
+          "record_uid": "1067666f-76bc-57be-a606-aeeece232016",
+          "record_name": "TEMPLATE_META::dev_workflow_draft_item",
+          "action": "insert",
+          "note": null
+        },
+        {
+          "table": "sys_beschreibungen",
+          "mode": "voll_templatefaehig",
+          "record_uid": "03ea6bd6-94b8-505b-8a4c-10256573c303",
+          "record_name": "TEMPLATE_META::sys_beschreibungen",
+          "action": "insert",
+          "note": null
+        },
+        {
+          "table": "sys_control_dict",
+          "mode": "voll_templatefaehig",
+          "record_uid": "30259c23-9e68-553d-b621-8cdfdb607eb2",
+          "record_name": "TEMPLATE_META::sys_control_dict",
+          "action": "insert",
+          "note": null
+        },
+        {
+          "table": "sys_dialogdaten",
+          "mode": "voll_templatefaehig",
+          "record_uid": "43a5c81c-a8b9-506d-8746-d30278e8beee",
+          "record_name": "TEMPLATE_META::sys_dialogdaten",
+          "action": "insert",
+          "note": null
+        },
+        {
+          "table": "sys_dropdowndaten",
+          "mode": "voll_templatefaehig",
+          "record_uid": "61789882-9c63-5b60-873f-fd19bd830e02",
+          "record_name": "TEMPLATE_META::sys_dropdowndaten",
+          "action": "insert",
+          "note": null
+        },
+        {
+          "table": "sys_ext_table",
+          "mode": "voll_templatefaehig",
+          "record_uid": "8ce68460-0c33-5ebd-a4a0-d42eb6853411",
+          "record_name": "TEMPLATE_META::sys_ext_table",
+          "action": "insert",
+          "note": null
+        },
+        {
+          "table": "sys_feld_aenderungshistorie",
+          "mode": "ausgenommen",
+          "record_uid": "15cb5e26-7502-5b11-b172-0045ad512385",
+          "record_name": "TEMPLATE_META::sys_feld_aenderungshistorie",
+          "action": "insert",
+          "note": null
+        },
+        {
+          "table": "sys_framedaten",
+          "mode": "voll_templatefaehig",
+          "record_uid": "9249aa5d-5e95-56d0-8632-b15ca863715c",
+          "record_name": "TEMPLATE_META::sys_framedaten",
+          "action": "insert",
+          "note": null
+        },
+        {
+          "table": "sys_layout",
+          "mode": "voll_templatefaehig",
+          "record_uid": "420b9d50-ce7a-5e3a-88aa-a120867673ef",
+          "record_name": "TEMPLATE_META::sys_layout",
+          "action": "insert",
+          "note": null
+        },
+        {
+          "table": "sys_menudaten",
+          "mode": "voll_templatefaehig",
+          "record_uid": "c1f683ae-06d1-5d57-a2ef-9d8712463adb",
+          "record_name": "TEMPLATE_META::sys_menudaten",
+          "action": "insert",
+          "note": null
+        },
+        {
+          "table": "sys_systemdaten",
+          "mode": "voll_templatefaehig",
+          "record_uid": "fb7d59de-68ca-51c7-a484-129bc7c347bb",
+          "record_name": "TEMPLATE_META::sys_systemdaten",
+          "action": "insert",
+          "note": null
+        },
+        {
+          "table": "sys_viewdaten",
+          "mode": "voll_templatefaehig",
+          "record_uid": "3cfcdbce-bede-57a2-a6ab-62b87843e7b7",
+          "record_name": "TEMPLATE_META::sys_viewdaten",
+          "action": "insert",
+          "note": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "db_label": "auth",
+      "database": "auth",
+      "meta_table": "asy_systemdaten",
+      "summary": {
+        "tables_total": 7,
+        "meta_rows_planned": 7,
+        "meta_rows_inserted": 7,
+        "meta_rows_updated": 0,
+        "meta_rows_skipped_blocked": 0
+      },
+      "tables": [
+        {
+          "table": "asy_benutzer",
+          "mode": "teiltemplatefaehig",
+          "record_uid": "30252338-b0d9-52a2-a68d-f6be5df21bc2",
+          "record_name": "TEMPLATE_META::asy_benutzer",
+          "action": "insert",
+          "note": null
+        },
+        {
+          "table": "asy_feld_aenderungshistorie",
+          "mode": "ausgenommen",
+          "record_uid": "07130e4a-83b8-5fb7-bda4-430eff16990f",
+          "record_name": "TEMPLATE_META::asy_feld_aenderungshistorie",
+          "action": "insert",
+          "note": null
+        },
+        {
+          "table": "asy_mandanten",
+          "mode": "voll_templatefaehig",
+          "record_uid": "005c689e-a9d5-59d5-8f4c-40b655c0365c",
+          "record_name": "TEMPLATE_META::asy_mandanten",
+          "action": "insert",
+          "note": null
+        },
+        {
+          "table": "asy_systemdaten",
+          "mode": "voll_templatefaehig",
+          "record_uid": "17810d5b-641f-540a-b2a5-b82588ff9c37",
+          "record_name": "TEMPLATE_META::asy_systemdaten",
+          "action": "insert",
+          "note": null
+        },
+        {
+          "table": "sys_benutzer",
+          "mode": "teiltemplatefaehig",
+          "record_uid": "6ab3293e-0ec5-5eb8-b74a-8f40402fc651",
+          "record_name": "TEMPLATE_META::sys_benutzer",
+          "action": "insert",
+          "note": null
+        },
+        {
+          "table": "sys_feld_aenderungshistorie",
+          "mode": "ausgenommen",
+          "record_uid": "a268201d-cca2-523f-a50e-4ceda8f50169",
+          "record_name": "TEMPLATE_META::sys_feld_aenderungshistorie",
+          "action": "insert",
+          "note": null
+        },
+        {
+          "table": "sys_mandanten",
+          "mode": "voll_templatefaehig",
+          "record_uid": "f64b91da-c3bf-59b6-91ae-bfeadd3eb48e",
+          "record_name": "TEMPLATE_META::sys_mandanten",
+          "action": "insert",
+          "note": null
+        }
+      ],
+      "error": null
+    },
+    {
+      "db_label": "mandant_main",
+      "database": "filale_test_1",
+      "meta_table": "msy_systemdaten",
+      "summary": {
+        "tables_total": 10,
+        "meta_rows_planned": 10,
+        "meta_rows_inserted": 10,
+        "meta_rows_updated": 0,
+        "meta_rows_skipped_blocked": 0
+      },
+      "tables": [
+        {
+          "table": "msy_anwendungsdaten",
+          "mode": "voll_templatefaehig",
+          "record_uid": "aeba87c8-76c1-5782-8f79-177d0aa10135",
+          "record_name": "TEMPLATE_META::msy_anwendungsdaten",
+          "action": "insert",
+          "note": null
+        },
+        {
+          "table": "msy_error_acknowledgments",
+          "mode": "voll_templatefaehig",
+          "record_uid": "ca67c4ce-5585-5fa4-a138-af5fe992a687",
+          "record_name": "TEMPLATE_META::msy_error_acknowledgments",
+          "action": "insert",
+          "note": null
+        },
+        {
+          "table": "msy_error_log",
+          "mode": "voll_templatefaehig",
+          "record_uid": "7ab17b6e-7d19-57df-941a-bea98b594721",
+          "record_name": "TEMPLATE_META::msy_error_log",
+          "action": "insert",
+          "note": null
+        },
+        {
+          "table": "msy_feld_aenderungshistorie",
+          "mode": "ausgenommen",
+          "record_uid": "6b0a37b8-50ab-5155-8f0e-ccbfed7c8257",
+          "record_name": "TEMPLATE_META::msy_feld_aenderungshistorie",
+          "action": "insert",
+          "note": null
+        },
+        {
+          "table": "msy_layout",
+          "mode": "voll_templatefaehig",
+          "record_uid": "154d0718-509c-5901-ac6b-0d1cd1c97112",
+          "record_name": "TEMPLATE_META::msy_layout",
+          "action": "insert",
+          "note": null
+        },
+        {
+          "table": "msy_security",
+          "mode": "voll_templatefaehig",
+          "record_uid": "7cafa228-506a-587e-bc04-fccfc9a893e0",
+          "record_name": "TEMPLATE_META::msy_security",
+          "action": "insert",
+          "note": null
+        },
+        {
+          "table": "msy_systemdaten",
+          "mode": "voll_templatefaehig",
+          "record_uid": "687c7f5f-231d-5585-8d99-7b57cdd4ea2f",
+          "record_name": "TEMPLATE_META::msy_systemdaten",
+          "action": "insert",
+          "note": null
+        },
+        {
+          "table": "msy_systemsteuerung",
+          "mode": "voll_templatefaehig",
+          "record_uid": "5956c415-09ee-5c46-b16d-d425118bcfc5",
+          "record_name": "TEMPLATE_META::msy_systemsteuerung",
+          "action": "insert",
+          "note": null
+        },
+        {
+          "table": "tst_finanzdaten",
+          "mode": "voll_templatefaehig",
+          "record_uid": "d55f4f6b-5e2c-50c3-a31d-dea5904926d4",
+          "record_name": "TEMPLATE_META::tst_finanzdaten",
+          "action": "insert",
+          "note": null
+        },
+        {
+          "table": "tst_persondaten",
+          "mode": "voll_templatefaehig",
+          "record_uid": "f278697c-7a96-5882-ac2f-10af60e24d9e",
+          "record_name": "TEMPLATE_META::tst_persondaten",
+          "action": "insert",
+          "note": null
+        }
+      ],
+      "error": null
+    }
+  ],
+  "summary": {
+    "db_count": 3,
+    "db_errors": 0,
+    "tables_total": 30,
+    "meta_rows_planned": 30,
+    "meta_rows_inserted": 30,
+    "meta_rows_updated": 0,
+    "meta_rows_skipped_blocked": 0
+  }
+}
