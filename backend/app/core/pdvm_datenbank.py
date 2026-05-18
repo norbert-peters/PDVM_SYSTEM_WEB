@@ -725,7 +725,8 @@ class PdvmDatabase:
                 # V1 Änderungsnachweis: insert-only, nur geänderte Felder.
                 # Gilt für alle DB-Kontexte (auth/system/mandant) und schreibt
                 # jeweils lokal in die DB, in der auch die Zieltabelle liegt.
-                if updated and str(self.table_name).strip().lower() != FieldChangeHistoryService.HISTORY_TABLE:
+                is_history_table = await FieldChangeHistoryService.is_history_table(conn, self.table_name)
+                if updated and not is_history_table:
                     await FieldChangeHistoryService.write_history_entries(
                         conn,
                         target_table=self.table_name,

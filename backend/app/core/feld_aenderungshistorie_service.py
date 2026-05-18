@@ -24,6 +24,7 @@ from app.core.pdvm_datetime import datetime_to_pdvm, pdvm_to_str
 
 class FieldChangeHistoryService:
     HISTORY_TABLE = "sys_feld_aenderungshistorie"
+    HISTORY_TABLE_MANDANT = "msy_feld_aenderungshistorie"
     CONFLICT_MESSAGE = "Daten zwischenzeitlich geändert. Bitte neu lesen"
 
     _SENSITIVE_KEYWORDS = (
@@ -80,6 +81,35 @@ class FieldChangeHistoryService:
         if isinstance(value, dict):
             return "object"
         return type(value).__name__
+
+    @classmethod
+    async def _table_exists(cls, conn: asyncpg.Connection, table_name: str) -> bool:
+        exists = await conn.fetchval("SELECT to_regclass($1) IS NOT NULL", f"public.{table_name}")
+        return bool(exists)
+
+    @classmethod
+    async def _resolve_history_table(cls, conn: asyncpg.Connection, target_table: str) -> Optional[str]:
+        target_norm = str(target_table or "").strip().lower()
+
+        # Mandanten-Tabellen bevorzugen msy_* Historie.
+        if target_norm.startswith(("msy_", "tst_")):
+            if await cls._table_exists(conn, cls.HISTORY_TABLE_MANDANT):
+                return cls.HISTORY_TABLE_MANDANT
+            if await cls._table_exists(conn, cls.HISTORY_TABLE):
+                return cls.HISTORY_TABLE
+            return None
+
+        # System/Auth/Legacy: sys_* Historie bevorzugen.
+        if await cls._table_exists(conn, cls.HISTORY_TABLE):
+            return cls.HISTORY_TABLE
+        if await cls._table_exists(conn, cls.HISTORY_TABLE_MANDANT):
+            return cls.HISTORY_TABLE_MANDANT
+        return None
+
+    @classmethod
+    async def is_history_table(cls, conn: asyncpg.Connection, table_name: str) -> bool:
+        table_norm = str(table_name or "").strip().lower()
+        return table_norm in {cls.HISTORY_TABLE, cls.HISTORY_TABLE_MANDANT}
 
     @classmethod
     def _policy_for_field(cls, field_name: str) -> str:
@@ -173,7 +203,11 @@ class FieldChangeHistoryService:
         actor_ip: Optional[str] = None,
     ) -> int:
         """Schreibt Insert-only Historienzeilen für alle geänderten Felder."""
-        if str(target_table).strip().lower() == cls.HISTORY_TABLE:
+        history_table = await cls._resolve_history_table(conn, target_table)
+        if history_table is None:
+            return 0
+
+        if str(target_table).strip().lower() in {cls.HISTORY_TABLE, cls.HISTORY_TABLE_MANDANT}:
             return 0
 
         old_flat = cls._flatten_group_fields(old_data)
@@ -220,7 +254,7 @@ class FieldChangeHistoryService:
 
             payload = {
                 "ROOT": {
-                    "TABLE": cls.HISTORY_TABLE,
+                    "TABLE": history_table,
                     "SELF_LINK_UID": str(target_uid),
                 },
                 "META": {
@@ -266,7 +300,7 @@ class FieldChangeHistoryService:
 
             await conn.execute(
                 f"""
-                INSERT INTO {cls.HISTORY_TABLE}
+                INSERT INTO {history_table}
                     (uid, link_uid, daten, name, historisch, source_hash)
                 VALUES
                     ($1, $2, $3::jsonb, $4, 0, $5)
@@ -284,9 +318,13 @@ class FieldChangeHistoryService:
     @classmethod
     async def cleanup_retention(cls, conn: asyncpg.Connection, retention_months: int) -> int:
         """Löscht Historienzeilen außerhalb der Aufbewahrungszeit."""
+        history_table = await cls._resolve_history_table(conn, cls.HISTORY_TABLE)
+        if history_table is None:
+            return 0
+
         result = await conn.execute(
             f"""
-            DELETE FROM {cls.HISTORY_TABLE}
+            DELETE FROM {history_table}
             WHERE created_at < (NOW() - ($1::int * INTERVAL '1 month'))
             """,
             int(retention_months),
