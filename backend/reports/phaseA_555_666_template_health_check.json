@@ -1,0 +1,169 @@
+{
+  "phase": "phaseA",
+  "title": "555/666 Template Health Check",
+  "database": "pdvm_system",
+  "summary": {
+    "tables_scanned": 13,
+    "tables_with_555_or_666": 12,
+    "tables_with_findings": 12,
+    "tables_ok": 0,
+    "error_count": 22,
+    "warning_count": 0
+  },
+  "tables": [
+    {
+      "table": "dev_workflow_draft",
+      "has_historisch": true,
+      "has_555": true,
+      "has_666": true,
+      "errors": [
+        "666.TEMPLATES fehlt oder ist kein Objekt",
+        "ROOT-Struktur ungleich (nur in 555: [], nur in 666: ['IS_TEMPLATE', 'REVISION', 'STATUS', 'TITLE', 'WORKFLOW_TYPE'])"
+      ],
+      "warnings": [],
+      "missing_template_groups": []
+    },
+    {
+      "table": "dev_workflow_draft_item",
+      "has_historisch": true,
+      "has_555": true,
+      "has_666": true,
+      "errors": [
+        "666.TEMPLATES fehlt oder ist kein Objekt",
+        "ROOT-Struktur ungleich (nur in 555: [], nur in 666: ['IS_TEMPLATE'])"
+      ],
+      "warnings": [],
+      "missing_template_groups": []
+    },
+    {
+      "table": "sys_beschreibungen",
+      "has_historisch": true,
+      "has_555": true,
+      "has_666": true,
+      "errors": [
+        "666.TEMPLATES fehlt oder ist kein Objekt",
+        "ROOT-Struktur ungleich (nur in 555: [], nur in 666: ['SELF_NAME', 'TABLE'])"
+      ],
+      "warnings": [],
+      "missing_template_groups": []
+    },
+    {
+      "table": "sys_control_dict",
+      "has_historisch": true,
+      "has_555": true,
+      "has_666": true,
+      "errors": [
+        "666.TEMPLATES fehlt oder ist kein Objekt"
+      ],
+      "warnings": [],
+      "missing_template_groups": []
+    },
+    {
+      "table": "sys_dialogdaten",
+      "has_historisch": true,
+      "has_555": true,
+      "has_666": true,
+      "errors": [
+        "666.TEMPLATES fehlt oder ist kein Objekt",
+        "ROOT-Struktur ungleich (nur in 555: [], nur in 666: ['DIALOG_TYPE', 'GO_NEW_SET', 'TABLE', 'TABS', 'TAB_ELEMENTS'])"
+      ],
+      "warnings": [],
+      "missing_template_groups": []
+    },
+    {
+      "table": "sys_dropdowndaten",
+      "has_historisch": true,
+      "has_555": true,
+      "has_666": true,
+      "errors": [
+        "666.TEMPLATES fehlt oder ist kein Objekt",
+        "ROOT-Struktur ungleich (nur in 555: ['BESCHREIBUNG_NAME', 'DEFAULT_LANGUAGE'], nur in 666: ['SELF_NAME'])"
+      ],
+      "warnings": [],
+      "missing_template_groups": []
+    },
+    {
+      "table": "sys_ext_table",
+      "has_historisch": true,
+      "has_555": true,
+      "has_666": true,
+      "errors": [
+        "666.TEMPLATES fehlt oder ist kein Objekt"
+      ],
+      "warnings": [],
+      "missing_template_groups": []
+    },
+    {
+      "table": "sys_feld_aenderungshistorie",
+      "has_historisch": true,
+      "has_555": false,
+      "has_666": false,
+      "errors": [
+        "Template 555 fehlt",
+        "Template 666 fehlt"
+      ],
+      "warnings": [],
+      "missing_template_groups": []
+    },
+    {
+      "table": "sys_framedaten",
+      "has_historisch": true,
+      "has_555": true,
+      "has_666": true,
+      "errors": [
+        "666.TEMPLATES fehlt oder ist kein Objekt",
+        "ROOT-Struktur ungleich (nur in 555: ['FRAME_TYPE', 'ROOT_TABLE'], nur in 666: ['GO_NEW_SET', 'TABLE'])"
+      ],
+      "warnings": [],
+      "missing_template_groups": []
+    },
+    {
+      "table": "sys_layout",
+      "has_historisch": true,
+      "has_555": true,
+      "has_666": true,
+      "errors": [
+        "666.TEMPLATES fehlt oder ist kein Objekt",
+        "ROOT-Struktur ungleich (nur in 555: [], nur in 666: ['SELF_NAME', 'TABLE'])"
+      ],
+      "warnings": [],
+      "missing_template_groups": []
+    },
+    {
+      "table": "sys_menudaten",
+      "has_historisch": true,
+      "has_555": true,
+      "has_666": true,
+      "errors": [
+        "666.TEMPLATES fehlt oder ist kein Objekt",
+        "ROOT-Struktur ungleich (nur in 555: ['DIALOG_GUID', 'DISPLAY_ST', 'DISPLAY_TIME_SHORT', 'EDIT_TABS', 'EDIT_TAB_LABEL_01', 'EDIT_TYPE', 'HEADER_TEXT', 'TABLE', 'VIEW_GUID'], nur in 666: ['SELF_NAME'])"
+      ],
+      "warnings": [],
+      "missing_template_groups": []
+    },
+    {
+      "table": "sys_systemdaten",
+      "has_historisch": true,
+      "has_555": true,
+      "has_666": true,
+      "errors": [
+        "666.TEMPLATES fehlt oder ist kein Objekt",
+        "ROOT-Struktur ungleich (nur in 555: [], nur in 666: ['SELF_NAME', 'TABLE'])"
+      ],
+      "warnings": [],
+      "missing_template_groups": []
+    },
+    {
+      "table": "sys_viewdaten",
+      "has_historisch": true,
+      "has_555": true,
+      "has_666": true,
+      "errors": [
+        "666.TEMPLATES fehlt oder ist kein Objekt",
+        "ROOT-Struktur ungleich (nur in 555: [], nur in 666: ['ALLOW_FILTER', 'ALLOW_SORT', 'DEFAULT_SORT_COLUMN', 'DEFAULT_SORT_REVERSE', 'HEADER_TEXT', 'NO_DATA', 'PROJECTION_MODE', 'TABLE'])"
+      ],
+      "warnings": [],
+      "missing_template_groups": []
+    }
+  ]
+}
