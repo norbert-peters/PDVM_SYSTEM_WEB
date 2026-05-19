@@ -1,0 +1,896 @@
+{
+  "phase": "phaseA_multidb",
+  "title": "Multi-DB Tabellenklassifizierung + Template-Roundmaking",
+  "apply": false,
+  "main_mandant": {
+    "uid": "e51a8688-2cca-4a16-855d-52a69677fb50",
+    "name": "Filiale Test 1 Mandant",
+    "database": "filale_test_1",
+    "host": "localhost",
+    "port": 5432,
+    "user": "postgres",
+    "password": "Polari$55",
+    "source_table": "asy_mandanten"
+  },
+  "databases": [
+    {
+      "db_label": "system",
+      "database": "pdvm_system",
+      "host": "localhost",
+      "port": 5432,
+      "tables": [
+        {
+          "table": "dev_workflow_draft",
+          "columns": [
+            "uid",
+            "daten",
+            "name",
+            "historisch",
+            "source_hash",
+            "sec_id",
+            "gilt_bis",
+            "created_at",
+            "modified_at",
+            "daten_backup",
+            "link_uid"
+          ],
+          "mode": "ausgenommen",
+          "has_uid": true,
+          "has_daten": true,
+          "has_name": true,
+          "has_historisch": true,
+          "has_555": true,
+          "has_666": true,
+          "health_errors": [],
+          "roundmaking": [
+            "skip_ausgenommen"
+          ]
+        },
+        {
+          "table": "dev_workflow_draft_item",
+          "columns": [
+            "uid",
+            "daten",
+            "name",
+            "historisch",
+            "source_hash",
+            "sec_id",
+            "gilt_bis",
+            "created_at",
+            "modified_at",
+            "daten_backup",
+            "link_uid"
+          ],
+          "mode": "ausgenommen",
+          "has_uid": true,
+          "has_daten": true,
+          "has_name": true,
+          "has_historisch": true,
+          "has_555": true,
+          "has_666": true,
+          "health_errors": [],
+          "roundmaking": [
+            "skip_ausgenommen"
+          ]
+        },
+        {
+          "table": "sys_beschreibungen",
+          "columns": [
+            "uid",
+            "daten",
+            "name",
+            "historisch",
+            "source_hash",
+            "sec_id",
+            "gilt_bis",
+            "created_at",
+            "modified_at",
+            "daten_backup",
+            "link_uid",
+            "backup_daten"
+          ],
+          "mode": "voll_templatefaehig",
+          "has_uid": true,
+          "has_daten": true,
+          "has_name": true,
+          "has_historisch": true,
+          "has_555": true,
+          "has_666": true,
+          "health_errors": [],
+          "roundmaking": []
+        },
+        {
+          "table": "sys_control_dict",
+          "columns": [
+            "uid",
+            "daten",
+            "name",
+            "historisch",
+            "source_hash",
+            "sec_id",
+            "gilt_bis",
+            "created_at",
+            "modified_at",
+            "daten_backup",
+            "link_uid",
+            "backup_daten"
+          ],
+          "mode": "voll_templatefaehig",
+          "has_uid": true,
+          "has_daten": true,
+          "has_name": true,
+          "has_historisch": true,
+          "has_555": true,
+          "has_666": true,
+          "health_errors": [],
+          "roundmaking": []
+        },
+        {
+          "table": "sys_dialogdaten",
+          "columns": [
+            "uid",
+            "daten",
+            "name",
+            "historisch",
+            "source_hash",
+            "sec_id",
+            "gilt_bis",
+            "created_at",
+            "modified_at",
+            "daten_backup",
+            "link_uid",
+            "backup_daten"
+          ],
+          "mode": "voll_templatefaehig",
+          "has_uid": true,
+          "has_daten": true,
+          "has_name": true,
+          "has_historisch": true,
+          "has_555": true,
+          "has_666": true,
+          "health_errors": [],
+          "roundmaking": []
+        },
+        {
+          "table": "sys_dropdowndaten",
+          "columns": [
+            "uid",
+            "daten",
+            "name",
+            "historisch",
+            "source_hash",
+            "sec_id",
+            "gilt_bis",
+            "created_at",
+            "modified_at",
+            "daten_backup",
+            "link_uid",
+            "backup_daten"
+          ],
+          "mode": "voll_templatefaehig",
+          "has_uid": true,
+          "has_daten": true,
+          "has_name": true,
+          "has_historisch": true,
+          "has_555": true,
+          "has_666": true,
+          "health_errors": [],
+          "roundmaking": []
+        },
+        {
+          "table": "sys_ext_table",
+          "columns": [
+            "uid",
+            "daten",
+            "name",
+            "historisch",
+            "source_hash",
+            "sec_id",
+            "gilt_bis",
+            "created_at",
+            "modified_at",
+            "daten_backup",
+            "link_uid"
+          ],
+          "mode": "voll_templatefaehig",
+          "has_uid": true,
+          "has_daten": true,
+          "has_name": true,
+          "has_historisch": true,
+          "has_555": true,
+          "has_666": true,
+          "health_errors": [],
+          "roundmaking": []
+        },
+        {
+          "table": "sys_feld_aenderungshistorie",
+          "columns": [
+            "uid",
+            "link_uid",
+            "daten",
+            "name",
+            "historisch",
+            "source_hash",
+            "sec_id",
+            "gilt_bis",
+            "created_at",
+            "modified_at",
+            "backup_daten"
+          ],
+          "mode": "ausgenommen",
+          "has_uid": true,
+          "has_daten": true,
+          "has_name": true,
+          "has_historisch": true,
+          "has_555": false,
+          "has_666": false,
+          "health_errors": [],
+          "roundmaking": [
+            "skip_ausgenommen"
+          ]
+        },
+        {
+          "table": "sys_framedaten",
+          "columns": [
+            "uid",
+            "daten",
+            "name",
+            "historisch",
+            "source_hash",
+            "sec_id",
+            "gilt_bis",
+            "created_at",
+            "modified_at",
+            "daten_backup",
+            "link_uid",
+            "backup_daten"
+          ],
+          "mode": "voll_templatefaehig",
+          "has_uid": true,
+          "has_daten": true,
+          "has_name": true,
+          "has_historisch": true,
+          "has_555": true,
+          "has_666": true,
+          "health_errors": [],
+          "roundmaking": []
+        },
+        {
+          "table": "sys_layout",
+          "columns": [
+            "uid",
+            "daten",
+            "name",
+            "historisch",
+            "source_hash",
+            "sec_id",
+            "created_at",
+            "modified_at",
+            "daten_backup",
+            "gruppe",
+            "gilt_bis",
+            "link_uid",
+            "backup_daten"
+          ],
+          "mode": "voll_templatefaehig",
+          "has_uid": true,
+          "has_daten": true,
+          "has_name": true,
+          "has_historisch": true,
+          "has_555": true,
+          "has_666": true,
+          "health_errors": [],
+          "roundmaking": []
+        },
+        {
+          "table": "sys_menudaten",
+          "columns": [
+            "uid",
+            "name",
+            "daten",
+            "historisch",
+            "source_hash",
+            "sec_id",
+            "gilt_bis",
+            "created_at",
+            "modified_at",
+            "daten_backup",
+            "link_uid",
+            "backup_daten"
+          ],
+          "mode": "voll_templatefaehig",
+          "has_uid": true,
+          "has_daten": true,
+          "has_name": true,
+          "has_historisch": true,
+          "has_555": true,
+          "has_666": true,
+          "health_errors": [],
+          "roundmaking": []
+        },
+        {
+          "table": "sys_systemdaten",
+          "columns": [
+            "uid",
+            "daten",
+            "name",
+            "historisch",
+            "source_hash",
+            "sec_id",
+            "created_at",
+            "modified_at",
+            "daten_backup",
+            "gilt_bis",
+            "link_uid",
+            "backup_daten"
+          ],
+          "mode": "voll_templatefaehig",
+          "has_uid": true,
+          "has_daten": true,
+          "has_name": true,
+          "has_historisch": true,
+          "has_555": true,
+          "has_666": true,
+          "health_errors": [
+            "666.TEMPLATES-Felder müssen Objekte sein: ['gruppe']"
+          ],
+          "roundmaking": [
+            "update_666"
+          ]
+        },
+        {
+          "table": "sys_viewdaten",
+          "columns": [
+            "uid",
+            "daten",
+            "name",
+            "historisch",
+            "source_hash",
+            "sec_id",
+            "gilt_bis",
+            "created_at",
+            "modified_at",
+            "daten_backup",
+            "link_uid",
+            "backup_daten"
+          ],
+          "mode": "voll_templatefaehig",
+          "has_uid": true,
+          "has_daten": true,
+          "has_name": true,
+          "has_historisch": true,
+          "has_555": true,
+          "has_666": true,
+          "health_errors": [],
+          "roundmaking": []
+        }
+      ],
+      "summary": {
+        "tables_total": 13,
+        "tables_scope_uid_daten": 13,
+        "mode_voll": 10,
+        "mode_teil": 0,
+        "mode_ausgenommen": 3,
+        "mode_nicht_im_scope": 0,
+        "health_error_count": 1,
+        "roundmaking_actions": 1
+      },
+      "error": null
+    },
+    {
+      "db_label": "auth",
+      "database": "auth",
+      "host": "localhost",
+      "port": 5432,
+      "tables": [
+        {
+          "table": "asy_benutzer",
+          "columns": [
+            "uid",
+            "benutzer",
+            "passwort",
+            "daten",
+            "name",
+            "historisch",
+            "source_hash",
+            "sec_id",
+            "gilt_bis",
+            "created_at",
+            "modified_at",
+            "daten_backup",
+            "link_uid"
+          ],
+          "mode": "teiltemplatefaehig",
+          "has_uid": true,
+          "has_daten": true,
+          "has_name": true,
+          "has_historisch": true,
+          "has_555": false,
+          "has_666": true,
+          "health_errors": [],
+          "roundmaking": [
+            "create_blocked_non_nullable_columns:['benutzer', 'passwort']",
+            "skip_partial_create"
+          ]
+        },
+        {
+          "table": "asy_feld_aenderungshistorie",
+          "columns": [
+            "uid",
+            "link_uid",
+            "daten",
+            "name",
+            "historisch",
+            "source_hash",
+            "sec_id",
+            "gilt_bis",
+            "created_at",
+            "modified_at",
+            "backup_daten"
+          ],
+          "mode": "ausgenommen",
+          "has_uid": true,
+          "has_daten": true,
+          "has_name": true,
+          "has_historisch": true,
+          "has_555": false,
+          "has_666": false,
+          "health_errors": [],
+          "roundmaking": [
+            "skip_ausgenommen"
+          ]
+        },
+        {
+          "table": "asy_mandanten",
+          "columns": [
+            "uid",
+            "daten",
+            "name",
+            "historisch",
+            "source_hash",
+            "sec_id",
+            "gilt_bis",
+            "created_at",
+            "modified_at",
+            "daten_backup",
+            "link_uid"
+          ],
+          "mode": "voll_templatefaehig",
+          "has_uid": true,
+          "has_daten": true,
+          "has_name": true,
+          "has_historisch": true,
+          "has_555": true,
+          "has_666": true,
+          "health_errors": [],
+          "roundmaking": [
+            "update_555",
+            "update_666"
+          ]
+        },
+        {
+          "table": "asy_systemdaten",
+          "columns": [
+            "uid",
+            "link_uid",
+            "daten",
+            "name",
+            "historisch",
+            "source_hash",
+            "sec_id",
+            "gilt_bis",
+            "created_at",
+            "modified_at",
+            "backup_daten"
+          ],
+          "mode": "voll_templatefaehig",
+          "has_uid": true,
+          "has_daten": true,
+          "has_name": true,
+          "has_historisch": true,
+          "has_555": true,
+          "has_666": true,
+          "health_errors": [
+            "666.TEMPLATES-Felder müssen Objekte sein: ['gruppe']"
+          ],
+          "roundmaking": [
+            "update_666"
+          ]
+        },
+        {
+          "table": "sys_benutzer",
+          "columns": [
+            "uid",
+            "benutzer",
+            "passwort",
+            "daten",
+            "name",
+            "historisch",
+            "source_hash",
+            "sec_id",
+            "gilt_bis",
+            "created_at",
+            "modified_at",
+            "daten_backup",
+            "link_uid"
+          ],
+          "mode": "teiltemplatefaehig",
+          "has_uid": true,
+          "has_daten": true,
+          "has_name": true,
+          "has_historisch": true,
+          "has_555": false,
+          "has_666": true,
+          "health_errors": [
+            "Template 555 fehlt"
+          ],
+          "roundmaking": [
+            "skip_partial_create"
+          ]
+        },
+        {
+          "table": "sys_feld_aenderungshistorie",
+          "columns": [
+            "uid",
+            "link_uid",
+            "daten",
+            "name",
+            "historisch",
+            "source_hash",
+            "sec_id",
+            "gilt_bis",
+            "created_at",
+            "modified_at",
+            "backup_daten"
+          ],
+          "mode": "ausgenommen",
+          "has_uid": true,
+          "has_daten": true,
+          "has_name": true,
+          "has_historisch": true,
+          "has_555": false,
+          "has_666": false,
+          "health_errors": [],
+          "roundmaking": [
+            "skip_ausgenommen"
+          ]
+        },
+        {
+          "table": "sys_mandanten",
+          "columns": [
+            "uid",
+            "daten",
+            "name",
+            "historisch",
+            "source_hash",
+            "sec_id",
+            "gilt_bis",
+            "created_at",
+            "modified_at",
+            "daten_backup",
+            "link_uid"
+          ],
+          "mode": "voll_templatefaehig",
+          "has_uid": true,
+          "has_daten": true,
+          "has_name": true,
+          "has_historisch": true,
+          "has_555": true,
+          "has_666": true,
+          "health_errors": [],
+          "roundmaking": []
+        }
+      ],
+      "summary": {
+        "tables_total": 7,
+        "tables_scope_uid_daten": 7,
+        "mode_voll": 3,
+        "mode_teil": 2,
+        "mode_ausgenommen": 2,
+        "mode_nicht_im_scope": 0,
+        "health_error_count": 2,
+        "roundmaking_actions": 4
+      },
+      "error": null
+    },
+    {
+      "db_label": "mandant_main",
+      "database": "filale_test_1",
+      "host": "localhost",
+      "port": 5432,
+      "tables": [
+        {
+          "table": "msy_anwendungsdaten",
+          "columns": [
+            "uid",
+            "daten",
+            "name",
+            "historisch",
+            "sec_id",
+            "modified_at",
+            "created_at",
+            "source_hash",
+            "gilt_bis",
+            "daten_backup",
+            "link_uid",
+            "backup_daten"
+          ],
+          "mode": "voll_templatefaehig",
+          "has_uid": true,
+          "has_daten": true,
+          "has_name": true,
+          "has_historisch": true,
+          "has_555": true,
+          "has_666": true,
+          "health_errors": [],
+          "roundmaking": []
+        },
+        {
+          "table": "msy_error_acknowledgments",
+          "columns": [
+            "uid",
+            "daten",
+            "name",
+            "historisch",
+            "source_hash",
+            "sec_id",
+            "gilt_bis",
+            "created_at",
+            "modified_at",
+            "daten_backup",
+            "link_uid",
+            "backup_daten"
+          ],
+          "mode": "voll_templatefaehig",
+          "has_uid": true,
+          "has_daten": true,
+          "has_name": true,
+          "has_historisch": true,
+          "has_555": true,
+          "has_666": true,
+          "health_errors": [],
+          "roundmaking": []
+        },
+        {
+          "table": "msy_error_log",
+          "columns": [
+            "uid",
+            "daten",
+            "name",
+            "historisch",
+            "source_hash",
+            "sec_id",
+            "gilt_bis",
+            "created_at",
+            "modified_at",
+            "daten_backup",
+            "link_uid",
+            "backup_daten"
+          ],
+          "mode": "voll_templatefaehig",
+          "has_uid": true,
+          "has_daten": true,
+          "has_name": true,
+          "has_historisch": true,
+          "has_555": true,
+          "has_666": true,
+          "health_errors": [],
+          "roundmaking": []
+        },
+        {
+          "table": "msy_feld_aenderungshistorie",
+          "columns": [
+            "uid",
+            "link_uid",
+            "daten",
+            "name",
+            "historisch",
+            "source_hash",
+            "sec_id",
+            "gilt_bis",
+            "created_at",
+            "modified_at",
+            "backup_daten"
+          ],
+          "mode": "ausgenommen",
+          "has_uid": true,
+          "has_daten": true,
+          "has_name": true,
+          "has_historisch": true,
+          "has_555": false,
+          "has_666": false,
+          "health_errors": [],
+          "roundmaking": [
+            "skip_ausgenommen"
+          ]
+        },
+        {
+          "table": "msy_layout",
+          "columns": [
+            "uid",
+            "daten",
+            "name",
+            "historisch",
+            "source_hash",
+            "sec_id",
+            "gilt_bis",
+            "created_at",
+            "modified_at",
+            "daten_backup",
+            "link_uid",
+            "backup_daten"
+          ],
+          "mode": "voll_templatefaehig",
+          "has_uid": true,
+          "has_daten": true,
+          "has_name": true,
+          "has_historisch": true,
+          "has_555": true,
+          "has_666": true,
+          "health_errors": [],
+          "roundmaking": []
+        },
+        {
+          "table": "msy_security",
+          "columns": [
+            "uid",
+            "daten",
+            "name",
+            "historisch",
+            "sec_id",
+            "modified_at",
+            "created_at",
+            "source_hash",
+            "gilt_bis",
+            "daten_backup",
+            "link_uid",
+            "backup_daten"
+          ],
+          "mode": "voll_templatefaehig",
+          "has_uid": true,
+          "has_daten": true,
+          "has_name": true,
+          "has_historisch": true,
+          "has_555": true,
+          "has_666": true,
+          "health_errors": [],
+          "roundmaking": []
+        },
+        {
+          "table": "msy_systemdaten",
+          "columns": [
+            "uid",
+            "link_uid",
+            "daten",
+            "name",
+            "historisch",
+            "source_hash",
+            "sec_id",
+            "gilt_bis",
+            "created_at",
+            "modified_at",
+            "backup_daten"
+          ],
+          "mode": "voll_templatefaehig",
+          "has_uid": true,
+          "has_daten": true,
+          "has_name": true,
+          "has_historisch": true,
+          "has_555": true,
+          "has_666": true,
+          "health_errors": [
+            "666.TEMPLATES-Felder müssen Objekte sein: ['gruppe']"
+          ],
+          "roundmaking": [
+            "update_666"
+          ]
+        },
+        {
+          "table": "msy_systemsteuerung",
+          "columns": [
+            "uid",
+            "daten",
+            "name",
+            "historisch",
+            "sec_id",
+            "modified_at",
+            "created_at",
+            "source_hash",
+            "gilt_bis",
+            "daten_backup",
+            "link_uid",
+            "backup_daten"
+          ],
+          "mode": "voll_templatefaehig",
+          "has_uid": true,
+          "has_daten": true,
+          "has_name": true,
+          "has_historisch": true,
+          "has_555": true,
+          "has_666": true,
+          "health_errors": [
+            "666.TEMPLATES-Felder müssen Objekte sein: ['stichtag']"
+          ],
+          "roundmaking": [
+            "update_666"
+          ]
+        },
+        {
+          "table": "tst_finanzdaten",
+          "columns": [
+            "uid",
+            "daten",
+            "name",
+            "historisch",
+            "source_hash",
+            "sec_id",
+            "gilt_bis",
+            "created_at",
+            "modified_at",
+            "daten_backup",
+            "link_uid",
+            "backup_daten"
+          ],
+          "mode": "voll_templatefaehig",
+          "has_uid": true,
+          "has_daten": true,
+          "has_name": true,
+          "has_historisch": true,
+          "has_555": true,
+          "has_666": true,
+          "health_errors": [],
+          "roundmaking": []
+        },
+        {
+          "table": "tst_persondaten",
+          "columns": [
+            "uid",
+            "daten",
+            "name",
+            "historisch",
+            "source_hash",
+            "sec_id",
+            "gilt_bis",
+            "created_at",
+            "modified_at",
+            "daten_backup",
+            "link_uid",
+            "backup_daten"
+          ],
+          "mode": "voll_templatefaehig",
+          "has_uid": true,
+          "has_daten": true,
+          "has_name": true,
+          "has_historisch": true,
+          "has_555": true,
+          "has_666": true,
+          "health_errors": [],
+          "roundmaking": []
+        }
+      ],
+      "summary": {
+        "tables_total": 10,
+        "tables_scope_uid_daten": 10,
+        "mode_voll": 9,
+        "mode_teil": 0,
+        "mode_ausgenommen": 1,
+        "mode_nicht_im_scope": 0,
+        "health_error_count": 2,
+        "roundmaking_actions": 2
+      },
+      "error": null
+    }
+  ],
+  "summary": {
+    "db_count": 3,
+    "tables_total": 30,
+    "tables_scope_uid_daten": 30,
+    "mode_voll": 22,
+    "mode_teil": 2,
+    "mode_ausgenommen": 6,
+    "mode_nicht_im_scope": 0,
+    "health_error_count": 5,
+    "roundmaking_actions": 7,
+    "db_errors": 0
+  }
+}

@@ -1,0 +1,775 @@
+{
+  "phase": "phaseA0_normalize_templates_from_data",
+  "apply": true,
+  "main_mandant": {
+    "uid": "e51a8688-2cca-4a16-855d-52a69677fb50",
+    "name": "Filiale Test 1 Mandant",
+    "database": "filale_test_1",
+    "host": "localhost",
+    "port": 5432,
+    "user": "postgres",
+    "password": "Polari$55",
+    "source_table": "asy_mandanten"
+  },
+  "databases": [
+    {
+      "db_label": "system",
+      "database": "pdvm_system",
+      "summary": {
+        "tables_total": 13,
+        "tables_considered": 13,
+        "tables_normalized": 10,
+        "rows_inserted": 0,
+        "rows_updated": 20,
+        "rows_skipped_blocked": 0
+      },
+      "tables": [
+        {
+          "table": "dev_workflow_draft",
+          "mode": "ausgenommen",
+          "action": "skip",
+          "notes": [
+            "mode_ausgenommen"
+          ],
+          "diagnostics": {}
+        },
+        {
+          "table": "dev_workflow_draft_item",
+          "mode": "ausgenommen",
+          "action": "skip",
+          "notes": [
+            "mode_ausgenommen"
+          ],
+          "diagnostics": {}
+        },
+        {
+          "table": "sys_beschreibungen",
+          "mode": "voll_templatefaehig",
+          "action": "normalized",
+          "notes": [],
+          "diagnostics": {
+            "source_row_count": 1,
+            "group_count": 1,
+            "root_keys": [
+              "SELF_CREATED_AT",
+              "SELF_GILT_BIS",
+              "SELF_GUID",
+              "SELF_LINK_UID",
+              "SELF_MODIFIED_AT",
+              "SELF_NAME",
+              "TABLE"
+            ],
+            "groups": [
+              "TABLE_INFO"
+            ]
+          }
+        },
+        {
+          "table": "sys_control_dict",
+          "mode": "voll_templatefaehig",
+          "action": "normalized",
+          "notes": [],
+          "diagnostics": {
+            "source_row_count": 155,
+            "group_count": 1,
+            "root_keys": [
+              "FIELD",
+              "NAME",
+              "SELF_CREATED_AT",
+              "SELF_GILT_BIS",
+              "SELF_GUID",
+              "SELF_LINK_UID",
+              "SELF_MODIFIED_AT",
+              "SELF_NAME",
+              "TABLE"
+            ],
+            "groups": [
+              "CONTROL"
+            ]
+          }
+        },
+        {
+          "table": "sys_dialogdaten",
+          "mode": "voll_templatefaehig",
+          "action": "normalized",
+          "notes": [],
+          "diagnostics": {
+            "source_row_count": 15,
+            "group_count": 1,
+            "root_keys": [
+              "CREATE_DEFAULTS",
+              "CREATE_FRAME_GUID",
+              "CREATE_REQUIRED",
+              "DIALOG_TYPE",
+              "DRAFT_ITEM_TABLE",
+              "DRAFT_TABLE",
+              "EDIT_TYPE",
+              "FRAME_GUID",
+              "GO_NEW_SET",
+              "HEADER",
+              "ON_NEW_SET",
+              "OPEN_EDIT",
+              "SELECTION_MODE",
+              "SELF_CREATED_AT",
+              "SELF_GILT_BIS",
+              "SELF_GUID",
+              "SELF_LINK_UID",
+              "SELF_MODIFIED_AT",
+              "SELF_NAME",
+              "SHOW_TABLE",
+              "TABLE",
+              "TABS",
+              "TAB_ELEMENTS"
+            ],
+            "groups": [
+              "TABLE_INFO"
+            ]
+          }
+        },
+        {
+          "table": "sys_dropdowndaten",
+          "mode": "voll_templatefaehig",
+          "action": "normalized",
+          "notes": [],
+          "diagnostics": {
+            "source_row_count": 6,
+            "group_count": 4,
+            "root_keys": [
+              "BESCHREIBUNG_NAME",
+              "DEFAULT_LANGUAGE",
+              "SELF_CREATED_AT",
+              "SELF_GILT_BIS",
+              "SELF_GUID",
+              "SELF_LINK_UID",
+              "SELF_MODIFIED_AT",
+              "SELF_NAME",
+              "TABLE"
+            ],
+            "groups": [
+              "DE-DE",
+              "TABLE_INFO",
+              "anrede",
+              "waehrung"
+            ]
+          }
+        },
+        {
+          "table": "sys_ext_table",
+          "mode": "voll_templatefaehig",
+          "action": "normalized",
+          "notes": [],
+          "diagnostics": {
+            "source_row_count": 4,
+            "group_count": 3,
+            "root_keys": [
+              "ALLOW_INSERT_NEW",
+              "ALLOW_OVERWRITE",
+              "ALLOW_ROW_DELETE",
+              "CONFLICT_POLICY",
+              "CONFLICT_RULES",
+              "CUSTOM_HEADERS",
+              "DATASET_KEY",
+              "EDIT_TYPE",
+              "HAS_HEADERS",
+              "HEADER_OVERRIDES",
+              "LAST_IMPORT_AT",
+              "MATCH_KEYS",
+              "NAME",
+              "SELF_CREATED_AT",
+              "SELF_GILT_BIS",
+              "SELF_GUID",
+              "SELF_LINK_UID",
+              "SELF_MODIFIED_AT",
+              "SELF_NAME",
+              "TABLE"
+            ],
+            "groups": [
+              "CONFIG",
+              "DATAS",
+              "TABLE_INFO"
+            ]
+          }
+        },
+        {
+          "table": "sys_feld_aenderungshistorie",
+          "mode": "ausgenommen",
+          "action": "skip",
+          "notes": [
+            "mode_ausgenommen"
+          ],
+          "diagnostics": {}
+        },
+        {
+          "table": "sys_framedaten",
+          "mode": "voll_templatefaehig",
+          "action": "normalized",
+          "notes": [],
+          "diagnostics": {
+            "source_row_count": 19,
+            "group_count": 2,
+            "root_keys": [
+              "DIALOG_GUID",
+              "EDIT_TYPE",
+              "FRAME_TYPE",
+              "GO_NEW_SET",
+              "ROOT_TABLE",
+              "SELF_CREATED_AT",
+              "SELF_GILT_BIS",
+              "SELF_GUID",
+              "SELF_LINK_UID",
+              "SELF_MODIFIED_AT",
+              "SELF_NAME",
+              "TABLE",
+              "TABS",
+              "TABS_DEF",
+              "TAB_ELEMENTS"
+            ],
+            "groups": [
+              "FIELDS",
+              "TABLE_INFO"
+            ]
+          }
+        },
+        {
+          "table": "sys_layout",
+          "mode": "voll_templatefaehig",
+          "action": "normalized",
+          "notes": [],
+          "diagnostics": {
+            "source_row_count": 4,
+            "group_count": 4,
+            "root_keys": [
+              "SELF_CREATED_AT",
+              "SELF_GILT_BIS",
+              "SELF_GUID",
+              "SELF_LINK_UID",
+              "SELF_MODIFIED_AT",
+              "SELF_NAME",
+              "TABLE"
+            ],
+            "groups": [
+              "TABLE_INFO",
+              "dark",
+              "info",
+              "light"
+            ]
+          }
+        },
+        {
+          "table": "sys_menudaten",
+          "mode": "voll_templatefaehig",
+          "action": "normalized",
+          "notes": [],
+          "diagnostics": {
+            "source_row_count": 12,
+            "group_count": 4,
+            "root_keys": [
+              "DIALOG_GUID",
+              "DISPLAY_ST",
+              "DISPLAY_TIME_SHORT",
+              "EDIT_TABS",
+              "EDIT_TAB_LABEL_01",
+              "EDIT_TYPE",
+              "GRUND",
+              "HEADER_TEXT",
+              "MIGRATED_FROM",
+              "NAME",
+              "SELF_CREATED_AT",
+              "SELF_GILT_BIS",
+              "SELF_GUID",
+              "SELF_LINK_UID",
+              "SELF_MODIFIED_AT",
+              "SELF_NAME",
+              "TABLE",
+              "VERSION",
+              "VERTIKAL",
+              "VIEW_GUID",
+              "ZUSATZ",
+              "is_template"
+            ],
+            "groups": [
+              "GRUND",
+              "TEMPLATE",
+              "VERTIKAL",
+              "ZUSATZ"
+            ]
+          }
+        },
+        {
+          "table": "sys_systemdaten",
+          "mode": "voll_templatefaehig",
+          "action": "normalized",
+          "notes": [],
+          "diagnostics": {
+            "source_row_count": 28,
+            "group_count": 5,
+            "root_keys": [
+              "APP_KEY",
+              "BESCHREIBUNG_NAME",
+              "CONTROL_DICT_TABLE",
+              "DEFAULT_LANGUAGE",
+              "DICT_AUDIT_TABLE",
+              "DOMAIN",
+              "IS_ACTIVE",
+              "PREFIX",
+              "SELF_CREATED_AT",
+              "SELF_GILT_BIS",
+              "SELF_GUID",
+              "SELF_LINK_UID",
+              "SELF_MODIFIED_AT",
+              "SELF_NAME",
+              "SOURCE_DB",
+              "TABLE"
+            ],
+            "groups": [
+              "DE-DE",
+              "MENU_COMMANDS",
+              "MENU_CONFIGS",
+              "TEMPLATE_META",
+              "gruppe"
+            ]
+          }
+        },
+        {
+          "table": "sys_viewdaten",
+          "mode": "voll_templatefaehig",
+          "action": "normalized",
+          "notes": [],
+          "diagnostics": {
+            "source_row_count": 10,
+            "group_count": 5,
+            "root_keys": [
+              "ALLOW_FILTER",
+              "ALLOW_SORT",
+              "DEFAULT_SORT_COLUMN",
+              "DEFAULT_SORT_REVERSE",
+              "EDIT_TYPE",
+              "FILTER",
+              "HEADER_TEXT",
+              "NO_DATA",
+              "PROJECTION",
+              "PROJECTION_MODE",
+              "SELF_CREATED_AT",
+              "SELF_GILT_BIS",
+              "SELF_GUID",
+              "SELF_LINK_UID",
+              "SELF_MODIFIED_AT",
+              "SELF_NAME",
+              "SORT",
+              "TABLE",
+              "VIEW_GUID",
+              "VIEW_NAME"
+            ],
+            "groups": [
+              "**SYSTEM",
+              "SYSTEM",
+              "SYS_BENUTZERDATEN",
+              "SYS_MENUDATEN",
+              "TABLE_INFO"
+            ]
+          }
+        }
+      ],
+      "error": null
+    },
+    {
+      "db_label": "auth",
+      "database": "auth",
+      "summary": {
+        "tables_total": 7,
+        "tables_considered": 7,
+        "tables_normalized": 5,
+        "rows_inserted": 0,
+        "rows_updated": 8,
+        "rows_skipped_blocked": 1
+      },
+      "tables": [
+        {
+          "table": "asy_benutzer",
+          "mode": "teiltemplatefaehig",
+          "action": "normalized",
+          "notes": [
+            "insert_blocking_columns=['benutzer', 'passwort']",
+            "skip_create_555_blocked"
+          ],
+          "diagnostics": {
+            "source_row_count": 4,
+            "group_count": 8,
+            "root_keys": [
+              "DB",
+              "SELF_CREATED_AT",
+              "SELF_GILT_BIS",
+              "SELF_GUID",
+              "SELF_LINK_UID",
+              "SELF_MODIFIED_AT",
+              "SELF_NAME",
+              "TABLE"
+            ],
+            "groups": [
+              "AUDIT",
+              "CONFIG",
+              "MANDANTEN",
+              "MEINEAPPS",
+              "PERMISSIONS",
+              "SECURITY",
+              "SETTINGS",
+              "USER"
+            ]
+          }
+        },
+        {
+          "table": "asy_feld_aenderungshistorie",
+          "mode": "ausgenommen",
+          "action": "skip",
+          "notes": [
+            "mode_ausgenommen"
+          ],
+          "diagnostics": {}
+        },
+        {
+          "table": "asy_mandanten",
+          "mode": "voll_templatefaehig",
+          "action": "normalized",
+          "notes": [],
+          "diagnostics": {
+            "source_row_count": 6,
+            "group_count": 6,
+            "root_keys": [
+              "DB_CREATED_AT",
+              "IDLE_TIMEOUT",
+              "IDLE_WARNING",
+              "MANDANT_STREET",
+              "MANDANT_TOWN",
+              "NAME",
+              "SELF_CREATED_AT",
+              "SELF_GILT_BIS",
+              "SELF_GUID",
+              "SELF_LINK_UID",
+              "SELF_MODIFIED_AT",
+              "SELF_NAME",
+              "TABLE"
+            ],
+            "groups": [
+              "CONFIG",
+              "CONTACT",
+              "MANDANT",
+              "SECURITY",
+              "SEND_EMAIL",
+              "TABLE_INFO"
+            ]
+          }
+        },
+        {
+          "table": "asy_systemdaten",
+          "mode": "voll_templatefaehig",
+          "action": "normalized",
+          "notes": [],
+          "diagnostics": {
+            "source_row_count": 10,
+            "group_count": 2,
+            "root_keys": [
+              "APP_KEY",
+              "CONTROL_DICT_TABLE",
+              "DICT_AUDIT_TABLE",
+              "DOMAIN",
+              "IS_ACTIVE",
+              "PREFIX",
+              "SELF_CREATED_AT",
+              "SELF_GILT_BIS",
+              "SELF_GUID",
+              "SELF_LINK_UID",
+              "SELF_MODIFIED_AT",
+              "SELF_NAME",
+              "SOURCE_DB",
+              "TABLE"
+            ],
+            "groups": [
+              "TEMPLATE_META",
+              "gruppe"
+            ]
+          }
+        },
+        {
+          "table": "sys_benutzer",
+          "mode": "teiltemplatefaehig",
+          "action": "normalized",
+          "notes": [
+            "skip_create_555_partial"
+          ],
+          "diagnostics": {
+            "source_row_count": 4,
+            "group_count": 8,
+            "root_keys": [
+              "DB",
+              "SELF_CREATED_AT",
+              "SELF_GILT_BIS",
+              "SELF_GUID",
+              "SELF_LINK_UID",
+              "SELF_MODIFIED_AT",
+              "SELF_NAME",
+              "TABLE"
+            ],
+            "groups": [
+              "AUDIT",
+              "CONFIG",
+              "MANDANTEN",
+              "MEINEAPPS",
+              "PERMISSIONS",
+              "SECURITY",
+              "SETTINGS",
+              "USER"
+            ]
+          }
+        },
+        {
+          "table": "sys_feld_aenderungshistorie",
+          "mode": "ausgenommen",
+          "action": "skip",
+          "notes": [
+            "mode_ausgenommen"
+          ],
+          "diagnostics": {}
+        },
+        {
+          "table": "sys_mandanten",
+          "mode": "voll_templatefaehig",
+          "action": "normalized",
+          "notes": [],
+          "diagnostics": {
+            "source_row_count": 6,
+            "group_count": 6,
+            "root_keys": [
+              "DB_CREATED_AT",
+              "IDLE_TIMEOUT",
+              "IDLE_WARNING",
+              "MANDANT_STREET",
+              "MANDANT_TOWN",
+              "NAME",
+              "SELF_CREATED_AT",
+              "SELF_GILT_BIS",
+              "SELF_GUID",
+              "SELF_LINK_UID",
+              "SELF_MODIFIED_AT",
+              "SELF_NAME",
+              "TABLE"
+            ],
+            "groups": [
+              "CONFIG",
+              "CONTACT",
+              "MANDANT",
+              "SECURITY",
+              "SEND_EMAIL",
+              "TABLE_INFO"
+            ]
+          }
+        }
+      ],
+      "error": null
+    },
+    {
+      "db_label": "mandant_main",
+      "database": "filale_test_1",
+      "summary": {
+        "tables_total": 10,
+        "tables_considered": 10,
+        "tables_normalized": 3,
+        "rows_inserted": 0,
+        "rows_updated": 6,
+        "rows_skipped_blocked": 0
+      },
+      "tables": [
+        {
+          "table": "msy_anwendungsdaten",
+          "mode": "voll_templatefaehig",
+          "action": "normalized",
+          "notes": [],
+          "diagnostics": {
+            "source_row_count": 1,
+            "group_count": 1,
+            "root_keys": [
+              "SELF_CREATED_AT",
+              "SELF_GILT_BIS",
+              "SELF_GUID",
+              "SELF_LINK_UID",
+              "SELF_MODIFIED_AT",
+              "SELF_NAME",
+              "TABLE"
+            ],
+            "groups": [
+              "CONFIG"
+            ]
+          }
+        },
+        {
+          "table": "msy_error_acknowledgments",
+          "mode": "voll_templatefaehig",
+          "action": "already_normal",
+          "notes": [],
+          "diagnostics": {
+            "source_row_count": 0,
+            "group_count": 0,
+            "root_keys": [
+              "SELF_GUID",
+              "SELF_NAME",
+              "TABLE"
+            ],
+            "groups": []
+          }
+        },
+        {
+          "table": "msy_error_log",
+          "mode": "voll_templatefaehig",
+          "action": "already_normal",
+          "notes": [],
+          "diagnostics": {
+            "source_row_count": 0,
+            "group_count": 0,
+            "root_keys": [
+              "SELF_GUID",
+              "SELF_NAME",
+              "TABLE"
+            ],
+            "groups": []
+          }
+        },
+        {
+          "table": "msy_feld_aenderungshistorie",
+          "mode": "ausgenommen",
+          "action": "skip",
+          "notes": [
+            "mode_ausgenommen"
+          ],
+          "diagnostics": {}
+        },
+        {
+          "table": "msy_layout",
+          "mode": "voll_templatefaehig",
+          "action": "already_normal",
+          "notes": [],
+          "diagnostics": {
+            "source_row_count": 0,
+            "group_count": 0,
+            "root_keys": [
+              "SELF_GUID",
+              "SELF_NAME",
+              "TABLE"
+            ],
+            "groups": []
+          }
+        },
+        {
+          "table": "msy_security",
+          "mode": "voll_templatefaehig",
+          "action": "already_normal",
+          "notes": [],
+          "diagnostics": {
+            "source_row_count": 0,
+            "group_count": 0,
+            "root_keys": [
+              "SELF_GUID",
+              "SELF_NAME",
+              "TABLE"
+            ],
+            "groups": []
+          }
+        },
+        {
+          "table": "msy_systemdaten",
+          "mode": "voll_templatefaehig",
+          "action": "normalized",
+          "notes": [],
+          "diagnostics": {
+            "source_row_count": 21,
+            "group_count": 2,
+            "root_keys": [
+              "APP_KEY",
+              "CONTROL_DICT_TABLE",
+              "DICT_AUDIT_TABLE",
+              "DOMAIN",
+              "IS_ACTIVE",
+              "PREFIX",
+              "SELF_GUID",
+              "SELF_NAME",
+              "SOURCE_DB",
+              "TABLE"
+            ],
+            "groups": [
+              "TEMPLATE_META",
+              "gruppe"
+            ]
+          }
+        },
+        {
+          "table": "msy_systemsteuerung",
+          "mode": "voll_templatefaehig",
+          "action": "normalized",
+          "notes": [],
+          "diagnostics": {
+            "source_row_count": 1,
+            "group_count": 5,
+            "root_keys": [
+              "HISTORY_TEST_MARKER",
+              "SELF_CREATED_AT",
+              "SELF_GILT_BIS",
+              "SELF_GUID",
+              "SELF_LINK_UID",
+              "SELF_MODIFIED_AT",
+              "SELF_NAME",
+              "TABLE"
+            ],
+            "groups": [
+              "1f3a0e00-48bb-4a08-9cb8-7a7d52f23001::sys_dialogdaten::pdvm_edit",
+              "9f06711e-4ad8-4ea4-9837-2f40f3a6f101",
+              "9f06711e-4ad8-4ea4-9837-2f40f3a6f101::sys_control_dict::pdvm_edit",
+              "aa24be4a-d95c-401f-8e6d-f0a2a6140a56",
+              "stichtag"
+            ]
+          }
+        },
+        {
+          "table": "tst_finanzdaten",
+          "mode": "voll_templatefaehig",
+          "action": "already_normal",
+          "notes": [],
+          "diagnostics": {
+            "source_row_count": 0,
+            "group_count": 0,
+            "root_keys": [
+              "SELF_GUID",
+              "SELF_NAME",
+              "TABLE"
+            ],
+            "groups": []
+          }
+        },
+        {
+          "table": "tst_persondaten",
+          "mode": "voll_templatefaehig",
+          "action": "already_normal",
+          "notes": [],
+          "diagnostics": {
+            "source_row_count": 0,
+            "group_count": 0,
+            "root_keys": [
+              "SELF_GUID",
+              "SELF_NAME",
+              "TABLE"
+            ],
+            "groups": []
+          }
+        }
+      ],
+      "error": null
+    }
+  ],
+  "summary": {
+    "db_count": 3,
+    "db_errors": 0,
+    "tables_total": 30,
+    "tables_considered": 30,
+    "tables_normalized": 18,
+    "rows_inserted": 0,
+    "rows_updated": 34,
+    "rows_skipped_blocked": 1
+  }
+}

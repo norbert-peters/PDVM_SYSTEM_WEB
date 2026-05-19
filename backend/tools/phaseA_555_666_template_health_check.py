@@ -143,6 +143,13 @@ def _validate_table_templates(
     if not templates_666:
         result.errors.append("666.TEMPLATES fehlt oder ist kein Objekt")
 
+    extra_top_666 = sorted(str(k) for k in data_666.keys() if str(k) not in {"ROOT", "TEMPLATES"})
+    if extra_top_666:
+        result.errors.append(f"666 darf nur ROOT+TEMPLATES enthalten (zusätzliche Keys: {extra_top_666})")
+
+    if "TEMPLATES" in data_555:
+        result.errors.append("555 darf kein Top-Level TEMPLATES enthalten")
+
     if root_555 and root_666:
         keys_555 = _safe_keys(root_555)
         keys_666 = _safe_keys(root_666)
@@ -160,11 +167,26 @@ def _validate_table_templates(
         if str(k) not in {"ROOT", "TEMPLATES", "BACKUP_DUMMY"}
     }
 
+    wrong_type_555_groups = sorted(g for g in groups_555 if not isinstance(data_555.get(g), dict))
+    non_empty_555_groups = sorted(g for g in groups_555 if isinstance(data_555.get(g), dict) and data_555.get(g))
+    if wrong_type_555_groups:
+        result.errors.append(f"555-Gruppen müssen Objekte sein (ungültig: {wrong_type_555_groups})")
+    if non_empty_555_groups:
+        result.errors.append(f"555-Gruppen müssen leer sein (nicht leer: {non_empty_555_groups})")
+
     if groups_555 and templates_666:
         missing = sorted(g for g in groups_555 if g not in templates_666)
         if missing:
-            result.warnings.append("Gruppen aus 555 fehlen in 666.TEMPLATES")
+            result.errors.append("Gruppen aus 555 fehlen in 666.TEMPLATES")
             result.missing_template_groups.extend(missing)
+
+        extra_templates = sorted(str(g) for g in templates_666.keys() if str(g) not in groups_555)
+        if extra_templates:
+            result.errors.append(f"666.TEMPLATES enthält Fremd-Gruppen: {extra_templates}")
+
+        wrong_template_types = sorted(str(k) for k, v in templates_666.items() if not isinstance(v, dict))
+        if wrong_template_types:
+            result.errors.append(f"666.TEMPLATES-Felder müssen Objekte sein: {wrong_template_types}")
 
     return result
 

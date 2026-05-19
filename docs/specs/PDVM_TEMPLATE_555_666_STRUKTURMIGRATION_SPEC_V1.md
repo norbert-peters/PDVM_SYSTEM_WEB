@@ -38,6 +38,13 @@ Pflichtinhalt in daten:
 
 Regel:
 1. 555 beschreibt, welche Gruppen in einem Datensatz strukturell existieren duerfen/muessen.
+2. 555 besteht nach Normalisierung nur aus:
+- ROOT (Standard-ROOT der Tabelle)
+- leeren Gruppenobjekten {} fuer alle fachlichen Gruppen der Tabelle.
+
+Hinweis Standard-ROOT:
+1. Enthält immer SELF*-Schluessel (mindestens SELF_GUID, SELF_NAME) und TABLE.
+2. Weitere ROOT-Felder sind tabellenspezifisch zu beurteilen und werden in A.0 aus den realen Datensaetzen hergeleitet.
 
 ## 3.2 666-Satz (Inhalts-Template)
 
@@ -51,6 +58,7 @@ Regeln:
 1. Jede in 555 definierte Gruppe darf ein passendes Template in 666.TEMPLATES besitzen.
 2. Weitere maschinelle Teil-Templates (z. B. CONFIGS, TABS, LISTEN-Defaults) liegen ebenfalls in 666.TEMPLATES.
 3. TEMPLATES selbst ist Metastruktur und wird nicht als fachliche Gruppe in Instanzdaten persistiert.
+4. 666 wird in A.0 auf genau zwei Top-Level-Gruppen normalisiert: ROOT und TEMPLATES.
 
 ## 3.3 Instanzbildung fuer neue Saetze
 
@@ -78,6 +86,19 @@ Neuer Datensatz daten wird linear aufgebaut:
 
 ## 5.1 Fachregel
 Wenn sich 555/666-Struktur aendert, werden Bestandsdatensaetze nachgezogen.
+
+## 5.1.1 Pflicht-Normalisierung vor Projektfortsetzung (A.0 Gate)
+Vor jeder weiteren Projektphase muessen 555 und 666 je Tabelle aus den vorhandenen Datensaetzen normalisiert werden.
+
+Verbindlicher linearer Ablauf je Tabelle:
+1. Aktive Datensaetze (ohne 555/666) analysieren.
+2. Fachgruppen aus den Datensaetzen ermitteln.
+3. 555 aufbauen als ROOT + leere Gruppenobjekte.
+4. 666 aufbauen als ROOT + TEMPLATES mit aus Datensaetzen hergeleiteten Gruppen-Templates.
+5. ROOT-Struktur zwischen 555 und 666 identisch machen.
+6. Ergebnisse speichern, dann naechste Tabelle.
+
+Erst wenn alle Tabellen pro Ziel-DB konsistent normalisiert sind, darf mit Folgephasen fortgefahren werden.
 
 ## 5.2 Additives Backup
 Bei Entfall von Eigenschaften/Feldern:
@@ -179,12 +200,23 @@ Pflicht:
 6. Kreis nicht migrierbarer Felder wird eng gehalten.
 - Vorlaeufig ausgeschlossen: SELF*-Eigenschaften (insbesondere SELF_GUID, SELF_LINK_UID und technisch abgeleitete SELF-Metafelder).
 
+7. Zusatz-Metadaten auf Satzebene sind erlaubt und gewuenscht.
+- RECORD_TYPE wird als zusaetzlicher Strukturanker verwendet (insbesondere fuer infos-nahe Datenbewegungen).
+
+8. Referenzpolitik in der Basisentwicklung ist streng.
+- Verbleibende Alt-Verweise auf nicht mehr zulaessige Datenquellen werden als harte Fehler behandelt (kein stiller Laufzeit-Fallback).
+
+9. Fuer Dropdown-Extraktion aus sys_systemdaten gilt Big-Bang.
+- Kein Parallelbetrieb alter und neuer Dropdown-Quelle.
+- Daten werden einmalig migriert und Referenzen muessen danach konsistent sein.
+
 ## 10. Vorschlag Umsetzungsphasen
 
 1. Phase A.0: Template-Roundmaking (neu, Pflicht vor Phase A)
 - Annahme: 555/666 sind aktuell nicht konsistent gepflegt.
 - Ziel: 555/666 je Tabelle auf einen validen Startzustand bringen (ROOT-Identitaet, Gruppenstruktur, TEMPLATES-Struktur).
 - Ergebnisartefakt: Korrekturliste je Tabelle + Freigabe "Template-Basis migrationstauglich".
+- Erweiterung (verbindlich): Normalisierung erfolgt pro Tabelle auf Basis realer Datensaetze (nicht nur Template-zu-Template-Abgleich).
 
 2. Phase A: Analyse
 - Tabelleninventar, 555/666-Health-Check, Ausnahmekandidaten.
@@ -192,6 +224,8 @@ Pflicht:
 
 3. Phase B: Spezifikations-Fixierung
 - Ausnahmekatalog freigeben, Strukturversionierung festlegen.
+- Pflicht-Zwischenschritt: Strukturtyp infos und Uebersetzungsstrategie festlegen (siehe PDVM_INFOS_TYP_UEBERSETZUNGSSTRATEGIE_SPEC_V1.md).
+- Pflicht-Zwischenschritt: TabellenTyp-Taxonomie fuer Sprachinhalte finalisieren (siehe PDVM_TABELLENTYPEN_UND_I18N_STRUKTUR_SPEC_V1.md).
 
 4. Phase C: Technische Migration V1
 - On-Save-Sync + Background-Batch-Runner + Dry-Run-Report.

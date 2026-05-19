@@ -4,6 +4,7 @@ Phase B V1: Persistiert Tabellenklassifizierung in *systemdaten Tabellen.
 Ziel:
 - Pro Tabelle einen Metadata-Satz ablegen mit:
   - TEMPLATE_MODE
+    - TABLE_TYPE
   - STRUCT_VERSION_TARGET
 
 Scope:
@@ -55,6 +56,12 @@ EXPLICIT_PARTIAL = {
 STRUCT_VERSION_TARGET = 1
 STRUCT_META_GROUP = "TEMPLATE_META"
 SOURCE_TAG = "phaseB_persist_template_modes_v1"
+
+# TabellenTyp Taxonomie V1
+TABLE_TYPE_EXPLICIT: Dict[str, str] = {
+    "sys_dropdowndaten": "infos_dropdown",
+    "sys_beschreibungen": "infos_text",
+}
 
 
 @dataclass
@@ -114,6 +121,41 @@ def _table_mode(table_name: str, has_uid: bool, has_daten: bool, columns: Sequen
         return "ausgenommen"
 
     return "voll_templatefaehig"
+
+
+def _table_type(table_name: str, mode: str) -> Tuple[str, str]:
+    """Liefert (table_type, source) mit source=explicit|heuristic."""
+    t = str(table_name or "").strip().lower()
+
+    explicit = TABLE_TYPE_EXPLICIT.get(t)
+    if explicit:
+        return explicit, "explicit"
+
+    if mode == "nicht_im_scope":
+        return "technical", "heuristic"
+
+    if any(k in t for k in ("historie", "history", "audit", "acknowledg")):
+        return "audit_history", "heuristic"
+
+    if any(k in t for k in ("dropdown",)):
+        return "infos_dropdown", "heuristic"
+
+    if any(k in t for k in ("beschreibung", "text", "tooltip", "help", "label", "menu")):
+        return "infos_text", "heuristic"
+
+    if any(k in t for k in ("workflow", "queue", "import", "job", "process")):
+        return "process", "heuristic"
+
+    if t.startswith("sys_"):
+        return "config", "heuristic"
+
+    if t.startswith("dev_"):
+        return "process", "heuristic"
+
+    if t.startswith(("msy_", "tst_", "asy_")):
+        return "master_data", "heuristic"
+
+    return "master_data", "heuristic"
 
 
 async def _get_table_meta(conn: asyncpg.Connection) -> List[TableMeta]:
@@ -233,7 +275,17 @@ async def _resolve_main_mandant_config() -> Tuple[Optional[ConnectionConfig], Op
         await conn.close()
 
 
-def _build_meta_payload(*, db_label: str, target_table: str, mode: str, record_uid: str, record_name: str, meta_table: str) -> Dict[str, Any]:
+def _build_meta_payload(
+    *,
+    db_label: str,
+    target_table: str,
+    mode: str,
+    table_type: str,
+    table_type_source: str,
+    record_uid: str,
+    record_name: str,
+    meta_table: str,
+) -> Dict[str, Any]:
     now_iso = datetime.now(timezone.utc).isoformat()
     return {
         "ROOT": {
@@ -244,6 +296,8 @@ def _build_meta_payload(*, db_label: str, target_table: str, mode: str, record_u
         STRUCT_META_GROUP: {
             "TARGET_TABLE": target_table,
             "TEMPLATE_MODE": mode,
+            "TABLE_TYPE": table_type,
+            "TABLE_TYPE_SOURCE": table_type_source,
             "STRUCT_VERSION_TARGET": STRUCT_VERSION_TARGET,
             "SOURCE_DB_LABEL": db_label,
             "UPDATED_AT_UTC": now_iso,
@@ -353,6 +407,7 @@ async def _process_db(db_label: str, cfg: ConnectionConfig, apply: bool) -> Dict
             "meta_rows_inserted": 0,
             "meta_rows_updated": 0,
             "meta_rows_skipped_blocked": 0,
+            "table_type_counts": {},
         },
         "tables": [],
         "error": None,
@@ -389,6 +444,7 @@ async def _process_db(db_label: str, cfg: ConnectionConfig, apply: bool) -> Dict
 
         for t in metas:
             mode = _table_mode(t.table_name, t.has_uid, t.has_daten, t.columns)
+            table_type, table_type_source = _table_type(t.table_name, mode)
             record_name = f"TEMPLATE_META::{t.table_name}"
             record_uid = str(uuid.uuid5(uuid.NAMESPACE_URL, f"{SOURCE_TAG}:{db_label}:{t.table_name}"))
 
@@ -396,6 +452,8 @@ async def _process_db(db_label: str, cfg: ConnectionConfig, apply: bool) -> Dict
                 db_label=db_label,
                 target_table=t.table_name,
                 mode=mode,
+                table_type=table_type,
+                table_type_source=table_type_source,
                 record_uid=record_uid,
                 record_name=record_name,
                 meta_table=meta_table,
@@ -404,6 +462,8 @@ async def _process_db(db_label: str, cfg: ConnectionConfig, apply: bool) -> Dict
             table_entry = {
                 "table": t.table_name,
                 "mode": mode,
+                "table_type": table_type,
+                "table_type_source": table_type_source,
                 "record_uid": record_uid,
                 "record_name": record_name,
                 "action": "none",
@@ -411,6 +471,8 @@ async def _process_db(db_label: str, cfg: ConnectionConfig, apply: bool) -> Dict
             }
 
             entry["summary"]["meta_rows_planned"] += 1
+            type_counts = entry["summary"].setdefault("table_type_counts", {})
+            type_counts[table_type] = int(type_counts.get(table_type, 0)) + 1
 
             existing = await _find_existing_meta_row(conn, meta_table, record_uid, record_name)
 
@@ -479,6 +541,7 @@ async def build_report(apply: bool) -> Dict[str, Any]:
             "meta_rows_inserted": 0,
             "meta_rows_updated": 0,
             "meta_rows_skipped_blocked": 0,
+            "table_type_counts": {},
         },
     }
 
@@ -497,6 +560,9 @@ async def build_report(apply: bool) -> Dict[str, Any]:
         report["summary"]["meta_rows_inserted"] += int(s.get("meta_rows_inserted", 0))
         report["summary"]["meta_rows_updated"] += int(s.get("meta_rows_updated", 0))
         report["summary"]["meta_rows_skipped_blocked"] += int(s.get("meta_rows_skipped_blocked", 0))
+        for k, v in (s.get("table_type_counts", {}) or {}).items():
+            counts = report["summary"].setdefault("table_type_counts", {})
+            counts[k] = int(counts.get(k, 0)) + int(v)
 
     return report
 

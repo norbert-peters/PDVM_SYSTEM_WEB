@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import re
 import sys
 import uuid
 from dataclasses import dataclass, field
@@ -126,6 +127,18 @@ def _normalize_group_payload(payload: Any) -> Dict[str, Any]:
     return {}
 
 
+def _is_language_group_key(value: str) -> bool:
+    """Erkennt Sprachgruppen wie DE-DE, de_de, enUS, itd."""
+    s = str(value or "").strip()
+    if not s:
+        return False
+    if re.fullmatch(r"[A-Za-z]{2}[-_][A-Za-z]{2}", s):
+        return True
+    if re.fullmatch(r"[A-Za-z]{4}", s):
+        return True
+    return False
+
+
 def _build_555_data(table_name: str, existing_555: Dict[str, Any], existing_666: Dict[str, Any]) -> Dict[str, Any]:
     root_555 = _as_dict(existing_555.get("ROOT"))
     root_666 = _as_dict(existing_666.get("ROOT"))
@@ -155,10 +168,23 @@ def _build_555_data(table_name: str, existing_555: Dict[str, Any], existing_666:
 
     out: Dict[str, Any] = {"ROOT": root_out}
 
-    for key, value in existing_555.items():
-        if key in {"ROOT", "TEMPLATES"}:
+    templates_666 = _as_dict(existing_666.get("TEMPLATES"))
+    group_keys: List[str] = []
+    for key in existing_555.keys():
+        ks = str(key)
+        if ks in {"ROOT", "TEMPLATES", "BACKUP_DUMMY"}:
             continue
-        out[key] = _normalize_group_payload(value)
+        if ks not in group_keys:
+            group_keys.append(ks)
+
+    for key in templates_666.keys():
+        ks = str(key)
+        if ks and ks not in group_keys:
+            group_keys.append(ks)
+
+    # 555-Gruppen sind strikt nur leere Strukturhüllen.
+    for key in sorted(group_keys):
+        out[key] = {}
 
     return out
 
@@ -180,16 +206,21 @@ def _build_666_data(table_name: str, normalized_555: Dict[str, Any], existing_66
         else:
             root_out[key] = root_555.get(key)
 
-    templates = _as_dict(existing_666.get("TEMPLATES"))
+    existing_templates = _as_dict(existing_666.get("TEMPLATES"))
+    templates: Dict[str, Any] = {}
     for group_key in normalized_555.keys():
         if group_key == "ROOT":
             continue
-        if group_key not in templates or not isinstance(templates.get(group_key), dict):
+        if group_key not in existing_templates or not isinstance(existing_templates.get(group_key), dict):
             templates[group_key] = {}
+        else:
+            templates[group_key] = existing_templates[group_key]
 
-    out: Dict[str, Any] = dict(existing_666)
-    out["ROOT"] = root_out
-    out["TEMPLATES"] = templates
+    # 666 ist strikt: nur ROOT + TEMPLATES.
+    out: Dict[str, Any] = {
+        "ROOT": root_out,
+        "TEMPLATES": templates,
+    }
 
     return out
 
@@ -295,6 +326,34 @@ def _health_errors(data_555: Dict[str, Any], data_666: Dict[str, Any]) -> List[s
         errors.append("666.ROOT fehlt oder ist kein Objekt")
     if not has_templates_key or not templates_is_dict:
         errors.append("666.TEMPLATES fehlt oder ist kein Objekt")
+
+    extra_top_666 = sorted(k for k in data_666.keys() if str(k) not in {"ROOT", "TEMPLATES"})
+    if extra_top_666:
+        errors.append(f"666 darf nur ROOT+TEMPLATES enthalten (zusätzliche Keys: {extra_top_666})")
+
+    if "TEMPLATES" in data_555:
+        errors.append("555 darf kein Top-Level TEMPLATES enthalten")
+
+    groups_555 = [str(k) for k in data_555.keys() if str(k) not in {"ROOT", "BACKUP_DUMMY", "TEMPLATES"}]
+    non_empty_555_groups = sorted(g for g in groups_555 if isinstance(data_555.get(g), dict) and data_555.get(g))
+    wrong_type_555_groups = sorted(g for g in groups_555 if not isinstance(data_555.get(g), dict))
+    if non_empty_555_groups:
+        errors.append(f"555-Gruppen müssen leer sein (nicht leer: {non_empty_555_groups})")
+    if wrong_type_555_groups:
+        errors.append(f"555-Gruppen müssen Objekte sein (ungültig: {wrong_type_555_groups})")
+
+    if templates_is_dict:
+        template_keys = sorted(str(k) for k in templates_raw.keys())
+        missing_templates = sorted(g for g in groups_555 if g not in template_keys)
+        extra_templates = sorted(k for k in template_keys if k not in groups_555)
+        if missing_templates:
+            errors.append(f"666.TEMPLATES fehlt für 555-Gruppen: {missing_templates}")
+        if extra_templates:
+            errors.append(f"666.TEMPLATES enthält Fremd-Gruppen: {extra_templates}")
+
+        wrong_template_types = sorted(k for k, v in templates_raw.items() if not isinstance(v, dict))
+        if wrong_template_types:
+            errors.append(f"666.TEMPLATES-Felder müssen Objekte sein: {wrong_template_types}")
 
     if root_555 and root_666:
         keys_555 = set(root_555.keys())

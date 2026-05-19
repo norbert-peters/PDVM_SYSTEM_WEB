@@ -1,0 +1,56 @@
+{
+  "phase": "phaseB",
+  "title": "Validate dropdown reference integrity",
+  "main_mandant": {
+    "uid": "e51a8688-2cca-4a16-855d-52a69677fb50",
+    "name": "Filiale Test 1 Mandant",
+    "database": "filale_test_1",
+    "host": "localhost",
+    "port": 5432,
+    "user": "postgres",
+    "password": "Polari$55",
+    "source_table": "asy_mandanten"
+  },
+  "databases": [
+    {
+      "db_label": "system",
+      "database": "pdvm_system",
+      "tables_scanned": 13,
+      "rows_scanned": 285,
+      "legacy_ref_count": 0,
+      "legacy_refs": [],
+      "skipped": false,
+      "skip_reason": null,
+      "error": null
+    },
+    {
+      "db_label": "auth",
+      "database": "auth",
+      "tables_scanned": 7,
+      "rows_scanned": 48,
+      "legacy_ref_count": 0,
+      "legacy_refs": [],
+      "skipped": false,
+      "skip_reason": null,
+      "error": null
+    },
+    {
+      "db_label": "main_mandant",
+      "database": "filale_test_1",
+      "tables_scanned": 10,
+      "rows_scanned": 46,
+      "legacy_ref_count": 0,
+      "legacy_refs": [],
+      "skipped": false,
+      "skip_reason": null,
+      "error": null
+    }
+  ],
+  "summary": {
+    "db_count": 3,
+    "db_errors": 0,
+    "tables_scanned": 30,
+    "rows_scanned": 379,
+    "legacy_ref_count": 0
+  }
+}

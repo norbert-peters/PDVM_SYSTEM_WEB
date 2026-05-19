@@ -1,0 +1,83 @@
+{
+  "phase": "phaseB",
+  "title": "Migrate sys_systemdaten dropdown containers to sys_dropdowndaten",
+  "mode": "dry-run",
+  "strict_references": true,
+  "main_mandant": {
+    "uid": "e51a8688-2cca-4a16-855d-52a69677fb50",
+    "name": "Filiale Test 1 Mandant",
+    "database": "filale_test_1",
+    "host": "localhost",
+    "port": 5432,
+    "user": "postgres",
+    "password": "Polari$55",
+    "source_table": "asy_mandanten"
+  },
+  "databases": [
+    {
+      "db_label": "system",
+      "database": "pdvm_system",
+      "skipped": false,
+      "skip_reason": null,
+      "dropdown_records_planned": 3,
+      "dropdown_records_inserted": 0,
+      "dropdown_records_updated": 0,
+      "system_rows_touched": 1,
+      "hard_ref_errors": 0,
+      "hard_ref_findings": [],
+      "details": [
+        {
+          "source_uid": "00000000-0000-0000-0000-000000000000",
+          "source_name": "Systemdaten",
+          "fields": [
+            "application",
+            "ausrichtung",
+            "systemtabellen"
+          ],
+          "migrated_count": 4,
+          "rewired_refs": 1,
+          "unresolved_refs": []
+        }
+      ],
+      "error": null
+    },
+    {
+      "db_label": "auth",
+      "database": "auth",
+      "skipped": true,
+      "skip_reason": "sys_systemdaten oder sys_dropdowndaten fehlt",
+      "dropdown_records_planned": 0,
+      "dropdown_records_inserted": 0,
+      "dropdown_records_updated": 0,
+      "system_rows_touched": 0,
+      "hard_ref_errors": 0,
+      "hard_ref_findings": [],
+      "details": [],
+      "error": null
+    },
+    {
+      "db_label": "main_mandant",
+      "database": "filale_test_1",
+      "skipped": true,
+      "skip_reason": "sys_systemdaten oder sys_dropdowndaten fehlt",
+      "dropdown_records_planned": 0,
+      "dropdown_records_inserted": 0,
+      "dropdown_records_updated": 0,
+      "system_rows_touched": 0,
+      "hard_ref_errors": 0,
+      "hard_ref_findings": [],
+      "details": [],
+      "error": null
+    }
+  ],
+  "summary": {
+    "db_count": 3,
+    "db_skipped": 2,
+    "db_errors": 0,
+    "dropdown_records_planned": 3,
+    "dropdown_records_inserted": 0,
+    "dropdown_records_updated": 0,
+    "system_rows_touched": 1,
+    "hard_ref_errors": 0
+  }
+}

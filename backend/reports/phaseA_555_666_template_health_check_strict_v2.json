@@ -1,0 +1,146 @@
+{
+  "phase": "phaseA",
+  "title": "555/666 Template Health Check",
+  "database": "pdvm_system",
+  "summary": {
+    "tables_scanned": 13,
+    "tables_with_555_or_666": 12,
+    "tables_with_findings": 3,
+    "tables_ok": 9,
+    "error_count": 8,
+    "warning_count": 0
+  },
+  "tables": [
+    {
+      "table": "dev_workflow_draft",
+      "has_historisch": true,
+      "has_555": true,
+      "has_666": true,
+      "errors": [
+        "666.TEMPLATES fehlt oder ist kein Objekt",
+        "555 darf kein Top-Level TEMPLATES enthalten",
+        "ROOT-Struktur ungleich (nur in 555: [], nur in 666: ['IS_TEMPLATE', 'REVISION', 'STATUS', 'TITLE', 'WORKFLOW_TYPE'])"
+      ],
+      "warnings": [],
+      "missing_template_groups": []
+    },
+    {
+      "table": "dev_workflow_draft_item",
+      "has_historisch": true,
+      "has_555": true,
+      "has_666": true,
+      "errors": [
+        "666.TEMPLATES fehlt oder ist kein Objekt",
+        "666 darf nur ROOT+TEMPLATES enthalten (zusätzliche Keys: ['SYS_DIALOGDATEN', 'SYS_FRAMEDATEN', 'SYS_VIEWDATEN'])",
+        "555 darf kein Top-Level TEMPLATES enthalten",
+        "ROOT-Struktur ungleich (nur in 555: [], nur in 666: ['IS_TEMPLATE'])"
+      ],
+      "warnings": [],
+      "missing_template_groups": []
+    },
+    {
+      "table": "sys_beschreibungen",
+      "has_historisch": true,
+      "has_555": true,
+      "has_666": true,
+      "errors": [],
+      "warnings": [],
+      "missing_template_groups": []
+    },
+    {
+      "table": "sys_control_dict",
+      "has_historisch": true,
+      "has_555": true,
+      "has_666": true,
+      "errors": [],
+      "warnings": [],
+      "missing_template_groups": []
+    },
+    {
+      "table": "sys_dialogdaten",
+      "has_historisch": true,
+      "has_555": true,
+      "has_666": true,
+      "errors": [],
+      "warnings": [],
+      "missing_template_groups": []
+    },
+    {
+      "table": "sys_dropdowndaten",
+      "has_historisch": true,
+      "has_555": true,
+      "has_666": true,
+      "errors": [],
+      "warnings": [],
+      "missing_template_groups": []
+    },
+    {
+      "table": "sys_ext_table",
+      "has_historisch": true,
+      "has_555": true,
+      "has_666": true,
+      "errors": [],
+      "warnings": [],
+      "missing_template_groups": []
+    },
+    {
+      "table": "sys_feld_aenderungshistorie",
+      "has_historisch": true,
+      "has_555": false,
+      "has_666": false,
+      "errors": [
+        "Template 555 fehlt",
+        "Template 666 fehlt"
+      ],
+      "warnings": [],
+      "missing_template_groups": []
+    },
+    {
+      "table": "sys_framedaten",
+      "has_historisch": true,
+      "has_555": true,
+      "has_666": true,
+      "errors": [],
+      "warnings": [],
+      "missing_template_groups": []
+    },
+    {
+      "table": "sys_layout",
+      "has_historisch": true,
+      "has_555": true,
+      "has_666": true,
+      "errors": [],
+      "warnings": [],
+      "missing_template_groups": []
+    },
+    {
+      "table": "sys_menudaten",
+      "has_historisch": true,
+      "has_555": true,
+      "has_666": true,
+      "errors": [],
+      "warnings": [],
+      "missing_template_groups": []
+    },
+    {
+      "table": "sys_systemdaten",
+      "has_historisch": true,
+      "has_555": true,
+      "has_666": true,
+      "errors": [
+        "666.TEMPLATES-Felder müssen Objekte sein: ['gruppe']"
+      ],
+      "warnings": [],
+      "missing_template_groups": []
+    },
+    {
+      "table": "sys_viewdaten",
+      "has_historisch": true,
+      "has_555": true,
+      "has_666": true,
+      "errors": [],
+      "warnings": [],
+      "missing_template_groups": []
+    }
+  ]
+}

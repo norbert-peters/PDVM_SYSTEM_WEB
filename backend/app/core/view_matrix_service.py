@@ -358,7 +358,9 @@ async def build_view_matrix(
                 "feld": str(field),
                 **(resolved or {}),
             }
-    except Exception:
+    except Exception as exc:
+        if "LEGACY_DROPDOWN_SOURCE" in str(exc):
+            raise
         dropdowns = {}
 
     table_state_effective, table_state_meta = merge_table_state(src_table_state)

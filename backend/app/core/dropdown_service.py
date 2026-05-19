@@ -234,6 +234,12 @@ async def get_dropdown_mapping_for_field(
     Returns:
         {"map": {rawKey: label, ...}, "options": [{key,value}, ...], "language": "DE-DE", "default_language": "DE-DE"}
     """
+    table_norm = str(table or "").strip().lower()
+    if table_norm == "sys_systemdaten":
+        raise ValueError(
+            "LEGACY_DROPDOWN_SOURCE: table=sys_systemdaten ist für Dropdown-Auflösung nicht mehr zulässig; verwende sys_dropdowndaten"
+        )
+
     lang = _norm_lang(language or get_user_language(gcs))
     fld = _norm_field(field)
     if not fld:
