@@ -1,6 +1,6 @@
 # PDVM Template 555/666 Phase B Status V1
 
-Status: gestartet, Schritt 1, 1b, 2 und 3 umgesetzt  
+Status: gestartet, Schritt 1, 1b, 2, 3 und 4 umgesetzt  
 Datum: 2026-05-18
 
 ## 1. Umgesetzter Schritt
@@ -27,10 +27,17 @@ Erweiterung (Schritt 3):
 2. Integritaets-Validator fuer Legacy-Dropdown-Referenzen eingefuehrt.
 3. Strict-Validierung nach Migration erfolgreich (0 Legacy-Referenzen).
 
+Erweiterung (Schritt 4):
+1. Finale Verhaertung der infos-Tabellen sys_dropdowndaten und sys_beschreibungen.
+2. Template-Verhaertung: 555 strikt ROOT+leere Gruppen, 666 strikt ROOT+TEMPLATES.
+3. Datensatz-Verhaertung: RECORD_TYPE/TABLE/DEFAULT_LANGUAGE konsistent gesetzt.
+4. Nachlauf-Validierung erneut strict auf Legacy-Dropdown-Referenzen.
+
 Tool:
 1. backend/tools/phaseB_persist_template_modes.py
 2. backend/tools/phaseB_migrate_sys_systemdaten_dropdowns.py
 3. backend/tools/phaseB_validate_dropdown_reference_integrity.py
+4. backend/tools/phaseC_harden_infos_tables.py
 
 Report:
 1. backend/reports/phaseB_persist_template_modes_apply_v1.json
@@ -38,6 +45,9 @@ Report:
 3. backend/reports/phaseB_migrate_sys_systemdaten_dropdowns_dryrun_v4.json
 4. backend/reports/phaseB_migrate_sys_systemdaten_dropdowns_apply_v1.json
 5. backend/reports/phaseB_validate_dropdown_reference_integrity_v1.json
+6. backend/reports/phaseC_harden_infos_tables_dryrun_v1.json
+7. backend/reports/phaseC_harden_infos_tables_apply_v1.json
+8. backend/reports/phaseB_validate_dropdown_reference_integrity_v2.json
 
 ## 2. Ergebnis
 
@@ -92,6 +102,28 @@ Summary aus B.3 Validator V1 (strict):
 5. legacy_ref_count: 0
 6. strict_exit_code: 0
 
+Summary aus C.1 Harden Infos Dry-Run V1:
+1. tables_total: 2
+2. rows_scanned: 10
+3. rows_changed: 7
+4. template_rows_changed: 4
+5. db_errors: 0
+
+Summary aus C.2 Harden Infos Apply V1:
+1. tables_total: 2
+2. rows_scanned: 10
+3. rows_changed: 7
+4. template_rows_changed: 4
+5. db_errors: 0
+
+Summary aus B.3 Validator V2 (strict):
+1. db_count: 3
+2. db_errors: 0
+3. tables_scanned: 30
+4. rows_scanned: 379
+5. legacy_ref_count: 0
+6. strict_exit_code: 0
+
 ## 3. Persistierte Felder (pro Tabelle)
 
 Jeder Metadata-Satz enthaelt unter TEMPLATE_META:
@@ -110,4 +142,5 @@ Jeder Metadata-Satz enthaelt unter TEMPLATE_META:
 2. Ausnahmekatalog final je Tabelle pruefen und ggf. manuell nachsteuern.
 3. Monitoring-Tabelle fuer Batch-Prozesse in Mandanten-DB spezifizieren.
 4. Optional: STRUCT_VERSION_APPLIED je Satz in den Nutzdaten als Folgephase einfuehren.
-5. Folgephase: sys_beschreibungen/sys_dropdowndaten Strukturregeln final verhaerten und verbleibende Dialog-Referenzen gezielt prüfen.
+5. Folgephase abgeschlossen: sys_beschreibungen/sys_dropdowndaten Strukturregeln final verhaertet und strict validiert.
+6. Naechster Fokus: infos_translation Overlay-Struktur und Review-Workflow spezifizieren/implementieren.

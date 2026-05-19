@@ -1,0 +1,86 @@
+{
+  "phase": "phaseC",
+  "title": "Harden infos tables",
+  "mode": "apply",
+  "database": "pdvm_system",
+  "tables": [
+    {
+      "table": "sys_dropdowndaten",
+      "record_type": "dropdown_definition",
+      "rows_scanned": 9,
+      "rows_changed": 6,
+      "template_rows_changed": 2,
+      "notes": [
+        {
+          "uid": "ddaa6590-6d08-461b-a061-75faec26f4ba",
+          "changes": [
+            "set_root_record_type",
+            "set_default_language",
+            "set_field_key"
+          ]
+        },
+        {
+          "uid": "00000000-0000-0000-0000-000000000000",
+          "changes": [
+            "set_root_record_type",
+            "set_default_language",
+            "set_field_key"
+          ]
+        },
+        {
+          "uid": "4f290b6f-1205-494b-8f03-c6446c0df169",
+          "changes": [
+            "set_root_record_type",
+            "set_field_key"
+          ]
+        },
+        {
+          "uid": "2a60c785-0829-46db-a16b-9369596fab63",
+          "changes": [
+            "set_root_record_type",
+            "set_field_key"
+          ]
+        },
+        {
+          "uid": "d488b214-134d-4f16-a20e-dde5f9a1a881",
+          "changes": [
+            "set_root_record_type",
+            "set_field_key"
+          ]
+        },
+        {
+          "uid": "5648682d-1526-4e0c-b60c-ab56dfdd00ea",
+          "changes": [
+            "set_root_record_type",
+            "set_field_key"
+          ]
+        }
+      ],
+      "error": null
+    },
+    {
+      "table": "sys_beschreibungen",
+      "record_type": "text_definition",
+      "rows_scanned": 1,
+      "rows_changed": 1,
+      "template_rows_changed": 2,
+      "notes": [
+        {
+          "uid": "00000000-0000-0000-0000-000000000000",
+          "changes": [
+            "set_root_record_type",
+            "set_default_language"
+          ]
+        }
+      ],
+      "error": null
+    }
+  ],
+  "summary": {
+    "tables_total": 2,
+    "rows_scanned": 10,
+    "rows_changed": 7,
+    "template_rows_changed": 4,
+    "db_errors": 0
+  }
+}
