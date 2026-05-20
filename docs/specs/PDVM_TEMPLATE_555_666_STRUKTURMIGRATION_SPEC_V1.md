@@ -297,3 +297,25 @@ Kennzahlen:
 1. Dry-Run V1: tables_in_scope=22, rows_scanned=295, rows_updated=295, db_errors=0
 2. Apply V1: tables_in_scope=22, rows_scanned=295, rows_updated=295, db_errors=0
 3. Idempotenzcheck Dry-Run V2: rows_updated=0, rows_already_current=295
+
+## 14. Punkt 3 Umsetzungsstand (Batch-Runner + Resume + Delta-Rerun)
+
+Status: umgesetzt am 2026-05-20.
+
+Implementierung:
+1. Neues Tool: backend/tools/phaseC_batch_reconcile_struct_version.py
+2. Batch-Verarbeitung je Tabelle mit konfigurierbarer Groesse (--batch-size).
+3. Resume ueber persistierten Checkpoint je DB/Tabelle (last_uid, completed, target_version).
+4. Delta-Rerun ueber --changed-since (zeitstempelbasiert, falls Timestamp-Spalte vorhanden).
+5. Scope unveraendert: voll_templatefaehig und teiltemplatefaehig.
+
+Reports:
+1. backend/reports/phaseC_batch_reconcile_struct_version_dryrun_v1.json
+2. backend/reports/phaseC_batch_reconcile_struct_version_apply_v1.json
+3. backend/reports/phaseC_batch_reconcile_struct_version_delta_dryrun_v1.json
+4. backend/reports/phaseC_batch_reconcile_struct_version_checkpoint.json
+
+Kennzahlen:
+1. Dry-Run V1 (batch_size=100): tables_in_scope=22, tables_completed=22, batches_processed=23, rows_scanned=295, rows_updated=0, rows_already_current=295, db_errors=0
+2. Apply V1 (batch_size=100): tables_in_scope=22, tables_completed=22, batches_processed=23, rows_scanned=295, rows_updated=0, rows_already_current=295, db_errors=0
+3. Delta Dry-Run V1 (changed_since=2026-05-20T00:00:00Z): tables_in_scope=22, tables_completed=22, batches_processed=0, rows_scanned=0, rows_updated=0, db_errors=0

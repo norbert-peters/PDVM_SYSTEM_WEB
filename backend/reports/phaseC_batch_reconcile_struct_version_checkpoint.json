@@ -1,0 +1,143 @@
+{
+  "checkpoint_version": 1,
+  "run_id": "9829fbbc-b828-45da-9a26-7291688ba644",
+  "started_at": "2026-05-20T14:07:47Z",
+  "finished_at": "2026-05-20T14:07:49Z",
+  "apply": false,
+  "batch_size": 100,
+  "changed_since": "2026-05-20T00:00:00Z",
+  "tables": {
+    "system.sys_beschreibungen": {
+      "last_uid": "",
+      "completed": true,
+      "target_version": 1,
+      "updated_at": "2026-05-20T14:07:48Z"
+    },
+    "system.sys_control_dict": {
+      "last_uid": "",
+      "completed": true,
+      "target_version": 1,
+      "updated_at": "2026-05-20T14:07:48Z"
+    },
+    "system.sys_dialogdaten": {
+      "last_uid": "",
+      "completed": true,
+      "target_version": 1,
+      "updated_at": "2026-05-20T14:07:48Z"
+    },
+    "system.sys_dropdowndaten": {
+      "last_uid": "",
+      "completed": true,
+      "target_version": 1,
+      "updated_at": "2026-05-20T14:07:48Z"
+    },
+    "system.sys_ext_table": {
+      "last_uid": "",
+      "completed": true,
+      "target_version": 1,
+      "updated_at": "2026-05-20T14:07:48Z"
+    },
+    "system.sys_framedaten": {
+      "last_uid": "",
+      "completed": true,
+      "target_version": 1,
+      "updated_at": "2026-05-20T14:07:48Z"
+    },
+    "system.sys_layout": {
+      "last_uid": "",
+      "completed": true,
+      "target_version": 1,
+      "updated_at": "2026-05-20T14:07:48Z"
+    },
+    "system.sys_menudaten": {
+      "last_uid": "",
+      "completed": true,
+      "target_version": 1,
+      "updated_at": "2026-05-20T14:07:48Z"
+    },
+    "system.sys_systemdaten": {
+      "last_uid": "",
+      "completed": true,
+      "target_version": 1,
+      "updated_at": "2026-05-20T14:07:48Z"
+    },
+    "system.sys_viewdaten": {
+      "last_uid": "",
+      "completed": true,
+      "target_version": 1,
+      "updated_at": "2026-05-20T14:07:48Z"
+    },
+    "auth.asy_benutzer": {
+      "last_uid": "",
+      "completed": true,
+      "target_version": 1,
+      "updated_at": "2026-05-20T14:07:49Z"
+    },
+    "auth.asy_mandanten": {
+      "last_uid": "",
+      "completed": true,
+      "target_version": 1,
+      "updated_at": "2026-05-20T14:07:49Z"
+    },
+    "auth.asy_systemdaten": {
+      "last_uid": "",
+      "completed": true,
+      "target_version": 1,
+      "updated_at": "2026-05-20T14:07:49Z"
+    },
+    "mandant_main.msy_anwendungsdaten": {
+      "last_uid": "",
+      "completed": true,
+      "target_version": 1,
+      "updated_at": "2026-05-20T14:07:49Z"
+    },
+    "mandant_main.msy_error_acknowledgments": {
+      "last_uid": "",
+      "completed": true,
+      "target_version": 1,
+      "updated_at": "2026-05-20T14:07:49Z"
+    },
+    "mandant_main.msy_error_log": {
+      "last_uid": "",
+      "completed": true,
+      "target_version": 1,
+      "updated_at": "2026-05-20T14:07:49Z"
+    },
+    "mandant_main.msy_layout": {
+      "last_uid": "",
+      "completed": true,
+      "target_version": 1,
+      "updated_at": "2026-05-20T14:07:49Z"
+    },
+    "mandant_main.msy_security": {
+      "last_uid": "",
+      "completed": true,
+      "target_version": 1,
+      "updated_at": "2026-05-20T14:07:49Z"
+    },
+    "mandant_main.msy_systemdaten": {
+      "last_uid": "",
+      "completed": true,
+      "target_version": 1,
+      "updated_at": "2026-05-20T14:07:49Z"
+    },
+    "mandant_main.msy_systemsteuerung": {
+      "last_uid": "",
+      "completed": true,
+      "target_version": 1,
+      "updated_at": "2026-05-20T14:07:49Z"
+    },
+    "mandant_main.tst_finanzdaten": {
+      "last_uid": "",
+      "completed": true,
+      "target_version": 1,
+      "updated_at": "2026-05-20T14:07:49Z"
+    },
+    "mandant_main.tst_persondaten": {
+      "last_uid": "",
+      "completed": true,
+      "target_version": 1,
+      "updated_at": "2026-05-20T14:07:49Z"
+    }
+  }
+}
