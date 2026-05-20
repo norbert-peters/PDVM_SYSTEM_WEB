@@ -161,9 +161,13 @@ def _table_type(table_name: str, mode: str) -> Tuple[str, str]:
 async def _get_table_meta(conn: asyncpg.Connection) -> List[TableMeta]:
     rows = await conn.fetch(
         """
-        SELECT table_name, column_name
-        FROM information_schema.columns
-        WHERE table_schema = 'public'
+                SELECT c.table_name, c.column_name
+                FROM information_schema.columns c
+                JOIN information_schema.tables t
+                    ON t.table_schema = c.table_schema
+                 AND t.table_name = c.table_name
+                WHERE c.table_schema = 'public'
+                    AND t.table_type = 'BASE TABLE'
         ORDER BY table_name, ordinal_position
         """
     )

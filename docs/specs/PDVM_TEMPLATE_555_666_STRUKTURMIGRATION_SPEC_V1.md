@@ -244,3 +244,35 @@ Pflicht:
 4. Kein regressiver Einfluss auf bestehende Save-/View-Prozesse.
 5. Ausnahmetabellen sind benannt, begruendet und dokumentiert.
 6. 555/666 je Tabelle sind vor produktiver Migration formal validiert und freigegeben.
+
+## 12. Ausnahmekatalog V1 (Ist-Stand 2026-05-20)
+
+Der maschinenlesbare Ausnahmekatalog wurde erzeugt:
+1. backend/reports/phaseB_exception_catalog_v1.json
+
+Summary:
+1. db_count: 3
+2. table_count: 27
+3. mode_counts:
+- voll_templatefaehig: 21
+- teiltemplatefaehig: 1
+- ausgenommen: 5
+- nicht_im_scope: 0
+4. open_decisions_count: 6
+5. review_required_count: 7
+
+Wichtige Katalogregel:
+1. Es werden nur BASE TABLES klassifiziert (keine Views).
+2. In auth werden damit nur asy_* Tabellen im Katalog gefuehrt.
+
+Tabellen mit target_mode != voll_templatefaehig:
+1. system.dev_workflow_draft -> ausgenommen (explicit_excluded_dev_workflow)
+2. system.dev_workflow_draft_item -> ausgenommen (explicit_excluded_dev_workflow)
+3. system.sys_feld_aenderungshistorie -> ausgenommen (audit_or_history_table)
+4. auth.asy_benutzer -> teiltemplatefaehig (user_auth_special_handling)
+5. auth.asy_feld_aenderungshistorie -> ausgenommen (audit_or_history_table)
+6. mandant_main.msy_feld_aenderungshistorie -> ausgenommen (audit_or_history_table)
+
+Hinweis zur Abnahme:
+1. Diese 6 Tabellen bilden den offenen Entscheidungsumfang fuer Punkt "Ausnahmekatalog final je Tabelle".
+2. Alle anderen Tabellen sind aktuell als voll_templatefaehig klassifiziert.

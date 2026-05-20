@@ -1,0 +1,350 @@
+{
+  "phase": "phaseB_exception_catalog",
+  "created_at_utc": "2026-05-20T13:49:42.872177+00:00",
+  "source_phase": "phaseB_persist_template_modes",
+  "source_apply": false,
+  "databases": [
+    {
+      "db_label": "system",
+      "database": "pdvm_system",
+      "tables": [
+        {
+          "table": "dev_workflow_draft",
+          "target_mode": "ausgenommen",
+          "table_type": "process",
+          "table_type_source": "heuristic",
+          "reason_code": "explicit_excluded_dev_workflow",
+          "review_required": true,
+          "decision_locked": false,
+          "source_record_uid": "c7b71ca1-38b4-5667-be5f-2a056133653a",
+          "source_record_name": "TEMPLATE_META::dev_workflow_draft"
+        },
+        {
+          "table": "dev_workflow_draft_item",
+          "target_mode": "ausgenommen",
+          "table_type": "process",
+          "table_type_source": "heuristic",
+          "reason_code": "explicit_excluded_dev_workflow",
+          "review_required": true,
+          "decision_locked": false,
+          "source_record_uid": "1067666f-76bc-57be-a606-aeeece232016",
+          "source_record_name": "TEMPLATE_META::dev_workflow_draft_item"
+        },
+        {
+          "table": "sys_beschreibungen",
+          "target_mode": "voll_templatefaehig",
+          "table_type": "infos_text",
+          "table_type_source": "explicit",
+          "reason_code": "standard_template_mode",
+          "review_required": false,
+          "decision_locked": true,
+          "source_record_uid": "03ea6bd6-94b8-505b-8a4c-10256573c303",
+          "source_record_name": "TEMPLATE_META::sys_beschreibungen"
+        },
+        {
+          "table": "sys_control_dict",
+          "target_mode": "voll_templatefaehig",
+          "table_type": "config",
+          "table_type_source": "heuristic",
+          "reason_code": "standard_template_mode",
+          "review_required": false,
+          "decision_locked": true,
+          "source_record_uid": "30259c23-9e68-553d-b621-8cdfdb607eb2",
+          "source_record_name": "TEMPLATE_META::sys_control_dict"
+        },
+        {
+          "table": "sys_dialogdaten",
+          "target_mode": "voll_templatefaehig",
+          "table_type": "config",
+          "table_type_source": "heuristic",
+          "reason_code": "standard_template_mode",
+          "review_required": false,
+          "decision_locked": true,
+          "source_record_uid": "43a5c81c-a8b9-506d-8746-d30278e8beee",
+          "source_record_name": "TEMPLATE_META::sys_dialogdaten"
+        },
+        {
+          "table": "sys_dropdowndaten",
+          "target_mode": "voll_templatefaehig",
+          "table_type": "infos_dropdown",
+          "table_type_source": "explicit",
+          "reason_code": "standard_template_mode",
+          "review_required": false,
+          "decision_locked": true,
+          "source_record_uid": "61789882-9c63-5b60-873f-fd19bd830e02",
+          "source_record_name": "TEMPLATE_META::sys_dropdowndaten"
+        },
+        {
+          "table": "sys_ext_table",
+          "target_mode": "voll_templatefaehig",
+          "table_type": "config",
+          "table_type_source": "heuristic",
+          "reason_code": "standard_template_mode",
+          "review_required": false,
+          "decision_locked": true,
+          "source_record_uid": "8ce68460-0c33-5ebd-a4a0-d42eb6853411",
+          "source_record_name": "TEMPLATE_META::sys_ext_table"
+        },
+        {
+          "table": "sys_feld_aenderungshistorie",
+          "target_mode": "ausgenommen",
+          "table_type": "audit_history",
+          "table_type_source": "heuristic",
+          "reason_code": "audit_or_history_table",
+          "review_required": true,
+          "decision_locked": false,
+          "source_record_uid": "15cb5e26-7502-5b11-b172-0045ad512385",
+          "source_record_name": "TEMPLATE_META::sys_feld_aenderungshistorie"
+        },
+        {
+          "table": "sys_framedaten",
+          "target_mode": "voll_templatefaehig",
+          "table_type": "config",
+          "table_type_source": "heuristic",
+          "reason_code": "standard_template_mode",
+          "review_required": false,
+          "decision_locked": true,
+          "source_record_uid": "9249aa5d-5e95-56d0-8632-b15ca863715c",
+          "source_record_name": "TEMPLATE_META::sys_framedaten"
+        },
+        {
+          "table": "sys_layout",
+          "target_mode": "voll_templatefaehig",
+          "table_type": "config",
+          "table_type_source": "heuristic",
+          "reason_code": "standard_template_mode",
+          "review_required": false,
+          "decision_locked": true,
+          "source_record_uid": "420b9d50-ce7a-5e3a-88aa-a120867673ef",
+          "source_record_name": "TEMPLATE_META::sys_layout"
+        },
+        {
+          "table": "sys_menudaten",
+          "target_mode": "voll_templatefaehig",
+          "table_type": "infos_text",
+          "table_type_source": "heuristic",
+          "reason_code": "standard_template_mode",
+          "review_required": false,
+          "decision_locked": true,
+          "source_record_uid": "c1f683ae-06d1-5d57-a2ef-9d8712463adb",
+          "source_record_name": "TEMPLATE_META::sys_menudaten"
+        },
+        {
+          "table": "sys_systemdaten",
+          "target_mode": "voll_templatefaehig",
+          "table_type": "config",
+          "table_type_source": "heuristic",
+          "reason_code": "standard_template_mode",
+          "review_required": false,
+          "decision_locked": true,
+          "source_record_uid": "fb7d59de-68ca-51c7-a484-129bc7c347bb",
+          "source_record_name": "TEMPLATE_META::sys_systemdaten"
+        },
+        {
+          "table": "sys_viewdaten",
+          "target_mode": "voll_templatefaehig",
+          "table_type": "config",
+          "table_type_source": "heuristic",
+          "reason_code": "standard_template_mode",
+          "review_required": false,
+          "decision_locked": true,
+          "source_record_uid": "3cfcdbce-bede-57a2-a6ab-62b87843e7b7",
+          "source_record_name": "TEMPLATE_META::sys_viewdaten"
+        }
+      ],
+      "summary": {
+        "table_count": 13,
+        "review_required_count": 3,
+        "open_decisions_count": 3
+      }
+    },
+    {
+      "db_label": "auth",
+      "database": "auth",
+      "tables": [
+        {
+          "table": "asy_benutzer",
+          "target_mode": "teiltemplatefaehig",
+          "table_type": "master_data",
+          "table_type_source": "heuristic",
+          "reason_code": "user_auth_special_handling",
+          "review_required": true,
+          "decision_locked": false,
+          "source_record_uid": "30252338-b0d9-52a2-a68d-f6be5df21bc2",
+          "source_record_name": "TEMPLATE_META::asy_benutzer"
+        },
+        {
+          "table": "asy_feld_aenderungshistorie",
+          "target_mode": "ausgenommen",
+          "table_type": "audit_history",
+          "table_type_source": "heuristic",
+          "reason_code": "audit_or_history_table",
+          "review_required": true,
+          "decision_locked": false,
+          "source_record_uid": "07130e4a-83b8-5fb7-bda4-430eff16990f",
+          "source_record_name": "TEMPLATE_META::asy_feld_aenderungshistorie"
+        },
+        {
+          "table": "asy_mandanten",
+          "target_mode": "voll_templatefaehig",
+          "table_type": "master_data",
+          "table_type_source": "heuristic",
+          "reason_code": "standard_template_mode",
+          "review_required": false,
+          "decision_locked": true,
+          "source_record_uid": "005c689e-a9d5-59d5-8f4c-40b655c0365c",
+          "source_record_name": "TEMPLATE_META::asy_mandanten"
+        },
+        {
+          "table": "asy_systemdaten",
+          "target_mode": "voll_templatefaehig",
+          "table_type": "master_data",
+          "table_type_source": "heuristic",
+          "reason_code": "standard_template_mode",
+          "review_required": false,
+          "decision_locked": true,
+          "source_record_uid": "17810d5b-641f-540a-b2a5-b82588ff9c37",
+          "source_record_name": "TEMPLATE_META::asy_systemdaten"
+        }
+      ],
+      "summary": {
+        "table_count": 4,
+        "review_required_count": 2,
+        "open_decisions_count": 2
+      }
+    },
+    {
+      "db_label": "mandant_main",
+      "database": "filale_test_1",
+      "tables": [
+        {
+          "table": "msy_anwendungsdaten",
+          "target_mode": "voll_templatefaehig",
+          "table_type": "master_data",
+          "table_type_source": "heuristic",
+          "reason_code": "standard_template_mode",
+          "review_required": false,
+          "decision_locked": true,
+          "source_record_uid": "aeba87c8-76c1-5782-8f79-177d0aa10135",
+          "source_record_name": "TEMPLATE_META::msy_anwendungsdaten"
+        },
+        {
+          "table": "msy_error_acknowledgments",
+          "target_mode": "voll_templatefaehig",
+          "table_type": "audit_history",
+          "table_type_source": "heuristic",
+          "reason_code": "review_recommended_for_table_type",
+          "review_required": true,
+          "decision_locked": true,
+          "source_record_uid": "ca67c4ce-5585-5fa4-a138-af5fe992a687",
+          "source_record_name": "TEMPLATE_META::msy_error_acknowledgments"
+        },
+        {
+          "table": "msy_error_log",
+          "target_mode": "voll_templatefaehig",
+          "table_type": "master_data",
+          "table_type_source": "heuristic",
+          "reason_code": "standard_template_mode",
+          "review_required": false,
+          "decision_locked": true,
+          "source_record_uid": "7ab17b6e-7d19-57df-941a-bea98b594721",
+          "source_record_name": "TEMPLATE_META::msy_error_log"
+        },
+        {
+          "table": "msy_feld_aenderungshistorie",
+          "target_mode": "ausgenommen",
+          "table_type": "audit_history",
+          "table_type_source": "heuristic",
+          "reason_code": "audit_or_history_table",
+          "review_required": true,
+          "decision_locked": false,
+          "source_record_uid": "6b0a37b8-50ab-5155-8f0e-ccbfed7c8257",
+          "source_record_name": "TEMPLATE_META::msy_feld_aenderungshistorie"
+        },
+        {
+          "table": "msy_layout",
+          "target_mode": "voll_templatefaehig",
+          "table_type": "master_data",
+          "table_type_source": "heuristic",
+          "reason_code": "standard_template_mode",
+          "review_required": false,
+          "decision_locked": true,
+          "source_record_uid": "154d0718-509c-5901-ac6b-0d1cd1c97112",
+          "source_record_name": "TEMPLATE_META::msy_layout"
+        },
+        {
+          "table": "msy_security",
+          "target_mode": "voll_templatefaehig",
+          "table_type": "master_data",
+          "table_type_source": "heuristic",
+          "reason_code": "standard_template_mode",
+          "review_required": false,
+          "decision_locked": true,
+          "source_record_uid": "7cafa228-506a-587e-bc04-fccfc9a893e0",
+          "source_record_name": "TEMPLATE_META::msy_security"
+        },
+        {
+          "table": "msy_systemdaten",
+          "target_mode": "voll_templatefaehig",
+          "table_type": "master_data",
+          "table_type_source": "heuristic",
+          "reason_code": "standard_template_mode",
+          "review_required": false,
+          "decision_locked": true,
+          "source_record_uid": "687c7f5f-231d-5585-8d99-7b57cdd4ea2f",
+          "source_record_name": "TEMPLATE_META::msy_systemdaten"
+        },
+        {
+          "table": "msy_systemsteuerung",
+          "target_mode": "voll_templatefaehig",
+          "table_type": "master_data",
+          "table_type_source": "heuristic",
+          "reason_code": "standard_template_mode",
+          "review_required": false,
+          "decision_locked": true,
+          "source_record_uid": "5956c415-09ee-5c46-b16d-d425118bcfc5",
+          "source_record_name": "TEMPLATE_META::msy_systemsteuerung"
+        },
+        {
+          "table": "tst_finanzdaten",
+          "target_mode": "voll_templatefaehig",
+          "table_type": "master_data",
+          "table_type_source": "heuristic",
+          "reason_code": "standard_template_mode",
+          "review_required": false,
+          "decision_locked": true,
+          "source_record_uid": "d55f4f6b-5e2c-50c3-a31d-dea5904926d4",
+          "source_record_name": "TEMPLATE_META::tst_finanzdaten"
+        },
+        {
+          "table": "tst_persondaten",
+          "target_mode": "voll_templatefaehig",
+          "table_type": "master_data",
+          "table_type_source": "heuristic",
+          "reason_code": "standard_template_mode",
+          "review_required": false,
+          "decision_locked": true,
+          "source_record_uid": "f278697c-7a96-5882-ac2f-10af60e24d9e",
+          "source_record_name": "TEMPLATE_META::tst_persondaten"
+        }
+      ],
+      "summary": {
+        "table_count": 10,
+        "review_required_count": 2,
+        "open_decisions_count": 1
+      }
+    }
+  ],
+  "summary": {
+    "db_count": 3,
+    "table_count": 27,
+    "mode_counts": {
+      "voll_templatefaehig": 21,
+      "teiltemplatefaehig": 1,
+      "ausgenommen": 5,
+      "nicht_im_scope": 0
+    },
+    "review_required_count": 7,
+    "open_decisions_count": 6
+  }
+}
