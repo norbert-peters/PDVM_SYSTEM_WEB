@@ -1,0 +1,272 @@
+{
+  "phase": "phaseC_apply_struct_version_applied",
+  "apply": false,
+  "main_mandant": {
+    "uid": "e51a8688-2cca-4a16-855d-52a69677fb50",
+    "name": "Filiale Test 1 Mandant",
+    "database": "filale_test_1",
+    "host": "localhost",
+    "port": 5432,
+    "user": "postgres",
+    "password": "Polari$55",
+    "source_table": "asy_mandanten"
+  },
+  "databases": [
+    {
+      "db_label": "system",
+      "database": "pdvm_system",
+      "meta_table": "sys_systemdaten",
+      "summary": {
+        "tables_total": 13,
+        "tables_in_scope": 10,
+        "rows_scanned": 253,
+        "rows_updated": 0,
+        "rows_already_current": 253,
+        "rows_skipped_invalid": 0
+      },
+      "tables": [
+        {
+          "table": "sys_beschreibungen",
+          "mode": "voll_templatefaehig",
+          "target_version": 1,
+          "rows_scanned": 0,
+          "rows_updated": 0,
+          "rows_already_current": 0,
+          "rows_skipped_invalid": 0
+        },
+        {
+          "table": "sys_control_dict",
+          "mode": "voll_templatefaehig",
+          "target_version": 1,
+          "rows_scanned": 154,
+          "rows_updated": 0,
+          "rows_already_current": 154,
+          "rows_skipped_invalid": 0
+        },
+        {
+          "table": "sys_dialogdaten",
+          "mode": "voll_templatefaehig",
+          "target_version": 1,
+          "rows_scanned": 14,
+          "rows_updated": 0,
+          "rows_already_current": 14,
+          "rows_skipped_invalid": 0
+        },
+        {
+          "table": "sys_dropdowndaten",
+          "mode": "voll_templatefaehig",
+          "target_version": 1,
+          "rows_scanned": 14,
+          "rows_updated": 0,
+          "rows_already_current": 14,
+          "rows_skipped_invalid": 0
+        },
+        {
+          "table": "sys_ext_table",
+          "mode": "voll_templatefaehig",
+          "target_version": 1,
+          "rows_scanned": 3,
+          "rows_updated": 0,
+          "rows_already_current": 3,
+          "rows_skipped_invalid": 0
+        },
+        {
+          "table": "sys_framedaten",
+          "mode": "voll_templatefaehig",
+          "target_version": 1,
+          "rows_scanned": 18,
+          "rows_updated": 0,
+          "rows_already_current": 18,
+          "rows_skipped_invalid": 0
+        },
+        {
+          "table": "sys_layout",
+          "mode": "voll_templatefaehig",
+          "target_version": 1,
+          "rows_scanned": 3,
+          "rows_updated": 0,
+          "rows_already_current": 3,
+          "rows_skipped_invalid": 0
+        },
+        {
+          "table": "sys_menudaten",
+          "mode": "voll_templatefaehig",
+          "target_version": 1,
+          "rows_scanned": 11,
+          "rows_updated": 0,
+          "rows_already_current": 11,
+          "rows_skipped_invalid": 0
+        },
+        {
+          "table": "sys_systemdaten",
+          "mode": "voll_templatefaehig",
+          "target_version": 1,
+          "rows_scanned": 27,
+          "rows_updated": 0,
+          "rows_already_current": 27,
+          "rows_skipped_invalid": 0
+        },
+        {
+          "table": "sys_viewdaten",
+          "mode": "voll_templatefaehig",
+          "target_version": 1,
+          "rows_scanned": 9,
+          "rows_updated": 0,
+          "rows_already_current": 9,
+          "rows_skipped_invalid": 0
+        }
+      ],
+      "error": null
+    },
+    {
+      "db_label": "auth",
+      "database": "auth",
+      "meta_table": "asy_systemdaten",
+      "summary": {
+        "tables_total": 4,
+        "tables_in_scope": 3,
+        "rows_scanned": 19,
+        "rows_updated": 0,
+        "rows_already_current": 19,
+        "rows_skipped_invalid": 0
+      },
+      "tables": [
+        {
+          "table": "asy_benutzer",
+          "mode": "teiltemplatefaehig",
+          "target_version": 1,
+          "rows_scanned": 4,
+          "rows_updated": 0,
+          "rows_already_current": 4,
+          "rows_skipped_invalid": 0
+        },
+        {
+          "table": "asy_mandanten",
+          "mode": "voll_templatefaehig",
+          "target_version": 1,
+          "rows_scanned": 5,
+          "rows_updated": 0,
+          "rows_already_current": 5,
+          "rows_skipped_invalid": 0
+        },
+        {
+          "table": "asy_systemdaten",
+          "mode": "voll_templatefaehig",
+          "target_version": 1,
+          "rows_scanned": 10,
+          "rows_updated": 0,
+          "rows_already_current": 10,
+          "rows_skipped_invalid": 0
+        }
+      ],
+      "error": null
+    },
+    {
+      "db_label": "mandant_main",
+      "database": "filale_test_1",
+      "meta_table": "msy_systemdaten",
+      "summary": {
+        "tables_total": 10,
+        "tables_in_scope": 9,
+        "rows_scanned": 23,
+        "rows_updated": 0,
+        "rows_already_current": 23,
+        "rows_skipped_invalid": 0
+      },
+      "tables": [
+        {
+          "table": "msy_anwendungsdaten",
+          "mode": "voll_templatefaehig",
+          "target_version": 1,
+          "rows_scanned": 1,
+          "rows_updated": 0,
+          "rows_already_current": 1,
+          "rows_skipped_invalid": 0
+        },
+        {
+          "table": "msy_error_acknowledgments",
+          "mode": "voll_templatefaehig",
+          "target_version": 1,
+          "rows_scanned": 0,
+          "rows_updated": 0,
+          "rows_already_current": 0,
+          "rows_skipped_invalid": 0
+        },
+        {
+          "table": "msy_error_log",
+          "mode": "voll_templatefaehig",
+          "target_version": 1,
+          "rows_scanned": 0,
+          "rows_updated": 0,
+          "rows_already_current": 0,
+          "rows_skipped_invalid": 0
+        },
+        {
+          "table": "msy_layout",
+          "mode": "voll_templatefaehig",
+          "target_version": 1,
+          "rows_scanned": 0,
+          "rows_updated": 0,
+          "rows_already_current": 0,
+          "rows_skipped_invalid": 0
+        },
+        {
+          "table": "msy_security",
+          "mode": "voll_templatefaehig",
+          "target_version": 1,
+          "rows_scanned": 0,
+          "rows_updated": 0,
+          "rows_already_current": 0,
+          "rows_skipped_invalid": 0
+        },
+        {
+          "table": "msy_systemdaten",
+          "mode": "voll_templatefaehig",
+          "target_version": 1,
+          "rows_scanned": 21,
+          "rows_updated": 0,
+          "rows_already_current": 21,
+          "rows_skipped_invalid": 0
+        },
+        {
+          "table": "msy_systemsteuerung",
+          "mode": "voll_templatefaehig",
+          "target_version": 1,
+          "rows_scanned": 1,
+          "rows_updated": 0,
+          "rows_already_current": 1,
+          "rows_skipped_invalid": 0
+        },
+        {
+          "table": "tst_finanzdaten",
+          "mode": "voll_templatefaehig",
+          "target_version": 1,
+          "rows_scanned": 0,
+          "rows_updated": 0,
+          "rows_already_current": 0,
+          "rows_skipped_invalid": 0
+        },
+        {
+          "table": "tst_persondaten",
+          "mode": "voll_templatefaehig",
+          "target_version": 1,
+          "rows_scanned": 0,
+          "rows_updated": 0,
+          "rows_already_current": 0,
+          "rows_skipped_invalid": 0
+        }
+      ],
+      "error": null
+    }
+  ],
+  "summary": {
+    "db_count": 3,
+    "db_errors": 0,
+    "tables_total": 27,
+    "tables_in_scope": 22,
+    "rows_scanned": 295,
+    "rows_updated": 0,
+    "rows_already_current": 295,
+    "rows_skipped_invalid": 0
+  }
+}

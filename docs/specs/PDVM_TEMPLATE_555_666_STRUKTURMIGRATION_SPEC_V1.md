@@ -276,3 +276,24 @@ Tabellen mit target_mode != voll_templatefaehig:
 Hinweis zur Abnahme:
 1. Diese 6 Tabellen bilden den offenen Entscheidungsumfang fuer Punkt "Ausnahmekatalog final je Tabelle".
 2. Alle anderen Tabellen sind aktuell als voll_templatefaehig klassifiziert.
+
+## 13. Punkt 2 Umsetzungsstand (STRUCT_VERSION_APPLIED)
+
+Status: umgesetzt am 2026-05-20.
+
+Implementierung:
+1. Neues Tool: backend/tools/phaseC_apply_struct_version_applied.py
+2. Pro aktivem Satz in voll_templatefaehig/teiltemplatefaehig Tabellen wird
+  ROOT.STRUCT_VERSION_APPLIED auf den je Tabelle gefuehrten STRUCT_VERSION_TARGET gesetzt.
+3. Zielversion wird aus TEMPLATE_META::<table> (Group TEMPLATE_META) in der jeweiligen
+  *systemdaten-Tabelle gelesen.
+
+Reports:
+1. backend/reports/phaseC_apply_struct_version_applied_dryrun_v1.json
+2. backend/reports/phaseC_apply_struct_version_applied_apply_v1.json
+3. backend/reports/phaseC_apply_struct_version_applied_dryrun_v2.json
+
+Kennzahlen:
+1. Dry-Run V1: tables_in_scope=22, rows_scanned=295, rows_updated=295, db_errors=0
+2. Apply V1: tables_in_scope=22, rows_scanned=295, rows_updated=295, db_errors=0
+3. Idempotenzcheck Dry-Run V2: rows_updated=0, rows_already_current=295
