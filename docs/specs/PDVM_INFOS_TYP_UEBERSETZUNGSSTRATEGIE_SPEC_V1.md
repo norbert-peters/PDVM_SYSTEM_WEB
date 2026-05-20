@@ -133,3 +133,20 @@ Empfohlen:
 2. Gesteuerte Uebersetzung als Standard definieren.
 3. Browser-Autouebertragung nur als optionalen Fallback behandeln.
 4. Sprachbezogene TabellenTypen trennen nach Dropdown/Text/Uebersetzung (Details siehe PDVM_TABELLENTYPEN_UND_I18N_STRUKTUR_SPEC_V1.md).
+
+## 9. Umsetzungsstand (2026-05-20)
+
+Folgende Schritte sind bereits technisch umgesetzt und validiert:
+1. Phase D Migration auf values-Modell fuer infos-Tabellen.
+2. sys_dropdowndaten: ein Dropdown pro Datensatz (Split bei Mehrfachfeldern), DE-DE + EN-US in values.
+3. sys_beschreibungen: Umstellung auf ROOT + TEXTS mit values je Sprache.
+4. Runtime-Dropdown-Aufloesung erweitert auf neues OPTIONS-Modell (mit Legacy-Fallback).
+
+Folgende Hartergebnisse wurden validiert:
+1. Phase D Apply: rows_scanned=10, rows_updated=8, rows_inserted=6, rows_split_created=6.
+2. Phase E Retarget Frame/View: rows_scanned=29, rows_updated=1, ref_updates=1, unresolved_refs=0.
+3. Strict Integritaetscheck: legacy_ref_count=0 (keine Legacy-Referenzen auf alte Quellen).
+
+Operativer Hinweis:
+1. Für Retargeting-Nachweise und UID-Mapping gilt der Apply-Report als technische Quelle.
+2. Neue Splits muessen weiterhin ueber Mapping + strict-Validierung in Frame/View nachgezogen werden.

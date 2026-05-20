@@ -1,0 +1,123 @@
+{
+  "phase": "phaseD",
+  "title": "Migrate infos tables to values language model",
+  "mode": "dry-run",
+  "database": "pdvm_system",
+  "summary": {
+    "tables_total": 2,
+    "rows_scanned": 10,
+    "rows_updated": 8,
+    "rows_inserted": 6,
+    "rows_split_created": 6,
+    "db_errors": 0
+  },
+  "tables": [
+    {
+      "table": "sys_dropdowndaten",
+      "rows_scanned": 9,
+      "rows_updated": 7,
+      "rows_inserted": 6,
+      "rows_split_created": 6,
+      "mappings": [
+        {
+          "source_uid": "001b92c4-8a0e-5a2d-8758-7c9262929384",
+          "source_name": "MIGRATED_DROPDOWN::ausrichtung",
+          "target_uid": "001b92c4-8a0e-5a2d-8758-7c9262929384",
+          "target_name": "MIGRATED_DROPDOWN::ausrichtung",
+          "field_key": "ausrichtung"
+        },
+        {
+          "source_uid": "4f290b6f-1205-494b-8f03-c6446c0df169",
+          "source_name": "Pdvm System",
+          "target_uid": "4f290b6f-1205-494b-8f03-c6446c0df169",
+          "target_name": "Pdvm System",
+          "field_key": "dialog_type"
+        },
+        {
+          "source_uid": "4f290b6f-1205-494b-8f03-c6446c0df169",
+          "source_name": "Pdvm System",
+          "target_uid": "6d57c6af-293c-56dd-9530-c175fe292070",
+          "target_name": "Pdvm System::edit_type",
+          "field_key": "edit_type"
+        },
+        {
+          "source_uid": "4f290b6f-1205-494b-8f03-c6446c0df169",
+          "source_name": "Pdvm System",
+          "target_uid": "ad4efe1f-2630-5307-a014-80ce93ed4f87",
+          "target_name": "Pdvm System::filter_type",
+          "field_key": "filter_type"
+        },
+        {
+          "source_uid": "4f290b6f-1205-494b-8f03-c6446c0df169",
+          "source_name": "Pdvm System",
+          "target_uid": "d9060583-9c5a-5bed-808a-5e72bbc2f413",
+          "target_name": "Pdvm System::ic_type",
+          "field_key": "ic_type"
+        },
+        {
+          "source_uid": "4f290b6f-1205-494b-8f03-c6446c0df169",
+          "source_name": "Pdvm System",
+          "target_uid": "14eaec28-9cb8-5d88-a837-04483b32eeba",
+          "target_name": "Pdvm System::mode",
+          "field_key": "mode"
+        },
+        {
+          "source_uid": "4f290b6f-1205-494b-8f03-c6446c0df169",
+          "source_name": "Pdvm System",
+          "target_uid": "f41d9a90-ae29-5c66-9b93-675019f6c774",
+          "target_name": "Pdvm System::systemtabellen",
+          "field_key": "systemtabellen"
+        },
+        {
+          "source_uid": "2a60c785-0829-46db-a16b-9369596fab63",
+          "source_name": "Person",
+          "target_uid": "2a60c785-0829-46db-a16b-9369596fab63",
+          "target_name": "Person",
+          "field_key": "anrede"
+        },
+        {
+          "source_uid": "d488b214-134d-4f16-a20e-dde5f9a1a881",
+          "source_name": "Finanzen",
+          "target_uid": "d488b214-134d-4f16-a20e-dde5f9a1a881",
+          "target_name": "Finanzen",
+          "field_key": "waehrungen"
+        },
+        {
+          "source_uid": "c24b894e-f5c4-5299-b544-0878ba8c7747",
+          "source_name": "MIGRATED_DROPDOWN::application",
+          "target_uid": "c24b894e-f5c4-5299-b544-0878ba8c7747",
+          "target_name": "MIGRATED_DROPDOWN::application",
+          "field_key": "application"
+        },
+        {
+          "source_uid": "5648682d-1526-4e0c-b60c-ab56dfdd00ea",
+          "source_name": "Allgemeines",
+          "target_uid": "5648682d-1526-4e0c-b60c-ab56dfdd00ea",
+          "target_name": "Allgemeines",
+          "field_key": "country"
+        },
+        {
+          "source_uid": "5648682d-1526-4e0c-b60c-ab56dfdd00ea",
+          "source_name": "Allgemeines",
+          "target_uid": "66ef77fc-7d5b-5c47-99ec-8a0cbd1b5cab",
+          "target_name": "Allgemeines::language",
+          "field_key": "language"
+        },
+        {
+          "source_uid": "721a1af3-9800-5c6b-9e70-79fbec9846ae",
+          "source_name": "MIGRATED_DROPDOWN::systemtabellen",
+          "target_uid": "721a1af3-9800-5c6b-9e70-79fbec9846ae",
+          "target_name": "MIGRATED_DROPDOWN::systemtabellen",
+          "field_key": "systemtabellen"
+        }
+      ],
+      "error": null
+    },
+    {
+      "table": "sys_beschreibungen",
+      "rows_scanned": 1,
+      "rows_updated": 1,
+      "error": null
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "phase": "phaseE",
+  "title": "Retarget frame/view dropdown uid references",
+  "mode": "dry-run",
+  "database": "pdvm_system",
+  "mapping_file": "C:\\Users\\norbe\\OneDrive\\Dokumente\\PDVM_SYSTEM_WEB\\backend\\reports\\phaseD_migrate_infos_to_values_model_apply_v1.json",
+  "summary": {
+    "tables_total": 2,
+    "rows_scanned": 29,
+    "rows_updated": 1,
+    "ref_updates": 1,
+    "unresolved_refs": 0,
+    "db_errors": 0
+  },
+  "tables": [
+    {
+      "table": "sys_viewdaten",
+      "rows_scanned": 10,
+      "rows_updated": 0,
+      "ref_updates": 0,
+      "unresolved_refs": 0,
+      "changes": [],
+      "unresolved": [],
+      "error": null
+    },
+    {
+      "table": "sys_framedaten",
+      "rows_scanned": 19,
+      "rows_updated": 1,
+      "ref_updates": 1,
+      "unresolved_refs": 0,
+      "changes": [
+        {
+          "row_uid": "20de7493-d648-41e2-87a0-7894de95af35",
+          "row_name": "Für Dialog Aufbau",
+          "updates": [
+            {
+              "path": "FIELDS.0f83e550-6998-4e12-b452-a38b2aa70621.CONTROL.CONFIGS_ELEMENTS.dropdown",
+              "old_key": "4f290b6f-1205-494b-8f03-c6446c0df169",
+              "new_key": "6d57c6af-293c-56dd-9530-c175fe292070",
+              "candidate_fields": [
+                "dialog_type",
+                "edit_type",
+                "filter_type",
+                "ic_type",
+                "mode",
+                "systemtabellen"
+              ],
+              "used_hints": [
+                "0f83e550-6998-4e12-b452-a38b2aa70621",
+                "55e5928c-4d9e-4f01-8018-8685489cfd06",
+                "edit_type",
+                "sys_edit_type"
+              ]
+            }
+          ]
+        }
+      ],
+      "unresolved": [],
+      "error": null
+    }
+  ]
+}

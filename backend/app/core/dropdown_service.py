@@ -162,6 +162,44 @@ def _parse_dataset(
     root = daten.get("ROOT") if isinstance(daten.get("ROOT"), dict) else {}
     default_lang = _norm_lang((root or {}).get("DEFAULT_LANGUAGE") or DEFAULT_LANGUAGE_FALLBACK)
 
+    # Neues Modell: ROOT + OPTIONS, Sprache liegt im values-Mapping pro Option.
+    options_obj = daten.get("OPTIONS") if isinstance(daten.get("OPTIONS"), dict) else None
+    if isinstance(options_obj, dict):
+        lang_key = _norm_lang(language)
+        field_key = _norm_field((root or {}).get("FIELD_KEY") or (root or {}).get("SELF_NAME") or "")
+
+        mapping: Dict[str, str] = {}
+        options: List[Dict[str, str]] = []
+
+        for option_key, option_value in options_obj.items():
+            opt = option_value if isinstance(option_value, dict) else {}
+            values = opt.get("values") if isinstance(opt.get("values"), dict) else {}
+            label = values.get(lang_key)
+            if label is None:
+                label = values.get(default_lang)
+            if label is None and isinstance(values, dict) and values:
+                label = next((str(v) for v in values.values() if v is not None), "")
+
+            k = str(opt.get("key") or option_key)
+            v = str(label or "")
+            mapping[k] = v
+            options.append({"key": k, "value": v})
+
+        maps_by_field: Dict[str, Dict[str, str]] = {}
+        options_by_field: Dict[str, List[Dict[str, str]]] = {}
+        aliases = {
+            field_key,
+            _norm_field((root or {}).get("SELF_GUID")),
+            _norm_field((root or {}).get("SELF_NAME")),
+        }
+        for alias in aliases:
+            if not alias:
+                continue
+            maps_by_field[alias] = mapping
+            options_by_field[alias] = options
+
+        return default_lang, maps_by_field, options_by_field
+
     requested_group = str(group or "").strip()
     lang_key = _norm_lang(language)
 
