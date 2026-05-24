@@ -258,8 +258,12 @@ Summary:
 - teiltemplatefaehig: 1
 - ausgenommen: 5
 - nicht_im_scope: 0
-4. open_decisions_count: 6
-5. review_required_count: 7
+4. open_decisions_count: 0
+5. review_required_count: 1
+
+Finalentscheidungen Punkt 1:
+1. backend/config/phaseB_exception_decisions_v1.json
+2. Die 6 zuvor offenen Tabellenentscheidungen sind explizit gelockt.
 
 Wichtige Katalogregel:
 1. Es werden nur BASE TABLES klassifiziert (keine Views).
@@ -274,8 +278,8 @@ Tabellen mit target_mode != voll_templatefaehig:
 6. mandant_main.msy_feld_aenderungshistorie -> ausgenommen (audit_or_history_table)
 
 Hinweis zur Abnahme:
-1. Diese 6 Tabellen bilden den offenen Entscheidungsumfang fuer Punkt "Ausnahmekatalog final je Tabelle".
-2. Alle anderen Tabellen sind aktuell als voll_templatefaehig klassifiziert.
+1. Punkt "Ausnahmekatalog final je Tabelle" ist abgeschlossen.
+2. Verbleibender Review-Hinweis betrifft nur msy_error_acknowledgments (trotz gelockter Entscheidung).
 
 ## 13. Punkt 2 Umsetzungsstand (STRUCT_VERSION_APPLIED)
 
@@ -319,3 +323,109 @@ Kennzahlen:
 1. Dry-Run V1 (batch_size=100): tables_in_scope=22, tables_completed=22, batches_processed=23, rows_scanned=295, rows_updated=0, rows_already_current=295, db_errors=0
 2. Apply V1 (batch_size=100): tables_in_scope=22, tables_completed=22, batches_processed=23, rows_scanned=295, rows_updated=0, rows_already_current=295, db_errors=0
 3. Delta Dry-Run V1 (changed_since=2026-05-20T00:00:00Z): tables_in_scope=22, tables_completed=22, batches_processed=0, rows_scanned=0, rows_updated=0, db_errors=0
+
+## 15. Offene Punkte Checkliste
+
+Fuer die sequentielle Abarbeitung der noch offenen Entscheidungs- und Abnahmepunkte gilt:
+1. docs/specs/PDVM_STRUKTURMIGRATION_INFOS_OFFENE_PUNKTE_CHECKLISTE_V1.md
+
+## 16. Punkt 2 Umsetzungsstand (backup_daten bei Entfall)
+
+Status: umgesetzt am 2026-05-20.
+
+Implementierung:
+1. Neues Tool: backend/tools/phaseC_prove_backup_removed_fields.py
+2. Zielmodell-basierte Entfallerkennung fuer infos-Tabellen:
+- sys_dropdowndaten: erlaubt nur ROOT + OPTIONS
+- sys_beschreibungen: erlaubt nur ROOT + TEXTS
+3. Entfallene Felder werden im Apply-Lauf aus daten entfernt und additiv in backup_daten.MIGRATION_BACKUP gespeichert.
+
+Reports:
+1. backend/reports/phaseC_prove_backup_removed_fields_dryrun_v1.json
+2. backend/reports/phaseC_prove_backup_removed_fields_apply_v1.json
+3. backend/reports/phaseC_prove_backup_removed_fields_dryrun_v2.json
+
+Kennzahlen:
+1. Dry-Run V1: tables_with_errors=0, rows_scanned=14, rows_with_removed_fields=1, removed_field_count=2, rows_updated=0
+2. Apply V1: tables_with_errors=0, rows_scanned=14, rows_with_removed_fields=1, removed_field_count=2, rows_updated=1
+3. Dry-Run V2 (Idempotenz): rows_with_removed_fields=0, removed_field_count=0, rows_updated=0
+
+Konkreter Nachweis:
+1. sys_dropdowndaten UID ddaa6590-6d08-461b-a061-75faec26f4ba
+2. entfernte Pfade: anrede, waehrung
+3. gespeichert unter backup_daten.MIGRATION_BACKUP.<timestamp>.removed
+
+## 17. Punkt 3 Umsetzungsstand (kein regressiver Einfluss Save/View)
+
+Status: umgesetzt am 2026-05-20.
+
+Implementierung:
+1. Neues Tool: backend/tools/phaseC_validate_no_regression_save_view.py
+2. Save-Probe je Stichprobentabelle via UPDATE daten in Transaktion mit ROLLBACK.
+3. Reload-Probe im selben TX (Probe-Wert in ROOT sichtbar).
+4. View-Probe (daten lesbar/serialisierbar, ROOT vorhanden, tabellenspezifische Erwartung).
+
+Abgedeckte Stichprobe:
+1. system: sys_framedaten, sys_viewdaten, sys_dropdowndaten
+2. auth: asy_mandanten
+3. mandant_main: msy_systemdaten, msy_systemsteuerung
+
+Report:
+1. backend/reports/phaseC_validate_no_regression_save_view_v1.json
+
+Kennzahlen:
+1. targets_total=6
+2. targets_passed=6
+3. targets_failed=0
+4. targets_skipped=0
+
+## 18. Punkt 4 Umsetzungsstand (Monitoring-Basis)
+
+Status: umgesetzt am 2026-05-20.
+
+Entscheidung:
+1. Mandantenweite Monitoring-Basis als Tabelle msy_batch_job_monitoring in main_mandant.
+2. Generische Nutzung fuer Batch/Job-Ablaufe (Migration, Abrechnung, Buchung, Verteilung, Import).
+3. Write-Strategie: Insert bei Start, Progress-Updates waehrend Lauf, Final-Update bei Abschluss.
+
+Spezifikation:
+1. docs/specs/PDVM_MONITORING_BATCH_JOB_BASIS_SPEC_V1.md
+
+Implementierung:
+1. Neues Tool: backend/tools/phaseC_define_monitoring_basis.py
+
+Reports:
+1. backend/reports/phaseC_define_monitoring_basis_dryrun_v1.json
+2. backend/reports/phaseC_define_monitoring_basis_apply_v1.json
+
+Kennzahlen:
+1. Dry-Run V1: db_available=true, table_exists_before=false, table_exists_after=false, ddl_executed_count=0, errors=0
+2. Apply V1: db_available=true, table_exists_before=false, table_exists_after=true, ddl_executed_count=6, errors=0
+
+Korrektur Architekturregel:
+1. historisch wird nicht als Archivierungssteuerung verwendet.
+2. Archivierung/Loeschung erfolgt ueber gilt_bis.
+3. Verbindliche Definition siehe ARCHITECTURE_RULES.md Abschnitt 1.15.
+
+## 19. Punkt 5 Umsetzungsstand (initiale Betriebswerte Batch-Runs)
+
+Status: umgesetzt am 2026-05-20.
+
+Festgelegte Startwerte V1:
+1. batch_size=100
+2. run_interval_minutes=15
+3. delta_rerun_window_hours=24
+4. max_batches_per_table=500
+5. abort_max_db_errors=0
+6. abort_require_full_completion=true
+
+Spezifikation:
+1. docs/specs/PDVM_BATCH_RUNTIME_BETRIEBSWERTE_V1.md
+
+Technische Verankerung:
+1. backend/config/phaseC_batch_runtime_defaults_v1.json
+2. backend/tools/phaseC_batch_reconcile_struct_version.py
+
+Nachweislauf:
+1. backend/reports/phaseC_batch_reconcile_struct_version_runtime_v1.json
+2. Ergebnis: operational_status=ok, db_errors=0, batch_size=100, max_batches=500.

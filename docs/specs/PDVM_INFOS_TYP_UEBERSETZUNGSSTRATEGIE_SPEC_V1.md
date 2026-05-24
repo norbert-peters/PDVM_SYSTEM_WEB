@@ -150,3 +150,139 @@ Folgende Hartergebnisse wurden validiert:
 Operativer Hinweis:
 1. Für Retargeting-Nachweise und UID-Mapping gilt der Apply-Report als technische Quelle.
 2. Neue Splits muessen weiterhin ueber Mapping + strict-Validierung in Frame/View nachgezogen werden.
+
+## 10. Offene Punkte Checkliste
+
+Fuer die sequentielle Abarbeitung der offenen Entscheidungs- und Governance-Punkte gilt:
+1. docs/specs/PDVM_STRUKTURMIGRATION_INFOS_OFFENE_PUNKTE_CHECKLISTE_V1.md
+
+## 11. Punkt 6 Umsetzungsstand (SUPPORTED_LANGUAGES + DEFAULT_LANGUAGE)
+
+Status: umgesetzt am 2026-05-20.
+
+Finale V1-Definition:
+1. DEFAULT_LANGUAGE = DE-DE
+2. SUPPORTED_LANGUAGES = [DE-DE, EN-US, IT-IT]
+
+Technische Verankerung:
+1. backend/config/i18n_policy_v1.json
+2. backend/app/core/i18n_policy.py
+3. backend/app/core/dropdown_service.py (zentrale Normalisierung)
+4. backend/app/core/systemdaten_service.py (zentrale Normalisierung)
+
+Alias-Normalisierung (Auszug):
+1. US-EN -> EN-US
+2. DEU -> DE-DE
+3. ENG -> EN-US
+4. ITA -> IT-IT
+
+Nachweis:
+1. backend/reports/phaseC_finalize_supported_languages_v1.json
+2. observed normalized languages = [DE-DE, EN-US]
+3. unsupported_observed_count = 0
+
+## 12. Punkt 7 Umsetzungsstand (Pflicht-Uebersetzungsumfang)
+
+Status: umgesetzt am 2026-05-20.
+
+Verbindliche V1-Matrix je Inhaltstyp:
+1. dropdown
+  required: DE-DE, EN-US
+  optional: IT-IT
+2. label
+  required: DE-DE, EN-US
+  optional: IT-IT
+3. hilfe
+  required: DE-DE
+  optional: EN-US, IT-IT
+4. text
+  required: DE-DE
+  optional: EN-US, IT-IT
+
+Technische Verankerung:
+1. backend/config/i18n_required_translation_scope_v1.json
+2. backend/tools/phaseC_define_required_translation_scope.py
+
+Nachweis:
+1. backend/reports/phaseC_define_required_translation_scope_v1.json
+2. items_total = 58
+3. items_with_missing_required = 0
+4. required_scope_fully_covered = true
+
+Hinweis zum Ist-Bestand:
+1. Aktuell wurden im Report nur dropdown-Inhalte gezaehlt (58 Eintraege).
+2. label/hilfe/text sind in der V1-Matrix bereits verbindlich definiert und gelten fuer kuenftige Inhalte.
+
+## 13. Punkt 8 Umsetzungsstand (Uebersetzungsmodus je Tabelle)
+
+Status: umgesetzt am 2026-05-20.
+
+Verbindliche V1-Entscheidung je Tabelle:
+1. sys_dropdowndaten -> MANUAL
+  Review-Regel:
+  Jede inhaltliche Aenderung an Dropdown-Werten erfordert Fachfreigabe vor produktiver Nutzung.
+2. sys_beschreibungen -> MACHINE_ASSISTED
+  Review-Regel:
+  Machine-Assisted Vorbelegung ist erlaubt; produktive Verwendung nur nach fachlicher Freigabe (approved).
+
+Technische Verankerung:
+1. backend/config/i18n_translation_mode_per_table_v1.json
+2. backend/tools/phaseC_define_translation_mode_per_table.py
+
+Nachweis:
+1. backend/reports/phaseC_define_translation_mode_per_table_v1.json
+2. in_scope_tables_count = 2
+3. assignments_count = 2
+4. invalid_mode_count = 0
+5. missing_review_rule_count = 0
+6. tables_missing_count = 0
+7. open_decisions_count = 0
+8. decision_set_complete = true
+
+## 14. Punkt 9 Umsetzungsstand (Freigabeversion je Sprache)
+
+Status: umgesetzt am 2026-05-20.
+
+Verbindliches minimales Freigabemodell V1:
+1. Pflichtfelder je Spracheintrag:
+  version, status, approved_by, approved_at
+2. Statusmodell:
+  new, machine, review, approved
+3. Produktivregel:
+  Nur status=approved ist produktiv gueltig.
+4. Freigabepflicht:
+  Bei status=approved muessen approved_by (nicht leer) und approved_at (ISO8601) gesetzt sein.
+5. Versionsregel:
+  version ist Pflicht und folgt Pattern ^v[0-9]+\\.[0-9]+\\.[0-9]+$.
+
+Technische Verankerung:
+1. backend/config/i18n_language_release_model_v1.json
+2. backend/tools/phaseC_define_language_release_model.py
+
+Nachweis:
+1. backend/reports/phaseC_define_language_release_model_v1.json
+2. items_total = 58
+3. items_with_release_fields = 0
+4. items_without_release_fields = 58
+5. valid_release_state_count = 0
+6. model_definition_complete = true
+7. runtime_release_metadata_coverage = false
+
+Hinweis:
+1. Punkt 9 liefert die verbindliche Modell-Definition.
+2. Die operative Einfuehrung im Laufzeitbestand (Metadata-Coverage) wird in den Folgeschritten adressiert.
+
+## 15. Punkt 10 Umsetzungsstand (infos_translation Overlay)
+
+Status: bewusst vertagt am 2026-05-20.
+
+Entscheidung:
+1. Das infos_translation Overlay wird in diesem Zyklus nicht eingefuehrt.
+
+Begruendung:
+1. Nach der grossen Migration ist der naechste priorisierte Schritt ein wiederholbares
+  Mandanten-DB-Updateverfahren fuer den Transfer auf andere Mandantendatenbanken.
+2. Fokus liegt zuerst auf Versionierung und gesteuerten Datenanpassungen in Ziel-Mandanten.
+
+Nachfolge-Spezifikation:
+1. docs/specs/PDVM_MANDANT_DB_UPDATE_VERSIONIERUNG_SPEC_V1.md

@@ -193,6 +193,120 @@ UID-/LINK_UID-Regel (verbindlich):
 
 - Ausnahmen müssen explizit dokumentiert werden und dürfen die obige GCS-Link-UID-Regel nicht verletzen.
 
+### 1.15 Semantik historisch und gilt_bis (verbindlich)
+**Regel:** `historisch` und `gilt_bis` haben unterschiedliche, nicht austauschbare Bedeutung.
+
+Verbindliche Definition:
+- `historisch` kennzeichnet, ob Daten/Felder historisch gefuehrt werden (0 = nein, 1 = ja).
+- `historisch` ist **nicht** die zentrale Steuerung fuer Archivierung oder Loeschung im operativen Laufzeitmodell.
+
+Verbindliche Archivierungs-/Loeschregel:
+- Archivierungen und Loeschungen laufen ueber `gilt_bis`.
+- Ein aktiver Datensatz hat den Defaultwert fuer `gilt_bis` (z. B. 1001 bzw. tabellenspezifischer Default).
+- Das Beenden/Archivieren eines Datensatzes erfolgt durch Setzen eines passenden `gilt_bis`-Zeitpunkts.
+
+Konsequenz fuer neue Tabellen/Tools:
+- Monitoring-, Batch- und Job-Tabellen duerfen fuer Aufbewahrung/Abschluss nicht auf `historisch` umdeuten.
+- Wenn ein Lebenszyklus benoetigt wird, ist dieser ueber `gilt_bis` (und optional ROOT-Statusfelder) abzubilden.
+
+### 1.16 I18N Default- und Supported-Languages (verbindlich)
+**Regel:** DEFAULT_LANGUAGE und SUPPORTED_LANGUAGES werden zentral ueber die I18N-Policy definiert.
+
+Verbindliche Quelle:
+- `backend/config/i18n_policy_v1.json`
+
+Verbindliche V1-Werte:
+- `DEFAULT_LANGUAGE = DE-DE`
+- `SUPPORTED_LANGUAGES = [DE-DE, EN-US, IT-IT]`
+
+Verbindliche Umsetzung:
+- Sprach-Normalisierung erfolgt zentral in `backend/app/core/i18n_policy.py`.
+- Services mit Sprachauflösung (z. B. Dropdown/Systemdaten) muessen diese Normalisierung verwenden.
+- Historische/abweichende Codes (z. B. `US-EN`, `DEU`) werden per Alias auf kanonische Codes abgebildet.
+
+### 1.17 I18N Pflicht-Uebersetzungsumfang je Inhaltstyp (verbindlich)
+**Regel:** Der Pflichtumfang je Inhaltstyp wird zentral als Matrix gepflegt und fuer Qualitaetschecks verwendet.
+
+Verbindliche Quelle:
+- `backend/config/i18n_required_translation_scope_v1.json`
+
+V1-Pflichtmatrix:
+- `dropdown`: required `DE-DE`, `EN-US`; optional `IT-IT`
+- `label`: required `DE-DE`, `EN-US`; optional `IT-IT`
+- `hilfe`: required `DE-DE`; optional `EN-US`, `IT-IT`
+- `text`: required `DE-DE`; optional `EN-US`, `IT-IT`
+
+Verbindliche Umsetzung:
+- Validierungs- und Reporting-Tools muessen diese Matrix verwenden.
+- Alias- und Sprach-Normalisierung erfolgt ueber die zentrale I18N-Policy.
+- Neue Inhalte duerfen nicht als produktionsreif gelten, wenn required-Sprachen fuer den jeweiligen Inhaltstyp fehlen.
+
+### 1.18 I18N Uebersetzungsmodus je Tabelle (verbindlich)
+**Regel:** Jede betroffene infos-Tabelle hat einen verbindlichen Uebersetzungsmodus inklusive Review-Regel.
+
+Verbindliche Quelle:
+- `backend/config/i18n_translation_mode_per_table_v1.json`
+
+V1-Entscheidung:
+- `sys_dropdowndaten` -> `MANUAL`
+- `sys_beschreibungen` -> `MACHINE_ASSISTED`
+
+Verbindliche Review-Pflicht:
+- Unabhaengig vom Modus ist vor produktiver Nutzung eine fachliche Freigabe erforderlich.
+- Bei `MACHINE_ASSISTED` sind maschinelle Vorbelegungen ohne Freigabe nicht produktiv gueltig.
+
+Verbindliche Nachweisfuehrung:
+- Validierungs-/Reporting-Tools muessen Modus, Review-Regel und Entscheidungs-Lock je In-Scope-Tabelle ausweisen.
+- Offene Entscheidungen (`decision_locked = false`) sind fuer produktive Freigaben nicht zulaessig.
+
+### 1.19 I18N Freigabemodell je Sprache (verbindlich)
+**Regel:** Sprachbezogene Inhalte verwenden ein einheitliches Freigabemodell fuer produktive Nutzung.
+
+Verbindliche Quelle:
+- `backend/config/i18n_language_release_model_v1.json`
+
+Pflichtfelder je Spracheintrag:
+- `version`
+- `status`
+- `approved_by`
+- `approved_at`
+
+Verbindliche Statuswerte:
+- `new`
+- `machine`
+- `review`
+- `approved`
+
+Produktivregel:
+- Nur `status=approved` gilt als produktiv freigegeben.
+- Bei `approved` sind `approved_by` (nicht leer) und `approved_at` (ISO8601) verpflichtend.
+
+Versionsregel:
+- `version` ist Pflichtfeld und muss dem Pattern `^v[0-9]+\.[0-9]+\.[0-9]+$` entsprechen.
+
+Governance:
+- Das Modell ist verbindlich definiert; fehlende Laufzeit-Metadaten im Bestand sind als Migrations-/Einfuehrungsaufgabe zu behandeln.
+
+### 1.20 Mandanten-DB Updates: Updatearten und Versionierungsachsen (verbindlich)
+**Regel:** Wiederkehrende Datenbank-Migrationen werden mandantenbezogen ueber ein standardisiertes Updateverfahren gefahren.
+
+Verbindliche Spezifikation:
+- `docs/specs/PDVM_MANDANT_DB_UPDATE_VERSIONIERUNG_SPEC_V1.md`
+
+Verbindliche Updatearten:
+- `SOURCE_UPDATE` (Quellstand/Release-Kontext)
+- `DATABASE_UPDATE` (Schema/Struktur)
+- `DATA_UPDATE` (Inhaltsmigration)
+
+Verbindliche Versionsachsen je Mandant:
+- `SOURCE_VERSION`
+- `DB_SCHEMA_VERSION`
+- `DATA_MODEL_VERSION`
+
+Scope-Regel V1:
+- Wiederkehrende Update-Ziele sind Mandanten-DBs.
+- AUTH-DB und SYSTEM-DB gelten in diesem Zyklus als initial bereitgestellt und nicht als regulaere Update-Pipeline.
+
 ---
 
 ## 2. Frontend Architektur (React)
@@ -263,6 +377,46 @@ Siehe Spezifikation: `docs/specs/PDVM_DIALOG_EDIT_FRAME_SPEC.md`.
 
 ### 2.7 Dialog V2 (egalisiert)
 **Regel:** Dialoge nutzen ein einheitliches Datenmodell in `sys_dialogdaten`.
+
+### 2.8 Dialog/View/Frame Refaktoring (Entwicklungsphase)
+**Regel:** Die laufende Refaktorisierung von Dialogen, Views und Frames erfolgt in der Entwicklungsphase ohne zusaetzliche DB-Versionierungsachse fuer diesen Teilbereich.
+
+Verbindliche Arbeitsgrundlage:
+- `docs/specs/PDVM_DIALOG_VIEW_FRAME_REFAKTORING_ENTWICKLUNGSPHASE.md`
+
+Verbindlicher Fokus:
+- Normalisierung von `sys_dialogdaten`, `sys_viewdaten`, `sys_framedaten`, `sys_control_dict`
+- klare Trennung `DIALOG_TYPE=edit` vs `DIALOG_TYPE=work`
+- InputControls-First mit dokumentierten Ausnahmen
+- Analyse von Schwachstellen, Architektur-Differenzen und Entscheidungsbedarf vor finaler Verhaertung
+
+### 2.9 Single-Tab Dialogdarstellung (verbindlich)
+**Regel:** Wenn in `sys_dialogdaten` effektiv genau ein Tab konfiguriert ist, wird kein Tab-Header gerendert.
+
+- Diese Regel gilt global fuer alle Dialogtypen.
+- Die interne Tab-Logik bleibt erhalten; nur die visuelle Tab-Navigation wird ausgeblendet.
+
+### 2.10 Workflow-Endtab (verbindlich)
+**Regel:** Bei `DIALOG_TYPE=work` muss der letzte Tab `MODULE=acti` besitzen.
+
+- Ohne `acti`-Endtab ist die Dialogkonfiguration ungueltig.
+- Validierungs- und Analyse-Tools muessen diese Regel explizit pruefen.
+
+### 2.11 JSON/Edit Sonderpfade und Menue-Security (verbindlich)
+**Regel:** `show_json` und `edit_json` sind dokumentierte Uebergangs-Sonderpfade.
+
+- Mit Einfuehrung der Menue-Security sind diese Pfade nur fuer Entwicklerrollen freizugeben.
+- Bis zur Security-Einfuehrung duerfen diese Pfade nicht als allgemeiner Standard-Editor fuer Endanwender ausgerollt werden.
+
+### 2.12 Guardrails fuer Prefix-Multi-Table Dropdown-Views (verbindlich)
+**Regel:** Prefix-basierte Multi-Table-Dropdowns duerfen nur unter klaren technischen Guardrails betrieben werden.
+
+Pflicht-Guardrails:
+- Prefix-Whitelist
+- Max-Result Limit
+- Timeout-Grenze
+- Caching-Strategie
+- Nachvollziehbares Logging
 
 - `DIALOG_TYPE`: `norm`, `work`, `acti`.
 - Tabs definieren Module (`view`, `edit`, `acti`) mit `GUID` pro Tab.
