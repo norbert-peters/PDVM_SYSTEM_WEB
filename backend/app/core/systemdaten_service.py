@@ -31,12 +31,12 @@ import uuid
 from typing import Any, Dict, List, Optional, Tuple
 
 from app.core.pdvm_datenbank import PdvmDatabase
-from app.core.dropdown_service import get_user_language, DEFAULT_LANGUAGE_FALLBACK
+from app.core.dropdown_service import get_user_language
+from app.core.i18n_policy import DEFAULT_LANGUAGE_FALLBACK, normalize_language
 
 
 def _norm_lang(value: Any) -> str:
-    s = str(value or "").strip()
-    return s.upper() if s else DEFAULT_LANGUAGE_FALLBACK
+    return normalize_language(value)
 
 
 def _strip_diacritics(value: str) -> str:

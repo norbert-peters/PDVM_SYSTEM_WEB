@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "batch_size": 100,
+  "run_interval_minutes": 15,
+  "delta_rerun_window_hours": 24,
+  "max_batches_per_table": 500,
+  "abort_max_db_errors": 0,
+  "abort_require_full_completion": true
+}

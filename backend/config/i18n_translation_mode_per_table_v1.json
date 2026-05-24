@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "effective_date": "2026-05-20",
+  "notes": "Punkt 8: Uebersetzungsmodus je betroffener Tabelle inkl. Review-Regel.",
+  "allowed_modes": [
+    "MANUAL",
+    "MACHINE_ASSISTED"
+  ],
+  "in_scope_tables": [
+    "sys_dropdowndaten",
+    "sys_beschreibungen"
+  ],
+  "assignments": {
+    "sys_dropdowndaten": {
+      "mode": "MANUAL",
+      "decision_locked": true,
+      "review_rule": "Jede inhaltliche Aenderung an Dropdown-Werten erfordert Fachfreigabe vor produktiver Nutzung.",
+      "review_required": true
+    },
+    "sys_beschreibungen": {
+      "mode": "MACHINE_ASSISTED",
+      "decision_locked": true,
+      "review_rule": "Machine-Assisted Vorbelegung ist erlaubt; produktive Verwendung nur nach fachlicher Freigabe (approved).",
+      "review_required": true
+    }
+  }
+}

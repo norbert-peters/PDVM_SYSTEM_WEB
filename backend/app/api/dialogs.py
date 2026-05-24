@@ -13,6 +13,8 @@ import uuid
 import re
 import json
 import copy
+from functools import lru_cache
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -41,8 +43,75 @@ router = APIRouter()
 _SYS_FIELD_LAST_CALL = "LAST_CALL"
 _SYS_FIELD_UI_STATE = "UI_STATE"
 _SYS_FIELD_DRAFTS = "DRAFTS"
-_CENTRAL_EDIT_TYPES = {"edit_user", "import_data", "pdvm_edit", "edit_dict", "edit_control"}
 _CONFLICT_MESSAGE = "Daten zwischenzeitlich geändert. Bitte neu lesen"
+
+_EDIT_TYPE_POLICY_PATH = Path(__file__).resolve().parents[2] / "config" / "dialog_view_frame_analyzer_policy_v1.json"
+_DEFAULT_EDIT_TYPE_CONTRACTS: Dict[str, Dict[str, Any]] = {
+    "show_json": {
+        "status": "transitional",
+        "scope": "developer json display",
+        "allowed_operations": ["read"],
+        "write_backend": "json",
+        "raw_payload": True,
+        "preferred_modules": ["show"],
+    },
+    "edit_json": {
+        "status": "transitional",
+        "scope": "developer json edit",
+        "allowed_operations": ["read", "write"],
+        "write_backend": "json",
+        "raw_payload": True,
+    },
+    "menu": {
+        "status": "stable",
+        "scope": "menu management flows",
+        "allowed_operations": ["read", "write"],
+        "write_backend": "json",
+        "raw_payload": False,
+    },
+    "edit_user": {
+        "status": "stable",
+        "scope": "user management flows",
+        "allowed_operations": ["read", "write"],
+        "write_backend": "central",
+        "raw_payload": False,
+    },
+    "import_data": {
+        "status": "stable",
+        "scope": "import flows",
+        "allowed_operations": ["read", "write"],
+        "write_backend": "central",
+        "raw_payload": False,
+    },
+    "pdvm_edit": {
+        "status": "stable",
+        "scope": "default edit modules",
+        "allowed_operations": ["read", "write"],
+        "write_backend": "central",
+        "raw_payload": False,
+    },
+    "edit_dict": {
+        "status": "approved",
+        "scope": "dictionary flows",
+        "allowed_operations": ["read", "write"],
+        "write_backend": "central",
+        "raw_payload": False,
+    },
+    "edit_control": {
+        "status": "approved",
+        "scope": "control dictionary and control editor flows",
+        "allowed_operations": ["read", "write"],
+        "write_backend": "central",
+        "raw_payload": False,
+    },
+    "view": {
+        "status": "stable",
+        "scope": "view modules",
+        "allowed_operations": ["read"],
+        "write_backend": "json",
+        "raw_payload": False,
+    },
+}
 
 
 _TABLE_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -60,13 +129,83 @@ def _normalize_dialog_table(dialog_table: Optional[str]) -> Optional[str]:
     return t
 
 
-def _ensure_allowed_edit_type(edit_type: str):
+def _as_dict(value: Any) -> Dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
+@lru_cache(maxsize=1)
+def _get_edit_type_contracts() -> Dict[str, Dict[str, Any]]:
+    contracts: Dict[str, Dict[str, Any]] = {k: dict(v) for k, v in _DEFAULT_EDIT_TYPE_CONTRACTS.items()}
+    try:
+        payload = json.loads(_EDIT_TYPE_POLICY_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        payload = {}
+
+    configured = _as_dict(_as_dict(payload).get("edit_type_contracts"))
+    for et, contract in configured.items():
+        et_norm = str(et or "").strip().lower()
+        if not et_norm:
+            continue
+        merged = dict(contracts.get(et_norm, {}))
+        if isinstance(contract, dict):
+            merged.update(contract)
+        if not isinstance(merged.get("allowed_operations"), list):
+            merged["allowed_operations"] = ["read", "write"]
+        if str(merged.get("write_backend") or "").strip().lower() not in {"central", "json"}:
+            merged["write_backend"] = "json"
+        if "raw_payload" not in merged:
+            merged["raw_payload"] = et_norm in {"show_json", "edit_json"}
+        contracts[et_norm] = merged
+    return contracts
+
+
+def _edit_type_contract(edit_type: str) -> Dict[str, Any]:
     et = str(edit_type or "").strip().lower()
-    if et not in {"show_json", "edit_json", "menu", "edit_user", "import_data", "pdvm_edit", "edit_dict", "edit_control"}:
+    return _as_dict(_get_edit_type_contracts().get(et))
+
+
+def _ensure_allowed_edit_type(edit_type: str, *, operation: str = "read"):
+    et = str(edit_type or "").strip().lower()
+    op = str(operation or "read").strip().lower() or "read"
+    contract = _edit_type_contract(et)
+    if not contract:
+        allowed = ", ".join(sorted(_get_edit_type_contracts().keys()))
         raise HTTPException(
             status_code=400,
-            detail="Nur EDIT_TYPE show_json, edit_json, menu, edit_user, import_data, pdvm_edit, edit_dict und edit_control sind erlaubt",
+            detail=f"EDIT_TYPE '{et}' ist nicht im Contract hinterlegt. Erlaubt: {allowed}",
         )
+    allowed_operations = [str(x).strip().lower() for x in contract.get("allowed_operations", [])]
+    if op not in allowed_operations:
+        raise HTTPException(status_code=400, detail=f"EDIT_TYPE '{et}' erlaubt keine Operation '{op}'")
+
+
+def _ensure_module_allows_write(runtime: Dict[str, Any], *, edit_type: str) -> None:
+    """Blockiert Write-Pfade hart für Modul 'show'."""
+    et = str(edit_type or "").strip().lower()
+    tabs = runtime.get("tab_modules") if isinstance(runtime, dict) else None
+    if not isinstance(tabs, list) or not tabs:
+        return
+
+    for tm in tabs:
+        if not isinstance(tm, dict):
+            continue
+        module = str(tm.get("module") or "").strip().lower()
+        tab_et = str(tm.get("edit_type") or "").strip().lower()
+        if module != "show":
+            continue
+
+        # Wenn der Tab den gleichen Edit-Typ trägt (oder show_json implizit ist), ist Write verboten.
+        if tab_et == et or (et == "show_json" and not tab_et):
+            raise HTTPException(
+                status_code=400,
+                detail="Write ist fuer MODULE=show nicht erlaubt (display-only).",
+            )
+
+
+def _is_central_edit_type(edit_type: str) -> bool:
+    contract = _edit_type_contract(edit_type)
+    backend = str(contract.get("write_backend") or "").strip().lower()
+    return backend == "central"
 
 
 def _should_defer_template_resolution(*, root_table: str, edit_type: str) -> bool:
@@ -81,6 +220,9 @@ def _normalize_table_name(value: Optional[str]) -> str:
 
 def _use_raw_json_payload(edit_type: Optional[str]) -> bool:
     et = str(edit_type or "").strip().lower()
+    contract = _edit_type_contract(et)
+    if contract:
+        return bool(contract.get("raw_payload"))
     return et in {"show_json", "edit_json"}
 
 
@@ -294,7 +436,7 @@ def _resolve_dialog_scope(dialog_guid: str, runtime: Dict[str, Any]) -> str:
 
 def _pick_edit_target(runtime: Dict[str, Any], dialog_table_norm: Optional[str]) -> tuple[str, str]:
     if dialog_table_norm:
-        _ensure_allowed_edit_type(runtime.get("edit_type") or "show_json")
+        _ensure_allowed_edit_type(runtime.get("edit_type") or "show_json", operation="read")
         runtime["root_table"] = dialog_table_norm
         runtime["view_guid"] = None
 
@@ -302,6 +444,7 @@ def _pick_edit_target(runtime: Dict[str, Any], dialog_table_norm: Optional[str])
     if not root_table:
         raise HTTPException(status_code=400, detail="Dialog ROOT.TABLE ist leer")
     edit_type = str(runtime.get("edit_type") or "show_json").strip().lower() or "show_json"
+    _ensure_allowed_edit_type(edit_type, operation="read")
     return root_table, edit_type
 
     if raw is None:
@@ -1288,7 +1431,9 @@ async def post_dialog_draft_commit(
         if not str(root_to_save.get("SELF_NAME") or "").strip():
             root_to_save["SELF_NAME"] = name
         daten_to_save["ROOT"] = root_to_save
-        if edit_type in _CENTRAL_EDIT_TYPES:
+        _ensure_module_allows_write(runtime, edit_type=edit_type)
+        _ensure_allowed_edit_type(edit_type, operation="write")
+        if _is_central_edit_type(edit_type):
             saved = await update_dialog_record_central(gcs, root_table=root_table, record_uuid=record_uuid, daten=daten_to_save)
         else:
             saved = await update_dialog_record_json(
@@ -1421,14 +1566,11 @@ async def put_dialog_record(
         raise HTTPException(status_code=400, detail="Dialog ROOT.TABLE ist leer")
 
     edit_type = str(runtime.get("edit_type") or "show_json").strip().lower()
-    if edit_type not in {"edit_json", "edit_user", "import_data", "pdvm_edit", "edit_dict", "edit_control"}:
-        raise HTTPException(
-            status_code=400,
-            detail="Dialog ist nicht für edit_json, edit_user, import_data, pdvm_edit, edit_dict oder edit_control konfiguriert",
-        )
+    _ensure_module_allows_write(runtime, edit_type=edit_type)
+    _ensure_allowed_edit_type(edit_type, operation="write")
 
     try:
-        if edit_type in _CENTRAL_EDIT_TYPES:
+        if _is_central_edit_type(edit_type):
             return await update_dialog_record_central(gcs, root_table=table, record_uuid=record_uuid, daten=payload.daten)
         resolve_response_effective = not _use_raw_json_payload(edit_type)
         return await update_dialog_record_json(
@@ -1679,7 +1821,9 @@ async def post_dialog_record_create(
             root_to_save["SELF_NAME"] = built["name"]
         daten_to_save["ROOT"] = root_to_save
 
-        if edit_type in _CENTRAL_EDIT_TYPES:
+        _ensure_module_allows_write(runtime, edit_type=edit_type)
+        _ensure_allowed_edit_type(edit_type, operation="write")
+        if _is_central_edit_type(edit_type):
             return await update_dialog_record_central(gcs, root_table=table, record_uuid=record_uuid, daten=daten_to_save)
         return await update_dialog_record_json(
             gcs,

@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "default_language": "DE-DE",
+  "supported_languages": [
+    "DE-DE",
+    "EN-US",
+    "IT-IT"
+  ],
+  "language_aliases": {
+    "DE": "DE-DE",
+    "DEU": "DE-DE",
+    "DE-DE": "DE-DE",
+    "EN": "EN-US",
+    "EN-US": "EN-US",
+    "US-EN": "EN-US",
+    "ENG": "EN-US",
+    "IT": "IT-IT",
+    "IT-IT": "IT-IT",
+    "ITA": "IT-IT"
+  }
+}

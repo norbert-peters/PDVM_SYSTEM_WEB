@@ -21,7 +21,7 @@ import json
 import sys
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -42,6 +42,39 @@ from tools.phaseB_persist_template_modes import (
 
 CHECKPOINT_VERSION = 1
 TIMESTAMP_COLUMNS = ["modified_at", "updated_at", "created_at"]
+RUNTIME_DEFAULTS_VERSION = 1
+
+
+def _default_runtime_profile() -> Dict[str, Any]:
+    return {
+        "version": RUNTIME_DEFAULTS_VERSION,
+        "batch_size": 100,
+        "run_interval_minutes": 15,
+        "delta_rerun_window_hours": 24,
+        "max_batches_per_table": 500,
+        "abort_max_db_errors": 0,
+        "abort_require_full_completion": True,
+    }
+
+
+def _default_runtime_defaults_path() -> Path:
+    return BACKEND_DIR / "config" / "phaseC_batch_runtime_defaults_v1.json"
+
+
+def _load_runtime_defaults(path: Path) -> Dict[str, Any]:
+    defaults = _default_runtime_profile()
+    if not path.exists():
+        return defaults
+
+    try:
+        raw = _as_dict(json.loads(path.read_text(encoding="utf-8")))
+    except Exception:
+        return defaults
+
+    for key in defaults.keys():
+        if key in raw:
+            defaults[key] = raw.get(key)
+    return defaults
 
 
 def _as_dict(value: Any) -> Dict[str, Any]:
@@ -439,6 +472,9 @@ async def build_report(
     max_batches: Optional[int],
     checkpoint_path: Path,
     reset_resume: bool,
+    runtime_defaults: Dict[str, Any],
+    max_db_errors: int,
+    require_full_completion: bool,
 ) -> Dict[str, Any]:
     system_cfg = await ConnectionManager.get_system_config()
     auth_cfg = await ConnectionManager.get_auth_config()
@@ -470,6 +506,11 @@ async def build_report(
         "batch_size": int(batch_size),
         "changed_since": changed_since,
         "max_batches": max_batches,
+        "runtime_defaults": runtime_defaults,
+        "abort_criteria": {
+            "max_db_errors": int(max_db_errors),
+            "require_full_completion": bool(require_full_completion),
+        },
         "checkpoint": {
             "path": str(checkpoint_path),
             "run_id": checkpoint.get("run_id"),
@@ -520,6 +561,22 @@ async def build_report(
         report["summary"]["rows_skipped_system_uids"] += int(s.get("rows_skipped_system_uids", 0))
         report["summary"]["batches_processed"] += int(s.get("batches_processed", 0))
 
+    status = "ok"
+    abort_reasons: List[str] = []
+    if int(report["summary"].get("db_errors", 0)) > int(max_db_errors):
+        status = "failed"
+        abort_reasons.append("db_errors_exceeded")
+    if require_full_completion and int(report["summary"].get("tables_completed", 0)) < int(
+        report["summary"].get("tables_in_scope", 0)
+    ):
+        status = "failed"
+        abort_reasons.append("tables_not_fully_completed")
+
+    report["operational_status"] = {
+        "status": status,
+        "abort_reasons": abort_reasons,
+    }
+
     checkpoint["finished_at"] = _utc_now()
     _save_checkpoint(checkpoint_path, checkpoint)
     return report
@@ -558,6 +615,9 @@ async def _run(
     changed_since: Optional[str],
     max_batches: Optional[int],
     reset_resume: bool,
+    runtime_defaults: Dict[str, Any],
+    max_db_errors: int,
+    require_full_completion: bool,
 ) -> int:
     report = await build_report(
         apply=apply,
@@ -566,6 +626,9 @@ async def _run(
         max_batches=max_batches,
         checkpoint_path=checkpoint_path,
         reset_resume=reset_resume,
+        runtime_defaults=runtime_defaults,
+        max_db_errors=max_db_errors,
+        require_full_completion=require_full_completion,
     )
     _print_summary(report)
 
@@ -573,15 +636,40 @@ async def _run(
     output_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"\nReport geschrieben: {output_path}")
     print(f"Checkpoint: {checkpoint_path}")
+    if str(report.get("operational_status", {}).get("status")) != "ok":
+        print(f"Operational status failed: {report.get('operational_status')}")
+        return 3
     return 0
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Phase C Punkt 3: batch reconcile STRUCT_VERSION_APPLIED")
+    parser.add_argument(
+        "--defaults",
+        default=str(_default_runtime_defaults_path()),
+        help="Pfad zur Runtime-Defaults JSON Datei",
+    )
     parser.add_argument("--apply", action="store_true", help="Schreibt Datenbank-Updates")
-    parser.add_argument("--batch-size", type=int, default=200, help="Batch-Groesse je Tabelle")
+    parser.add_argument("--batch-size", type=int, default=None, help="Batch-Groesse je Tabelle")
     parser.add_argument("--changed-since", default=None, help="ISO-Timestamp fuer Delta-Rerun")
     parser.add_argument("--max-batches", type=int, default=None, help="Maximale Batch-Anzahl je Tabelle")
+    parser.add_argument(
+        "--delta-window-hours",
+        type=int,
+        default=None,
+        help="Fenster fuer Delta-Rerun in Stunden (wird bei --changed-since ignoriert)",
+    )
+    parser.add_argument(
+        "--max-db-errors",
+        type=int,
+        default=None,
+        help="Abbruchkriterium: maximal erlaubte DB-Errors",
+    )
+    parser.add_argument(
+        "--allow-partial-completion",
+        action="store_true",
+        help="Deaktiviert Abbruchkriterium fuer unvollstaendige Tabellenabschluesse",
+    )
     parser.add_argument("--reset-resume", action="store_true", help="Vorhandenen Checkpoint verwerfen")
     parser.add_argument("--output", default=str(_default_output_path()), help="Pfad fuer JSON-Report")
     parser.add_argument(
@@ -591,18 +679,52 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    if args.batch_size <= 0:
+    defaults = _load_runtime_defaults(Path(args.defaults))
+
+    batch_size = int(args.batch_size) if args.batch_size is not None else int(defaults.get("batch_size", 100))
+    max_batches = (
+        int(args.max_batches)
+        if args.max_batches is not None
+        else int(defaults.get("max_batches_per_table", 500))
+    )
+    max_db_errors = (
+        int(args.max_db_errors)
+        if args.max_db_errors is not None
+        else int(defaults.get("abort_max_db_errors", 0))
+    )
+    require_full_completion = bool(defaults.get("abort_require_full_completion", True))
+    if args.allow_partial_completion:
+        require_full_completion = False
+
+    changed_since = args.changed_since
+    if not changed_since:
+        delta_window_hours = (
+            int(args.delta_window_hours)
+            if args.delta_window_hours is not None
+            else int(defaults.get("delta_rerun_window_hours", 24))
+        )
+        if delta_window_hours > 0:
+            changed_since = (datetime.utcnow() - timedelta(hours=delta_window_hours)).replace(microsecond=0).isoformat() + "Z"
+
+    if batch_size <= 0:
         raise SystemExit("--batch-size muss > 0 sein")
+    if max_batches <= 0:
+        raise SystemExit("--max-batches muss > 0 sein")
+    if max_db_errors < 0:
+        raise SystemExit("--max-db-errors muss >= 0 sein")
 
     return asyncio.run(
         _run(
             output_path=Path(args.output),
             checkpoint_path=Path(args.checkpoint),
             apply=bool(args.apply),
-            batch_size=int(args.batch_size),
-            changed_since=args.changed_since,
-            max_batches=args.max_batches,
+            batch_size=batch_size,
+            changed_since=changed_since,
+            max_batches=max_batches,
             reset_resume=bool(args.reset_resume),
+            runtime_defaults=defaults,
+            max_db_errors=max_db_errors,
+            require_full_completion=require_full_completion,
         )
     )
 

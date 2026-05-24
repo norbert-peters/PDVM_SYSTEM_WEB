@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "effective_date": "2026-05-20",
+  "notes": "Punkt 9: minimales Freigabemodell je Sprache fuer produktive Verwendung.",
+  "in_scope_tables": [
+    "sys_dropdowndaten",
+    "sys_beschreibungen"
+  ],
+  "required_release_fields": [
+    "version",
+    "status",
+    "approved_by",
+    "approved_at"
+  ],
+  "status_model": {
+    "new": {
+      "productive_allowed": false,
+      "requires_approved_fields": false,
+      "description": "Neu angelegt, noch keine maschinelle oder fachliche Freigabe."
+    },
+    "machine": {
+      "productive_allowed": false,
+      "requires_approved_fields": false,
+      "description": "Maschinell vorbefuellt, fachlich noch nicht freigegeben."
+    },
+    "review": {
+      "productive_allowed": false,
+      "requires_approved_fields": false,
+      "description": "In fachlicher Pruefung."
+    },
+    "approved": {
+      "productive_allowed": true,
+      "requires_approved_fields": true,
+      "description": "Fachlich freigegeben fuer produktive Verwendung."
+    }
+  },
+  "approved_field_rules": {
+    "approved_by": {
+      "required_when_status": [
+        "approved"
+      ],
+      "non_empty": true
+    },
+    "approved_at": {
+      "required_when_status": [
+        "approved"
+      ],
+      "format": "ISO8601"
+    }
+  },
+  "version_field_rules": {
+    "version_required": true,
+    "pattern": "^v[0-9]+\\.[0-9]+\\.[0-9]+$",
+    "examples": [
+      "v1.0.0",
+      "v1.1.0"
+    ]
+  }
+}

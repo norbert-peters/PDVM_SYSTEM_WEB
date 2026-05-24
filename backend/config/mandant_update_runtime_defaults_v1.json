@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "source_version_target": "v2.1.0",
+  "db_schema_version_target": "db.2026.05.21.01",
+  "data_model_version_target": "data.2026.05.21.01",
+  "run_interval_minutes": 15,
+  "max_db_errors": 0,
+  "max_batches": 500
+}

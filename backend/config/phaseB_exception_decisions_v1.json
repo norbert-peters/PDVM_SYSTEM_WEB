@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "created_at_utc": "2026-05-20T00:00:00Z",
+  "scope": "phaseB_exception_catalog",
+  "decisions": [
+    {
+      "key": "system.dev_workflow_draft",
+      "target_mode": "ausgenommen",
+      "decision_locked": true,
+      "review_required": false,
+      "decision_note": "Dev-Workflow-Tabelle bleibt ausserhalb produktiver 555/666-Migration.",
+      "decision_source": "punkt1_finalentscheid_2026-05-20"
+    },
+    {
+      "key": "system.dev_workflow_draft_item",
+      "target_mode": "ausgenommen",
+      "decision_locked": true,
+      "review_required": false,
+      "decision_note": "Dev-Workflow-Items bleiben ausserhalb produktiver 555/666-Migration.",
+      "decision_source": "punkt1_finalentscheid_2026-05-20"
+    },
+    {
+      "key": "system.sys_feld_aenderungshistorie",
+      "target_mode": "ausgenommen",
+      "decision_locked": true,
+      "review_required": false,
+      "decision_note": "Audit-Historie wird nicht template-migriert.",
+      "decision_source": "punkt1_finalentscheid_2026-05-20"
+    },
+    {
+      "key": "auth.asy_benutzer",
+      "target_mode": "teiltemplatefaehig",
+      "decision_locked": true,
+      "review_required": false,
+      "decision_note": "Benutzer/Auth bleibt Teilausnahme mit Sonderregeln fuer Auth-Felder.",
+      "decision_source": "punkt1_finalentscheid_2026-05-20"
+    },
+    {
+      "key": "auth.asy_feld_aenderungshistorie",
+      "target_mode": "ausgenommen",
+      "decision_locked": true,
+      "review_required": false,
+      "decision_note": "Auth-Aenderungshistorie bleibt ausgenommen.",
+      "decision_source": "punkt1_finalentscheid_2026-05-20"
+    },
+    {
+      "key": "mandant_main.msy_feld_aenderungshistorie",
+      "target_mode": "ausgenommen",
+      "decision_locked": true,
+      "review_required": false,
+      "decision_note": "Mandanten-Aenderungshistorie bleibt ausgenommen.",
+      "decision_source": "punkt1_finalentscheid_2026-05-20"
+    }
+  ]
+}

@@ -1435,7 +1435,7 @@ def extract_dialog_runtime_config(dialog_def: Dict[str, Any]) -> Dict[str, Any]:
             view_guid = guid
         if module == "edit" and guid and not frame_guid:
             frame_guid = guid
-        if module == "edit" and module_edit and (not edit_type or edit_type == "show_json"):
+        if module in {"edit", "show"} and module_edit and (not edit_type or edit_type == "show_json"):
             edit_type = module_edit
 
     if not edit_type:

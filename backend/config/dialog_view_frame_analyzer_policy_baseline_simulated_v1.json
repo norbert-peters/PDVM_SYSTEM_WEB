@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "metadata": {
+    "owner": "baseline-simulation",
+    "review_cycle_days": 30,
+    "updated_at": "2026-05-22"
+  },
+  "tabless_dialog_exceptions": [],
+  "edit_type_contracts": {
+    "view": {
+      "status": "stable",
+      "scope": "view modules"
+    },
+    "pdvm_edit": {
+      "status": "stable",
+      "scope": "default edit modules"
+    },
+    "show_json": {
+      "status": "transitional",
+      "scope": "developer json display"
+    },
+    "edit_json": {
+      "status": "transitional",
+      "scope": "developer json edit"
+    },
+    "import_data": {
+      "status": "stable",
+      "scope": "import flows"
+    },
+    "menu": {
+      "status": "stable",
+      "scope": "menu management flows"
+    },
+    "edit_user": {
+      "status": "stable",
+      "scope": "user management flows"
+    }
+  }
+}

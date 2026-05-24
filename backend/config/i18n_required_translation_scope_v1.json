@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "effective_date": "2026-05-20",
+  "notes": "Punkt 7: Pflicht-Uebersetzungsumfang je Inhaltstyp und Sprache.",
+  "content_type_rules": {
+    "dropdown": {
+      "required_languages": ["DE-DE", "EN-US"],
+      "optional_languages": ["IT-IT"]
+    },
+    "label": {
+      "required_languages": ["DE-DE", "EN-US"],
+      "optional_languages": ["IT-IT"]
+    },
+    "hilfe": {
+      "required_languages": ["DE-DE"],
+      "optional_languages": ["EN-US", "IT-IT"]
+    },
+    "text": {
+      "required_languages": ["DE-DE"],
+      "optional_languages": ["EN-US", "IT-IT"]
+    }
+  },
+  "type_aliases": {
+    "help": "hilfe",
+    "tooltip": "hilfe",
+    "description": "text",
+    "title": "text",
+    "header": "text",
+    "menu": "label"
+  }
+}
