@@ -16,9 +16,10 @@ from typing import Any, Dict, List, Optional, Tuple
 import hashlib
 import json
 import time
+import logging
 
 from app.core.pdvm_central_systemsteuerung import PdvmCentralSystemsteuerung
-from app.core.dropdown_service import get_dropdown_mapping_for_field, get_user_language
+from app.core.dropdown_service import get_user_language, resolve_dropdown_by_config
 from app.core.view_service import load_view_definition, load_view_base_rows
 from app.core.view_state_service import (
     effective_controls_as_list,
@@ -32,6 +33,7 @@ from app.core.pdvm_datetime import now_pdvm
 
 
 MAX_BASE_ROWS_DEFAULT = int(getattr(settings, "VIEW_TABLE_CACHE_MAX_ROWS", 20000) or 20000)
+logger = logging.getLogger(__name__)
 
 
 def _stable_json(obj: Any) -> str:
@@ -339,27 +341,20 @@ async def build_view_matrix(
             if not isinstance(dd, dict):
                 continue
 
-            dataset_uid = dd.get("key")
-            field = dd.get("feld")
-            table_name = dd.get("table") or "sys_dropdowndaten"
-            if not dataset_uid or not field:
-                continue
-
-            resolved = await get_dropdown_mapping_for_field(
+            resolved = await resolve_dropdown_by_config(
                 gcs,
-                table=str(table_name),
-                dataset_uid=str(dataset_uid),
-                field=str(field),
+                dropdown_config=dd,
                 language=user_lang,
             )
             dropdowns[control_guid] = {
-                "table": str(table_name),
-                "key": str(dataset_uid),
-                "feld": str(field),
+                **dd,
                 **(resolved or {}),
             }
     except Exception as exc:
         if "LEGACY_DROPDOWN_SOURCE" in str(exc):
+            raise
+        if "DROPDOWN_" in str(exc):
+            logger.warning("Dropdown Guardrail: %s", str(exc))
             raise
         dropdowns = {}
 

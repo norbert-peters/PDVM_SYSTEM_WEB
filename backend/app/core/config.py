@@ -50,6 +50,15 @@ class Settings(BaseSettings):
     # Max Anzahl gecachter Matrix-Resultate (UID-Order) pro Session.
     VIEW_MATRIX_RESULT_CACHE_MAX_ENTRIES: int = 200
 
+    # =========================================================================
+    # DROPDOWN SOURCE GUARDRAILS (Phase B.4)
+    # =========================================================================
+    DROPDOWN_REQUIRE_EXPLICIT_SOURCE: bool = False
+    DROPDOWN_PREFIX_WHITELIST: str = "msy_,tst_"
+    DROPDOWN_PREFIX_MAX_RESULTS: int = 300
+    DROPDOWN_PREFIX_TIMEOUT_SECONDS: float = 2.0
+    DROPDOWN_PREFIX_CACHE_TTL_SECONDS: float = 60.0
+
     class Config:
         env_file = ".env"
         extra = "ignore"

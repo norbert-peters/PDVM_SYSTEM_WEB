@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "metadata": {
+    "owner": "pdvm-architecture",
+    "review_cycle_days": 30,
+    "expires_soon_days": 14,
+    "updated_at": "2026-05-24"
+  },
+  "tabless_dialog_exceptions": [],
+  "dropdown_source_guardrails": {
+    "allowed_sources": ["static", "view", "prefix_multi_table"],
+    "require_explicit_source": false,
+    "prefix_whitelist": ["msy_", "tst_"],
+    "max_result_limit": 300,
+    "runtime_alignment": {
+      "timeout_seconds": 2.0,
+      "cache_ttl_seconds": 60
+    }
+  },
+  "edit_type_contracts": {
+    "view": {
+      "status": "stable",
+      "scope": "view modules",
+      "allowed_operations": ["read"],
+      "write_backend": "json",
+      "raw_payload": false
+    },
+    "pdvm_edit": {
+      "status": "stable",
+      "scope": "default edit modules",
+      "allowed_operations": ["read", "write"],
+      "write_backend": "central",
+      "raw_payload": false
+    },
+    "show_json": {
+      "status": "transitional",
+      "scope": "developer json display",
+      "allowed_operations": ["read"],
+      "write_backend": "json",
+      "raw_payload": true,
+      "preferred_modules": ["show"]
+    },
+    "edit_json": {
+      "status": "transitional",
+      "scope": "developer json edit",
+      "allowed_operations": ["read", "write"],
+      "write_backend": "json",
+      "raw_payload": true
+    },
+    "import_data": {
+      "status": "stable",
+      "scope": "import flows",
+      "allowed_operations": ["read", "write"],
+      "write_backend": "central",
+      "raw_payload": false
+    },
+    "menu": {
+      "status": "stable",
+      "scope": "menu management flows",
+      "allowed_operations": ["read", "write"],
+      "write_backend": "json",
+      "raw_payload": false
+    },
+    "edit_user": {
+      "status": "stable",
+      "scope": "user management flows",
+      "allowed_operations": ["read", "write"],
+      "write_backend": "central",
+      "raw_payload": false
+    },
+    "edit_dict": {
+      "status": "approved",
+      "scope": "dictionary flows",
+      "allowed_operations": ["read", "write"],
+      "write_backend": "central",
+      "raw_payload": false
+    },
+    "edit_control": {
+      "status": "approved",
+      "scope": "control dictionary and control editor flows",
+      "allowed_operations": ["read", "write"],
+      "write_backend": "central",
+      "raw_payload": false
+    }
+  }
+}

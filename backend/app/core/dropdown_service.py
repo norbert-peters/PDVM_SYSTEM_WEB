@@ -16,6 +16,10 @@ ARCHITECTURE_RULES: kein SQL im Router; DB-Zugriff via PdvmDatabase.
 
 from __future__ import annotations
 
+import asyncio
+import copy
+import logging
+import re
 import time
 import uuid
 from datetime import datetime
@@ -23,10 +27,16 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from app.core.pdvm_central_systemsteuerung import PdvmCentralSystemsteuerung
 from app.core.pdvm_datenbank import PdvmDatabase
+from app.core.i18n_policy import DEFAULT_LANGUAGE_FALLBACK, normalize_language
+from app.core.view_service import load_view_base_rows
+from app.core.config import settings
 
 
-DEFAULT_LANGUAGE_FALLBACK = "DE-DE"
 _DROPDOWN_CACHE_GROUP = "DROPDOWN_CACHE"
+_DROPDOWN_SOURCE_CACHE_GROUP = "DROPDOWN_SOURCE_CACHE"
+_TABLE_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+logger = logging.getLogger(__name__)
 
 
 def _norm_group(value: Any) -> str:
@@ -45,8 +55,7 @@ def _to_iso(value: Any) -> str:
 
 
 def _norm_lang(value: Any) -> str:
-    s = str(value or "").strip()
-    return s.upper() if s else DEFAULT_LANGUAGE_FALLBACK
+    return normalize_language(value)
 
 
 def _norm_field(value: Any) -> str:
@@ -70,6 +79,351 @@ def _resolve_group_object(daten: Dict[str, Any], group_name: str) -> Optional[Di
         if str(key or "").strip().upper() == target_u and isinstance(value, dict):
             return value
     return None
+
+
+def _norm_source(value: Any) -> str:
+    s = str(value or "").strip().lower()
+    if not s:
+        return ""
+    aliases = {
+        "prefix": "prefix_multi_table",
+        "prefix_multi": "prefix_multi_table",
+        "prefix_multitable": "prefix_multi_table",
+        "table_prefix": "prefix_multi_table",
+    }
+    return aliases.get(s, s)
+
+
+def _normalize_table_name(table_name: Any, *, allow_empty: bool = False) -> str:
+    t = str(table_name or "").strip().lower()
+    if not t:
+        if allow_empty:
+            return ""
+        raise ValueError("DROPDOWN_SOURCE_INVALID: table fehlt")
+    if not _TABLE_NAME_RE.match(t):
+        raise ValueError(f"DROPDOWN_SOURCE_INVALID: ungueltiger table name: {t}")
+    return t
+
+
+def _normalize_result_limit(raw_limit: Any) -> int:
+    max_limit = int(getattr(settings, "DROPDOWN_PREFIX_MAX_RESULTS", 300) or 300)
+    max_limit = max(1, max_limit)
+    if raw_limit is None:
+        return max_limit
+    try:
+        requested = int(raw_limit)
+    except Exception:
+        requested = max_limit
+    if requested <= 0:
+        requested = max_limit
+    return min(requested, max_limit)
+
+
+def _prefix_allowlist() -> set[str]:
+    raw = getattr(settings, "DROPDOWN_PREFIX_WHITELIST", "msy_,tst_")
+    items = [str(i or "").strip().lower() for i in str(raw).split(",")]
+    return {i for i in items if i}
+
+
+def _get_source_cache(gcs: PdvmCentralSystemsteuerung) -> Dict[str, Any]:
+    cache = getattr(gcs, "_pdvm_dropdown_source_cache", None)
+    if isinstance(cache, dict):
+        return cache
+    cache = {}
+    setattr(gcs, "_pdvm_dropdown_source_cache", cache)
+    return cache
+
+
+async def _list_tables_for_prefix(
+    gcs: PdvmCentralSystemsteuerung,
+    *,
+    prefix: str,
+    timeout_seconds: float,
+) -> List[str]:
+    probe_table = f"{prefix}probe"
+    db = PdvmDatabase(
+        probe_table,
+        system_pool=gcs._system_pool,
+        mandant_pool=gcs._mandant_pool,
+    )
+
+    if db.db_name == "system":
+        pool = gcs._system_pool
+    else:
+        pool = gcs._mandant_pool
+
+    if pool is None:
+        return []
+
+    pattern = f"{prefix}%"
+    async with pool.acquire() as conn:
+        rows = await asyncio.wait_for(
+            conn.fetch(
+                """
+                SELECT table_name
+                FROM information_schema.tables
+                WHERE table_schema = 'public'
+                  AND table_name LIKE $1
+                ORDER BY table_name ASC
+                """,
+                pattern,
+            ),
+            timeout=timeout_seconds,
+        )
+
+    out: List[str] = []
+    for row in rows:
+        t = _normalize_table_name(row.get("table_name"), allow_empty=True)
+        if t and t.startswith(prefix):
+            out.append(t)
+    return out
+
+
+async def _fetch_table_lookup_rows(
+    gcs: PdvmCentralSystemsteuerung,
+    *,
+    table: str,
+    limit: int,
+    timeout_seconds: float,
+) -> List[Dict[str, Any]]:
+    db = PdvmDatabase(
+        table,
+        system_pool=gcs._system_pool,
+        mandant_pool=gcs._mandant_pool,
+    )
+    return await asyncio.wait_for(
+        db.get_all(order_by="name ASC", limit=limit, offset=0),
+        timeout=timeout_seconds,
+    )
+
+
+async def _resolve_prefix_multi_table_dropdown(
+    gcs: PdvmCentralSystemsteuerung,
+    *,
+    prefix: str,
+    requested_limit: Any,
+) -> Dict[str, Any]:
+    prefix_norm = str(prefix or "").strip().lower()
+    if not prefix_norm or not prefix_norm.endswith("_"):
+        raise ValueError("DROPDOWN_SOURCE_INVALID: prefix muss auf '_' enden")
+
+    allowed_prefixes = _prefix_allowlist()
+    if prefix_norm not in allowed_prefixes:
+        logger.warning(
+            "dropdown_guardrail_denied prefix_not_allowed prefix=%s allowed=%s",
+            prefix_norm,
+            sorted(allowed_prefixes),
+        )
+        raise ValueError(f"DROPDOWN_PREFIX_NOT_ALLOWED: {prefix_norm}")
+
+    timeout_seconds = float(getattr(settings, "DROPDOWN_PREFIX_TIMEOUT_SECONDS", 2.0) or 2.0)
+    timeout_seconds = max(0.1, timeout_seconds)
+    effective_limit = _normalize_result_limit(requested_limit)
+    cache_ttl = float(getattr(settings, "DROPDOWN_PREFIX_CACHE_TTL_SECONDS", 60.0) or 60.0)
+    cache_ttl = max(1.0, cache_ttl)
+    cache_key = f"prefix|{prefix_norm}|{effective_limit}"
+
+    cache = _get_source_cache(gcs)
+    cache_entry = cache.get(cache_key)
+    now_ts = time.time()
+    if isinstance(cache_entry, dict):
+        age = now_ts - float(cache_entry.get("ts") or 0.0)
+        if age <= cache_ttl and isinstance(cache_entry.get("payload"), dict):
+            logger.info("dropdown_guardrail_cache_hit prefix=%s limit=%s", prefix_norm, effective_limit)
+            return copy.deepcopy(cache_entry["payload"])
+
+    try:
+        tables = await _list_tables_for_prefix(gcs, prefix=prefix_norm, timeout_seconds=timeout_seconds)
+        options: List[Dict[str, str]] = []
+        mapping: Dict[str, str] = {}
+        seen_keys: set[str] = set()
+
+        for table in tables:
+            remaining = effective_limit - len(options)
+            if remaining <= 0:
+                break
+            rows = await _fetch_table_lookup_rows(
+                gcs,
+                table=table,
+                limit=remaining,
+                timeout_seconds=timeout_seconds,
+            )
+            for row in rows:
+                key = str(row.get("uid") or "").strip()
+                if not key or key in seen_keys:
+                    continue
+                label_raw = str(row.get("name") or "").strip()
+                label = label_raw or key
+                options.append({"key": key, "value": label})
+                mapping[key] = label
+                seen_keys.add(key)
+                if len(options) >= effective_limit:
+                    break
+
+        payload = {
+            "map": mapping,
+            "options": options,
+            "language": DEFAULT_LANGUAGE_FALLBACK,
+            "default_language": DEFAULT_LANGUAGE_FALLBACK,
+            "source": "prefix_multi_table",
+            "meta": {
+                "prefix": prefix_norm,
+                "tables_count": len(tables),
+                "result_count": len(options),
+                "max_results": effective_limit,
+                "cache": "miss",
+            },
+        }
+        cache[cache_key] = {"ts": now_ts, "payload": copy.deepcopy(payload)}
+        logger.info(
+            "dropdown_guardrail_cache_miss prefix=%s tables=%s result=%s max=%s",
+            prefix_norm,
+            len(tables),
+            len(options),
+            effective_limit,
+        )
+        return payload
+    except TimeoutError:
+        logger.warning(
+            "dropdown_guardrail_timeout prefix=%s timeout_seconds=%s",
+            prefix_norm,
+            timeout_seconds,
+        )
+        raise ValueError(f"DROPDOWN_PREFIX_TIMEOUT: {prefix_norm}")
+
+
+async def _resolve_view_dropdown(
+    gcs: PdvmCentralSystemsteuerung,
+    *,
+    view_guid: str,
+    table_override: Optional[str],
+    requested_limit: Any,
+) -> Dict[str, Any]:
+    try:
+        uuid.UUID(str(view_guid))
+    except Exception:
+        raise ValueError("DROPDOWN_SOURCE_INVALID: key muss eine gueltige view_guid sein")
+
+    table_name = _normalize_table_name(table_override, allow_empty=True)
+    if not table_name:
+        raise ValueError("DROPDOWN_SOURCE_INVALID: table ist fuer source=view erforderlich")
+
+    effective_limit = _normalize_result_limit(requested_limit)
+    timeout_seconds = float(getattr(settings, "DROPDOWN_PREFIX_TIMEOUT_SECONDS", 2.0) or 2.0)
+    timeout_seconds = max(0.1, timeout_seconds)
+
+    rows = await asyncio.wait_for(
+        load_view_base_rows(
+            gcs,
+            table_name=table_name,
+            limit=effective_limit,
+            include_historisch=False,
+            control_fields=None,
+        ),
+        timeout=timeout_seconds,
+    )
+
+    options: List[Dict[str, str]] = []
+    mapping: Dict[str, str] = {}
+    for row in rows:
+        key = str(row.get("uid") or "").strip()
+        if not key:
+            continue
+        label_raw = str(row.get("name") or "").strip()
+        label = label_raw or key
+        options.append({"key": key, "value": label})
+        mapping[key] = label
+        if len(options) >= effective_limit:
+            break
+
+    return {
+        "map": mapping,
+        "options": options,
+        "language": DEFAULT_LANGUAGE_FALLBACK,
+        "default_language": DEFAULT_LANGUAGE_FALLBACK,
+        "source": "view",
+        "meta": {
+            "view_guid": str(view_guid),
+            "table": table_name,
+            "result_count": len(options),
+            "max_results": effective_limit,
+        },
+    }
+
+
+async def resolve_dropdown_by_config(
+    gcs: PdvmCentralSystemsteuerung,
+    *,
+    dropdown_config: Dict[str, Any],
+    language: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Auflösung einer Dropdown-Quelle inkl. Guardrails.
+
+    Unterstützte Quellen:
+    - static: sys_dropdowndaten per (table,key,feld,group)
+    - view: Optionen aus einer View/Tabellenquelle per key=view_guid
+    - prefix_multi_table: Aggregation über Prefix-Tabellen (limitiert)
+    """
+    if not isinstance(dropdown_config, dict):
+        raise ValueError("DROPDOWN_SOURCE_INVALID: dropdown config fehlt")
+
+    require_explicit = bool(getattr(settings, "DROPDOWN_REQUIRE_EXPLICIT_SOURCE", False))
+    source = _norm_source(dropdown_config.get("source") or dropdown_config.get("source_type"))
+
+    if not source:
+        if require_explicit:
+            raise ValueError("DROPDOWN_SOURCE_INVALID: source fehlt (expected: static|view|prefix_multi_table)")
+
+        group_raw = str(dropdown_config.get("group") or "").strip().upper()
+        if group_raw == "*VIEW":
+            source = "view"
+        elif dropdown_config.get("prefix") or dropdown_config.get("table_prefix"):
+            source = "prefix_multi_table"
+        else:
+            source = "static"
+        logger.info("dropdown_source_legacy_fallback source=%s", source)
+
+    if source == "static":
+        table_name = _normalize_table_name(dropdown_config.get("table") or "sys_dropdowndaten")
+        dataset_uid = str(dropdown_config.get("key") or "").strip()
+        field_name = str(dropdown_config.get("feld") or dropdown_config.get("field") or "").strip()
+        if not dataset_uid:
+            raise ValueError("DROPDOWN_SOURCE_INVALID: key fehlt fuer source=static")
+        if not field_name:
+            raise ValueError("DROPDOWN_SOURCE_INVALID: feld/field fehlt fuer source=static")
+
+        resolved = await get_dropdown_mapping_for_field(
+            gcs,
+            table=table_name,
+            dataset_uid=dataset_uid,
+            field=field_name,
+            group=str(dropdown_config.get("group") or "").strip() or None,
+            language=language,
+        )
+        resolved["source"] = "static"
+        return resolved
+
+    if source == "view":
+        try:
+            resolved = await _resolve_view_dropdown(
+                gcs,
+                view_guid=str(dropdown_config.get("key") or "").strip(),
+                table_override=str(dropdown_config.get("table") or "").strip() or None,
+                requested_limit=dropdown_config.get("limit"),
+            )
+            return resolved
+        except TimeoutError:
+            raise ValueError("DROPDOWN_VIEW_TIMEOUT")
+
+    if source == "prefix_multi_table":
+        prefix = str(dropdown_config.get("prefix") or dropdown_config.get("table_prefix") or "").strip().lower()
+        return await _resolve_prefix_multi_table_dropdown(
+            gcs,
+            prefix=prefix,
+            requested_limit=dropdown_config.get("limit"),
+        )
+
+    raise ValueError(f"DROPDOWN_SOURCE_INVALID: source nicht unterstuetzt: {source}")
 
 
 def get_user_language(gcs: PdvmCentralSystemsteuerung) -> str:
