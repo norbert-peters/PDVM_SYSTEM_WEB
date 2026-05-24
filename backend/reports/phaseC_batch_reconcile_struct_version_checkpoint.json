@@ -1,143 +1,149 @@
 {
   "checkpoint_version": 1,
-  "run_id": "9829fbbc-b828-45da-9a26-7291688ba644",
-  "started_at": "2026-05-20T14:07:47Z",
-  "finished_at": "2026-05-20T14:07:49Z",
+  "run_id": "6f897b37-9ac7-4838-9119-8916056da397",
+  "started_at": "2026-05-20T16:43:15Z",
+  "finished_at": "2026-05-20T16:43:17Z",
   "apply": false,
   "batch_size": 100,
-  "changed_since": "2026-05-20T00:00:00Z",
+  "changed_since": "2026-05-19T16:43:14Z",
   "tables": {
     "system.sys_beschreibungen": {
       "last_uid": "",
       "completed": true,
       "target_version": 1,
-      "updated_at": "2026-05-20T14:07:48Z"
+      "updated_at": "2026-05-20T16:43:15Z"
     },
     "system.sys_control_dict": {
       "last_uid": "",
       "completed": true,
       "target_version": 1,
-      "updated_at": "2026-05-20T14:07:48Z"
+      "updated_at": "2026-05-20T16:43:15Z"
     },
     "system.sys_dialogdaten": {
       "last_uid": "",
       "completed": true,
       "target_version": 1,
-      "updated_at": "2026-05-20T14:07:48Z"
+      "updated_at": "2026-05-20T16:43:15Z"
     },
     "system.sys_dropdowndaten": {
-      "last_uid": "",
+      "last_uid": "f41d9a90-ae29-5c66-9b93-675019f6c774",
       "completed": true,
       "target_version": 1,
-      "updated_at": "2026-05-20T14:07:48Z"
+      "updated_at": "2026-05-20T16:43:15Z"
     },
     "system.sys_ext_table": {
       "last_uid": "",
       "completed": true,
       "target_version": 1,
-      "updated_at": "2026-05-20T14:07:48Z"
+      "updated_at": "2026-05-20T16:43:15Z"
     },
     "system.sys_framedaten": {
       "last_uid": "",
       "completed": true,
       "target_version": 1,
-      "updated_at": "2026-05-20T14:07:48Z"
+      "updated_at": "2026-05-20T16:43:15Z"
     },
     "system.sys_layout": {
       "last_uid": "",
       "completed": true,
       "target_version": 1,
-      "updated_at": "2026-05-20T14:07:48Z"
+      "updated_at": "2026-05-20T16:43:15Z"
     },
     "system.sys_menudaten": {
       "last_uid": "",
       "completed": true,
       "target_version": 1,
-      "updated_at": "2026-05-20T14:07:48Z"
+      "updated_at": "2026-05-20T16:43:15Z"
     },
     "system.sys_systemdaten": {
       "last_uid": "",
       "completed": true,
       "target_version": 1,
-      "updated_at": "2026-05-20T14:07:48Z"
+      "updated_at": "2026-05-20T16:43:15Z"
     },
     "system.sys_viewdaten": {
       "last_uid": "",
       "completed": true,
       "target_version": 1,
-      "updated_at": "2026-05-20T14:07:48Z"
+      "updated_at": "2026-05-20T16:43:15Z"
     },
     "auth.asy_benutzer": {
       "last_uid": "",
       "completed": true,
       "target_version": 1,
-      "updated_at": "2026-05-20T14:07:49Z"
+      "updated_at": "2026-05-20T16:43:16Z"
     },
     "auth.asy_mandanten": {
       "last_uid": "",
       "completed": true,
       "target_version": 1,
-      "updated_at": "2026-05-20T14:07:49Z"
+      "updated_at": "2026-05-20T16:43:16Z"
     },
     "auth.asy_systemdaten": {
       "last_uid": "",
       "completed": true,
       "target_version": 1,
-      "updated_at": "2026-05-20T14:07:49Z"
+      "updated_at": "2026-05-20T16:43:16Z"
     },
     "mandant_main.msy_anwendungsdaten": {
       "last_uid": "",
       "completed": true,
       "target_version": 1,
-      "updated_at": "2026-05-20T14:07:49Z"
+      "updated_at": "2026-05-20T16:43:16Z"
+    },
+    "mandant_main.msy_batch_job_monitoring": {
+      "last_uid": "",
+      "completed": true,
+      "target_version": 1,
+      "updated_at": "2026-05-20T16:43:16Z"
     },
     "mandant_main.msy_error_acknowledgments": {
       "last_uid": "",
       "completed": true,
       "target_version": 1,
-      "updated_at": "2026-05-20T14:07:49Z"
+      "updated_at": "2026-05-20T16:43:16Z"
     },
     "mandant_main.msy_error_log": {
       "last_uid": "",
       "completed": true,
       "target_version": 1,
-      "updated_at": "2026-05-20T14:07:49Z"
+      "updated_at": "2026-05-20T16:43:16Z"
     },
     "mandant_main.msy_layout": {
       "last_uid": "",
       "completed": true,
       "target_version": 1,
-      "updated_at": "2026-05-20T14:07:49Z"
+      "updated_at": "2026-05-20T16:43:17Z"
     },
     "mandant_main.msy_security": {
       "last_uid": "",
       "completed": true,
       "target_version": 1,
-      "updated_at": "2026-05-20T14:07:49Z"
+      "updated_at": "2026-05-20T16:43:17Z"
     },
     "mandant_main.msy_systemdaten": {
       "last_uid": "",
       "completed": true,
       "target_version": 1,
-      "updated_at": "2026-05-20T14:07:49Z"
+      "updated_at": "2026-05-20T16:43:17Z"
     },
     "mandant_main.msy_systemsteuerung": {
       "last_uid": "",
       "completed": true,
       "target_version": 1,
-      "updated_at": "2026-05-20T14:07:49Z"
+      "updated_at": "2026-05-20T16:43:17Z"
     },
     "mandant_main.tst_finanzdaten": {
       "last_uid": "",
       "completed": true,
       "target_version": 1,
-      "updated_at": "2026-05-20T14:07:49Z"
+      "updated_at": "2026-05-20T16:43:17Z"
     },
     "mandant_main.tst_persondaten": {
       "last_uid": "",
       "completed": true,
       "target_version": 1,
-      "updated_at": "2026-05-20T14:07:49Z"
+      "updated_at": "2026-05-20T16:43:17Z"
     }
   }
 }

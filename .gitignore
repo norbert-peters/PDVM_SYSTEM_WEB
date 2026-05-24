@@ -31,3 +31,8 @@ build/
 # Database
 *.db
 *.sqlite
+
+# Local ad-hoc debug/temp artifacts
+tmp_*.py
+run_inspect.py
+backend/reports/*_debug.json
