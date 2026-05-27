@@ -42,6 +42,8 @@ Bereits verbindlich (Auszug):
 2. `work`:
    - Tabs als Workflow-Sequenz,
    - Zwischenspeicherung in `dev_workflow_draft` und `dev_workflow_draft_item`,
+   - `ROOT.TABLE` in `sys_dialogdaten` ist fuer `work` optional,
+   - Runtime-Zieltabelle ist hart `dev_workflow_draft` (kein Tabellenwechsel ueber Dialog-Config),
    - letzter Tab muss `MODULE=acti` besitzen, erst dort wird die Abschlussaktion ausgefuehrt.
 
 ### 3.3 Edit-Typen (zu spezifizieren und zu haerten)
@@ -111,6 +113,8 @@ Verbindliche Runtime-Policy fuer Tabellen-Override (Dialog):
 3. Diese Erzwungene-Aufloesung gilt fuer alle `edit_type` (inkl. `show_json`, `edit_json`, `pdvm_edit`,
    `import_data`, `menu`, `edit_user`).
 4. Ohne `dialog_table` bleibt das bestehende Fallback-Verhalten aktiv (TAB.TABLE -> ROOT.TABLE).
+5. Ausnahme `DIALOG_TYPE=work`: Runtime-Tabelle ist immer `dev_workflow_draft`; `dialog_table` und
+   `ROOT.TABLE` werden dafuer nicht als Zieltable verwendet.
 
 Konsequenz:
 1. Wenn eine Dialog-Root-Table blind als View-Override verwendet wird, kann TAB_01 trotz korrekter

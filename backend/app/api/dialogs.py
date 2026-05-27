@@ -115,6 +115,7 @@ _DEFAULT_EDIT_TYPE_CONTRACTS: Dict[str, Dict[str, Any]] = {
 
 
 _TABLE_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+_WORK_DIALOG_ROOT_TABLE = "dev_workflow_draft"
 
 
 def _normalize_dialog_table(dialog_table: Optional[str]) -> Optional[str]:
@@ -131,6 +132,24 @@ def _normalize_dialog_table(dialog_table: Optional[str]) -> Optional[str]:
 
 def _as_dict(value: Any) -> Dict[str, Any]:
     return value if isinstance(value, dict) else {}
+
+
+def _is_work_dialog(runtime: Dict[str, Any]) -> bool:
+    return str((runtime or {}).get("dialog_type") or "").strip().lower() == "work"
+
+
+def _resolve_runtime_root_table(runtime: Dict[str, Any], *, dialog_table_norm: Optional[str] = None) -> str:
+    # Harte Regel: Work-Dialoge arbeiten immer auf dev_workflow_draft.
+    if _is_work_dialog(runtime):
+        runtime["root_table"] = _WORK_DIALOG_ROOT_TABLE
+        return _WORK_DIALOG_ROOT_TABLE
+
+    if dialog_table_norm:
+        _ensure_allowed_edit_type(runtime.get("edit_type") or "show_json", operation="read")
+        runtime["root_table"] = dialog_table_norm
+        runtime["view_guid"] = None
+
+    return str(runtime.get("root_table") or "").strip()
 
 
 @lru_cache(maxsize=1)
@@ -429,18 +448,13 @@ async def _write_dialog_drafts(gcs, *, group: str, drafts: Dict[str, Dict[str, A
 
 
 def _resolve_dialog_scope(dialog_guid: str, runtime: Dict[str, Any]) -> str:
-    root_table = runtime.get("root_table") or ""
+    root_table = _resolve_runtime_root_table(runtime)
     edit_type = runtime.get("edit_type") or "show_json"
     return _compute_dialog_ui_state_group(dialog_guid=dialog_guid, root_table=root_table, edit_type=edit_type)
 
 
 def _pick_edit_target(runtime: Dict[str, Any], dialog_table_norm: Optional[str]) -> tuple[str, str]:
-    if dialog_table_norm:
-        _ensure_allowed_edit_type(runtime.get("edit_type") or "show_json", operation="read")
-        runtime["root_table"] = dialog_table_norm
-        runtime["view_guid"] = None
-
-    root_table = str(runtime.get("root_table") or "").strip()
+    root_table = _resolve_runtime_root_table(runtime, dialog_table_norm=dialog_table_norm)
     if not root_table:
         raise HTTPException(status_code=400, detail="Dialog ROOT.TABLE ist leer")
     edit_type = str(runtime.get("edit_type") or "show_json").strip().lower() or "show_json"
@@ -984,11 +998,7 @@ async def get_dialog_definition(dialog_guid: str, dialog_table: Optional[str] = 
     runtime = extract_dialog_runtime_config(dialog_def)
 
     dialog_table_norm = _normalize_dialog_table(dialog_table)
-    if dialog_table_norm:
-        # Override mode: menu can point to any table.
-        # Only JSON editor modes are permitted.
-        _ensure_allowed_edit_type(runtime.get("edit_type") or "show_json")
-        runtime["root_table"] = dialog_table_norm
+    _resolve_runtime_root_table(runtime, dialog_table_norm=dialog_table_norm)
 
     frame_payload = None
     frame_guid = runtime.get("frame_guid")
@@ -1003,7 +1013,7 @@ async def get_dialog_definition(dialog_guid: str, dialog_table: Optional[str] = 
     # last_call aus sys_systemsteuerung (pro User): group = dialog_guid
     # table-scoped: TABLE + LAST_CALL (Objekt: {"LAST_CALL": <uid|null>})
     last_call_key = _compute_last_call_key(runtime, dialog_guid=str(dialog_uuid))
-    root_table = runtime.get("root_table") or ""
+    root_table = _resolve_runtime_root_table(runtime)
     last_call_str = None
     if last_call_key:
         table_key = _table_key_upper(root_table)
@@ -1061,12 +1071,9 @@ async def get_dialog_last_call(dialog_guid: str, dialog_table: Optional[str] = N
     runtime = extract_dialog_runtime_config(dialog_def)
 
     dialog_table_norm = _normalize_dialog_table(dialog_table)
-    if dialog_table_norm:
-        _ensure_allowed_edit_type(runtime.get("edit_type") or "show_json")
-        runtime["root_table"] = dialog_table_norm
+    root_table = _resolve_runtime_root_table(runtime, dialog_table_norm=dialog_table_norm)
 
     key = _compute_last_call_key(runtime, dialog_guid=str(dialog_uuid))
-    root_table = runtime.get("root_table") or ""
     if not key:
         return {"key": "", "last_call": None}
 
@@ -1095,9 +1102,7 @@ async def put_dialog_last_call(
     runtime = extract_dialog_runtime_config(dialog_def)
 
     dialog_table_norm = _normalize_dialog_table(dialog_table)
-    if dialog_table_norm:
-        _ensure_allowed_edit_type(runtime.get("edit_type") or "show_json")
-        runtime["root_table"] = dialog_table_norm
+    root_table = _resolve_runtime_root_table(runtime, dialog_table_norm=dialog_table_norm)
 
     key = _compute_last_call_key(runtime, dialog_guid=str(dialog_uuid))
     if not key:
@@ -1115,7 +1120,6 @@ async def put_dialog_last_call(
                 raise HTTPException(status_code=400, detail="Ungültige record_uid")
             record_uid = s
 
-    root_table = runtime.get("root_table") or ""
     table_key = _table_key_upper(root_table)
     if not table_key:
         raise HTTPException(status_code=400, detail="ROOT.TABLE ist leer")
@@ -1467,11 +1471,8 @@ async def post_dialog_rows(dialog_guid: str, payload: DialogRowsRequest, dialog_
 
     runtime = extract_dialog_runtime_config(dialog_def)
     dialog_table_norm = _normalize_dialog_table(dialog_table)
-    if dialog_table_norm:
-        _ensure_allowed_edit_type(runtime.get("edit_type") or "show_json")
-        runtime["root_table"] = dialog_table_norm
+    table = _resolve_runtime_root_table(runtime, dialog_table_norm=dialog_table_norm)
 
-    table = runtime.get("root_table") or ""
     if not table:
         raise HTTPException(status_code=400, detail="Dialog ROOT.TABLE ist leer")
 
@@ -1503,11 +1504,8 @@ async def get_dialog_record(dialog_guid: str, record_uid: str, dialog_table: Opt
 
     runtime = extract_dialog_runtime_config(dialog_def)
     dialog_table_norm = _normalize_dialog_table(dialog_table)
-    if dialog_table_norm:
-        _ensure_allowed_edit_type(runtime.get("edit_type") or "show_json")
-        runtime["root_table"] = dialog_table_norm
+    table = _resolve_runtime_root_table(runtime, dialog_table_norm=dialog_table_norm)
 
-    table = runtime.get("root_table") or ""
     if not table:
         raise HTTPException(status_code=400, detail="Dialog ROOT.TABLE ist leer")
 
@@ -1556,12 +1554,8 @@ async def put_dialog_record(
 
     runtime = extract_dialog_runtime_config(dialog_def)
     dialog_table_norm = _normalize_dialog_table(dialog_table)
-    if dialog_table_norm:
-        _ensure_allowed_edit_type(runtime.get("edit_type") or "show_json")
-        runtime["root_table"] = dialog_table_norm
-        runtime["view_guid"] = None
+    table = _resolve_runtime_root_table(runtime, dialog_table_norm=dialog_table_norm)
 
-    table = runtime.get("root_table") or ""
     if not table:
         raise HTTPException(status_code=400, detail="Dialog ROOT.TABLE ist leer")
 
@@ -1627,12 +1621,8 @@ async def get_modul_selection(
 
     runtime = extract_dialog_runtime_config(dialog_def)
     dialog_table_norm = _normalize_dialog_table(dialog_table)
-    if dialog_table_norm:
-        _ensure_allowed_edit_type(runtime.get("edit_type") or "show_json")
-        runtime["root_table"] = dialog_table_norm
-        runtime["view_guid"] = None
+    table = _resolve_runtime_root_table(runtime, dialog_table_norm=dialog_table_norm)
 
-    table = runtime.get("root_table") or ""
     if not table:
         return ModulSelectionResponse(
             available_moduls=[],
@@ -1746,12 +1736,8 @@ async def post_dialog_record_create(
 
     runtime = extract_dialog_runtime_config(dialog_def)
     dialog_table_norm = _normalize_dialog_table(dialog_table)
-    if dialog_table_norm:
-        _ensure_allowed_edit_type(runtime.get("edit_type") or "show_json")
-        runtime["root_table"] = dialog_table_norm
-        runtime["view_guid"] = None
+    table = _resolve_runtime_root_table(runtime, dialog_table_norm=dialog_table_norm)
 
-    table = runtime.get("root_table") or ""
     if not table:
         raise HTTPException(status_code=400, detail="Dialog ROOT.TABLE ist leer")
 
@@ -1852,11 +1838,8 @@ async def get_dialog_ui_state(dialog_guid: str, dialog_table: Optional[str] = No
 
     runtime = extract_dialog_runtime_config(dialog_def)
     dialog_table_norm = _normalize_dialog_table(dialog_table)
-    if dialog_table_norm:
-        _ensure_allowed_edit_type(runtime.get("edit_type") or "show_json")
-        runtime["root_table"] = dialog_table_norm
+    table = _resolve_runtime_root_table(runtime, dialog_table_norm=dialog_table_norm)
 
-    table = runtime.get("root_table") or ""
     if not table:
         raise HTTPException(status_code=400, detail="Dialog ROOT.TABLE ist leer")
 
@@ -1885,11 +1868,8 @@ async def put_dialog_ui_state(
 
     runtime = extract_dialog_runtime_config(dialog_def)
     dialog_table_norm = _normalize_dialog_table(dialog_table)
-    if dialog_table_norm:
-        _ensure_allowed_edit_type(runtime.get("edit_type") or "show_json")
-        runtime["root_table"] = dialog_table_norm
+    table = _resolve_runtime_root_table(runtime, dialog_table_norm=dialog_table_norm)
 
-    table = runtime.get("root_table") or ""
     if not table:
         raise HTTPException(status_code=400, detail="Dialog ROOT.TABLE ist leer")
 

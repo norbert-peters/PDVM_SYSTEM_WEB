@@ -274,9 +274,47 @@ async def _load_control_defaults_for_modul(system_pool, *, modul_type: str) -> D
     return defaults
 
 
+async def _load_control_base_template(system_pool) -> Dict[str, Any]:
+    db = PdvmDatabase("sys_control_dict", system_pool=system_pool, mandant_pool=None)
+    row = await db.get_by_uid(_DEFAULT_TEMPLATE_UID)
+    if not row:
+        return {}
+
+    data = row.get("daten") or {}
+    if isinstance(data, str):
+        try:
+            data = json.loads(data)
+        except Exception:
+            data = {}
+    return data if isinstance(data, dict) else {}
+
+
 async def _resolve_control_effective_data(system_pool, *, control_data: Dict[str, Any]) -> Dict[str, Any]:
     if not isinstance(control_data, dict):
         return {}
+
+    has_root = isinstance(control_data.get("ROOT"), dict)
+    has_control = isinstance(control_data.get("CONTROL"), dict)
+    root_in = control_data.get("ROOT") if has_root else {}
+    control_in = control_data.get("CONTROL") if has_control else {}
+    if has_root or has_control:
+        base = await _load_control_base_template(system_pool)
+        base_root = base.get("ROOT") if isinstance(base.get("ROOT"), dict) else {}
+        base_control = base.get("CONTROL") if isinstance(base.get("CONTROL"), dict) else {}
+
+        out = copy.deepcopy(control_data)
+
+        merged_root = copy.deepcopy(base_root)
+        if isinstance(root_in, dict):
+            merged_root.update(root_in)
+        out["ROOT"] = merged_root
+
+        merged_control = copy.deepcopy(base_control)
+        if isinstance(control_in, dict):
+            merged_control.update(control_in)
+        out["CONTROL"] = merged_control
+
+        return out
 
     modul_type = str(control_data.get("modul_type") or "").strip().lower()
     if not modul_type:
@@ -1376,6 +1414,9 @@ def extract_dialog_runtime_config(dialog_def: Dict[str, Any]) -> Dict[str, Any]:
     dialog_type = str(dialog_type_raw or "norm").strip().lower() or "norm"
     if dialog_type not in {"norm", "work", "acti"}:
         dialog_type = "norm"
+    if dialog_type == "work":
+        # Work-Dialoge laufen immer ueber den Workflow-Draft-Container.
+        root_table = "dev_workflow_draft"
     edit_type_raw = _get_ci(root, "EDIT_TYPE", "edit_type")
     edit_type = str(edit_type_raw or "").strip() or "show_json"
 
