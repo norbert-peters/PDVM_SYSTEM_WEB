@@ -371,6 +371,8 @@ function collectWorkflowSetupPayload(datenRaw: Record<string, any> | null | unde
     WORKFLOW_NAME: pickString(fromFields('WORKFLOW_NAME') ?? fromRoot('WORKFLOW_NAME')),
     TARGET_TABLE: pickString(fromFields('TARGET_TABLE') ?? fromRoot('TARGET_TABLE') ?? 'sys_dialogdaten'),
     DESCRIPTION: pickString(fromFields('DESCRIPTION') ?? fromRoot('DESCRIPTION')),
+    DIALOG_TYPE: pickString(fromFields('DIALOG_TYPE') ?? fromRoot('DIALOG_TYPE') ?? 'work'),
+    SELECTION_MODE: pickString(fromFields('SELECTION_MODE') ?? fromRoot('SELECTION_MODE') ?? 'single'),
   }
 }
 
@@ -721,7 +723,7 @@ function buildCreateContextFieldsFromFrame(frameDaten: Record<string, any> | nul
   const out: CreateContextFieldDef[] = []
   const usedNames = new Set<string>()
 
-  defs.forEach((def, idx) => {
+  defs.forEach((def) => {
     const gruppe = String(def.gruppe || '').trim().toUpperCase()
     // Create-Frames verwenden je nach Konvention ROOT oder FIELDS als Gruppe.
     if (gruppe && gruppe !== 'ROOT' && gruppe !== 'FIELDS') return
@@ -986,6 +988,13 @@ export default function PdvmDialogPage() {
   const { dialogGuid } = useParams<{ dialogGuid: string }>()
   const [searchParams] = useSearchParams()
   const dialogTable = (searchParams.get('dialog_table') || searchParams.get('table') || '').trim() || null
+  const runtimeTableOverride = useMemo(() => {
+    const table = String(dialogTable || '').trim()
+    return {
+      forceTableOverride: !!table,
+      table: table || null,
+    }
+  }, [dialogTable])
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<ActiveTab>(1)
   const [pageOffset, setPageOffset] = useState(0)
@@ -1020,6 +1029,10 @@ export default function PdvmDialogPage() {
     return Array.isArray(tabs) ? tabs : []
   }, [defQuery.data?.tab_modules])
 
+  const sortedModuleTabs = useMemo(() => {
+    return [...moduleTabs].sort((a, b) => Number(a?.index || 0) - Number(b?.index || 0))
+  }, [moduleTabs])
+
   const viewTabIndex = useMemo(() => {
     const t = moduleTabs.find((m) => String(m?.module || '').trim().toLowerCase() === 'view')
     return Number(t?.index || 1) || 1
@@ -1036,7 +1049,7 @@ export default function PdvmDialogPage() {
 
   const activeModuleType = String(activeModule?.module || '').trim().toLowerCase()
   const activeModuleGuid = String(activeModule?.guid || '').trim()
-  const isEditLikeModule = activeModuleType === 'edit' || activeModuleType === 'acti'
+  const isEditLikeModule = activeModuleType === 'edit' || activeModuleType === 'show' || activeModuleType === 'acti'
   const activeModuleFrameQuery = useQuery<FrameDefinitionResponse>({
     queryKey: ['dialog', 'module-frame', dialogGuid, activeTab, activeModuleGuid],
     queryFn: () => dialogsAPI.getFrameDefinition(activeModuleGuid),
@@ -1046,18 +1059,40 @@ export default function PdvmDialogPage() {
     return (activeModuleFrameQuery.data || defQuery.data?.frame || null) as FrameDefinitionResponse | null
   }, [activeModuleFrameQuery.data, defQuery.data?.frame])
 
+  const viewModule = useMemo(
+    () => moduleTabs.find((t) => String(t?.module || '').trim().toLowerCase() === 'view') || null,
+    [moduleTabs]
+  )
   const tab1Module = useMemo(() => moduleTabs.find((t) => Number(t?.index || 0) === 1) || null, [moduleTabs])
   const tab2Module = useMemo(() => moduleTabs.find((t) => Number(t?.index || 0) === 2) || null, [moduleTabs])
 
   const effectiveViewGuid = useMemo(() => {
-    const module = String(tab1Module?.module || '').trim().toLowerCase()
-    const guid = String(tab1Module?.guid || '').trim()
+    const module = String(viewModule?.module || '').trim().toLowerCase()
+    const guid = String(viewModule?.guid || '').trim()
     if (module === 'view' && guid) return guid
     const fallback = String(defQuery.data?.view_guid || '').trim()
     return fallback || ''
-  }, [tab1Module, defQuery.data?.view_guid])
+  }, [viewModule, defQuery.data?.view_guid])
+
+  const effectiveViewTableOverride = useMemo(() => {
+    // Runtime policy: when dialog_table is provided by menu/URL, force this table everywhere.
+    if (runtimeTableOverride.forceTableOverride && runtimeTableOverride.table) {
+      return runtimeTableOverride.table
+    }
+
+    const tabTable = String(viewModule?.table || '').trim()
+    if (tabTable) return tabTable
+
+    // Kein Override -> Backend nutzt View ROOT.TABLE als Fallback.
+    return ''
+  }, [runtimeTableOverride, viewModule])
 
   const effectiveEditType = useMemo(() => {
+    const moduleType = String(activeModule?.module || '').trim().toLowerCase()
+    if (moduleType === 'view') {
+      return 'view'
+    }
+
     const et = String(activeModule?.edit_type || '').trim().toLowerCase()
     if (et) return et
     return String(defQuery.data?.edit_type || 'show_json').trim().toLowerCase()
@@ -1065,6 +1100,31 @@ export default function PdvmDialogPage() {
 
   const dialogType = String(defQuery.data?.dialog_type || '').trim().toLowerCase() || 'norm'
   const isWorkflowDialog = dialogType === 'work' || dialogType === 'acti'
+  const workflowTabOrder = useMemo(() => {
+    return sortedModuleTabs
+      .map((t) => Number(t?.index || 0))
+      .filter((n) => Number.isFinite(n) && n > 0)
+  }, [sortedModuleTabs])
+  const workflowCurrentPos = useMemo(() => workflowTabOrder.indexOf(Number(activeTab || 0)), [workflowTabOrder, activeTab])
+  const workflowPrevTab = useMemo(() => {
+    if (workflowCurrentPos <= 0) return null
+    return workflowTabOrder[workflowCurrentPos - 1] || null
+  }, [workflowCurrentPos, workflowTabOrder])
+  const workflowNextTab = useMemo(() => {
+    if (workflowCurrentPos < 0) return null
+    if (workflowCurrentPos >= workflowTabOrder.length - 1) return null
+    return workflowTabOrder[workflowCurrentPos + 1] || null
+  }, [workflowCurrentPos, workflowTabOrder])
+  const workflowLastModuleIsActi = useMemo(() => {
+    if (!isWorkflowDialog || !sortedModuleTabs.length) return true
+    const last = sortedModuleTabs[sortedModuleTabs.length - 1]
+    return String(last?.module || '').trim().toLowerCase() === 'acti'
+  }, [isWorkflowDialog, sortedModuleTabs])
+  const workflowSetupTabIndex = useMemo(() => {
+    const byHead = sortedModuleTabs.find((t) => String(t?.head || '').trim().toLowerCase() === 'setup')
+    if (byHead && Number(byHead.index || 0) > 0) return Number(byHead.index || 0)
+    return 2
+  }, [sortedModuleTabs])
   const blockApplyForRole = isWorkflowDialog && canReleaseValidate && !canReleaseApply
   const isWorkflowDraftBuilderDialog = useMemo(() => {
     const n1 = String(defQuery.data?.name || '').trim().toUpperCase()
@@ -1088,6 +1148,23 @@ export default function PdvmDialogPage() {
     const rt = String(defQuery.data?.root_table || defQuery.data?.root?.TABLE || '').trim()
     return rt || null
   }, [dialogTable, defQuery.data?.root_table, defQuery.data?.root])
+
+  const activeModuleTable = useMemo(() => {
+    const tabTable = String(activeModule?.table || '').trim()
+    return tabTable || null
+  }, [activeModule])
+
+  const effectiveDialogTableForDataOps = useMemo(() => {
+    if (runtimeTableOverride.forceTableOverride && runtimeTableOverride.table) {
+      return runtimeTableOverride.table
+    }
+    return activeModuleTable || effectiveDialogTable || null
+  }, [runtimeTableOverride, activeModuleTable, effectiveDialogTable])
+
+  const dataOpsDialogTableOption = useMemo(() => {
+    const table = String(effectiveDialogTableForDataOps || '').trim()
+    return table ? { dialog_table: table } : undefined
+  }, [effectiveDialogTableForDataOps])
 
   const createFrameGuid = useMemo(() => {
     const root = asObject(defQuery.data?.root)
@@ -1402,14 +1479,14 @@ export default function PdvmDialogPage() {
   const [workflowDraftValidation, setWorkflowDraftValidation] = useState<WorkflowDraftValidationResponse | null>(null)
 
   const rowsQuery = useQuery<{ dialog_guid: string; table: string; rows: DialogRow[] }>({
-    queryKey: ['dialog', 'rows', dialogGuid, dialogTable, pageLimit, pageOffset],
-    queryFn: () => dialogsAPI.postRows(dialogGuid!, { limit: pageLimit, offset: pageOffset }, { dialog_table: dialogTable }),
+    queryKey: ['dialog', 'rows', dialogGuid, effectiveDialogTableForDataOps, pageLimit, pageOffset],
+    queryFn: () => dialogsAPI.postRows(dialogGuid!, { limit: pageLimit, offset: pageOffset }, dataOpsDialogTableOption),
     enabled: !!dialogGuid && defQuery.isSuccess && !effectiveViewGuid,
   })
 
   const recordQuery = useQuery<DialogRecordResponse>({
-    queryKey: ['dialog', 'record', dialogGuid, dialogTable, selectedUid],
-    queryFn: () => dialogsAPI.getRecord(dialogGuid!, selectedUid!, { dialog_table: dialogTable }),
+    queryKey: ['dialog', 'record', dialogGuid, effectiveDialogTableForDataOps, selectedUid],
+    queryFn: () => dialogsAPI.getRecord(dialogGuid!, selectedUid!, dataOpsDialogTableOption),
     enabled: !!dialogGuid && !!selectedUid && !isMenuEditor && !activeDraft,
   })
 
@@ -1935,10 +2012,10 @@ export default function PdvmDialogPage() {
       setActiveTab(viewTabIndex)
 
     // Self-heal: clear persisted last_call so next open starts clean.
-    dialogsAPI.putLastCall(dialogGuid!, null, { dialog_table: dialogTable }).catch(() => {
+    dialogsAPI.putLastCall(dialogGuid!, null, dataOpsDialogTableOption).catch(() => {
       // Best-effort
     })
-  }, [recordQuery.isError, recordQuery.error, defQuery.data?.meta, dialogGuid, dialogTable])
+  }, [recordQuery.isError, recordQuery.error, defQuery.data?.meta, dialogGuid, dataOpsDialogTableOption])
 
   // Mark selection as belonging to the current dialog context.
   useEffect(() => {
@@ -1962,10 +2039,10 @@ export default function PdvmDialogPage() {
       return
     }
 
-    dialogsAPI.putLastCall(dialogGuid, selectedUid, { dialog_table: dialogTable }).catch(() => {
+    dialogsAPI.putLastCall(dialogGuid, selectedUid, dataOpsDialogTableOption).catch(() => {
       // Best-effort persistence only.
     })
-  }, [dialogGuid, selectedUid, dialogTable, persistContextKey])
+  }, [dialogGuid, selectedUid, dataOpsDialogTableOption, persistContextKey])
 
   const jsonEditorRef = useRef<PdvmJsonEditorHandle | null>(null)
   const [jsonError, setJsonError] = useState<string | null>(null)
@@ -2069,7 +2146,7 @@ export default function PdvmDialogPage() {
           dialogGuid!,
           activeDraft.draft_id,
           { daten: nextJson },
-          { dialog_table: dialogTable }
+          dataOpsDialogTableOption
         )
         setActiveDraft(res)
         setDraftValidationIssues(res.validation_errors || [])
@@ -2081,11 +2158,11 @@ export default function PdvmDialogPage() {
           modified_at: null,
         } as DialogRecordResponse
       }
-      return dialogsAPI.updateRecord(dialogGuid!, selectedUid!, { daten: nextJson }, { dialog_table: dialogTable })
+      return dialogsAPI.updateRecord(dialogGuid!, selectedUid!, { daten: nextJson }, dataOpsDialogTableOption)
     },
     onSuccess: async () => {
       if (activeDraft?.draft_id) return
-      await queryClient.invalidateQueries({ queryKey: ['dialog', 'record', dialogGuid, dialogTable, selectedUid] })
+      await queryClient.invalidateQueries({ queryKey: ['dialog', 'record', dialogGuid, effectiveDialogTableForDataOps, selectedUid] })
     },
   })
 
@@ -2098,7 +2175,7 @@ export default function PdvmDialogPage() {
         dialogGuid!,
         activeDraft.draft_id,
         { daten: nextJson },
-        { dialog_table: dialogTable }
+        dataOpsDialogTableOption
       )
     },
     onSuccess: async (created) => {
@@ -2108,12 +2185,12 @@ export default function PdvmDialogPage() {
       setSelectedUids([created.uid])
       setPicDirty(false)
       setJsonDirty(false)
-      await queryClient.invalidateQueries({ queryKey: ['dialog', 'rows', dialogGuid, dialogTable] })
+      await queryClient.invalidateQueries({ queryKey: ['dialog', 'rows', dialogGuid, effectiveDialogTableForDataOps] })
       const embeddedViewGuid = String(effectiveViewGuid || '').trim()
       if (embeddedViewGuid) {
         await queryClient.invalidateQueries({ queryKey: ['view', 'matrix', embeddedViewGuid] })
       }
-      await queryClient.invalidateQueries({ queryKey: ['dialog', 'record', dialogGuid, dialogTable, created.uid] })
+      await queryClient.invalidateQueries({ queryKey: ['dialog', 'record', dialogGuid, effectiveDialogTableForDataOps, created.uid] })
     },
   })
 
@@ -2199,6 +2276,15 @@ export default function PdvmDialogPage() {
     if (!isFieldEditor) return
     if (!dialogGuid || !picDraft) return
     if (!selectedUid && !activeDraft?.draft_id) return
+    if (isWorkflowDraftBuilderDialog) {
+      await saveWorkflowEditSnapshot()
+      if (Number(activeTab || 0) === Number(workflowSetupTabIndex || 2)) {
+        await saveWorkflowSetup()
+      }
+      setPicDirty(false)
+      setWorkflowDraftStatus(`Workflow-Daten gespeichert (${String(workflowDraftGuid || 'neu').slice(0, 8)})`)
+      return
+    }
     if (activeDraft?.draft_id) {
       try {
         await commitDraftMutation.mutateAsync(picDraft)
@@ -2216,6 +2302,20 @@ export default function PdvmDialogPage() {
     }
     setPicDirty(false)
   }
+
+  useEffect(() => {
+    if (!isWorkflowDraftBuilderDialog) return
+    if (activeModuleType !== 'edit') return
+    loadWorkflowEditSnapshotForActiveTab().catch(() => {
+      // Best-effort load only.
+    })
+  }, [
+    isWorkflowDraftBuilderDialog,
+    activeModuleType,
+    activeTab,
+    workflowDraftGuid,
+    selectedUid,
+  ])
 
   const addControlFieldToActiveGroup = (fieldGuid: string, controlData?: Record<string, any> | null) => {
     const group = String(activeControlGroup || '').trim()
@@ -2816,24 +2916,37 @@ export default function PdvmDialogPage() {
 
   const menuTabSkipPersistRef = useRef(false)
   const menuTabRestoredRef = useRef(false)
+  const workflowStateRestoredRef = useRef(false)
 
   const [workflowMaxTab, setWorkflowMaxTab] = useState(1)
   const workflowStateQuery = useQuery<DialogUiStateResponse>({
-    queryKey: ['dialog', 'ui-state', 'workflow', dialogGuid, dialogTable],
-    queryFn: () => dialogsAPI.getUiState(dialogGuid!, { dialog_table: dialogTable }),
+    queryKey: ['dialog', 'ui-state', 'workflow', dialogGuid, effectiveDialogTableForDataOps],
+    queryFn: () => dialogsAPI.getUiState(dialogGuid!, dataOpsDialogTableOption),
     enabled: !!dialogGuid && defQuery.isSuccess && isWorkflowDialog,
   })
 
   useEffect(() => {
     if (!isWorkflowDialog) return
     if (!workflowStateQuery.data) return
+    if (workflowStateRestoredRef.current) return
+
     const raw = (workflowStateQuery.data.ui_state as any)?.workflow || null
     if (!raw || typeof raw !== 'object') return
-    const active = Number((raw as any).active_tab || 1) || 1
-    const maxTab = Number((raw as any).max_tab || active) || active
+
+    const maxTabsFromConfig = moduleTabs.length > 0 ? moduleTabs.length : Math.max(2, Number(defQuery.data?.meta?.tabs || 2))
+    const active = Math.max(1, Math.min(maxTabsFromConfig, Number((raw as any).active_tab || 1) || 1))
+    const maxTabRaw = Number((raw as any).max_tab || active) || active
+    const maxTab = Math.max(active, Math.min(maxTabsFromConfig, maxTabRaw))
+
     setActiveTab(active)
     setWorkflowMaxTab(maxTab)
-  }, [isWorkflowDialog, workflowStateQuery.data])
+    workflowStateRestoredRef.current = true
+  }, [isWorkflowDialog, workflowStateQuery.data, moduleTabs.length, defQuery.data?.meta?.tabs])
+
+  useEffect(() => {
+    // Bei Dialog-/Tab-Strukturwechsel Hydrierung erneut erlauben.
+    workflowStateRestoredRef.current = false
+  }, [dialogGuid, dialogTable, isWorkflowDialog])
 
   useEffect(() => {
     if (!isWorkflowDialog) return
@@ -2849,16 +2962,16 @@ export default function PdvmDialogPage() {
             },
           },
         },
-        { dialog_table: dialogTable }
+        dataOpsDialogTableOption
       )
       .catch(() => {
         // Best-effort persistence only.
       })
-  }, [isWorkflowDialog, dialogGuid, dialogTable, activeTab, workflowMaxTab])
+  }, [isWorkflowDialog, dialogGuid, dataOpsDialogTableOption, activeTab, workflowMaxTab])
 
   const workflowDraftRuntimeQuery = useQuery<DialogUiStateResponse>({
-    queryKey: ['dialog', 'ui-state', 'workflow-draft-runtime', dialogGuid, dialogTable],
-    queryFn: () => dialogsAPI.getUiState(dialogGuid!, { dialog_table: dialogTable }),
+    queryKey: ['dialog', 'ui-state', 'workflow-draft-runtime', dialogGuid, effectiveDialogTableForDataOps],
+    queryFn: () => dialogsAPI.getUiState(dialogGuid!, dataOpsDialogTableOption),
     enabled: !!dialogGuid && defQuery.isSuccess && isWorkflowDraftBuilderDialog,
   })
 
@@ -2902,7 +3015,7 @@ export default function PdvmDialogPage() {
             },
           },
         },
-        { dialog_table: dialogTable }
+        dataOpsDialogTableOption
       )
       .catch(() => {
         // Best-effort persistence only.
@@ -2911,6 +3024,17 @@ export default function PdvmDialogPage() {
 
   const ensureWorkflowDraft = async (): Promise<string> => {
     if (workflowDraftGuid && isUuidString(workflowDraftGuid)) return workflowDraftGuid
+
+    // Fortsetzen eines bereits gestarteten Workflows: vorhandene GUID aus Auswahl/Record übernehmen.
+    const selectedCandidate = String(selectedUid || '').trim()
+    const rootFromCurrent = asObject(asObject((picDraft ? picDraft : currentDaten) || {}).ROOT)
+    const rootGuidCandidate = String(rootFromCurrent.WORKFLOW_DRAFT_GUID || rootFromCurrent.SELF_GUID || '').trim()
+    const existingGuid = [workflowDraftGuid, rootGuidCandidate, selectedCandidate].find((x) => isUuidString(String(x || '').trim()))
+    if (existingGuid) {
+      const resolved = String(existingGuid).trim()
+      persistWorkflowDraftGuid(resolved)
+      return resolved
+    }
 
     const source = (picDraft ? picDraft : currentDaten || {}) as Record<string, any>
     const setup = collectWorkflowSetupPayload(source)
@@ -2944,6 +3068,100 @@ export default function PdvmDialogPage() {
     return draftGuid
   }
 
+  const loadWorkflowWorkContainer = async (draftGuid: string): Promise<Record<string, any> | null> => {
+    if (!draftGuid || !isUuidString(draftGuid)) return null
+    const loaded = await workflowDraftsAPI.load(draftGuid, workflowDraftTableOptions)
+    const workItem = (loaded.items || []).find(
+      (i) => String(i.item_type || '').toLowerCase() === 'work' && String(i.item_key || '').toLowerCase() === 'container'
+    )
+    const payload = asObject(workItem?.payload)
+    return Object.keys(payload).length ? payload : null
+  }
+
+  const saveWorkflowEditSnapshot = async (): Promise<string> => {
+    const draftGuid = await ensureWorkflowDraft()
+    if (!isWorkflowDraftBuilderDialog || activeModuleType !== 'edit') return draftGuid
+
+    const bucketName = String(activeModule?.table || '').trim().toLowerCase()
+    if (!bucketName) return draftGuid
+
+    const source = asObject((picDraft ? picDraft : currentDaten) || {})
+    if (!Object.keys(source).length) return draftGuid
+
+    const workPayload = (await loadWorkflowWorkContainer(draftGuid)) || { WORKFLOW: {} }
+    const bucketRaw = asObject((workPayload as any)[bucketName])
+    const root = asObject(source.ROOT)
+    const selectedCandidate = String(selectedUid || '').trim()
+    const rootUid = String(root.SELF_GUID || '').trim()
+    const existingUid = Object.keys(bucketRaw)[0] || ''
+    const recordUid = [rootUid, selectedCandidate, existingUid].find((x) => isUuidString(String(x || '').trim())) || crypto.randomUUID()
+
+    bucketRaw[String(recordUid)] = source
+    ;(workPayload as any)[bucketName] = bucketRaw
+
+    const meta = asObject((workPayload as any).WORKFLOW)
+    meta.ACTIVE_TAB = Number(activeTab || 1)
+    meta.MAX_TAB = Number(workflowMaxTab || 1)
+    meta.UPDATED_AT = new Date().toISOString()
+    ;(workPayload as any).WORKFLOW = meta
+
+    await workflowDraftsAPI.saveItem(
+      draftGuid,
+      {
+        item_type: 'work',
+        item_key: 'container',
+        payload: workPayload,
+      },
+      workflowDraftTableOptions,
+    )
+
+    return draftGuid
+  }
+
+  const saveWorkflowStateToDraft = async (
+    draftGuidRaw: string | null | undefined,
+    nextActiveTab: number,
+    nextMaxTab: number,
+  ) => {
+    const draftGuid = String(draftGuidRaw || '').trim()
+    if (!draftGuid || !isUuidString(draftGuid)) return
+
+    await workflowDraftsAPI.saveItem(
+      draftGuid,
+      {
+        item_type: 'state',
+        item_key: 'workflow_state',
+        payload: {
+          ACTIVE_TAB: Number(nextActiveTab || 1),
+          MAX_TAB: Number(nextMaxTab || 1),
+          STATUS: 'draft',
+          UPDATED_AT: new Date().toISOString(),
+        },
+      },
+      workflowDraftTableOptions,
+    )
+  }
+
+  const loadWorkflowEditSnapshotForActiveTab = async () => {
+    if (!isWorkflowDraftBuilderDialog || activeModuleType !== 'edit') return
+    if (!workflowDraftGuid || !isUuidString(workflowDraftGuid)) return
+
+    const bucketName = String(activeModule?.table || '').trim().toLowerCase()
+    if (!bucketName) return
+
+    const workPayload = await loadWorkflowWorkContainer(workflowDraftGuid)
+    const bucket = asObject((workPayload || {})[bucketName])
+    if (!Object.keys(bucket).length) return
+
+    const preferred = String(selectedUid || '').trim()
+    const pickedUid = (preferred && bucket[preferred] ? preferred : Object.keys(bucket)[0]) || ''
+    const picked = asObject(bucket[pickedUid])
+    if (!Object.keys(picked).length) return
+
+    setPicDraft(picked)
+    setPicDirty(false)
+  }
+
   const loadWorkflowSetup = async () => {
     if (!workflowDraftGuid || !isUuidString(workflowDraftGuid)) {
       setWorkflowDraftError('Kein Workflow-Draft vorhanden.')
@@ -2964,6 +3182,8 @@ export default function PdvmDialogPage() {
       next = setFieldValue(next, 'FIELDS', 'WORKFLOW_NAME', String(payload.WORKFLOW_NAME || ''))
       next = setFieldValue(next, 'FIELDS', 'TARGET_TABLE', String(payload.TARGET_TABLE || 'sys_dialogdaten'))
       next = setFieldValue(next, 'FIELDS', 'DESCRIPTION', String(payload.DESCRIPTION || ''))
+      next = setFieldValue(next, 'FIELDS', 'DIALOG_TYPE', String(payload.DIALOG_TYPE || 'work'))
+      next = setFieldValue(next, 'FIELDS', 'SELECTION_MODE', String(payload.SELECTION_MODE || 'single'))
       return next
     })
     setPicDirty(true)
@@ -3017,8 +3237,8 @@ export default function PdvmDialogPage() {
   const [dialogNewSuccess, setDialogNewSuccess] = useState<string | null>(null)
 
   const dialogNewStateQuery = useQuery<DialogUiStateResponse>({
-    queryKey: ['dialog', 'ui-state', 'dialog-new', dialogGuid, dialogTable],
-    queryFn: () => dialogsAPI.getUiState(dialogGuid!, { dialog_table: dialogTable }),
+    queryKey: ['dialog', 'ui-state', 'dialog-new', dialogGuid, effectiveDialogTableForDataOps],
+    queryFn: () => dialogsAPI.getUiState(dialogGuid!, dataOpsDialogTableOption),
     enabled: !!dialogGuid && defQuery.isSuccess && isDialogNewModule,
   })
 
@@ -3042,7 +3262,7 @@ export default function PdvmDialogPage() {
             dialog_new: next,
           },
         },
-        { dialog_table: dialogTable }
+        dataOpsDialogTableOption
       )
       .catch(() => {
         // Best-effort persistence only.
@@ -3074,17 +3294,13 @@ export default function PdvmDialogPage() {
           name,
           template_uid: '66666666-6666-6666-6666-666666666666',
         },
-        String(effectiveDialogTable || dialogTable || '').trim()
-          ? { dialog_table: String(effectiveDialogTable || dialogTable || '').trim() }
-          : undefined
+        dataOpsDialogTableOption
       )
       const created = await dialogsAPI.commitDraft(
         dialogGuid,
         draft.draft_id,
         { daten: draft.daten },
-        String(effectiveDialogTable || dialogTable || '').trim()
-          ? { dialog_table: String(effectiveDialogTable || dialogTable || '').trim() }
-          : undefined
+        dataOpsDialogTableOption
       )
 
       const rootTable = String(dialogNewDraft.root_table || '').trim()
@@ -3118,7 +3334,7 @@ export default function PdvmDialogPage() {
         dialogGuid,
         created.uid,
         { daten: { ROOT: root } },
-        { dialog_table: dialogTable }
+        dataOpsDialogTableOption
       )
 
       setDialogNewSuccess(`Dialog erstellt: ${created.uid}`)
@@ -3130,8 +3346,8 @@ export default function PdvmDialogPage() {
   }
 
   const uiStateQuery = useQuery<DialogUiStateResponse>({
-    queryKey: ['dialog', 'ui-state', dialogGuid, dialogTable],
-    queryFn: () => dialogsAPI.getUiState(dialogGuid!, { dialog_table: dialogTable }),
+    queryKey: ['dialog', 'ui-state', dialogGuid, effectiveDialogTableForDataOps],
+    queryFn: () => dialogsAPI.getUiState(dialogGuid!, dataOpsDialogTableOption),
     enabled: !!dialogGuid && defQuery.isSuccess && wantsMenuEditor,
   })
 
@@ -3167,12 +3383,12 @@ export default function PdvmDialogPage() {
             menu_active_tab: menuActiveTab,
           },
         },
-        { dialog_table: dialogTable }
+        dataOpsDialogTableOption
       )
       .catch(() => {
         // Best-effort persistence only.
       })
-  }, [wantsMenuEditor, dialogGuid, dialogTable, defQuery.isSuccess, menuActiveTab])
+  }, [wantsMenuEditor, dialogGuid, dataOpsDialogTableOption, defQuery.isSuccess, menuActiveTab])
 
   const handleMissingMenuGuid = (missingUid: string) => {
     // Only relevant for menu dialogs
@@ -3184,7 +3400,7 @@ export default function PdvmDialogPage() {
     setSelectedUid(null)
     setSelectedUids([])
     setActiveTab(viewTabIndex)
-    dialogsAPI.putLastCall(dialogGuid, null, { dialog_table: dialogTable }).catch(() => {
+    dialogsAPI.putLastCall(dialogGuid, null, dataOpsDialogTableOption).catch(() => {
       // Best-effort persistence only.
     })
     queryClient.invalidateQueries({ queryKey: ['dialog', 'definition', dialogGuid, dialogTable] }).catch(() => {
@@ -3193,7 +3409,7 @@ export default function PdvmDialogPage() {
   }
 
   const handleImportApplied = async () => {
-    await queryClient.invalidateQueries({ queryKey: ['dialog', 'rows', dialogGuid, dialogTable] })
+    await queryClient.invalidateQueries({ queryKey: ['dialog', 'rows', dialogGuid, effectiveDialogTableForDataOps] })
     const embeddedViewGuid = String(effectiveViewGuid || '').trim()
     if (embeddedViewGuid) {
       await queryClient.invalidateQueries({ queryKey: ['view', 'matrix', embeddedViewGuid] })
@@ -3636,10 +3852,47 @@ export default function PdvmDialogPage() {
           </div>
 
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+            {isWorkflowDialog && workflowPrevTab != null ? (
+              <button
+                type="button"
+                onClick={async () => {
+                  const prev = Number(workflowPrevTab || 1)
+                  if (isWorkflowDraftBuilderDialog) {
+                    try {
+                      const draftGuid = await saveWorkflowEditSnapshot()
+                      if (Number(activeTab || 0) === Number(workflowSetupTabIndex || 2)) {
+                        await saveWorkflowSetup()
+                      }
+                      await saveWorkflowStateToDraft(draftGuid, prev, Number(workflowMaxTab || prev))
+                    } catch {
+                      // Best-effort only.
+                    }
+                  }
+                  setActiveTab(prev)
+                }}
+                className="pdvm-dialog__toolBtn"
+                title="Vorheriger Schritt"
+                aria-label="Zurück"
+              >
+                Zurück
+              </button>
+            ) : null}
+
             {isWorkflowDialog && activeTab > 1 ? (
               <button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
+                  if (isWorkflowDraftBuilderDialog) {
+                    try {
+                      const draftGuid = await saveWorkflowEditSnapshot()
+                      if (Number(activeTab || 0) === Number(workflowSetupTabIndex || 2)) {
+                        await saveWorkflowSetup()
+                      }
+                      await saveWorkflowStateToDraft(draftGuid, 1, 1)
+                    } catch {
+                      // Don't block restart.
+                    }
+                  }
                   setActiveTab(1)
                   setWorkflowMaxTab(1)
                 }}
@@ -3651,11 +3904,24 @@ export default function PdvmDialogPage() {
               </button>
             ) : null}
 
-            {isWorkflowDialog && activeTab < tabs ? (
+            {isWorkflowDialog && workflowNextTab != null ? (
               <button
                 type="button"
                 onClick={async () => {
-                  const next = Math.min(tabs, activeTab + 1)
+                  const next = Number(workflowNextTab || Math.min(tabs, activeTab + 1))
+                  const nextMaxTab = Math.max(Number(workflowMaxTab || 1), next)
+
+                  if (isWorkflowDraftBuilderDialog) {
+                    try {
+                      const draftGuid = await saveWorkflowEditSnapshot()
+                      if (Number(activeTab || 0) === Number(workflowSetupTabIndex || 2)) {
+                        await saveWorkflowSetup()
+                      }
+                      await saveWorkflowStateToDraft(draftGuid, next, nextMaxTab)
+                    } catch {
+                      // Soft-fail: navigation should proceed.
+                    }
+                  }
 
                   if (isWorkflowDraftBuilderDialog) {
                     try {
@@ -3671,13 +3937,14 @@ export default function PdvmDialogPage() {
                         draft_item_table: workflowDraftTableOptions.draft_item_table || null,
                       })
                     } catch (e: any) {
+                      // Soft-fail: Nutzer kann im Workflow weitergehen, auch wenn
+                      // step bootstrap kurzfristig nicht vorbereitet werden konnte.
                       setWorkflowDraftError(String(e?.response?.data?.detail || e?.message || 'Workflow-Step konnte nicht vorbereitet werden'))
-                      return
                     }
                   }
 
                   setActiveTab(next)
-                  setWorkflowMaxTab(next)
+                  setWorkflowMaxTab(nextMaxTab)
                 }}
                 className="pdvm-dialog__toolBtn"
                 title="Naechster Schritt"
@@ -3762,6 +4029,18 @@ export default function PdvmDialogPage() {
             Fehler: {(defQuery.error as any)?.message || 'Dialog konnte nicht geladen werden'}
           </div>
         ) : null}
+
+        {isWorkflowDialog && !workflowLastModuleIsActi ? (
+          <div style={{ color: 'crimson', marginTop: 8, fontSize: 12 }}>
+            Workflow-Konfiguration ungültig: letzter Tab muss MODULE=acti sein.
+          </div>
+        ) : null}
+
+        {isWorkflowDraftBuilderDialog && workflowDraftError ? (
+          <div style={{ color: 'crimson', marginTop: 8, fontSize: 12 }}>
+            Workflow: {workflowDraftError}
+          </div>
+        ) : null}
       </div>
 
       <div className="pdvm-tabs pdvm-dialog__tabs">
@@ -3781,6 +4060,7 @@ export default function PdvmDialogPage() {
                     aria-selected={activeTab === idx}
                     className={`pdvm-tabs__tab ${activeTab === idx ? 'pdvm-tabs__tab--active' : ''}`}
                     onClick={() => {
+                      if (isWorkflowDialog) return
                       if (disabled) return
                       if (activeTab === editTabIndex && ((editType === 'edit_json' && jsonDirty) || (isFieldEditor && picDirty))) {
                         setPendingTab(viewTabIndex)
@@ -3788,9 +4068,6 @@ export default function PdvmDialogPage() {
                         return
                       }
                       setActiveTab(idx)
-                      if (isWorkflowDialog && idx < workflowMaxTab) {
-                        setWorkflowMaxTab(idx)
-                      }
                     }}
                   >
                     {head}
@@ -3899,7 +4176,8 @@ export default function PdvmDialogPage() {
               ) : effectiveViewGuid ? (
                 <PdvmViewPageContent
                   viewGuid={String(effectiveViewGuid)}
-                  tableOverride={effectiveDialogTable}
+                  tableOverride={effectiveViewTableOverride || null}
+                  forceTableOverride={runtimeTableOverride.forceTableOverride}
                   editType={editType}
                   embedded
                 />

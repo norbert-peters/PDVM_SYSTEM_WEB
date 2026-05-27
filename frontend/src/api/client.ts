@@ -101,6 +101,7 @@ export interface ViewMatrixRequest {
 
 export interface ViewTableOverrideOptions {
   table?: string | null
+  force_table_override?: boolean
 }
 
 export type ViewMatrixRow =
@@ -663,11 +664,12 @@ export const viewsAPI = {
     return response.data
   },
 
-  getState: async (viewGuid: string, opts?: { table?: string; edit_type?: string }): Promise<ViewStateResponse> => {
+  getState: async (viewGuid: string, opts?: { table?: string; edit_type?: string; force_table_override?: boolean }): Promise<ViewStateResponse> => {
     const response = await api.get(`/views/${viewGuid}/state`, {
       params: {
         ...(opts?.table ? { table: opts.table } : null),
         ...(opts?.edit_type ? { edit_type: opts.edit_type } : null),
+        ...(opts?.force_table_override ? { force_table_override: true } : null),
       } as any,
     })
     return response.data
@@ -683,12 +685,13 @@ export const viewsAPI = {
   putStateFull: async (
     viewGuid: string,
     payload: ViewStateUpdateRequest,
-    opts?: { table?: string; edit_type?: string },
+    opts?: { table?: string; edit_type?: string; force_table_override?: boolean },
   ): Promise<ViewStateResponse> => {
     const response = await api.put(`/views/${viewGuid}/state`, payload, {
       params: {
         ...(opts?.table ? { table: opts.table } : null),
         ...(opts?.edit_type ? { edit_type: opts.edit_type } : null),
+        ...(opts?.force_table_override ? { force_table_override: true } : null),
       } as any,
     })
     return response.data
@@ -703,6 +706,7 @@ export const viewsAPI = {
       params: {
         ...(opts?.table ? { table: opts.table } : null),
         ...(opts?.edit_type ? { edit_type: opts.edit_type } : null),
+        ...(opts?.force_table_override ? { force_table_override: true } : null),
       } as any,
     })
     return response.data

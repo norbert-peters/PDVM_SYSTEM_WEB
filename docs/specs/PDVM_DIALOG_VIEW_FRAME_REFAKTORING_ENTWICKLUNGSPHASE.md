@@ -59,6 +59,8 @@ Regel:
 1. Jeder Edit-Typ bekommt einen klaren Contract: Eingaben, erlaubte Writes, Renderpfad, Persistenzpfad, Validierung.
 2. Keine impliziten Seiteneffekte ausserhalb des definierten Contracts.
 3. `show_json` wird ausschliesslich im Modul `show` verwendet (nicht im Modul `edit`).
+4. `MODULE=show` wird im Frontend als edit-aehnlicher Tab behandelt (Renderpfad wie Edit-Bereich),
+   damit `show_json`-Dialoge den Bearbeiten-Tab konsistent laden.
 
 ### 3.4 InputControls-First
 
@@ -92,6 +94,29 @@ Hinweis zur Sprachpflege (verbindliche Linearitaet):
 1. Bestehende View-Funktionalitaet bleibt nutzbar.
 2. Gleichzeitig wird Optimierungspotenzial systematisch bewertet (Filterkosten, Recompute, Projektion, State-Merge).
 3. View-Verhalten muss konsistent mit Dialogkontext (table/edit_type) bleiben.
+
+Verbindlicher Laufablauf fuer Dialog-Tab mit `MODULE=view`:
+1. Dialog liefert `TAB_n`-Konfiguration (`GUID`, optional `TABLE`, optional `EDIT_TYPE`).
+2. Frontend oeffnet die View immer ueber `view_guid=TAB_n.GUID`.
+3. Table-Aufloesung erfolgt strikt in dieser Reihenfolge:
+   - expliziter Aufrufparameter `dialog_table` (wenn gesetzt),
+   - danach `TAB_n.TABLE` (wenn gesetzt),
+   - sonst kein Override; Backend nutzt `sys_viewdaten.ROOT.TABLE` als Fallback.
+4. Fuer den View-Tab ist `edit_type=view` der Standardpfad.
+5. View-State/Persistenz bleibt auf `(view_guid, table, edit_type)` gescoped.
+
+Verbindliche Runtime-Policy fuer Tabellen-Override (Dialog):
+1. Wenn der Dialog mit `dialog_table` gestartet wird, gilt diese Tabelle als aktive Dialogtabelle.
+2. Das Runtime-Merkmal `force_table_override` erzwingt dann dieselbe Tabelle in View- und Edit-Datenpfaden.
+3. Diese Erzwungene-Aufloesung gilt fuer alle `edit_type` (inkl. `show_json`, `edit_json`, `pdvm_edit`,
+   `import_data`, `menu`, `edit_user`).
+4. Ohne `dialog_table` bleibt das bestehende Fallback-Verhalten aktiv (TAB.TABLE -> ROOT.TABLE).
+
+Konsequenz:
+1. Wenn eine Dialog-Root-Table blind als View-Override verwendet wird, kann TAB_01 trotz korrekter
+   `sys_viewdaten`-Definition auf der falschen Tabelle laufen.
+2. Dieser Fehler zeigt sich typischerweise als "Overview funktioniert nicht", obwohl View-UID,
+   View-ROOT und Tabellenstruktur korrekt sind.
 
 ### 3.7 Datum/Uhrzeit
 

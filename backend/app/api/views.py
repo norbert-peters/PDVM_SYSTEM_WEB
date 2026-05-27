@@ -24,6 +24,7 @@ from app.core.view_state_service import (
     merge_controls,
     normalize_controls_source,
     effective_controls_as_list,
+    resolve_view_control_references,
 )
 from app.core.view_table_state_service import merge_table_state, normalize_table_state_source
 from app.core.view_matrix_service import build_view_matrix
@@ -103,6 +104,10 @@ def _allow_table_override(*, root: Dict[str, Any], root_table: str, table_overri
         return True
 
     return False
+
+
+def _is_force_override_enabled(value: Optional[bool]) -> bool:
+    return bool(value)
 
 
 async def get_gcs_instance(current_user: dict = Depends(get_current_user)):
@@ -232,6 +237,16 @@ async def get_view_base(
 
     # Stichtag-Projektion nur für Felder, die die View wirklich nutzt (Controls aus sys_viewdaten)
     origin = extract_controls_origin(definition.get("daten") or {}, root_table=effective_table, no_data=no_data)
+    origin = await resolve_view_control_references(
+        origin,
+        system_pool=gcs._system_pool,
+        mandant_pool=gcs._mandant_pool,
+    )
+    origin = await resolve_view_control_references(
+        origin,
+        system_pool=gcs._system_pool,
+        mandant_pool=gcs._mandant_pool,
+    )
     control_fields = []
     try:
         for c in origin.values():
@@ -262,6 +277,7 @@ async def get_view_state(
     view_guid: str,
     table: Optional[str] = Query(default=None),
     edit_type: Optional[str] = Query(default=None),
+    force_table_override: Optional[bool] = Query(default=False),
     gcs=Depends(get_gcs_instance),
 ):
     try:
@@ -279,7 +295,8 @@ async def get_view_state(
     no_data = _truthy((root or {}).get("NO_DATA") or (root or {}).get("no_data"))
 
     table_override = _normalize_table_override(table)
-    if table_override and not _allow_table_override(root=root, root_table=root_table, table_override=table_override, edit_type=edit_type):
+    force_override = _is_force_override_enabled(force_table_override)
+    if table_override and not force_override and not _allow_table_override(root=root, root_table=root_table, table_override=table_override, edit_type=edit_type):
         raise HTTPException(
             status_code=400,
             detail="table override ist nur erlaubt, wenn ROOT.NO_DATA=true oder ROOT.ALLOW_TABLE_OVERRIDE=true (oder sys_* -> sys_*)",
@@ -290,6 +307,11 @@ async def get_view_state(
     state_group = _view_state_group(view_guid=view_guid, table=effective_table, edit_type=et)
 
     origin = extract_controls_origin(definition.get("daten") or {}, root_table=effective_table, no_data=no_data)
+    origin = await resolve_view_control_references(
+        origin,
+        system_pool=gcs._system_pool,
+        mandant_pool=gcs._mandant_pool,
+    )
     source = gcs.get_view_controls(state_group) or {}
     if not isinstance(source, dict):
         source = {}
@@ -321,6 +343,7 @@ async def put_view_state(
     request: ViewStateUpdateRequest,
     table: Optional[str] = Query(default=None),
     edit_type: Optional[str] = Query(default=None),
+    force_table_override: Optional[bool] = Query(default=False),
     gcs=Depends(get_gcs_instance),
 ):
     try:
@@ -338,7 +361,8 @@ async def put_view_state(
     no_data = _truthy((root or {}).get("NO_DATA") or (root or {}).get("no_data"))
 
     table_override = _normalize_table_override(table)
-    if table_override and not _allow_table_override(root=root, root_table=root_table, table_override=table_override, edit_type=edit_type):
+    force_override = _is_force_override_enabled(force_table_override)
+    if table_override and not force_override and not _allow_table_override(root=root, root_table=root_table, table_override=table_override, edit_type=edit_type):
         raise HTTPException(
             status_code=400,
             detail="table override ist nur erlaubt, wenn ROOT.NO_DATA=true oder ROOT.ALLOW_TABLE_OVERRIDE=true (oder sys_* -> sys_*)",
@@ -391,11 +415,13 @@ async def post_view_matrix(
     request: ViewMatrixRequest,
     table: Optional[str] = Query(default=None),
     edit_type: Optional[str] = Query(default=None),
+    force_table_override: Optional[bool] = Query(default=False),
     gcs=Depends(get_gcs_instance),
 ):
     try:
         table_override = _normalize_table_override(table)
         et = _normalize_edit_type(edit_type)
+        force_override = _is_force_override_enabled(force_table_override)
         result = await build_view_matrix(
             gcs,
             view_guid,
@@ -406,6 +432,7 @@ async def post_view_matrix(
             offset=int(request.offset),
             table_override=table_override,
             edit_type=et,
+            force_table_override=force_override,
         )
         return result
     except ValueError as e:

@@ -70,6 +70,25 @@ function isPlainObject(value: unknown): value is Record<string, any> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+function getCi(obj: unknown, key: string): any {
+  if (!isPlainObject(obj)) return undefined
+  if (Object.prototype.hasOwnProperty.call(obj, key)) return (obj as any)[key]
+  const wanted = String(key || '').trim().toLowerCase()
+  if (!wanted) return undefined
+  for (const [k, v] of Object.entries(obj)) {
+    if (String(k).trim().toLowerCase() === wanted) return v
+  }
+  return undefined
+}
+
+function pickCi(obj: unknown, ...keys: string[]): any {
+  for (const key of keys) {
+    const v = getCi(obj, key)
+    if (v !== undefined && v !== null) return v
+  }
+  return undefined
+}
+
 
 function resolveFormatType(control: ViewControl): string {
   const t = String(control.type || '').trim().toLowerCase()
@@ -138,18 +157,29 @@ function extractControls(definition: ViewDefinitionResponse): ViewControl[] {
     for (const [controlGuid, controlVal] of Object.entries(sectionVal)) {
       if (!isPlainObject(controlVal)) continue
 
+      const gruppe = pickCi(controlVal, 'gruppe', 'GRUPPE', 'group', 'GROUP')
+      const feld = pickCi(controlVal, 'feld', 'FELD', 'field', 'FIELD')
+      const label = pickCi(controlVal, 'label', 'LABEL', 'name', 'NAME')
+      const type = pickCi(controlVal, 'type', 'TYPE')
+      const controlType = pickCi(controlVal, 'control_type', 'CONTROL_TYPE')
+      const show = pickCi(controlVal, 'show', 'SHOW', 'display_show', 'DISPLAY_SHOW')
+      const displayOrder = pickCi(controlVal, 'display_order', 'DISPLAY_ORDER')
+      const sortable = pickCi(controlVal, 'sortable', 'SORTABLE')
+      const searchable = pickCi(controlVal, 'searchable', 'SEARCHABLE')
+      const configs = pickCi(controlVal, 'configs', 'CONFIGS')
+
       controls.push({
         control_guid: controlGuid,
-        gruppe: String(controlVal.gruppe || ''),
-        feld: String(controlVal.feld || ''),
-        label: controlVal.label,
-        type: controlVal.type,
-        control_type: controlVal.control_type,
-        show: controlVal.show !== false,
-        display_order: Number(controlVal.display_order || 0),
-        sortable: !!controlVal.sortable,
-        searchable: !!controlVal.searchable,
-        configs: controlVal.configs,
+        gruppe: String(gruppe || ''),
+        feld: String(feld || ''),
+        label: label !== undefined ? String(label) : undefined,
+        type: type !== undefined ? String(type) : undefined,
+        control_type: controlType !== undefined ? String(controlType) : undefined,
+        show: show !== false,
+        display_order: Number(displayOrder || 0),
+        sortable: !!sortable,
+        searchable: !!searchable,
+        configs,
       })
     }
   }
@@ -161,54 +191,89 @@ function controlsFromState(state: ViewStateResponse | undefined): ViewControl[] 
   const list = state?.controls_effective || []
   return list
     .filter((c) => c && typeof c === 'object')
-    .map((c: any) => ({
-      control_guid: String(c.control_guid || ''),
-      gruppe: String(c.gruppe || ''),
-      feld: String(c.feld || ''),
-      label: c.label,
-      type: c.type,
-      control_type: c.control_type,
-      show: c.show !== false,
-      display_order: Number(c.display_order || 0),
-      width: c.width !== undefined ? Number(c.width) : undefined,
-      sortable: !!c.sortable,
-      searchable: !!c.searchable,
-      configs: c.configs,
-    }))
+    .map((c: any) => {
+      const controlGuid = pickCi(c, 'control_guid', 'CONTROL_GUID')
+      const gruppe = pickCi(c, 'gruppe', 'GRUPPE', 'group', 'GROUP')
+      const feld = pickCi(c, 'feld', 'FELD', 'field', 'FIELD')
+      const label = pickCi(c, 'label', 'LABEL', 'name', 'NAME')
+      const type = pickCi(c, 'type', 'TYPE')
+      const controlType = pickCi(c, 'control_type', 'CONTROL_TYPE')
+      const show = pickCi(c, 'show', 'SHOW', 'display_show', 'DISPLAY_SHOW')
+      const displayOrder = pickCi(c, 'display_order', 'DISPLAY_ORDER')
+      const width = pickCi(c, 'width', 'WIDTH')
+      const sortable = pickCi(c, 'sortable', 'SORTABLE')
+      const searchable = pickCi(c, 'searchable', 'SEARCHABLE')
+      const configs = pickCi(c, 'configs', 'CONFIGS')
+
+      return {
+        control_guid: String(controlGuid || ''),
+        gruppe: String(gruppe || ''),
+        feld: String(feld || ''),
+        label: label !== undefined ? String(label) : undefined,
+        type: type !== undefined ? String(type) : undefined,
+        control_type: controlType !== undefined ? String(controlType) : undefined,
+        show: show !== false,
+        display_order: Number(displayOrder || 0),
+        width: width !== undefined ? Number(width) : undefined,
+        sortable: !!sortable,
+        searchable: !!searchable,
+        configs,
+      }
+    })
     .filter((c) => !!c.control_guid)
 }
 
 function getRawValue(row: ViewBaseRow, control: ViewControl): unknown {
-  const gruppe = control.gruppe
-  const feld = control.feld
-  if (!gruppe || !feld) return undefined
+  const gruppe = String(control.gruppe || '').trim()
+  const feld = String(control.feld || '').trim()
+  if (!feld) return undefined
 
-  const groupObj = row.daten?.[gruppe]
-  let raw = groupObj?.[feld]
+  // Backend-Kompatibilität: UID/NAME liegen oft als Top-Level-Felder auf der Zeile.
+  const feldUpper = feld.toUpperCase()
+  if (feldUpper === 'UID' || feldUpper === 'NAME') {
+    const top = getCi(row as any, feld.toLowerCase())
+    if (top !== undefined) return top
+  }
+
+  if (!gruppe) return undefined
+
+  const daten = row.daten || {}
+  const groupObj = getCi(daten, gruppe)
+  let raw = getCi(groupObj, feld)
+
+  // Legacy-Fallback: ROOT-Felder können auch direkt auf daten liegen.
+  if (raw === undefined && /^(__ROOT__|ROOT)$/i.test(gruppe)) {
+    raw = getCi(daten, feld)
+  }
+
+  // SYSTEM-Fallback für Spaltenwerte auf Top-Level (uid/name etc.).
+  if (raw === undefined && /^SYSTEM$/i.test(gruppe)) {
+    raw = getCi(row as any, feld)
+  }
 
   // Spezialfall: gruppe=SYSTEM referenziert DB-Spaltennamen (kann in sys_viewdaten variieren)
-  if (gruppe === 'SYSTEM' && raw === undefined && groupObj && typeof groupObj === 'object') {
-    raw = (groupObj as any)[String(feld).toLowerCase()]
-    if (raw === undefined) raw = (groupObj as any)[String(feld).toUpperCase()]
+  if (/^SYSTEM$/i.test(gruppe) && raw === undefined && groupObj && typeof groupObj === 'object') {
+    raw = getCi(groupObj, String(feld).toLowerCase())
+    if (raw === undefined) raw = getCi(groupObj, String(feld).toUpperCase())
   }
   // Stichtag-Auflösung passiert serverseitig; Frontend darf hier NICHT "latest" wählen.
   return raw
 }
 
 function getAbdatumTooltip(row: ViewBaseRow, control: ViewControl): string | undefined {
-  const gruppe = control.gruppe
-  const feld = control.feld
+  const gruppe = String(control.gruppe || '').trim()
+  const feld = String(control.feld || '').trim()
   if (!gruppe || !feld) return undefined
 
-  const groupObj = (row.daten as any)?.[gruppe]
+  const groupObj = getCi((row.daten as any) || {}, gruppe)
   if (!groupObj || typeof groupObj !== 'object') return undefined
 
-  const formatted = (groupObj as any)[`${feld}__abdatum_formatiert`]
+  const formatted = getCi(groupObj, `${feld}__abdatum_formatiert`)
   if (formatted !== null && formatted !== undefined && String(formatted).trim() !== '') {
     return `AB: ${String(formatted)}`
   }
 
-  const raw = (groupObj as any)[`${feld}__abdatum`]
+  const raw = getCi(groupObj, `${feld}__abdatum`)
   if (raw !== null && raw !== undefined && String(raw).trim() !== '') {
     return `AB: ${String(raw)}`
   }
@@ -254,11 +319,13 @@ export default function PdvmViewPage() {
 export function PdvmViewPageContent({
   viewGuid,
   tableOverride,
+  forceTableOverride,
   editType,
   embedded,
 }: {
   viewGuid: string
   tableOverride?: string | null
+  forceTableOverride?: boolean
   editType?: string | null
   embedded?: boolean
 }) {
@@ -323,6 +390,7 @@ export function PdvmViewPageContent({
       viewsAPI.getState(viewGuid, {
         table: effectiveTableOverride || undefined,
         edit_type: effectiveEditType,
+        force_table_override: !!forceTableOverride,
       }),
     enabled: !!viewGuid && !!defQuery.data,
   })
@@ -332,6 +400,7 @@ export function PdvmViewPageContent({
       return viewsAPI.putStateFull(viewGuid, payload, {
         table: effectiveTableOverride || undefined,
         edit_type: effectiveEditType,
+        force_table_override: !!forceTableOverride,
       })
     },
     onSuccess: (data) => {
@@ -494,6 +563,7 @@ export function PdvmViewPageContent({
         {
           ...(effectiveTableOverride ? { table: effectiveTableOverride } : null),
           edit_type: effectiveEditType,
+          ...(forceTableOverride ? { force_table_override: true } : null),
         } as any,
       ),
     enabled: !!viewGuid && !!defQuery.data && !!stateQuery.data && !!draftControlsSource && !!draftTableStateSource,

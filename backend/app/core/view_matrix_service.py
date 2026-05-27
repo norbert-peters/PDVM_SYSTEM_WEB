@@ -26,6 +26,7 @@ from app.core.view_state_service import (
     extract_controls_origin,
     merge_controls,
     normalize_controls_source,
+    resolve_view_control_references,
 )
 from app.core.view_table_state_service import merge_table_state, normalize_table_state_source
 from app.core.config import settings
@@ -72,7 +73,17 @@ def _get_value_from_row(row: Dict[str, Any], control: Dict[str, Any]) -> Any:
 
     gruppe = str(control.get("gruppe") or control.get("GRUPPE") or "")
     feld = str(control.get("feld") or control.get("FELD") or "")
-    if not gruppe or not feld:
+    if not feld:
+        return None
+
+    # Systemnahe Kernfelder liegen in vielen Tabellen auf Top-Level der Zeile.
+    feld_upper = feld.strip().upper()
+    if feld_upper in {"UID", "NAME"}:
+        top = row.get(feld.lower())
+        if top is not None:
+            return top
+
+    if not gruppe:
         return None
 
     group_obj = _get_ci(daten, gruppe)
@@ -128,6 +139,9 @@ def _row_has_any_value(row: Dict[str, Any], controls_origin: Dict[str, Dict[str,
     # trotzdem sichtbar bleiben (z.B. Views mit ROOT.NO_DATA=true).
     checked_non_system = False
     for c in controls_origin.values():
+        feld = str(c.get("feld") or c.get("FELD") or "").strip()
+        if not feld:
+            continue
         if str(c.get("gruppe") or "").upper() == "SYSTEM":
             continue
         checked_non_system = True
@@ -268,6 +282,7 @@ async def build_view_matrix(
     max_base_rows: int = MAX_BASE_ROWS_DEFAULT,
     table_override: Optional[str] = None,
     edit_type: str = "view",
+    force_table_override: bool = False,
 ) -> Dict[str, Any]:
     """Erstellt eine projektierte Matrix für eine View (serverseitig)."""
 
@@ -300,7 +315,7 @@ async def build_view_matrix(
         to = str(table_override or "").strip().lower()
         allow_sys_to_sys = rt.startswith("sys_") and to.startswith("sys_")
         allow_dialog_json = et in {"show_json", "edit_json"}
-        if not (no_data or allow_flag or allow_sys_to_sys or allow_dialog_json):
+        if not (force_table_override or no_data or allow_flag or allow_sys_to_sys or allow_dialog_json):
             raise ValueError("table_override ist nur erlaubt, wenn ROOT.NO_DATA=true oder ROOT.ALLOW_TABLE_OVERRIDE=true (oder sys_* -> sys_*)")
         table = str(table_override).strip()
         if not table:
@@ -312,6 +327,11 @@ async def build_view_matrix(
     state_group = f"{view_guid}::{str(table).strip().lower()}::{et}"
 
     origin = extract_controls_origin(definition.get("daten") or {}, root_table=table, no_data=no_data)
+    origin = await resolve_view_control_references(
+        origin,
+        system_pool=gcs._system_pool,
+        mandant_pool=gcs._mandant_pool,
+    )
 
     # State: source overrides (optional) or persisted
     src_controls = controls_source if controls_source is not None else (gcs.get_view_controls(state_group) or {})
