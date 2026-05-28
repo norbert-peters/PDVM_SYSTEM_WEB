@@ -3065,52 +3065,45 @@ export default function PdvmDialogPage() {
     return draftGuid
   }
 
-  const loadWorkflowWorkContainer = async (draftGuid: string): Promise<Record<string, any> | null> => {
-    if (!draftGuid || !isUuidString(draftGuid)) return null
-    const loaded = await workflowDraftsAPI.load(draftGuid, workflowDraftTableOptions)
-    const workItem = (loaded.items || []).find(
-      (i) => String(i.item_type || '').toLowerCase() === 'work' && String(i.item_key || '').toLowerCase() === 'container'
-    )
-    const payload = asObject(workItem?.payload)
-    return Object.keys(payload).length ? payload : null
+  const loadWorkflowRecordsByTable = async (
+    draftGuid: string,
+    tableName: string,
+  ): Promise<Record<string, any>> => {
+    if (!draftGuid || !isUuidString(draftGuid)) return {}
+    const table = String(tableName || '').trim().toLowerCase()
+    if (!table) return {}
+
+    const loaded = await workflowDraftsAPI.listTableRecords(draftGuid, table, workflowDraftTableOptions)
+    return asObject(loaded.records)
   }
 
   const saveWorkflowEditSnapshot = async (): Promise<string> => {
     const draftGuid = await ensureWorkflowDraft()
     if (!isWorkflowDraftBuilderDialog || activeModuleType !== 'edit') return draftGuid
 
-    const bucketName = String(activeModule?.table || '').trim().toLowerCase()
-    if (!bucketName) return draftGuid
+    const tableName = String(activeModule?.table || '').trim().toLowerCase()
+    if (!tableName) return draftGuid
 
     const source = asObject((picDraft ? picDraft : currentDaten) || {})
     if (!Object.keys(source).length) return draftGuid
-
-    const workPayload = (await loadWorkflowWorkContainer(draftGuid)) || { WORKFLOW: {} }
-    const bucketRaw = asObject((workPayload as any)[bucketName])
     const root = asObject(source.ROOT)
     const selectedCandidate = String(selectedUid || '').trim()
     const rootUid = String(root.SELF_GUID || '').trim()
-    const existingUid = Object.keys(bucketRaw)[0] || ''
+    const existingRecords = await loadWorkflowRecordsByTable(draftGuid, tableName)
+    const existingUid = Object.keys(existingRecords)[0] || ''
     const recordUid = [rootUid, selectedCandidate, existingUid].find((x) => isUuidString(String(x || '').trim())) || crypto.randomUUID()
 
-    bucketRaw[String(recordUid)] = source
-    ;(workPayload as any)[bucketName] = bucketRaw
-
-    const meta = asObject((workPayload as any).WORKFLOW)
-    meta.ACTIVE_TAB = Number(activeTab || 1)
-    meta.MAX_TAB = Number(workflowMaxTab || 1)
-    meta.UPDATED_AT = new Date().toISOString()
-    ;(workPayload as any).WORKFLOW = meta
-
-    await workflowDraftsAPI.saveItem(
+    await workflowDraftsAPI.upsertTableRecord(
       draftGuid,
+      tableName,
       {
-        item_type: 'work',
-        item_key: 'container',
-        payload: workPayload,
+        record_uid: recordUid,
+        payload: source,
+        draft_table: workflowDraftTableOptions.draft_table || null,
       },
-      workflowDraftTableOptions,
     )
+
+    await saveWorkflowStateToDraft(draftGuid, Number(activeTab || 1), Number(workflowMaxTab || 1))
 
     return draftGuid
   }
@@ -3143,16 +3136,15 @@ export default function PdvmDialogPage() {
     if (!isWorkflowDraftBuilderDialog || activeModuleType !== 'edit') return
     if (!workflowDraftGuid || !isUuidString(workflowDraftGuid)) return
 
-    const bucketName = String(activeModule?.table || '').trim().toLowerCase()
-    if (!bucketName) return
+    const tableName = String(activeModule?.table || '').trim().toLowerCase()
+    if (!tableName) return
 
-    const workPayload = await loadWorkflowWorkContainer(workflowDraftGuid)
-    const bucket = asObject((workPayload || {})[bucketName])
-    if (!Object.keys(bucket).length) return
+    const records = await loadWorkflowRecordsByTable(workflowDraftGuid, tableName)
+    if (!Object.keys(records).length) return
 
     const preferred = String(selectedUid || '').trim()
-    const pickedUid = (preferred && bucket[preferred] ? preferred : Object.keys(bucket)[0]) || ''
-    const picked = asObject(bucket[pickedUid])
+    const pickedUid = (preferred && records[preferred] ? preferred : Object.keys(records)[0]) || ''
+    const picked = asObject(records[pickedUid])
     if (!Object.keys(picked).length) return
 
     setPicDraft(picked)

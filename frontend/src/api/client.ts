@@ -332,6 +332,28 @@ export interface WorkflowDraftEnsureStepResponse {
   work_item_uid: string
 }
 
+export interface WorkflowDraftTableRecordsResponse {
+  success: boolean
+  table: string
+  count: number
+  records: Record<string, Record<string, any>>
+}
+
+export interface WorkflowDraftUpsertTableRecordRequest {
+  record_uid?: string | null
+  payload: Record<string, any>
+  draft_table?: string | null
+}
+
+export interface WorkflowDraftUpsertTableRecordResponse {
+  success: boolean
+  message: string
+  table: string
+  bucket: string
+  record_uid: string
+  record: Record<string, any>
+}
+
 export interface ImportPreviewResponse {
   dataset_uid: string
   table_name: string
@@ -891,6 +913,28 @@ export const workflowDraftsAPI = {
     payload: WorkflowDraftEnsureStepRequest
   ): Promise<WorkflowDraftEnsureStepResponse> => {
     const response = await api.post(`/workflow-drafts/${draftGuid}/ensure-step`, payload)
+    return response.data
+  },
+
+  listTableRecords: async (
+    draftGuid: string,
+    tableName: string,
+    opts?: WorkflowDraftTableOptions
+  ): Promise<WorkflowDraftTableRecordsResponse> => {
+    const response = await api.get(`/workflow-drafts/${draftGuid}/records/${tableName}`, {
+      params: {
+        ...(opts?.draft_table ? { draft_table: opts.draft_table } : null),
+      } as any,
+    })
+    return response.data
+  },
+
+  upsertTableRecord: async (
+    draftGuid: string,
+    tableName: string,
+    payload: WorkflowDraftUpsertTableRecordRequest
+  ): Promise<WorkflowDraftUpsertTableRecordResponse> => {
+    const response = await api.post(`/workflow-drafts/${draftGuid}/records/${tableName}`, payload)
     return response.data
   },
 }
