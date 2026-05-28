@@ -77,6 +77,10 @@ class WorkflowDraftService:
         result = copy.deepcopy(base) if isinstance(base, dict) else {}
         tpl = fallback if isinstance(fallback, dict) else {}
 
+        # Leere Gruppe wird komplett aus dem Template uebernommen.
+        if not result and tpl:
+            return copy.deepcopy(tpl)
+
         for key, value in list(result.items()):
             tpl_value = tpl.get(key)
             if not isinstance(value, dict):

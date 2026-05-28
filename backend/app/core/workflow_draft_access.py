@@ -65,6 +65,10 @@ class WorkflowDraftAccess:
         out = copy.deepcopy(base) if isinstance(base, dict) else {}
         tpl = fallback if isinstance(fallback, dict) else {}
 
+        # Leere Gruppe wird komplett aus dem Template uebernommen.
+        if not out and tpl:
+            return copy.deepcopy(tpl)
+
         for key, value in list(out.items()):
             tpl_value = tpl.get(key)
             if not isinstance(value, dict):
@@ -140,6 +144,8 @@ class WorkflowDraftAccess:
             )
 
         templates_666 = data_666.get("TEMPLATES") if isinstance(data_666.get("TEMPLATES"), dict) else {}
+        tpl666_key_map = {str(k).strip().lower(): k for k in templates_666.keys() if str(k).strip()}
+        incoming_key_map = {str(k).strip().lower(): k for k in incoming.keys() if str(k).strip()}
         out: Dict[str, Any] = {}
 
         for group_name, group_value in data_555.items():
@@ -148,10 +154,13 @@ class WorkflowDraftAccess:
             if not isinstance(group_value, dict):
                 continue
 
-            fallback_group = templates_666.get(group_name) if isinstance(templates_666.get(group_name), dict) else {}
+            group_norm = str(group_name).strip().lower()
+            tpl_key = tpl666_key_map.get(group_norm)
+            fallback_group = templates_666.get(tpl_key) if isinstance(templates_666.get(tpl_key), dict) else {}
             merged_group = WorkflowDraftAccess._fill_empty_groups_from_template(group_value, fallback_group)
 
-            incoming_group = incoming.get(group_name)
+            incoming_key = incoming_key_map.get(group_norm)
+            incoming_group = incoming.get(incoming_key)
             if isinstance(incoming_group, dict):
                 merged_group = WorkflowDraftAccess._merge_defined_fields(merged_group, incoming_group)
 
