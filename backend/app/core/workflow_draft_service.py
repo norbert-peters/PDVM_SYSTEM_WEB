@@ -55,6 +55,40 @@ class WorkflowDraftService:
         return {}
 
     @staticmethod
+    def _merge_defined_fields(template_dict: Dict[str, Any], incoming: Dict[str, Any]) -> Dict[str, Any]:
+        """Uebernimmt nur Keys, die im Template bereits definiert sind."""
+        result = copy.deepcopy(template_dict) if isinstance(template_dict, dict) else {}
+        if not isinstance(incoming, dict):
+            return result
+
+        for key, value in incoming.items():
+            if key not in result:
+                continue
+            existing = result.get(key)
+            if isinstance(existing, dict) and isinstance(value, dict):
+                result[key] = WorkflowDraftService._merge_defined_fields(existing, value)
+            else:
+                result[key] = value
+        return result
+
+    @staticmethod
+    def _fill_empty_groups_from_template(base: Dict[str, Any], fallback: Dict[str, Any]) -> Dict[str, Any]:
+        """Fuellt nur leere Gruppen in base aus fallback auf (rekursiv)."""
+        result = copy.deepcopy(base) if isinstance(base, dict) else {}
+        tpl = fallback if isinstance(fallback, dict) else {}
+
+        for key, value in list(result.items()):
+            tpl_value = tpl.get(key)
+            if not isinstance(value, dict):
+                continue
+            if not value and isinstance(tpl_value, dict):
+                result[key] = copy.deepcopy(tpl_value)
+                continue
+            if isinstance(tpl_value, dict):
+                result[key] = WorkflowDraftService._fill_empty_groups_from_template(value, tpl_value)
+        return result
+
+    @staticmethod
     async def _table_exists(conn: asyncpg.Connection, table_name: str) -> bool:
         return bool(
             await conn.fetchval(
@@ -167,26 +201,30 @@ class WorkflowDraftService:
             },
             "TEMPLATES": {
                 "ROOT": {
+                    "SELF_GUID": "",
+                    "SELF_NAME": "",
+                    "DRAFT_GUID": "",
                     "WORKFLOW_TYPE": "work",
                     "DIALOG_TYPE": "work",
                     "STATUS": "draft",
+                    "OWNER_USER_GUID": "",
+                    "MANDANT_GUID": "",
+                    "CREATED_AT": "",
+                    "UPDATED_AT": "",
                     "TITLE": "",
                     "REVISION": 1,
+                    "IS_TEMPLATE": False,
+                    "LAST_EDITOR_USER_GUID": "",
                 },
                 "DRAFT_DB": {
                     "_META": {
-                        "SETUP": {
-                            "WORKFLOW_NAME": "",
-                            "TARGET_TABLE": "sys_dialogdaten",
-                            "DIALOG_TYPE": "work",
-                            "DESCRIPTION": "",
-                        },
-                        "STATE": {
-                            "ACTIVE_TAB": 1,
-                            "MAX_TAB": 1,
-                            "STATUS": "draft",
-                        },
-                    }
+                        "SETUP": {},
+                        "STATE": {},
+                        "WORKFLOW": {},
+                    },
+                    "SYS_DIALOGDATEN": {},
+                    "SYS_VIEWDATEN": {},
+                    "SYS_FRAMEDATEN": {},
                 },
             },
         }
@@ -216,6 +254,14 @@ class WorkflowDraftService:
                             "MAX_TAB": 1,
                             "STATUS": "draft",
                         },
+                        "WORKFLOW": {
+                            "DRAFT_GUID": "",
+                            "WORKFLOW_TYPE": "work",
+                            "WORKFLOW_NAME": "",
+                            "DIALOG_TYPE": "work",
+                            "TARGET_TABLE": "sys_dialogdaten",
+                            "UPDATED_AT": "",
+                        },
                     },
                     "SYS_DIALOGDATEN": {},
                     "SYS_VIEWDATEN": {},
@@ -228,7 +274,10 @@ class WorkflowDraftService:
             f"""
             INSERT INTO {draft_table} (uid, daten, name, historisch, created_at, modified_at)
             VALUES ($1::uuid, $2::jsonb, $3, 0, NOW(), NOW())
-            ON CONFLICT (uid) DO NOTHING
+            ON CONFLICT (uid) DO UPDATE
+            SET daten = EXCLUDED.daten,
+                name = EXCLUDED.name,
+                modified_at = NOW()
             """,
             UID_META,
             json.dumps(draft_meta_payload, ensure_ascii=False),
@@ -239,7 +288,10 @@ class WorkflowDraftService:
             f"""
             INSERT INTO {draft_table} (uid, daten, name, historisch, created_at, modified_at)
             VALUES ($1::uuid, $2::jsonb, $3, 0, NOW(), NOW())
-            ON CONFLICT (uid) DO NOTHING
+            ON CONFLICT (uid) DO UPDATE
+            SET daten = EXCLUDED.daten,
+                name = EXCLUDED.name,
+                modified_at = NOW()
             """,
             UID_555,
             json.dumps(draft_555_payload, ensure_ascii=False),
@@ -250,7 +302,10 @@ class WorkflowDraftService:
             f"""
             INSERT INTO {draft_table} (uid, daten, name, historisch, created_at, modified_at)
             VALUES ($1::uuid, $2::jsonb, $3, 0, NOW(), NOW())
-            ON CONFLICT (uid) DO NOTHING
+            ON CONFLICT (uid) DO UPDATE
+            SET daten = EXCLUDED.daten,
+                name = EXCLUDED.name,
+                modified_at = NOW()
             """,
             DEFAULT_TEMPLATE_UID,
             json.dumps(draft_template_payload, ensure_ascii=False),
@@ -300,59 +355,76 @@ class WorkflowDraftService:
         draft_uid = uuid.uuid4()
         now_ts = now_pdvm_str()
         async with system_pool.acquire() as conn:
-            template_daten = await WorkflowDraftService._load_template_daten(conn, table_name=draft_table_norm)
-            daten = copy.deepcopy(template_daten)
-            templates = daten.get("TEMPLATES") if isinstance(daten.get("TEMPLATES"), dict) else {}
-            tpl_draft_db = templates.get("DRAFT_DB") if isinstance(templates.get("DRAFT_DB"), dict) else {}
-            draft_db = copy.deepcopy(tpl_draft_db) if isinstance(tpl_draft_db, dict) else {}
-            meta = draft_db.get("_META") if isinstance(draft_db.get("_META"), dict) else {}
-            meta = dict(meta)
-
-            root = daten.get("ROOT") if isinstance(daten.get("ROOT"), dict) else {}
-            root = dict(root)
-            root.update(
-                {
-                    "SELF_GUID": str(draft_uid),
-                    "SELF_NAME": title_norm,
-                    "DRAFT_GUID": str(draft_uid),
-                    "WORKFLOW_TYPE": workflow_type_norm,
-                    "DIALOG_TYPE": "work",
-                    "STATUS": "draft",
-                    "OWNER_USER_GUID": str(uuid.UUID(str(owner_user_guid))),
-                    "MANDANT_GUID": str(uuid.UUID(str(mandant_guid))),
-                    "CREATED_AT": now_ts,
-                    "UPDATED_AT": now_ts,
-                    "TITLE": title_norm,
-                    "REVISION": 1,
-                    "IS_TEMPLATE": False,
-                }
+            template_555 = await WorkflowDraftService._load_template_daten(
+                conn,
+                table_name=draft_table_norm,
+                template_uid=UID_555,
             )
-            if isinstance(initial_setup, dict) and initial_setup:
-                root["INITIAL_SETUP"] = initial_setup
+            template_666 = await WorkflowDraftService._load_template_daten(
+                conn,
+                table_name=draft_table_norm,
+                template_uid=DEFAULT_TEMPLATE_UID,
+            )
 
-            if isinstance(initial_setup, dict) and initial_setup:
-                meta["SETUP"] = dict(initial_setup)
+            tpl555_groups = template_555.get("TEMPLATES") if isinstance(template_555.get("TEMPLATES"), dict) else {}
+            tpl666_groups = template_666.get("TEMPLATES") if isinstance(template_666.get("TEMPLATES"), dict) else {}
 
-            state = meta.get("STATE") if isinstance(meta.get("STATE"), dict) else {}
-            state = dict(state)
-            state.setdefault("ACTIVE_TAB", 1)
-            state.setdefault("MAX_TAB", 1)
-            state.setdefault("STATUS", "draft")
-            meta["STATE"] = state
+            daten: Dict[str, Any] = {}
+            for group_name, group_value in tpl555_groups.items():
+                if not isinstance(group_value, dict):
+                    continue
+                merged_group = WorkflowDraftService._fill_empty_groups_from_template(
+                    group_value,
+                    tpl666_groups.get(group_name) if isinstance(tpl666_groups.get(group_name), dict) else {},
+                )
+                daten[str(group_name)] = merged_group
 
-            workflow_meta = meta.get("WORKFLOW") if isinstance(meta.get("WORKFLOW"), dict) else {}
-            workflow_meta = dict(workflow_meta)
-            workflow_meta["DRAFT_GUID"] = str(draft_uid)
-            workflow_meta["WORKFLOW_TYPE"] = workflow_type_norm
-            workflow_meta["WORKFLOW_NAME"] = title_norm
-            workflow_meta["DIALOG_TYPE"] = "work"
-            meta["WORKFLOW"] = workflow_meta
+            root_template = daten.get("ROOT") if isinstance(daten.get("ROOT"), dict) else {}
+            root_values = {
+                "SELF_GUID": str(draft_uid),
+                "SELF_NAME": title_norm,
+                "DRAFT_GUID": str(draft_uid),
+                "WORKFLOW_TYPE": workflow_type_norm,
+                "DIALOG_TYPE": "work",
+                "STATUS": "draft",
+                "OWNER_USER_GUID": str(uuid.UUID(str(owner_user_guid))),
+                "MANDANT_GUID": str(uuid.UUID(str(mandant_guid))),
+                "CREATED_AT": now_ts,
+                "UPDATED_AT": now_ts,
+                "TITLE": title_norm,
+                "REVISION": 1,
+                "IS_TEMPLATE": False,
+            }
+            daten["ROOT"] = WorkflowDraftService._merge_defined_fields(root_template, root_values)
+
+            draft_db = daten.get("DRAFT_DB") if isinstance(daten.get("DRAFT_DB"), dict) else {}
+            meta = draft_db.get("_META") if isinstance(draft_db.get("_META"), dict) else {}
+
+            setup_template = meta.get("SETUP") if isinstance(meta.get("SETUP"), dict) else {}
+            setup_values = initial_setup if isinstance(initial_setup, dict) else {}
+            meta["SETUP"] = WorkflowDraftService._merge_defined_fields(setup_template, setup_values)
+
+            state_template = meta.get("STATE") if isinstance(meta.get("STATE"), dict) else {}
+            state_values = {
+                "ACTIVE_TAB": 1,
+                "MAX_TAB": 1,
+                "STATUS": "draft",
+            }
+            meta["STATE"] = WorkflowDraftService._merge_defined_fields(state_template, state_values)
+
+            workflow_template = meta.get("WORKFLOW") if isinstance(meta.get("WORKFLOW"), dict) else {}
+            workflow_values = {
+                "DRAFT_GUID": str(draft_uid),
+                "WORKFLOW_TYPE": workflow_type_norm,
+                "WORKFLOW_NAME": title_norm,
+                "DIALOG_TYPE": "work",
+                "TARGET_TABLE": str((initial_setup or {}).get("TARGET_TABLE") or "sys_dialogdaten"),
+                "UPDATED_AT": now_ts,
+            }
+            meta["WORKFLOW"] = WorkflowDraftService._merge_defined_fields(workflow_template, workflow_values)
 
             draft_db["_META"] = meta
-            daten["ROOT"] = root
             daten["DRAFT_DB"] = draft_db
-            if "TEMPLATES" in daten:
-                del daten["TEMPLATES"]
 
             await conn.execute(
                 f"""
@@ -445,20 +517,32 @@ class WorkflowDraftService:
                 raise ValueError(f"Draft ist nicht mehr editierbar (status={status})")
 
             if item_type_norm == "setup":
-                meta["SETUP"] = dict(payload)
+                setup_template = meta.get("SETUP") if isinstance(meta.get("SETUP"), dict) else None
+                if setup_template is None:
+                    raise ValueError("Template-Definition fehlt: DRAFT_DB._META.SETUP")
+                meta["SETUP"] = WorkflowDraftService._merge_defined_fields(setup_template, dict(payload))
             elif item_type_norm == "state":
-                state_meta = meta.get("STATE") if isinstance(meta.get("STATE"), dict) else {}
+                state_meta = meta.get("STATE") if isinstance(meta.get("STATE"), dict) else None
+                if state_meta is None:
+                    raise ValueError("Template-Definition fehlt: DRAFT_DB._META.STATE")
                 state_meta = dict(state_meta)
-                state_meta.update(dict(payload))
-                state_meta["UPDATED_AT"] = now_ts
+                state_meta = WorkflowDraftService._merge_defined_fields(state_meta, dict(payload))
+                state_meta = WorkflowDraftService._merge_defined_fields(state_meta, {"UPDATED_AT": now_ts})
                 meta["STATE"] = state_meta
             elif item_type_norm == "work" and item_key_norm == "container":
-                workflow_meta = meta.get("WORKFLOW") if isinstance(meta.get("WORKFLOW"), dict) else {}
+                workflow_meta = meta.get("WORKFLOW") if isinstance(meta.get("WORKFLOW"), dict) else None
+                if workflow_meta is None:
+                    raise ValueError("Template-Definition fehlt: DRAFT_DB._META.WORKFLOW")
                 workflow_meta = dict(workflow_meta)
                 incoming_workflow = payload.get("WORKFLOW") if isinstance(payload.get("WORKFLOW"), dict) else {}
-                workflow_meta.update(dict(incoming_workflow))
-                workflow_meta["DRAFT_GUID"] = str(draft_uuid)
-                workflow_meta["UPDATED_AT"] = now_ts
+                workflow_meta = WorkflowDraftService._merge_defined_fields(workflow_meta, dict(incoming_workflow))
+                workflow_meta = WorkflowDraftService._merge_defined_fields(
+                    workflow_meta,
+                    {
+                        "DRAFT_GUID": str(draft_uuid),
+                        "UPDATED_AT": now_ts,
+                    },
+                )
                 meta["WORKFLOW"] = workflow_meta
 
                 for key, value in payload.items():
@@ -468,15 +552,14 @@ class WorkflowDraftService:
                     if not isinstance(value, dict):
                         continue
                     bucket_name = key_norm.upper()
+                    if bucket_name not in draft_db:
+                        raise ValueError(f"Nicht definierte DRAFT_DB-Gruppe: {bucket_name}")
                     bucket_existing = draft_db.get(bucket_name) if isinstance(draft_db.get(bucket_name), dict) else {}
                     bucket_existing = dict(bucket_existing)
                     bucket_existing.update(dict(value))
                     draft_db[bucket_name] = bucket_existing
             else:
-                items_map = draft_db.get("_ITEMS") if isinstance(draft_db.get("_ITEMS"), dict) else {}
-                items_map = dict(items_map)
-                items_map[f"{item_type_norm}:{item_key_norm}"] = dict(payload)
-                draft_db["_ITEMS"] = items_map
+                raise ValueError("item_type nicht erlaubt (erlaubt: setup, state, work/container)")
 
             revision = int(draft_root.get("REVISION") or 1)
             if item_type_norm == "state" and isinstance(payload, dict):
