@@ -187,7 +187,6 @@ Pflicht:
 
 3. Initiale Ausnahmen (bekannt):
 - dev_workflow_draft
-- dev_workflow_draft_item
 - asy_benutzer als Teilausnahme (Passwort-/Benutzer-Sonderregeln; daten-Anteil folgt grundsaetzlich den Regeln)
 - Weitere Ausnahmen werden in Phase A durch Analyse identifiziert.
 - Kennzeichnung je Tabelle in sys_systemdaten: voll_templatefaehig | teiltemplatefaehig | ausgenommen.
@@ -271,11 +270,10 @@ Wichtige Katalogregel:
 
 Tabellen mit target_mode != voll_templatefaehig:
 1. system.dev_workflow_draft -> ausgenommen (explicit_excluded_dev_workflow)
-2. system.dev_workflow_draft_item -> ausgenommen (explicit_excluded_dev_workflow)
-3. system.sys_feld_aenderungshistorie -> ausgenommen (audit_or_history_table)
-4. auth.asy_benutzer -> teiltemplatefaehig (user_auth_special_handling)
-5. auth.asy_feld_aenderungshistorie -> ausgenommen (audit_or_history_table)
-6. mandant_main.msy_feld_aenderungshistorie -> ausgenommen (audit_or_history_table)
+2. system.sys_feld_aenderungshistorie -> ausgenommen (audit_or_history_table)
+3. auth.asy_benutzer -> teiltemplatefaehig (user_auth_special_handling)
+4. auth.asy_feld_aenderungshistorie -> ausgenommen (audit_or_history_table)
+5. mandant_main.msy_feld_aenderungshistorie -> ausgenommen (audit_or_history_table)
 
 Hinweis zur Abnahme:
 1. Punkt "Ausnahmekatalog final je Tabelle" ist abgeschlossen.

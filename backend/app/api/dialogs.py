@@ -724,18 +724,15 @@ def _build_workflow_setup_payload(*, draft_name: str, create_context: Optional[D
     }
 
 
-def _extract_work_draft_tables(dialog_def: Optional[Dict[str, Any]]) -> tuple[str, str]:
+def _extract_work_draft_table(dialog_def: Optional[Dict[str, Any]]) -> str:
     root = (dialog_def or {}).get("root") if isinstance((dialog_def or {}).get("root"), dict) else {}
     if not isinstance(root, dict):
         root = {}
 
     draft_table = str(root.get("DRAFT_TABLE") or root.get("draft_table") or "dev_workflow_draft").strip().lower()
-    draft_item_table = str(root.get("DRAFT_ITEM_TABLE") or root.get("draft_item_table") or "dev_workflow_draft_item").strip().lower()
     if not _TABLE_NAME_RE.match(draft_table):
         raise HTTPException(status_code=422, detail="DRAFT_TABLE enthaelt ungueltige Zeichen")
-    if not _TABLE_NAME_RE.match(draft_item_table):
-        raise HTTPException(status_code=422, detail="DRAFT_ITEM_TABLE enthaelt ungueltige Zeichen")
-    return draft_table, draft_item_table
+    return draft_table
 
 
 def _extract_uuid_or_fail(*, label: str, value: Optional[str]) -> str:
@@ -755,7 +752,6 @@ async def _bootstrap_workflow_draft_records(
     draft_name: str,
     create_context: Optional[Dict[str, Any]],
     draft_table: str,
-    draft_item_table: str,
 ) -> Dict[str, Any]:
     system_pool = getattr(gcs, "_pool_system", None) or getattr(gcs, "_system_pool", None)
     if not system_pool:
@@ -779,7 +775,6 @@ async def _bootstrap_workflow_draft_records(
         mandant_guid=mandant_guid,
         initial_setup=setup_payload,
         draft_table=draft_table,
-        draft_item_table=draft_item_table,
     )
 
     draft_guid = str(created.get("draft_guid") or "").strip()
@@ -794,14 +789,12 @@ async def _bootstrap_workflow_draft_records(
         payload=setup_payload,
         updated_by_user_guid=user_guid,
         draft_table=draft_table,
-        draft_item_table=draft_item_table,
     )
 
     work_container_payload = {
         "WORKFLOW": {
             "DRAFT_GUID": draft_guid,
             "DRAFT_TABLE": draft_table,
-            "DRAFT_ITEM_TABLE": draft_item_table,
             "WORKFLOW_NAME": setup_payload["WORKFLOW_NAME"],
             "DIALOG_TYPE": "work",
             "TARGET_TABLE": setup_payload["TARGET_TABLE"],
@@ -820,7 +813,6 @@ async def _bootstrap_workflow_draft_records(
         payload=work_container_payload,
         updated_by_user_guid=user_guid,
         draft_table=draft_table,
-        draft_item_table=draft_item_table,
     )
 
     async with system_pool.acquire() as conn:
@@ -1186,11 +1178,10 @@ async def post_dialog_draft_start(
         system_pool = getattr(gcs, "_pool_system", None) or getattr(gcs, "_system_pool", None)
         if not system_pool:
             raise HTTPException(status_code=500, detail="Systemdatenbank-Pool nicht verfuegbar")
-        draft_table, draft_item_table = _extract_work_draft_tables(dialog_def)
+        draft_table = _extract_work_draft_table(dialog_def)
         await WorkflowDraftService.ensure_draft_tables(
             system_pool,
             draft_table=draft_table,
-            draft_item_table=draft_item_table,
         )
 
     required_create_fields = _extract_create_required_fields(dialog_def)
@@ -1226,14 +1217,13 @@ async def post_dialog_draft_start(
 
     workflow_bootstrap: Optional[Dict[str, Any]] = None
     if str(runtime.get("dialog_type") or "").strip().lower() == "work":
-        draft_table, draft_item_table = _extract_work_draft_tables(dialog_def)
+        draft_table = _extract_work_draft_table(dialog_def)
         workflow_bootstrap = await _bootstrap_workflow_draft_records(
             gcs=gcs,
             current_user=current_user,
             draft_name=name,
             create_context=payload.create_context,
             draft_table=draft_table,
-            draft_item_table=draft_item_table,
         )
 
     if workflow_bootstrap:

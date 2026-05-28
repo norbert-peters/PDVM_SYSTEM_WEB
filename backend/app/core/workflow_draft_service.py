@@ -2,7 +2,7 @@
 
 Stellt einen robusten Minimalfluss fuer Testdialoge bereit:
 - create_draft
-- save_draft_item (z. B. setup)
+- save_draft_item (persistiert in DRAFT_DB)
 - load_draft
 - list_open_drafts
 - validate_draft
@@ -22,7 +22,6 @@ from app.core.pdvm_table_schema import PDVM_TABLE_COLUMNS, PDVM_TABLE_INDEXES
 
 
 DRAFT_TABLE = "dev_workflow_draft"
-DRAFT_ITEM_TABLE = "dev_workflow_draft_item"
 UID_META = uuid.UUID("00000000-0000-0000-0000-000000000000")
 UID_555 = uuid.UUID("55555555-5555-5555-5555-555555555555")
 DEFAULT_TEMPLATE_UID = uuid.UUID("66666666-6666-6666-6666-666666666666")
@@ -93,23 +92,18 @@ class WorkflowDraftService:
         system_pool: asyncpg.Pool,
         *,
         draft_table: str = DRAFT_TABLE,
-        draft_item_table: str = DRAFT_ITEM_TABLE,
     ) -> Dict[str, Any]:
         draft_table_norm = WorkflowDraftService._normalize_table_name(draft_table, label="draft_table")
-        draft_item_table_norm = WorkflowDraftService._normalize_table_name(draft_item_table, label="draft_item_table")
         created: List[str] = []
 
         async with system_pool.acquire() as conn:
             await conn.execute('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"')
 
-            for table_name in [draft_table_norm, draft_item_table_norm]:
-                if await WorkflowDraftService._table_exists(conn, table_name):
-                    continue
-
+            if not await WorkflowDraftService._table_exists(conn, draft_table_norm):
                 columns = ", ".join([f"{col} {definition}" for col, definition in PDVM_TABLE_COLUMNS.items()])
                 await conn.execute(
                     f"""
-                    CREATE TABLE public.{table_name} (
+                    CREATE TABLE public.{draft_table_norm} (
                         {columns}
                     )
                     """
@@ -118,29 +112,28 @@ class WorkflowDraftService:
                     if idx_col == "daten":
                         await conn.execute(
                             f"""
-                            CREATE INDEX IF NOT EXISTS idx_{table_name}_{idx_col}
-                            ON public.{table_name} USING GIN({idx_col})
+                            CREATE INDEX IF NOT EXISTS idx_{draft_table_norm}_{idx_col}
+                            ON public.{draft_table_norm} USING GIN({idx_col})
                             """
                         )
                     else:
                         await conn.execute(
                             f"""
-                            CREATE INDEX IF NOT EXISTS idx_{table_name}_{idx_col}
-                            ON public.{table_name}({idx_col})
+                            CREATE INDEX IF NOT EXISTS idx_{draft_table_norm}_{idx_col}
+                            ON public.{draft_table_norm}({idx_col})
                             """
                         )
-                created.append(table_name)
+                created.append(draft_table_norm)
 
             await WorkflowDraftService._ensure_default_templates(
                 conn,
                 draft_table=draft_table_norm,
-                draft_item_table=draft_item_table_norm,
             )
 
         return {
             "success": True,
             "tables_created": created,
-            "tables_existing": [t for t in [draft_table_norm, draft_item_table_norm] if t not in created],
+            "tables_existing": [t for t in [draft_table_norm] if t not in created],
         }
 
     @staticmethod
@@ -148,12 +141,10 @@ class WorkflowDraftService:
         system_pool: asyncpg.Pool,
         *,
         draft_table: str = DRAFT_TABLE,
-        draft_item_table: str = DRAFT_ITEM_TABLE,
     ) -> None:
         await WorkflowDraftService.ensure_draft_tables(
             system_pool,
             draft_table=draft_table,
-            draft_item_table=draft_item_table,
         )
 
     @staticmethod
@@ -161,7 +152,6 @@ class WorkflowDraftService:
         conn: asyncpg.Connection,
         *,
         draft_table: str,
-        draft_item_table: str,
     ) -> None:
         draft_meta_payload = {
             "INFO": {
@@ -182,7 +172,22 @@ class WorkflowDraftService:
                     "STATUS": "draft",
                     "TITLE": "",
                     "REVISION": 1,
-                }
+                },
+                "DRAFT_DB": {
+                    "_META": {
+                        "SETUP": {
+                            "WORKFLOW_NAME": "",
+                            "TARGET_TABLE": "sys_dialogdaten",
+                            "DIALOG_TYPE": "work",
+                            "DESCRIPTION": "",
+                        },
+                        "STATE": {
+                            "ACTIVE_TAB": 1,
+                            "MAX_TAB": 1,
+                            "STATUS": "draft",
+                        },
+                    }
+                },
             },
         }
 
@@ -197,48 +202,26 @@ class WorkflowDraftService:
                 "TITLE": "Workflow Draft Template",
                 "REVISION": 1,
             },
-            "FIELDS": {
-                "WORKFLOW_NAME": "",
-                "TARGET_TABLE": "sys_dialogdaten",
-                "DESCRIPTION": "",
-            },
-        }
-
-        item_meta_payload = {
-            "INFO": {
-                "TABLE": draft_item_table,
-                "DESCRIPTION": "Metadaten Datensatz",
-            }
-        }
-
-        draft_item_555_payload = {
-            "ROOT": {
-                "SELF_GUID": str(UID_555),
-                "SELF_NAME": "DEV_WORKFLOW_DRAFT_ITEM_TEMPLATE_555",
-            },
             "TEMPLATES": {
-                "ROOT": {
-                    "ITEM_TYPE": "",
-                    "ITEM_KEY": "",
-                    "PAYLOAD": {},
+                "DRAFT_DB": {
+                    "_META": {
+                        "SETUP": {
+                            "WORKFLOW_NAME": "",
+                            "TARGET_TABLE": "sys_dialogdaten",
+                            "DIALOG_TYPE": "work",
+                            "DESCRIPTION": "",
+                        },
+                        "STATE": {
+                            "ACTIVE_TAB": 1,
+                            "MAX_TAB": 1,
+                            "STATUS": "draft",
+                        },
+                    },
+                    "SYS_DIALOGDATEN": {},
+                    "SYS_VIEWDATEN": {},
+                    "SYS_FRAMEDATEN": {},
                 }
             },
-        }
-
-        draft_item_template_payload = {
-            "ROOT": {
-                "SELF_GUID": str(DEFAULT_TEMPLATE_UID),
-                "SELF_NAME": "WORKFLOW_DRAFT_ITEM_TEMPLATE_6666",
-                "ITEM_TYPE": "work",
-                "ITEM_KEY": "container",
-                "PAYLOAD": {
-                    "WORKFLOW": {},
-                    "sys_dialogdaten": {},
-                    "sys_viewdaten": {},
-                    "sys_framedaten": {},
-                },
-                "IS_TEMPLATE": True,
-            }
         }
 
         await conn.execute(
@@ -274,39 +257,6 @@ class WorkflowDraftService:
             "WORKFLOW_DRAFT_TEMPLATE_6666",
         )
 
-        await conn.execute(
-            f"""
-            INSERT INTO {draft_item_table} (uid, daten, name, historisch, created_at, modified_at)
-            VALUES ($1::uuid, $2::jsonb, $3, 0, NOW(), NOW())
-            ON CONFLICT (uid) DO NOTHING
-            """,
-            UID_META,
-            json.dumps(item_meta_payload, ensure_ascii=False),
-            "DEV_WORKFLOW_DRAFT_ITEM_META_000",
-        )
-
-        await conn.execute(
-            f"""
-            INSERT INTO {draft_item_table} (uid, daten, name, historisch, created_at, modified_at)
-            VALUES ($1::uuid, $2::jsonb, $3, 0, NOW(), NOW())
-            ON CONFLICT (uid) DO NOTHING
-            """,
-            UID_555,
-            json.dumps(draft_item_555_payload, ensure_ascii=False),
-            "DEV_WORKFLOW_DRAFT_ITEM_TEMPLATE_555",
-        )
-
-        await conn.execute(
-            f"""
-            INSERT INTO {draft_item_table} (uid, daten, name, historisch, created_at, modified_at)
-            VALUES ($1::uuid, $2::jsonb, $3, 0, NOW(), NOW())
-            ON CONFLICT (uid) DO NOTHING
-            """,
-            DEFAULT_TEMPLATE_UID,
-            json.dumps(draft_item_template_payload, ensure_ascii=False),
-            "WORKFLOW_DRAFT_ITEM_TEMPLATE_6666",
-        )
-
     @staticmethod
     def _normalize_item_key(item_key: str) -> str:
         key = str(item_key or "").strip()
@@ -332,14 +282,11 @@ class WorkflowDraftService:
         mandant_guid: str,
         initial_setup: Optional[Dict[str, Any]] = None,
         draft_table: str = DRAFT_TABLE,
-        draft_item_table: str = DRAFT_ITEM_TABLE,
     ) -> Dict[str, Any]:
         draft_table_norm = WorkflowDraftService._normalize_table_name(draft_table, label="draft_table")
-        draft_item_table_norm = WorkflowDraftService._normalize_table_name(draft_item_table, label="draft_item_table")
         await WorkflowDraftService._ensure_tables(
             system_pool,
             draft_table=draft_table_norm,
-            draft_item_table=draft_item_table_norm,
         )
 
         workflow_type_norm = str(workflow_type or "").strip().lower()
@@ -355,6 +302,12 @@ class WorkflowDraftService:
         async with system_pool.acquire() as conn:
             template_daten = await WorkflowDraftService._load_template_daten(conn, table_name=draft_table_norm)
             daten = copy.deepcopy(template_daten)
+            templates = daten.get("TEMPLATES") if isinstance(daten.get("TEMPLATES"), dict) else {}
+            tpl_draft_db = templates.get("DRAFT_DB") if isinstance(templates.get("DRAFT_DB"), dict) else {}
+            draft_db = copy.deepcopy(tpl_draft_db) if isinstance(tpl_draft_db, dict) else {}
+            meta = draft_db.get("_META") if isinstance(draft_db.get("_META"), dict) else {}
+            meta = dict(meta)
+
             root = daten.get("ROOT") if isinstance(daten.get("ROOT"), dict) else {}
             root = dict(root)
             root.update(
@@ -376,7 +329,30 @@ class WorkflowDraftService:
             )
             if isinstance(initial_setup, dict) and initial_setup:
                 root["INITIAL_SETUP"] = initial_setup
+
+            if isinstance(initial_setup, dict) and initial_setup:
+                meta["SETUP"] = dict(initial_setup)
+
+            state = meta.get("STATE") if isinstance(meta.get("STATE"), dict) else {}
+            state = dict(state)
+            state.setdefault("ACTIVE_TAB", 1)
+            state.setdefault("MAX_TAB", 1)
+            state.setdefault("STATUS", "draft")
+            meta["STATE"] = state
+
+            workflow_meta = meta.get("WORKFLOW") if isinstance(meta.get("WORKFLOW"), dict) else {}
+            workflow_meta = dict(workflow_meta)
+            workflow_meta["DRAFT_GUID"] = str(draft_uid)
+            workflow_meta["WORKFLOW_TYPE"] = workflow_type_norm
+            workflow_meta["WORKFLOW_NAME"] = title_norm
+            workflow_meta["DIALOG_TYPE"] = "work"
+            meta["WORKFLOW"] = workflow_meta
+
+            draft_db["_META"] = meta
             daten["ROOT"] = root
+            daten["DRAFT_DB"] = draft_db
+            if "TEMPLATES" in daten:
+                del daten["TEMPLATES"]
 
             await conn.execute(
                 f"""
@@ -425,14 +401,11 @@ class WorkflowDraftService:
         payload: Dict[str, Any],
         updated_by_user_guid: str,
         draft_table: str = DRAFT_TABLE,
-        draft_item_table: str = DRAFT_ITEM_TABLE,
     ) -> Dict[str, Any]:
         draft_table_norm = WorkflowDraftService._normalize_table_name(draft_table, label="draft_table")
-        draft_item_table_norm = WorkflowDraftService._normalize_table_name(draft_item_table, label="draft_item_table")
         await WorkflowDraftService._ensure_tables(
             system_pool,
             draft_table=draft_table_norm,
-            draft_item_table=draft_item_table_norm,
         )
 
         item_type_norm = str(item_type or "").strip().lower()
@@ -448,17 +421,6 @@ class WorkflowDraftService:
         item_uid = WorkflowDraftService._deterministic_item_uid(str(draft_uuid), item_type_norm, item_key_norm)
 
         now_ts = now_pdvm_str()
-        item_daten = {
-            "ROOT": {
-                "DRAFT_GUID": str(draft_uuid),
-                "ITEM_TYPE": item_type_norm,
-                "ITEM_KEY": item_key_norm,
-                "PAYLOAD": payload,
-                "UPDATED_AT": now_ts,
-                "UPDATED_BY_USER_GUID": str(user_uuid),
-            }
-        }
-        item_payload = json.dumps(item_daten, ensure_ascii=False)
 
         async with system_pool.acquire() as conn:
             draft_row = await WorkflowDraftService._load_draft_row_from_table(
@@ -471,32 +433,76 @@ class WorkflowDraftService:
 
             draft_daten = WorkflowDraftService._as_json_dict(draft_row["daten"])
             draft_root = draft_daten.get("ROOT") if isinstance(draft_daten.get("ROOT"), dict) else {}
+            draft_db = draft_daten.get("DRAFT_DB") if isinstance(draft_daten.get("DRAFT_DB"), dict) else {}
+            draft_db = dict(draft_db)
+            meta = draft_db.get("_META") if isinstance(draft_db.get("_META"), dict) else {}
+            meta = dict(meta)
+
             status = str(draft_root.get("STATUS") or "draft").strip().lower()
             if status not in VALID_STATUSES:
                 status = "draft"
             if status in {"built", "archived"}:
                 raise ValueError(f"Draft ist nicht mehr editierbar (status={status})")
 
-            await conn.execute(
-                f"""
-                INSERT INTO {draft_item_table_norm} (uid, daten, name, historisch, created_at, modified_at)
-                VALUES ($1::uuid, $2::jsonb, $3, 0, NOW(), NOW())
-                ON CONFLICT (uid)
-                DO UPDATE SET
-                    daten = EXCLUDED.daten,
-                    name = EXCLUDED.name,
-                    modified_at = NOW()
-                """,
-                item_uid,
-                item_payload,
-                f"{item_type_norm}:{item_key_norm}",
-            )
+            if item_type_norm == "setup":
+                meta["SETUP"] = dict(payload)
+            elif item_type_norm == "state":
+                state_meta = meta.get("STATE") if isinstance(meta.get("STATE"), dict) else {}
+                state_meta = dict(state_meta)
+                state_meta.update(dict(payload))
+                state_meta["UPDATED_AT"] = now_ts
+                meta["STATE"] = state_meta
+            elif item_type_norm == "work" and item_key_norm == "container":
+                workflow_meta = meta.get("WORKFLOW") if isinstance(meta.get("WORKFLOW"), dict) else {}
+                workflow_meta = dict(workflow_meta)
+                incoming_workflow = payload.get("WORKFLOW") if isinstance(payload.get("WORKFLOW"), dict) else {}
+                workflow_meta.update(dict(incoming_workflow))
+                workflow_meta["DRAFT_GUID"] = str(draft_uuid)
+                workflow_meta["UPDATED_AT"] = now_ts
+                meta["WORKFLOW"] = workflow_meta
+
+                for key, value in payload.items():
+                    key_norm = str(key or "").strip()
+                    if not key_norm or key_norm.upper() == "WORKFLOW":
+                        continue
+                    if not isinstance(value, dict):
+                        continue
+                    bucket_name = key_norm.upper()
+                    bucket_existing = draft_db.get(bucket_name) if isinstance(draft_db.get(bucket_name), dict) else {}
+                    bucket_existing = dict(bucket_existing)
+                    bucket_existing.update(dict(value))
+                    draft_db[bucket_name] = bucket_existing
+            else:
+                items_map = draft_db.get("_ITEMS") if isinstance(draft_db.get("_ITEMS"), dict) else {}
+                items_map = dict(items_map)
+                items_map[f"{item_type_norm}:{item_key_norm}"] = dict(payload)
+                draft_db["_ITEMS"] = items_map
 
             revision = int(draft_root.get("REVISION") or 1)
+            if item_type_norm == "state" and isinstance(payload, dict):
+                try:
+                    active_tab = int(payload.get("ACTIVE_TAB") or payload.get("active_tab") or 0)
+                except Exception:
+                    active_tab = 0
+                try:
+                    max_tab = int(payload.get("MAX_TAB") or payload.get("max_tab") or 0)
+                except Exception:
+                    max_tab = 0
+                status_in = str(payload.get("STATUS") or payload.get("status") or "").strip().lower()
+
+                if active_tab > 0:
+                    draft_root["ACTIVE_TAB"] = active_tab
+                if max_tab > 0:
+                    draft_root["MAX_TAB"] = max_tab
+                if status_in in VALID_STATUSES:
+                    draft_root["STATUS"] = status_in
+
             draft_root["UPDATED_AT"] = now_ts
             draft_root["LAST_EDITOR_USER_GUID"] = str(user_uuid)
             draft_root["REVISION"] = revision + 1
             draft_daten["ROOT"] = draft_root
+            draft_db["_META"] = meta
+            draft_daten["DRAFT_DB"] = draft_db
 
             draft_payload = json.dumps(draft_daten, ensure_ascii=False)
             await conn.execute(
@@ -524,14 +530,11 @@ class WorkflowDraftService:
         *,
         draft_guid: str,
         draft_table: str = DRAFT_TABLE,
-        draft_item_table: str = DRAFT_ITEM_TABLE,
     ) -> Dict[str, Any]:
         draft_table_norm = WorkflowDraftService._normalize_table_name(draft_table, label="draft_table")
-        draft_item_table_norm = WorkflowDraftService._normalize_table_name(draft_item_table, label="draft_item_table")
         await WorkflowDraftService._ensure_tables(
             system_pool,
             draft_table=draft_table_norm,
-            draft_item_table=draft_item_table_norm,
         )
         draft_uuid = uuid.UUID(str(draft_guid))
 
@@ -544,31 +547,74 @@ class WorkflowDraftService:
             if not draft_row:
                 raise ValueError("Draft nicht gefunden")
 
-            item_rows = await conn.fetch(
-                f"""
-                SELECT uid, name, daten, modified_at
-                FROM {draft_item_table_norm}
-                WHERE COALESCE(historisch, 0) = 0
-                  AND (daten->'ROOT'->>'DRAFT_GUID') = $1
-                ORDER BY modified_at ASC
-                """,
-                str(draft_uuid),
-            )
-
         draft_daten = WorkflowDraftService._as_json_dict(draft_row["daten"])
         root = draft_daten.get("ROOT") if isinstance(draft_daten.get("ROOT"), dict) else {}
+        draft_db = draft_daten.get("DRAFT_DB") if isinstance(draft_daten.get("DRAFT_DB"), dict) else {}
+        draft_db = dict(draft_db)
+        meta = draft_db.get("_META") if isinstance(draft_db.get("_META"), dict) else {}
+        meta = dict(meta)
 
         items: List[Dict[str, Any]] = []
-        for row in item_rows:
-            daten = WorkflowDraftService._as_json_dict(row["daten"])
-            iroot = daten.get("ROOT") if isinstance(daten.get("ROOT"), dict) else {}
+        setup_payload = meta.get("SETUP") if isinstance(meta.get("SETUP"), dict) else {}
+        if setup_payload:
             items.append(
                 {
-                    "item_uid": str(row["uid"]),
-                    "item_type": iroot.get("ITEM_TYPE"),
-                    "item_key": iroot.get("ITEM_KEY"),
-                    "payload": iroot.get("PAYLOAD") if isinstance(iroot.get("PAYLOAD"), dict) else {},
-                    "updated_at": iroot.get("UPDATED_AT"),
+                    "item_uid": str(WorkflowDraftService._deterministic_item_uid(str(draft_uuid), "setup", "setup")),
+                    "item_type": "setup",
+                    "item_key": "setup",
+                    "payload": dict(setup_payload),
+                    "updated_at": root.get("UPDATED_AT"),
+                }
+            )
+
+        workflow_meta = meta.get("WORKFLOW") if isinstance(meta.get("WORKFLOW"), dict) else {}
+        work_payload: Dict[str, Any] = {"WORKFLOW": dict(workflow_meta)}
+        for bucket_name, bucket_value in draft_db.items():
+            if str(bucket_name).startswith("_"):
+                continue
+            if not isinstance(bucket_value, dict):
+                continue
+            work_payload[str(bucket_name).lower()] = dict(bucket_value)
+
+        has_work_data = any(k != "WORKFLOW" for k in work_payload.keys()) or bool(workflow_meta)
+        if has_work_data:
+            items.append(
+                {
+                    "item_uid": str(WorkflowDraftService._deterministic_item_uid(str(draft_uuid), "work", "container")),
+                    "item_type": "work",
+                    "item_key": "container",
+                    "payload": work_payload,
+                    "updated_at": root.get("UPDATED_AT"),
+                }
+            )
+
+        state_payload = meta.get("STATE") if isinstance(meta.get("STATE"), dict) else {}
+        if state_payload:
+            items.append(
+                {
+                    "item_uid": str(WorkflowDraftService._deterministic_item_uid(str(draft_uuid), "state", "workflow_state")),
+                    "item_type": "state",
+                    "item_key": "workflow_state",
+                    "payload": dict(state_payload),
+                    "updated_at": state_payload.get("UPDATED_AT") or root.get("UPDATED_AT"),
+                }
+            )
+
+        custom_items = draft_db.get("_ITEMS") if isinstance(draft_db.get("_ITEMS"), dict) else {}
+        for map_key, map_payload in custom_items.items():
+            map_payload = map_payload if isinstance(map_payload, dict) else {}
+            token = str(map_key or "")
+            if ":" in token:
+                map_type, map_item_key = token.split(":", 1)
+            else:
+                map_type, map_item_key = "item", token
+            items.append(
+                {
+                    "item_uid": str(WorkflowDraftService._deterministic_item_uid(str(draft_uuid), map_type, map_item_key)),
+                    "item_type": map_type,
+                    "item_key": map_item_key,
+                    "payload": dict(map_payload),
+                    "updated_at": root.get("UPDATED_AT"),
                 }
             )
 
@@ -586,14 +632,11 @@ class WorkflowDraftService:
         owner_user_guid: str,
         mandant_guid: str,
         draft_table: str = DRAFT_TABLE,
-        draft_item_table: str = DRAFT_ITEM_TABLE,
     ) -> Dict[str, Any]:
         draft_table_norm = WorkflowDraftService._normalize_table_name(draft_table, label="draft_table")
-        draft_item_table_norm = WorkflowDraftService._normalize_table_name(draft_item_table, label="draft_item_table")
         await WorkflowDraftService._ensure_tables(
             system_pool,
             draft_table=draft_table_norm,
-            draft_item_table=draft_item_table_norm,
         )
         owner_norm = str(uuid.UUID(str(owner_user_guid)))
         mandant_norm = str(uuid.UUID(str(mandant_guid)))
@@ -639,13 +682,11 @@ class WorkflowDraftService:
         *,
         draft_guid: str,
         draft_table: str = DRAFT_TABLE,
-        draft_item_table: str = DRAFT_ITEM_TABLE,
     ) -> Dict[str, Any]:
         data = await WorkflowDraftService.load_draft(
             system_pool,
             draft_guid=draft_guid,
             draft_table=draft_table,
-            draft_item_table=draft_item_table,
         )
         root = data.get("root") if isinstance(data.get("root"), dict) else {}
         items = data.get("items") if isinstance(data.get("items"), list) else []

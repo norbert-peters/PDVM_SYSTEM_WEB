@@ -18,7 +18,6 @@ Pro Punkt gilt genau ein Ergebnis:
   Ergebnis erwartet:
   finaler Zielmodus und Lock je Tabelle fuer
   system.dev_workflow_draft,
-  system.dev_workflow_draft_item,
   system.sys_feld_aenderungshistorie,
   auth.asy_benutzer,
   auth.asy_feld_aenderungshistorie,

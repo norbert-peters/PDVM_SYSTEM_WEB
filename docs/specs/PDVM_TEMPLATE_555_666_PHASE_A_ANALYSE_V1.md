@@ -83,14 +83,12 @@ Zusatz nach Multi-DB-Lauf:
 
 Beobachtete konkrete Kandidaten:
 1. dev_workflow_draft: Root-Drift + fehlende TEMPLATES (bekannte Ausnahmetabelle).
-2. dev_workflow_draft_item: Root-Drift + fehlende TEMPLATES (bekannte Ausnahmetabelle).
-3. sys_feld_aenderungshistorie: weder 555 noch 666 vorhanden (technische Historie, vermutlich ausgenommen).
+2. sys_feld_aenderungshistorie: weder 555 noch 666 vorhanden (technische Historie, vermutlich ausgenommen).
 
 ## 5. Initiale Klassifizierung (Arbeitsstand)
 
 1. ausgenommen:
 - dev_workflow_draft
-- dev_workflow_draft_item
 - sys_feld_aenderungshistorie
 
 2. teiltemplatefaehig:
@@ -98,7 +96,6 @@ Beobachtete konkrete Kandidaten:
 
 3. ausgenommen (aktuell aus Multi-DB-Lauf):
 - dev_workflow_draft
-- dev_workflow_draft_item
 - sys_feld_aenderungshistorie
 - asy_feld_aenderungshistorie
 - msy_feld_aenderungshistorie

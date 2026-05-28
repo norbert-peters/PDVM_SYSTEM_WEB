@@ -200,7 +200,7 @@ Diese Klarstellung beschreibt den Soll-Standard fuer DIALOG_TYPE=work.
 4. Standard-Template 6666 fuer dev_workflow_draft ist verpflichtend und muss automatisch verfuegbar sein.
 
 Hinweis Umsetzung:
-- Der 6666-Template-Pfad fuer dev_workflow_draft/dev_workflow_draft_item wird automatisch im Backend-Service abgesichert.
+- Der 6666-Template-Pfad fuer dev_workflow_draft wird automatisch im Backend-Service abgesichert.
 
 Hinweis Umsetzung:
 - Phase A ist gestartet und dokumentiert in DATENVERSIONIERUNG_PHASE_A_UMSETZUNG.md
@@ -287,7 +287,7 @@ Regel:
 2. Setup
 - Frame-basierte Inputcontrols.
 - Struktur orientiert sich fachlich an sys_dialogdaten.
-- Persistenz erfolgt als Draft-Item in dev_workflow_draft_item (nicht direkt in sys_dialogdaten).
+- Persistenz erfolgt in dev_workflow_draft unter DRAFT_DB._META (nicht direkt in sys_dialogdaten).
 - Weiter zu TABS erst nach plausiblen Daten (formale Pruefungen koennen spaeter datengetrieben erweitert werden).
 
 3. TABS
@@ -417,15 +417,14 @@ Aktueller Soll-Ablauf (schrittweise):
 - keine weiteren Pflichtfelder fuer die Neuanlage
 - kein separates WORKFLOW_TYPE-Feld erforderlich
 - DIALOG_TYPE=work steuert den Ablauf
-- DRAFT_TABLE und DRAFT_ITEM_TABLE steuern die physischen Draft-Zieltabellen dynamisch je Work-Dialog
-- Damit sind getrennte Workflows (z. B. Buchungslauf, Personalabrechnung, Kostenstellenverteilung) in separaten Draft-Tabellen moeglich
+- DRAFT_TABLE steuert die physische Draft-Zieltabelle je Work-Dialog
+- Alle Laufzeitdaten liegen in derselben Draft-Tabelle unter DRAFT_DB
 
 2. Draft-Start in Dialog-API:
 - erzeugt weiterhin den Dialog-Draft fuer die Bearbeitung,
 - erkennt DIALOG_TYPE=work,
 - bootstrapped zusaetzlich einen persistenten Datensatz in ROOT.DRAFT_TABLE,
-- legt in ROOT.DRAFT_ITEM_TABLE einen zentralen work-Container an (Standard aus UID 666),
-- referenziert diesen Container in ROOT.DRAFT_TABLE.ROOT (WORK_ITEM_UID, WORK_ITEM_TYPE, WORK_ITEM_KEY),
+- initialisiert den Work-Container in `daten.DRAFT_DB` (Standard aus UID 666),
 - erzeugt dabei noch keine fachlichen Zielsaetze in den Buckets,
 - verwaltet darin die Zielstrukturen tabellenweise unter Gruppen (initial leer):
   - sys_dialogdaten
@@ -434,8 +433,7 @@ Aktueller Soll-Ablauf (schrittweise):
 
 2a. Weiter-Logik (lineares Standardvorgehen):
 - Beim Klick auf Weiter wird fuer den naechsten Workflow-Schritt geprueft, ob fuer die Tab-Tabelle bereits ein Standardsatz im work-Container existiert.
-- Falls nicht vorhanden, wird er aus Template UID 666 der jeweiligen Tabelle erzeugt und in dev_workflow_draft_item gespeichert.
-- Die Speicherung erfolgt immer in der durch DRAFT_ITEM_TABLE definierten Work-Item-Tabelle.
+- Falls nicht vorhanden, wird er aus Template UID 666 der jeweiligen Tabelle erzeugt und in DRAFT_DB.<TABELLENNAME> gespeichert.
 - Regel:
   1. Modul=view/acti: keine tabellenbezogene Neuanlage
   2. Modul=edit: Standardsatz fuer TAB.TABLE anlegen (falls noch nicht vorhanden)
@@ -447,10 +445,9 @@ Aktueller Soll-Ablauf (schrittweise):
 - ROOT.TARGET_TABLE
 - ROOT.WORKFLOW_NAME
 - ROOT.DIALOG_UID
-- ROOT.WORK_ITEM_UID
 
 Nutzen:
-- Ein Draft ist sofort in dev_workflow_draft/dev_workflow_draft_item vorhanden und spaeter wieder aufnehmbar.
+- Ein Draft ist sofort in dev_workflow_draft vorhanden und spaeter wieder aufnehmbar.
 - Setup startet mit den bereits eingegebenen Grundwerten.
 - Alle zu erzeugenden Tabellenstrukturen liegen konsistent in einem Containerdatensatz.
 
@@ -473,7 +470,7 @@ Fuer den Workflow-Builder ist folgende Reihenfolge verbindlich:
 Wichtig:
 - Der View-Tab liegt vor Content.
 - Tab 1 bleibt eine normale View.
-- Die weiteren Bearbeitungsdaten werden im work-Container aus dev_workflow_draft_item gepflegt.
+- Die weiteren Bearbeitungsdaten werden im work-Container aus dev_workflow_draft gepflegt.
 
 ## 5.6 Standard-Workflow-Ansatz (Optimierung, Risiken, Vorteile)
 

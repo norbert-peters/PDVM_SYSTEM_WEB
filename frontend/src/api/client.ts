@@ -239,7 +239,6 @@ export interface WorkflowDraftCreateRequest {
   title: string
   initial_setup?: Record<string, any> | null
   draft_table?: string | null
-  draft_item_table?: string | null
 }
 
 export interface WorkflowDraftItemSaveRequest {
@@ -317,12 +316,10 @@ export interface WorkflowDraftEnsureStepRequest {
   module?: string
   head?: string
   draft_table?: string | null
-  draft_item_table?: string | null
 }
 
 export interface WorkflowDraftTableOptions {
   draft_table?: string | null
-  draft_item_table?: string | null
 }
 
 export interface WorkflowDraftEnsureStepResponse {
@@ -839,7 +836,6 @@ export const workflowDraftsAPI = {
     const response = await api.post('/workflow-drafts/bootstrap', null, {
       params: {
         ...(opts?.draft_table ? { draft_table: opts.draft_table } : null),
-        ...(opts?.draft_item_table ? { draft_item_table: opts.draft_item_table } : null),
       } as any,
     })
     return response.data
@@ -858,7 +854,6 @@ export const workflowDraftsAPI = {
     const response = await api.post(`/workflow-drafts/${draftGuid}/items`, payload, {
       params: {
         ...(opts?.draft_table ? { draft_table: opts.draft_table } : null),
-        ...(opts?.draft_item_table ? { draft_item_table: opts.draft_item_table } : null),
       } as any,
     })
     return response.data
@@ -868,7 +863,6 @@ export const workflowDraftsAPI = {
     const response = await api.get(`/workflow-drafts/${draftGuid}`, {
       params: {
         ...(opts?.draft_table ? { draft_table: opts.draft_table } : null),
-        ...(opts?.draft_item_table ? { draft_item_table: opts.draft_item_table } : null),
       } as any,
     })
     return response.data
@@ -878,7 +872,6 @@ export const workflowDraftsAPI = {
     const response = await api.get('/workflow-drafts/list/open', {
       params: {
         ...(opts?.draft_table ? { draft_table: opts.draft_table } : null),
-        ...(opts?.draft_item_table ? { draft_item_table: opts.draft_item_table } : null),
       } as any,
     })
     return response.data
@@ -888,7 +881,6 @@ export const workflowDraftsAPI = {
     const response = await api.post(`/workflow-drafts/${draftGuid}/validate`, null, {
       params: {
         ...(opts?.draft_table ? { draft_table: opts.draft_table } : null),
-        ...(opts?.draft_item_table ? { draft_item_table: opts.draft_item_table } : null),
       } as any,
     })
     return response.data

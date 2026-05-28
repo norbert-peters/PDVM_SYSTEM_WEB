@@ -41,7 +41,7 @@ Bereits verbindlich (Auszug):
    - direkte Arbeit auf Zieldaten (unter Einhaltung Central-Write/Draft-Regeln).
 2. `work`:
    - Tabs als Workflow-Sequenz,
-   - Zwischenspeicherung in `dev_workflow_draft` und `dev_workflow_draft_item`,
+   - Zwischenspeicherung nur in `dev_workflow_draft`,
    - `ROOT.TABLE` in `sys_dialogdaten` ist fuer `work` optional,
    - Runtime-Zieltabelle ist hart `dev_workflow_draft` (kein Tabellenwechsel ueber Dialog-Config),
    - letzter Tab muss `MODULE=acti` besitzen, erst dort wird die Abschlussaktion ausgefuehrt.

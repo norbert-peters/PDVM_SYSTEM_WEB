@@ -1135,10 +1135,8 @@ export default function PdvmDialogPage() {
   const workflowDraftTableOptions = useMemo(() => {
     const root = asObject(defQuery.data?.root)
     const draftTable = String(root.DRAFT_TABLE ?? root.draft_table ?? '').trim()
-    const draftItemTable = String(root.DRAFT_ITEM_TABLE ?? root.draft_item_table ?? '').trim()
     return {
       draft_table: draftTable || undefined,
-      draft_item_table: draftItemTable || undefined,
     }
   }, [defQuery.data?.root])
 
@@ -2976,7 +2974,7 @@ export default function PdvmDialogPage() {
   })
 
   const workflowOpenDraftsQuery = useQuery({
-    queryKey: ['workflow-drafts', 'open', dialogGuid, workflowDraftTableOptions.draft_table, workflowDraftTableOptions.draft_item_table],
+    queryKey: ['workflow-drafts', 'open', dialogGuid, workflowDraftTableOptions.draft_table],
     queryFn: () => workflowDraftsAPI.listOpen(workflowDraftTableOptions),
     enabled: !!dialogGuid && isWorkflowDraftBuilderDialog,
   })
@@ -3045,7 +3043,6 @@ export default function PdvmDialogPage() {
       title,
       initial_setup: setup,
       draft_table: workflowDraftTableOptions.draft_table || null,
-      draft_item_table: workflowDraftTableOptions.draft_item_table || null,
     })
 
     persistWorkflowDraftGuid(created.draft_guid)
@@ -3934,7 +3931,6 @@ export default function PdvmDialogPage() {
                         module: String(nextTab?.module || '').trim().toLowerCase() || undefined,
                         head: String(nextTab?.head || '').trim() || undefined,
                         draft_table: workflowDraftTableOptions.draft_table || null,
-                        draft_item_table: workflowDraftTableOptions.draft_item_table || null,
                       })
                     } catch (e: any) {
                       // Soft-fail: Nutzer kann im Workflow weitergehen, auch wenn

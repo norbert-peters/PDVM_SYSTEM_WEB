@@ -51,22 +51,26 @@ Optionale Felder:
 2. `LAST_EDITOR_USER_GUID`
 3. `REVISION` (optimistic locking)
 
-### 3.2 dev_workflow_draft_item
+### 3.2 DRAFT_DB (in dev_workflow_draft)
 
-Sub-Strukturen je Draft (append/update pro Bereich).
+Sub-Strukturen je Draft liegen direkt in `daten.DRAFT_DB`.
 
-Pflichtfelder in `daten.ROOT`:
+Verbindliche Struktur:
 
-1. `DRAFT_GUID`
-2. `ITEM_TYPE` (`setup` | `tabs` | `dialogdata` | `framedata` | `viewdata` | `dictionary_selection` | `release_assignment` | `snapshot`)
-3. `ITEM_KEY` (z. B. `TAB_01`, `dialog_guid`, `view_guid`)
-4. `PAYLOAD` (JSON)
-5. `UPDATED_AT`
+1. `daten.DRAFT_DB._META`
+2. `daten.DRAFT_DB.<TABELLENNAME>` (z. B. `SYS_DIALOGDATEN`)
+3. Unter jeder Tabelle: Schluessel = Datensatz-UID
+
+Beispiel:
+
+1. `daten.DRAFT_DB.SYS_DIALOGDATEN.<uid>`
+2. `daten.DRAFT_DB.SYS_VIEWDATEN.<uid>`
+3. `daten.DRAFT_DB.SYS_FRAMEDATEN.<uid>`
 
 Hinweis:
 
-1. Mehrere Items pro Draft sind erlaubt.
-2. `ITEM_TYPE + ITEM_KEY` ist innerhalb einer Draft eindeutig.
+1. `_META` wird ueber das 666-Template in `TEMPLATES.DRAFT_DB._META` vorgegeben.
+2. Alle laufenden Workflow-Nutzdaten werden in derselben Draft-Tabelle gehalten (kein separates *_item).
 
 ### 3.3 sys_systemsteuerung (nur Pointer)
 

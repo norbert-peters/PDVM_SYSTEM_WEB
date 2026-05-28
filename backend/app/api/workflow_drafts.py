@@ -1,4 +1,4 @@
-"""Workflow Draft API (Minimal Vertical Slice).
+﻿"""Workflow Draft API (Single table model).
 
 Endpoints fuer den Testdialog-Lebenszyklus:
 - create draft
@@ -32,7 +32,6 @@ class CreateDraftRequest(BaseModel):
     title: str = Field(..., min_length=1, description="Anzeigename des Drafts")
     initial_setup: Optional[Dict[str, Any]] = Field(default=None, description="Optionaler Setup-Block")
     draft_table: Optional[str] = Field(default=None)
-    draft_item_table: Optional[str] = Field(default=None)
 
 
 class SaveDraftItemRequest(BaseModel):
@@ -47,7 +46,6 @@ class EnsureDraftStepRequest(BaseModel):
     module: Optional[str] = Field(default=None, description="Tab-Modul (view/edit/acti)")
     head: Optional[str] = Field(default=None, description="Tab-Ueberschrift")
     draft_table: Optional[str] = Field(default=None)
-    draft_item_table: Optional[str] = Field(default=None)
 
 
 async def get_gcs_instance(current_user: dict = Depends(get_current_user)):
@@ -97,22 +95,20 @@ def _normalize_table_name(value: Optional[str], *, label: str, default: str) -> 
     return table
 
 
-def _resolve_draft_tables(
-    *,
-    draft_table: Optional[str],
-    draft_item_table: Optional[str],
-) -> tuple[str, str]:
-    draft_table_norm = _normalize_table_name(
+def _resolve_draft_table(*, draft_table: Optional[str]) -> str:
+    return _normalize_table_name(
         draft_table,
         label="draft_table",
         default="dev_workflow_draft",
     )
-    draft_item_table_norm = _normalize_table_name(
-        draft_item_table,
-        label="draft_item_table",
-        default="dev_workflow_draft_item",
-    )
-    return draft_table_norm, draft_item_table_norm
+
+
+def _require_system_pool(gcs):
+    # Keep compatibility with both attribute variants.
+    system_pool = getattr(gcs, "_pool_system", None) or getattr(gcs, "_system_pool", None)
+    if not system_pool:
+        raise HTTPException(status_code=500, detail="Systemdatenbank-Pool nicht verfuegbar")
+    return system_pool
 
 
 async def _load_table_666(system_pool, table_name: str) -> Dict[str, Any]:
@@ -143,7 +139,7 @@ def _normalize_workflow_name(*, payload_workflow: Dict[str, Any], draft_root: Di
 
 
 def _normalize_bucket_name(table_name: str) -> str:
-    table = str(table_name or "").strip().lower()
+    table = str(table_name or "").strip().upper()
     return table
 
 
@@ -186,25 +182,19 @@ def _ensure_bucket_record(
 @router.post("/bootstrap")
 async def bootstrap_workflow_draft_tables(
     draft_table: Optional[str] = None,
-    draft_item_table: Optional[str] = None,
     gcs=Depends(get_gcs_instance),
     _operator: dict = Depends(require_admin_or_develop_user),
 ):
-    if not getattr(gcs, "_pool_system", None):
-        raise HTTPException(status_code=500, detail="Systemdatenbank-Pool nicht verfuegbar")
+    system_pool = _require_system_pool(gcs)
 
-    draft_table_norm, draft_item_table_norm = _resolve_draft_tables(
-        draft_table=draft_table,
-        draft_item_table=draft_item_table,
-    )
+    draft_table_norm = _resolve_draft_table(draft_table=draft_table)
     result = await WorkflowDraftService.ensure_draft_tables(
-        gcs._pool_system,
+        system_pool,
         draft_table=draft_table_norm,
-        draft_item_table=draft_item_table_norm,
     )
     return {
         "success": True,
-        "message": "Workflow-Draft-Tabellen geprueft/angelegt",
+        "message": "Workflow-Draft-Tabelle geprueft/angelegt",
         **result,
     }
 
@@ -215,44 +205,37 @@ async def create_draft(
     gcs=Depends(get_gcs_instance),
     operator_user: dict = Depends(require_admin_or_develop_user),
 ):
-    if not getattr(gcs, "_pool_system", None):
-        raise HTTPException(status_code=500, detail="Systemdatenbank-Pool nicht verfuegbar")
+    system_pool = _require_system_pool(gcs)
 
     try:
         user_guid = _extract_user_guid(operator_user, gcs)
         mandant_guid = _extract_mandant_guid(gcs)
-        draft_table_norm, draft_item_table_norm = _resolve_draft_tables(
-            draft_table=payload.draft_table,
-            draft_item_table=payload.draft_item_table,
-        )
+        draft_table_norm = _resolve_draft_table(draft_table=payload.draft_table)
 
         created = await WorkflowDraftService.create_draft(
-            gcs._pool_system,
+            system_pool,
             workflow_type=payload.workflow_type,
             title=payload.title,
             owner_user_guid=user_guid,
             mandant_guid=mandant_guid,
             initial_setup=payload.initial_setup,
             draft_table=draft_table_norm,
-            draft_item_table=draft_item_table_norm,
         )
 
-        # Komfort: initial_setup als setup-item persistieren, wenn vorhanden.
         if isinstance(payload.initial_setup, dict) and payload.initial_setup:
             await WorkflowDraftService.save_draft_item(
-                gcs._pool_system,
+                system_pool,
                 draft_guid=created["draft_guid"],
                 item_type="setup",
                 item_key="setup",
                 payload=payload.initial_setup,
                 updated_by_user_guid=user_guid,
                 draft_table=draft_table_norm,
-                draft_item_table=draft_item_table_norm,
             )
 
         if str(payload.workflow_type or "").strip().lower() != "dictionary_builder":
             await WorkflowDraftService.save_draft_item(
-                gcs._pool_system,
+                system_pool,
                 draft_guid=created["draft_guid"],
                 item_type="work",
                 item_key="container",
@@ -264,13 +247,12 @@ async def create_draft(
                         "TARGET_TABLE": str((payload.initial_setup or {}).get("TARGET_TABLE") or "sys_dialogdaten"),
                         "DESCRIPTION": str((payload.initial_setup or {}).get("DESCRIPTION") or ""),
                     },
-                    "sys_dialogdaten": {},
-                    "sys_viewdaten": {},
-                    "sys_framedaten": {},
+                    "SYS_DIALOGDATEN": {},
+                    "SYS_VIEWDATEN": {},
+                    "SYS_FRAMEDATEN": {},
                 },
                 updated_by_user_guid=user_guid,
                 draft_table=draft_table_norm,
-                draft_item_table=draft_item_table_norm,
             )
 
         return {
@@ -291,28 +273,22 @@ async def save_draft_item(
     draft_guid: str,
     payload: SaveDraftItemRequest,
     draft_table: Optional[str] = None,
-    draft_item_table: Optional[str] = None,
     gcs=Depends(get_gcs_instance),
     operator_user: dict = Depends(require_admin_or_develop_user),
 ):
-    if not getattr(gcs, "_pool_system", None):
-        raise HTTPException(status_code=500, detail="Systemdatenbank-Pool nicht verfuegbar")
+    system_pool = _require_system_pool(gcs)
 
     try:
         user_guid = _extract_user_guid(operator_user, gcs)
-        draft_table_norm, draft_item_table_norm = _resolve_draft_tables(
-            draft_table=draft_table,
-            draft_item_table=draft_item_table,
-        )
+        draft_table_norm = _resolve_draft_table(draft_table=draft_table)
         result = await WorkflowDraftService.save_draft_item(
-            gcs._pool_system,
+            system_pool,
             draft_guid=draft_guid,
             item_type=payload.item_type,
             item_key=payload.item_key,
             payload=payload.payload,
             updated_by_user_guid=user_guid,
             draft_table=draft_table_norm,
-            draft_item_table=draft_item_table_norm,
         )
         return {
             "success": True,
@@ -331,23 +307,17 @@ async def save_draft_item(
 async def load_draft(
     draft_guid: str,
     draft_table: Optional[str] = None,
-    draft_item_table: Optional[str] = None,
     gcs=Depends(get_gcs_instance),
     _operator: dict = Depends(require_admin_or_develop_user),
 ):
-    if not getattr(gcs, "_pool_system", None):
-        raise HTTPException(status_code=500, detail="Systemdatenbank-Pool nicht verfuegbar")
+    system_pool = _require_system_pool(gcs)
 
     try:
-        draft_table_norm, draft_item_table_norm = _resolve_draft_tables(
-            draft_table=draft_table,
-            draft_item_table=draft_item_table,
-        )
+        draft_table_norm = _resolve_draft_table(draft_table=draft_table)
         data = await WorkflowDraftService.load_draft(
-            gcs._pool_system,
+            system_pool,
             draft_guid=draft_guid,
             draft_table=draft_table_norm,
-            draft_item_table=draft_item_table_norm,
         )
         return {
             "success": True,
@@ -363,26 +333,20 @@ async def load_draft(
 @router.get("/list/open")
 async def list_open_drafts(
     draft_table: Optional[str] = None,
-    draft_item_table: Optional[str] = None,
     gcs=Depends(get_gcs_instance),
     operator_user: dict = Depends(require_admin_or_develop_user),
 ):
-    if not getattr(gcs, "_pool_system", None):
-        raise HTTPException(status_code=500, detail="Systemdatenbank-Pool nicht verfuegbar")
+    system_pool = _require_system_pool(gcs)
 
     try:
         user_guid = _extract_user_guid(operator_user, gcs)
         mandant_guid = _extract_mandant_guid(gcs)
-        draft_table_norm, draft_item_table_norm = _resolve_draft_tables(
-            draft_table=draft_table,
-            draft_item_table=draft_item_table,
-        )
+        draft_table_norm = _resolve_draft_table(draft_table=draft_table)
         result = await WorkflowDraftService.list_open_drafts(
-            gcs._pool_system,
+            system_pool,
             owner_user_guid=user_guid,
             mandant_guid=mandant_guid,
             draft_table=draft_table_norm,
-            draft_item_table=draft_item_table_norm,
         )
         return {
             "success": True,
@@ -397,23 +361,17 @@ async def list_open_drafts(
 async def validate_draft(
     draft_guid: str,
     draft_table: Optional[str] = None,
-    draft_item_table: Optional[str] = None,
     gcs=Depends(get_gcs_instance),
     _operator: dict = Depends(require_admin_or_develop_user),
 ):
-    if not getattr(gcs, "_pool_system", None):
-        raise HTTPException(status_code=500, detail="Systemdatenbank-Pool nicht verfuegbar")
+    system_pool = _require_system_pool(gcs)
 
     try:
-        draft_table_norm, draft_item_table_norm = _resolve_draft_tables(
-            draft_table=draft_table,
-            draft_item_table=draft_item_table,
-        )
+        draft_table_norm = _resolve_draft_table(draft_table=draft_table)
         result = await WorkflowDraftService.validate_draft(
-            gcs._pool_system,
+            system_pool,
             draft_guid=draft_guid,
             draft_table=draft_table_norm,
-            draft_item_table=draft_item_table_norm,
         )
         return {
             "success": True,
@@ -433,20 +391,15 @@ async def ensure_draft_step(
     gcs=Depends(get_gcs_instance),
     operator_user: dict = Depends(require_admin_or_develop_user),
 ):
-    if not getattr(gcs, "_pool_system", None):
-        raise HTTPException(status_code=500, detail="Systemdatenbank-Pool nicht verfuegbar")
+    system_pool = _require_system_pool(gcs)
 
     try:
         user_guid = _extract_user_guid(operator_user, gcs)
-        draft_table_norm, draft_item_table_norm = _resolve_draft_tables(
-            draft_table=payload.draft_table,
-            draft_item_table=payload.draft_item_table,
-        )
+        draft_table_norm = _resolve_draft_table(draft_table=payload.draft_table)
         data = await WorkflowDraftService.load_draft(
-            gcs._pool_system,
+            system_pool,
             draft_guid=draft_guid,
             draft_table=draft_table_norm,
-            draft_item_table=draft_item_table_norm,
         )
         root = data.get("root") if isinstance(data.get("root"), dict) else {}
         items = data.get("items") if isinstance(data.get("items"), list) else []
@@ -478,9 +431,8 @@ async def ensure_draft_step(
         work_payload["WORKFLOW"] = workflow_meta
 
         created: Dict[str, str] = {}
-        # Standardregel: Nur Edit-Tabs führen zu tabellenbezogener Neuanlage im work-Container.
         if module_norm == "edit" and tab_table:
-            table_666 = await _load_table_666(gcs._pool_system, tab_table)
+            table_666 = await _load_table_666(system_pool, tab_table)
             edit_type_for_root = "pdvm_edit"
             if tab_table == "sys_viewdaten":
                 edit_type_for_root = "view"
@@ -500,12 +452,11 @@ async def ensure_draft_step(
             )
             created[bucket_name] = uid_value
         elif not tab_table:
-            # Legacy-Fallback ohne Tabellen-Metadaten (bestehende Aufrufer).
             if int(payload.step) >= 3:
-                dialog_666 = await _load_table_666(gcs._pool_system, "sys_dialogdaten")
+                dialog_666 = await _load_table_666(system_pool, "sys_dialogdaten")
                 dialog_uid = _ensure_bucket_record(
                     payload=work_payload,
-                    bucket_name="sys_dialogdaten",
+                    bucket_name="SYS_DIALOGDATEN",
                     template_666=dialog_666,
                     workflow_name=workflow_name,
                     workflow_type=workflow_type,
@@ -513,13 +464,13 @@ async def ensure_draft_step(
                     table_for_root="sys_dialogdaten",
                     edit_type_for_root="work",
                 )
-                created["sys_dialogdaten"] = dialog_uid
+                created["SYS_DIALOGDATEN"] = dialog_uid
 
             if int(payload.step) >= 4:
-                view_666 = await _load_table_666(gcs._pool_system, "sys_viewdaten")
+                view_666 = await _load_table_666(system_pool, "sys_viewdaten")
                 view_uid = _ensure_bucket_record(
                     payload=work_payload,
-                    bucket_name="sys_viewdaten",
+                    bucket_name="SYS_VIEWDATEN",
                     template_666=view_666,
                     workflow_name=workflow_name,
                     workflow_type=workflow_type,
@@ -527,13 +478,13 @@ async def ensure_draft_step(
                     table_for_root="sys_viewdaten",
                     edit_type_for_root="view",
                 )
-                created["sys_viewdaten"] = view_uid
+                created["SYS_VIEWDATEN"] = view_uid
 
             if int(payload.step) >= 5:
-                frame_666 = await _load_table_666(gcs._pool_system, "sys_framedaten")
+                frame_666 = await _load_table_666(system_pool, "sys_framedaten")
                 frame_uid = _ensure_bucket_record(
                     payload=work_payload,
-                    bucket_name="sys_framedaten",
+                    bucket_name="SYS_FRAMEDATEN",
                     template_666=frame_666,
                     workflow_name=workflow_name,
                     workflow_type=workflow_type,
@@ -541,17 +492,16 @@ async def ensure_draft_step(
                     table_for_root="sys_framedaten",
                     edit_type_for_root="pdvm_edit",
                 )
-                created["sys_framedaten"] = frame_uid
+                created["SYS_FRAMEDATEN"] = frame_uid
 
         saved = await WorkflowDraftService.save_draft_item(
-            gcs._pool_system,
+            system_pool,
             draft_guid=draft_guid,
             item_type="work",
             item_key="container",
             payload=work_payload,
             updated_by_user_guid=user_guid,
             draft_table=draft_table_norm,
-            draft_item_table=draft_item_table_norm,
         )
 
         return {
