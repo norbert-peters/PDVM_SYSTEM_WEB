@@ -10,8 +10,6 @@ Endpoints fuer den Testdialog-Lebenszyklus:
 from __future__ import annotations
 
 from typing import Any, Dict, Optional
-import copy
-import json
 import re
 import uuid
 
@@ -20,18 +18,12 @@ from pydantic import BaseModel, Field
 
 from app.core.security import get_current_user, require_admin_or_develop_user
 from app.core.pdvm_central_systemsteuerung import get_gcs_session
+from app.core.workflow_draft_access import WorkflowDraftAccess
 from app.core.workflow_draft_service import WorkflowDraftService
 
 
 router = APIRouter()
 _TABLE_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
-_UID_555 = uuid.UUID("55555555-5555-5555-5555-555555555555")
-_UID_666 = uuid.UUID("66666666-6666-6666-6666-666666666666")
-_WORK_BUCKET_TABLE_MAP = {
-    "SYS_DIALOGDATEN": "sys_dialogdaten",
-    "SYS_VIEWDATEN": "sys_viewdaten",
-    "SYS_FRAMEDATEN": "sys_framedaten",
-}
 
 
 class CreateDraftRequest(BaseModel):
@@ -52,6 +44,12 @@ class EnsureDraftStepRequest(BaseModel):
     table: Optional[str] = Field(default=None, description="Zieltabelle des naechsten Tabs")
     module: Optional[str] = Field(default=None, description="Tab-Modul (view/edit/acti)")
     head: Optional[str] = Field(default=None, description="Tab-Ueberschrift")
+    draft_table: Optional[str] = Field(default=None)
+
+
+class UpsertDraftTableRecordRequest(BaseModel):
+    record_uid: Optional[str] = Field(default=None)
+    payload: Dict[str, Any] = Field(default_factory=dict)
     draft_table: Optional[str] = Field(default=None)
 
 
@@ -127,193 +125,6 @@ def _normalize_workflow_name(*, payload_workflow: Dict[str, Any], draft_root: Di
 def _normalize_bucket_name(table_name: str) -> str:
     table = str(table_name or "").strip().upper()
     return table
-
-
-def _merge_defined_fields(template_dict: Dict[str, Any], incoming: Dict[str, Any]) -> Dict[str, Any]:
-    result = copy.deepcopy(template_dict) if isinstance(template_dict, dict) else {}
-    if not isinstance(incoming, dict):
-        return result
-
-    for key, value in incoming.items():
-        if key not in result:
-            continue
-        existing = result.get(key)
-        if isinstance(existing, dict) and isinstance(value, dict):
-            result[key] = _merge_defined_fields(existing, value)
-        else:
-            result[key] = value
-    return result
-
-
-def _fill_empty_groups_from_template(base: Dict[str, Any], fallback: Dict[str, Any]) -> Dict[str, Any]:
-    out = copy.deepcopy(base) if isinstance(base, dict) else {}
-    tpl = fallback if isinstance(fallback, dict) else {}
-
-    for key, value in list(out.items()):
-        tpl_value = tpl.get(key)
-        if not isinstance(value, dict):
-            continue
-        if not value and isinstance(tpl_value, dict):
-            out[key] = copy.deepcopy(tpl_value)
-            continue
-        if isinstance(tpl_value, dict):
-            out[key] = _fill_empty_groups_from_template(value, tpl_value)
-    return out
-
-
-async def _load_row_daten_by_uid(system_pool, *, table_name: str, row_uid: uuid.UUID) -> Dict[str, Any]:
-    async with system_pool.acquire() as conn:
-        row = await conn.fetchrow(
-            f"SELECT daten FROM {table_name} WHERE uid = $1::uuid AND COALESCE(historisch, 0) = 0",
-            row_uid,
-        )
-    if not row:
-        raise HTTPException(status_code=500, detail=f"Template fehlt in {table_name}: {row_uid}")
-
-    data = row.get("daten")
-    if isinstance(data, dict):
-        return data
-    if isinstance(data, str):
-        try:
-            parsed = json.loads(data)
-            return parsed if isinstance(parsed, dict) else {}
-        except Exception:
-            return {}
-    return {}
-
-
-async def _build_table_record_from_templates(
-    system_pool,
-    *,
-    table_name: str,
-    record_uid: str,
-    workflow_name: str,
-    workflow_type: str,
-    target_table: str,
-    incoming_record: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
-    table_norm = _normalize_table_name(table_name, label="table_name", default=table_name)
-    data_555 = await _load_row_daten_by_uid(system_pool, table_name=table_norm, row_uid=_UID_555)
-    data_666 = await _load_row_daten_by_uid(system_pool, table_name=table_norm, row_uid=_UID_666)
-
-    templates_666 = data_666.get("TEMPLATES") if isinstance(data_666.get("TEMPLATES"), dict) else {}
-    incoming = incoming_record if isinstance(incoming_record, dict) else {}
-
-    out: Dict[str, Any] = {}
-
-    for group_name, group_value in data_555.items():
-        if str(group_name).upper() == "ROOT":
-            continue
-        if not isinstance(group_value, dict):
-            continue
-
-        fallback_group = templates_666.get(group_name) if isinstance(templates_666.get(group_name), dict) else {}
-        merged_group = _fill_empty_groups_from_template(group_value, fallback_group)
-
-        incoming_group = incoming.get(group_name)
-        if isinstance(incoming_group, dict):
-            merged_group = _merge_defined_fields(merged_group, incoming_group)
-
-        out[str(group_name)] = merged_group
-
-    root_555 = data_555.get("ROOT") if isinstance(data_555.get("ROOT"), dict) else {}
-    incoming_root = incoming.get("ROOT") if isinstance(incoming.get("ROOT"), dict) else {}
-    root = _merge_defined_fields(root_555, incoming_root)
-    root = _merge_defined_fields(
-        root,
-        {
-            "SELF_GUID": str(record_uid),
-            "SELF_NAME": str(workflow_name or "").strip() or "WORKFLOW_DRAFT",
-            "WORKFLOW_TYPE": str(workflow_type or "").strip().lower() or "work",
-            "TARGET_TABLE": str(target_table or "").strip() or "sys_dialogdaten",
-        },
-    )
-    out["ROOT"] = root
-
-    return out
-
-
-async def _sanitize_work_container_payload(system_pool, payload: Dict[str, Any], *, draft_guid: str) -> Dict[str, Any]:
-    src = payload if isinstance(payload, dict) else {}
-    workflow = src.get("WORKFLOW") if isinstance(src.get("WORKFLOW"), dict) else {}
-    workflow_name = str(workflow.get("WORKFLOW_NAME") or "").strip() or "WORKFLOW_DRAFT"
-    workflow_type = str(workflow.get("WORKFLOW_TYPE") or "work").strip().lower() or "work"
-    target_table = str(workflow.get("TARGET_TABLE") or "sys_dialogdaten").strip() or "sys_dialogdaten"
-
-    out: Dict[str, Any] = {
-        "WORKFLOW": dict(workflow),
-    }
-
-    for bucket_name, table_name in _WORK_BUCKET_TABLE_MAP.items():
-        bucket_src = src.get(bucket_name)
-        if not isinstance(bucket_src, dict):
-            bucket_src = src.get(bucket_name.lower()) if isinstance(src.get(bucket_name.lower()), dict) else {}
-
-        bucket_out: Dict[str, Any] = {}
-        for rec_uid_raw, rec_payload in bucket_src.items():
-            rec_uid = str(rec_uid_raw or "").strip()
-            try:
-                rec_uid = str(uuid.UUID(rec_uid))
-            except Exception:
-                rec_uid = str(uuid.uuid4())
-
-            rec_data = rec_payload if isinstance(rec_payload, dict) else {}
-            bucket_out[rec_uid] = await _build_table_record_from_templates(
-                system_pool,
-                table_name=table_name,
-                record_uid=rec_uid,
-                workflow_name=workflow_name,
-                workflow_type=workflow_type,
-                target_table=target_table,
-                incoming_record=rec_data,
-            )
-
-        out[bucket_name] = bucket_out
-
-    return out
-
-
-async def _ensure_bucket_record(
-    *,
-    system_pool,
-    payload: Dict[str, Any],
-    bucket_name: str,
-    table_name: str,
-    workflow_name: str,
-    workflow_type: str,
-    target_table: str,
-) -> str:
-    bucket_raw = payload.get(bucket_name)
-    bucket = bucket_raw if isinstance(bucket_raw, dict) else {}
-    if bucket:
-        existing_uid = str(next(iter(bucket.keys())))
-        existing_data = bucket.get(existing_uid) if isinstance(bucket.get(existing_uid), dict) else {}
-        bucket[existing_uid] = await _build_table_record_from_templates(
-            system_pool,
-            table_name=table_name,
-            record_uid=existing_uid,
-            workflow_name=workflow_name,
-            workflow_type=workflow_type,
-            target_table=target_table,
-            incoming_record=existing_data,
-        )
-        payload[bucket_name] = bucket
-        return existing_uid
-
-    record_uid = str(uuid.uuid4())
-    record_data = await _build_table_record_from_templates(
-        system_pool,
-        table_name=table_name,
-        record_uid=record_uid,
-        workflow_name=workflow_name,
-        workflow_type=workflow_type,
-        target_table=target_table,
-        incoming_record={},
-    )
-
-    bucket[record_uid] = record_data
-    payload[bucket_name] = bucket
-    return record_uid
 
 
 @router.post("/bootstrap")
@@ -420,10 +231,9 @@ async def save_draft_item(
         draft_table_norm = _resolve_draft_table(draft_table=draft_table)
         payload_data = payload.payload
         if str(payload.item_type or "").strip().lower() == "work" and str(payload.item_key or "").strip().lower() == "container":
-            payload_data = await _sanitize_work_container_payload(
+            payload_data = await WorkflowDraftAccess.sanitize_work_container_payload(
                 system_pool,
                 payload.payload,
-                draft_guid=draft_guid,
             )
 
         result = await WorkflowDraftService.save_draft_item(
@@ -577,23 +387,21 @@ async def ensure_draft_step(
 
         created: Dict[str, str] = {}
         if module_norm == "edit" and tab_table:
-            bucket_name = _normalize_bucket_name(tab_table)
-            uid_value = await _ensure_bucket_record(
-                system_pool=system_pool,
+            work_payload, uid_value = await WorkflowDraftAccess.ensure_table_record_in_payload(
+                system_pool,
                 payload=work_payload,
-                bucket_name=bucket_name,
                 table_name=tab_table,
                 workflow_name=workflow_name,
                 workflow_type=workflow_type,
                 target_table=target_table,
             )
+            bucket_name = _normalize_bucket_name(tab_table)
             created[bucket_name] = uid_value
         elif not tab_table:
             if int(payload.step) >= 3:
-                dialog_uid = await _ensure_bucket_record(
-                    system_pool=system_pool,
+                work_payload, dialog_uid = await WorkflowDraftAccess.ensure_table_record_in_payload(
+                    system_pool,
                     payload=work_payload,
-                    bucket_name="SYS_DIALOGDATEN",
                     table_name="sys_dialogdaten",
                     workflow_name=workflow_name,
                     workflow_type=workflow_type,
@@ -602,10 +410,9 @@ async def ensure_draft_step(
                 created["SYS_DIALOGDATEN"] = dialog_uid
 
             if int(payload.step) >= 4:
-                view_uid = await _ensure_bucket_record(
-                    system_pool=system_pool,
+                work_payload, view_uid = await WorkflowDraftAccess.ensure_table_record_in_payload(
+                    system_pool,
                     payload=work_payload,
-                    bucket_name="SYS_VIEWDATEN",
                     table_name="sys_viewdaten",
                     workflow_name=workflow_name,
                     workflow_type=workflow_type,
@@ -614,16 +421,20 @@ async def ensure_draft_step(
                 created["SYS_VIEWDATEN"] = view_uid
 
             if int(payload.step) >= 5:
-                frame_uid = await _ensure_bucket_record(
-                    system_pool=system_pool,
+                work_payload, frame_uid = await WorkflowDraftAccess.ensure_table_record_in_payload(
+                    system_pool,
                     payload=work_payload,
-                    bucket_name="SYS_FRAMEDATEN",
                     table_name="sys_framedaten",
                     workflow_name=workflow_name,
                     workflow_type=workflow_type,
                     target_table=target_table,
                 )
                 created["SYS_FRAMEDATEN"] = frame_uid
+
+        work_payload = await WorkflowDraftAccess.sanitize_work_container_payload(
+            system_pool,
+            work_payload,
+        )
 
         saved = await WorkflowDraftService.save_draft_item(
             system_pool,
@@ -650,3 +461,66 @@ async def ensure_draft_step(
         raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Workflow-Step konnte nicht vorbereitet werden: {exc}")
+
+
+@router.get("/{draft_guid}/records/{table_name}")
+async def list_draft_table_records(
+    draft_guid: str,
+    table_name: str,
+    draft_table: Optional[str] = None,
+    gcs=Depends(get_gcs_instance),
+    _operator: dict = Depends(require_admin_or_develop_user),
+):
+    system_pool = _require_system_pool(gcs)
+
+    try:
+        draft_table_norm = _resolve_draft_table(draft_table=draft_table)
+        rows = await WorkflowDraftAccess.list_table_records(
+            system_pool,
+            draft_guid=draft_guid,
+            table_name=table_name,
+            draft_table=draft_table_norm,
+        )
+        return {
+            "success": True,
+            "table": str(table_name or "").strip().lower(),
+            "count": len(rows),
+            "records": rows,
+        }
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Draft-Records konnten nicht geladen werden: {exc}")
+
+
+@router.post("/{draft_guid}/records/{table_name}")
+async def upsert_draft_table_record(
+    draft_guid: str,
+    table_name: str,
+    payload: UpsertDraftTableRecordRequest,
+    gcs=Depends(get_gcs_instance),
+    operator_user: dict = Depends(require_admin_or_develop_user),
+):
+    system_pool = _require_system_pool(gcs)
+
+    try:
+        user_guid = _extract_user_guid(operator_user, gcs)
+        draft_table_norm = _resolve_draft_table(draft_table=payload.draft_table)
+        saved = await WorkflowDraftAccess.save_table_record(
+            system_pool,
+            draft_guid=draft_guid,
+            table_name=table_name,
+            record_uid=payload.record_uid,
+            payload=payload.payload,
+            updated_by_user_guid=user_guid,
+            draft_table=draft_table_norm,
+        )
+        return {
+            "success": True,
+            "message": "Draft-Record gespeichert",
+            **saved,
+        }
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Draft-Record konnte nicht gespeichert werden: {exc}")
