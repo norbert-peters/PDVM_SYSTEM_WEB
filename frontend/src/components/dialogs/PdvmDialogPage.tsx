@@ -3136,6 +3136,12 @@ export default function PdvmDialogPage() {
     if (!isWorkflowDraftBuilderDialog || activeModuleType !== 'edit') return
     if (!workflowDraftGuid || !isUuidString(workflowDraftGuid)) return
 
+    // Setup-Tab: Quelle ist _META.SETUP, nicht der Tabellenrecord.
+    if (Number(activeTab || 0) === Number(workflowSetupTabIndex || 2)) {
+      await loadWorkflowSetup()
+      return
+    }
+
     const tableName = String(activeModule?.table || '').trim().toLowerCase()
     if (!tableName) return
 
@@ -3177,7 +3183,7 @@ export default function PdvmDialogPage() {
     }
 
     setPicDraft((prev) => {
-      let next = asObject(prev || currentDaten || {})
+      let next = asObject(currentDaten || prev || {})
       next = setFieldValue(next, 'FIELDS', 'WORKFLOW_NAME', String(payload.WORKFLOW_NAME || ''))
       next = setFieldValue(next, 'FIELDS', 'TARGET_TABLE', String(payload.TARGET_TABLE || 'sys_dialogdaten'))
       next = setFieldValue(next, 'FIELDS', 'DESCRIPTION', String(payload.DESCRIPTION || ''))
@@ -3185,7 +3191,7 @@ export default function PdvmDialogPage() {
       next = setFieldValue(next, 'FIELDS', 'SELECTION_MODE', String(payload.SELECTION_MODE || 'single'))
       return next
     })
-    setPicDirty(true)
+    setPicDirty(false)
     setWorkflowDraftStatus(`Setup geladen (${workflowDraftGuid.slice(0, 8)})`)
   }
 
