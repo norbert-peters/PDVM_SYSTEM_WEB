@@ -33,6 +33,19 @@ class WorkflowDraftAccess:
         return WorkflowDraftAccess._normalize_table_name(table_name).upper()
 
     @staticmethod
+    def _find_bucket_key_ci(payload: Dict[str, Any], bucket_key: str) -> Optional[str]:
+        if not isinstance(payload, dict):
+            return None
+        wanted = str(bucket_key or "").strip().lower()
+        if not wanted:
+            return None
+        for key in payload.keys():
+            key_norm = str(key or "").strip().lower()
+            if key_norm == wanted:
+                return str(key)
+        return None
+
+    @staticmethod
     def _as_dict(value: Any) -> Dict[str, Any]:
         if isinstance(value, dict):
             return value
@@ -239,13 +252,15 @@ class WorkflowDraftAccess:
         workflow_name: str,
         workflow_type: str,
         target_table: str,
+        single_record: bool = False,
     ) -> Tuple[Dict[str, Any], str]:
         out = dict(payload) if isinstance(payload, dict) else {"WORKFLOW": {}}
         if not isinstance(out.get("WORKFLOW"), dict):
             out["WORKFLOW"] = {}
 
         bucket_key = WorkflowDraftAccess._bucket_name(table_name)
-        bucket_raw = out.get(bucket_key)
+        existing_key = WorkflowDraftAccess._find_bucket_key_ci(out, bucket_key)
+        bucket_raw = out.get(existing_key) if existing_key else out.get(bucket_key)
         bucket = bucket_raw if isinstance(bucket_raw, dict) else {}
 
         if bucket:
@@ -260,6 +275,10 @@ class WorkflowDraftAccess:
                 target_table=target_table,
                 incoming_record=existing_record,
             )
+            if single_record:
+                bucket = {existing_uid: bucket[existing_uid]}
+            if existing_key and existing_key != bucket_key:
+                out.pop(existing_key, None)
             out[bucket_key] = bucket
             return out, existing_uid
 
@@ -273,6 +292,8 @@ class WorkflowDraftAccess:
             target_table=target_table,
             incoming_record={},
         )
+        if existing_key and existing_key != bucket_key:
+            out.pop(existing_key, None)
         out[bucket_key] = bucket
         return out, record_uid
 
@@ -304,6 +325,7 @@ class WorkflowDraftAccess:
         payload: Dict[str, Any],
         updated_by_user_guid: str,
         draft_table: str,
+        single_record: bool = False,
     ) -> Dict[str, Any]:
         draft = await WorkflowDraftService.load_draft(
             system_pool,
@@ -324,7 +346,9 @@ class WorkflowDraftAccess:
             resolved_uid = str(uuid.uuid4())
 
         bucket_key = WorkflowDraftAccess._bucket_name(table_name)
-        bucket = work_payload.get(bucket_key) if isinstance(work_payload.get(bucket_key), dict) else {}
+        existing_key = WorkflowDraftAccess._find_bucket_key_ci(work_payload, bucket_key)
+        bucket_raw = work_payload.get(existing_key) if existing_key else work_payload.get(bucket_key)
+        bucket = bucket_raw if isinstance(bucket_raw, dict) else {}
         bucket = dict(bucket)
 
         normalized_record = await WorkflowDraftAccess.build_record_from_templates(
@@ -336,7 +360,12 @@ class WorkflowDraftAccess:
             target_table=target_table,
             incoming_record=payload if isinstance(payload, dict) else {},
         )
-        bucket[resolved_uid] = normalized_record
+        if single_record:
+            bucket = {resolved_uid: normalized_record}
+        else:
+            bucket[resolved_uid] = normalized_record
+        if existing_key and existing_key != bucket_key:
+            work_payload.pop(existing_key, None)
         work_payload[bucket_key] = bucket
 
         sanitized = await WorkflowDraftAccess.sanitize_work_container_payload(system_pool, work_payload)

@@ -558,10 +558,9 @@ class WorkflowDraftService:
                     bucket_name = key_norm.upper()
                     if bucket_name not in draft_db:
                         raise ValueError(f"Nicht definierte DRAFT_DB-Gruppe: {bucket_name}")
-                    bucket_existing = draft_db.get(bucket_name) if isinstance(draft_db.get(bucket_name), dict) else {}
-                    bucket_existing = dict(bucket_existing)
-                    bucket_existing.update(dict(value))
-                    draft_db[bucket_name] = bucket_existing
+                    # Harte Regel: Der uebergebene Bucket ist die komplette Wahrheit.
+                    # Kein Merge, damit geloeschte/obsolet gewordene Records wirklich verschwinden.
+                    draft_db[bucket_name] = dict(value)
             else:
                 raise ValueError("item_type nicht erlaubt (erlaubt: setup, state, work/container)")
 

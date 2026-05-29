@@ -343,6 +343,7 @@ export interface WorkflowDraftUpsertTableRecordRequest {
   record_uid?: string | null
   payload: Record<string, any>
   draft_table?: string | null
+  single_record?: boolean
 }
 
 export interface WorkflowDraftUpsertTableRecordResponse {

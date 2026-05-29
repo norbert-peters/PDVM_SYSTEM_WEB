@@ -3099,6 +3099,7 @@ export default function PdvmDialogPage() {
         record_uid: recordUid,
         payload: source,
         draft_table: workflowDraftTableOptions.draft_table || null,
+        single_record: true,
       },
     )
 

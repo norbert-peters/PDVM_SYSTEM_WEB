@@ -51,6 +51,7 @@ class UpsertDraftTableRecordRequest(BaseModel):
     record_uid: Optional[str] = Field(default=None)
     payload: Dict[str, Any] = Field(default_factory=dict)
     draft_table: Optional[str] = Field(default=None)
+    single_record: Optional[bool] = Field(default=False)
 
 
 async def get_gcs_instance(current_user: dict = Depends(get_current_user)):
@@ -394,6 +395,7 @@ async def ensure_draft_step(
                 workflow_name=workflow_name,
                 workflow_type=workflow_type,
                 target_table=target_table,
+                single_record=True,
             )
             bucket_name = _normalize_bucket_name(tab_table)
             created[bucket_name] = uid_value
@@ -406,6 +408,7 @@ async def ensure_draft_step(
                     workflow_name=workflow_name,
                     workflow_type=workflow_type,
                     target_table=target_table,
+                    single_record=True,
                 )
                 created["SYS_DIALOGDATEN"] = dialog_uid
 
@@ -417,6 +420,7 @@ async def ensure_draft_step(
                     workflow_name=workflow_name,
                     workflow_type=workflow_type,
                     target_table=target_table,
+                    single_record=True,
                 )
                 created["SYS_VIEWDATEN"] = view_uid
 
@@ -428,6 +432,7 @@ async def ensure_draft_step(
                     workflow_name=workflow_name,
                     workflow_type=workflow_type,
                     target_table=target_table,
+                    single_record=True,
                 )
                 created["SYS_FRAMEDATEN"] = frame_uid
 
@@ -514,6 +519,7 @@ async def upsert_draft_table_record(
             payload=payload.payload,
             updated_by_user_guid=user_guid,
             draft_table=draft_table_norm,
+            single_record=bool(payload.single_record),
         )
         return {
             "success": True,
