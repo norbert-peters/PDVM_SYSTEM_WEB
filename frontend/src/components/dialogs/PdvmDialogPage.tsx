@@ -3086,12 +3086,11 @@ export default function PdvmDialogPage() {
 
     const source = asObject((picDraft ? picDraft : currentDaten) || {})
     if (!Object.keys(source).length) return draftGuid
-    const root = asObject(source.ROOT)
-    const selectedCandidate = String(selectedUid || '').trim()
-    const rootUid = String(root.SELF_GUID || '').trim()
+
+    // Tab-erzeugte Tabellen führen genau einen Datensatz.
     const existingRecords = await loadWorkflowRecordsByTable(draftGuid, tableName)
     const existingUid = Object.keys(existingRecords)[0] || ''
-    const recordUid = [rootUid, selectedCandidate, existingUid].find((x) => isUuidString(String(x || '').trim())) || crypto.randomUUID()
+    const recordUid = isUuidString(String(existingUid || '').trim()) ? existingUid : crypto.randomUUID()
 
     await workflowDraftsAPI.upsertTableRecord(
       draftGuid,
@@ -3140,7 +3139,14 @@ export default function PdvmDialogPage() {
     if (!tableName) return
 
     const records = await loadWorkflowRecordsByTable(workflowDraftGuid, tableName)
-    if (!Object.keys(records).length) return
+    if (!Object.keys(records).length) {
+      // Setup-Tab darf nicht "leer" wirken: wenn noch kein Tabellen-Record existiert,
+      // Setup aus _META anzeigen.
+      if (Number(activeTab || 0) === Number(workflowSetupTabIndex || 2)) {
+        await loadWorkflowSetup()
+      }
+      return
+    }
 
     const preferred = String(selectedUid || '').trim()
     const pickedUid = (preferred && records[preferred] ? preferred : Object.keys(records)[0]) || ''
@@ -3148,6 +3154,9 @@ export default function PdvmDialogPage() {
     if (!Object.keys(picked).length) return
 
     setPicDraft(picked)
+    if (isUuidString(String(pickedUid || '').trim())) {
+      setSelectedUid(String(pickedUid).trim())
+    }
     setPicDirty(false)
   }
 
@@ -3208,6 +3217,9 @@ export default function PdvmDialogPage() {
         return
       }
       if (token.includes('save') || token.includes('build')) {
+        if (activeModuleType === 'edit') {
+          await saveWorkflowEditSnapshot()
+        }
         await saveWorkflowSetup()
         return
       }
