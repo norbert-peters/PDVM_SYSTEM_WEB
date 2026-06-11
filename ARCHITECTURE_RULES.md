@@ -58,6 +58,19 @@ Hinweis zur Migration:
 *   ✅ **PFLICHT:** Frontend scoped React-Query Keys und API-Calls identisch (immer `table` + `edit_type` mitsenden).
 *   Konvention: Standalone-View nutzt `edit_type=view`; Embedded-View im Dialog nutzt `edit_type = sys_dialogdaten.ROOT.EDIT_TYPE`.
 
+### 1.4a View-Pipeline Source of Truth (Controls)
+**Regel:** Sichtbare Controls in der View werden primär aus dem aktuellen Matrix-Response der Server-Pipeline aufgebaut.
+
+*   ✅ **PFLICHT:** Frontend nutzt `POST /api/views/{view_guid}/matrix -> controls_effective` als Laufzeit-Quelle fuer Spalten/Labels/Typen.
+*   ✅ **PFLICHT:** Bei Umschalten von Gruppierung/Filter/Sortierung wird die Anzeige immer aus dem aktuellen Matrix-Stand neu aufgebaut (kein statischer Cache als Hauptquelle).
+*   ✅ **PFLICHT:** Lokale Draft-Werte (`show`, `display_order`, `width`) duerfen nur als Overlay auf den Matrix-Stand wirken.
+*   ✅ **PFLICHT:** Ein deaktiviertes Grouping darf keine Row-Collapse-Informationen mehr anwenden.
+*   ❌ **VERBOTEN:** Controls dauerhaft nur aus einem veralteten State-Objekt zu rendern, wenn ein aktuelles Matrix-Resultat vorliegt.
+
+Begruendung:
+- Die lineare Pipeline (BASIS -> FILTER -> SORT -> GROUP -> PROJECT) ist die fachliche Quelle.
+- Nur so bleiben Header, Typen (z. B. `dropdown`) und Zellauflösung (z. B. Uebersetzungen wie `Anrede`) beim Wechsel zwischen GROUP on/off konsistent.
+
 ### 1.5 SYSTEM-Gruppe = Tabellen-Spalten
 **Regel:** Controls mit `gruppe=SYSTEM` sind **Spaltenfelder** der Tabelle.
 
@@ -96,6 +109,20 @@ Dann sollen alle Dialoge auf den zuletzt ausgewählten Datensatz springen.
 - Sonderfälle (z.B. `sys_benutzer`) dürfen Zusatzfunktionen haben, müssen aber **primär**
 	`PdvmDatabase` nutzen und nur für Spezialspalten auf Auth‑Queries ausweichen.
 
+### 1.7a Verbindliche Praefix-Routing-Regeln
+**Regel:** Der Datenbanktyp wird ausschließlich aus dem Tabellenpraefix bis zum ersten `_` ermittelt.
+
+- `asy_*` -> AUTH-DB
+- `sys_*` -> System-DB (`pdvm_system`)
+- `dev_*` -> System-DB (`pdvm_system`) als explizite Entwicklungs-Ausnahme
+- `msy_*` -> Mandanten-DB (systemnahe Mandanten-Tabellen)
+- `<app>_*` -> Mandanten-DB (applikationsspezifische Tabellen, z. B. `crm_*`, `pps_*`)
+
+Pflicht:
+- Tabellen **ohne** `_` (also ohne Praefix) sind ungueltig.
+- Auf AUTH-DB sind nur `asy_*`-Tabellen zulaessig.
+- Auf System-DB sind nur `sys_*`-Tabellen zulaessig.
+
 ### 1.8 Session Idle Timeout (Mandant ROOT)
 **Regel:** Idle‑Timeout wird zentral über Mandant‑Daten gesteuert.
 
@@ -128,6 +155,28 @@ Verbindliche Umwandlung:
 - `name`/`SELF_NAME` folgen immer `<TABELLENPREFIX>_<FIELD>` in GROSSBUCHSTABEN (z. B. `SYS_LABEL`).
 - Neuanlage erfolgt ausschliesslich ueber den regulären Neuanlage-Flow (keine Template-Direktkopien als Fachdaten).
 
+### 1.10a Muttercontrol-Regel fuer `sys_control_dict` (starr)
+**Regel:** `sys_control_dict` mit UID `66666666-6666-6666-6666-666666666666` ist das verbindliche Muttercontrol unter `daten.CONTROL`.
+
+- `daten.CONTROL` des 666-Satzes ist die einzige kanonische Quelle fuer erlaubte Control-Eigenschaften.
+- Eigenschaftsvergleiche fuer Freigabe/Validierung erfolgen **case-insensitive**.
+- Die kanonische Schreibweise im Muttercontrol ist **GROSSBUCHSTABEN**.
+- Eigenschaften, die in `sys_framedaten` (`daten.FIELDS.*`) oder `sys_viewdaten` (`daten.SYSTEM.*`) genutzt werden, duerfen nur dann als Control-Eigenschaft gelten, wenn sie im Muttercontrol aufgenommen und freigegeben wurden.
+- Neue Eigenschaften werden zuerst im Muttercontrol dokumentiert und erst danach in Runtime-/Migrationslogik verwendet.
+- Erweiterungen in `CONTROL.CONFIGS` folgen demselben Freigabeprozess (keine stillen Ad-hoc-Keys in Produktionsdaten).
+
+### 1.10b Frame-Layout-Override auf FIELDS (TAB/DISPLAY_ORDER)
+**Regel:** In `sys_framedaten.daten.FIELDS` bleibt `sys_control_dict` die fachliche Quelle fuer Controls; reine Layout-Attribute duerfen pro Frame uebersteuert werden.
+
+- ✅ **PFLICHT:** Control-Semantik (`TYPE`, `LABEL`, `GRUPPE`, `FELD`, `CONFIGS`, usw.) kommt aus `sys_control_dict`.
+- ✅ **PFLICHT:** Frame darf Layout-Parameter je Feld setzen, insbesondere `TAB` und `DISPLAY_ORDER` (sowie `SOURCE_PATH` wenn benoetigt).
+- ✅ **PFLICHT:** Runtime-Merge muss diese Layout-Parameter erhalten, damit mehrtabbige Frames stabil gerendert werden.
+- ❌ **VERBOTEN:** Unbekannte freie Zusatz-Properties in `FIELDS.*` als fachliche Overrides zu akzeptieren.
+
+Begruendung:
+- Frames brauchen eine eigene visuelle Ordnung, ohne die zentrale Control-Definition zu duplizieren.
+- Ohne erlaubtes `TAB`-Override landen Felder implizit in Tab 1 und die Frame-Darstellung wird inkonsistent.
+
 ### 1.11 Schutz von Basis-/Template-GUIDs (maschinenfest)
 **Regel:** Reservierte Basis-/Template-Datensaetze duerfen durch Migrationen nicht geaendert werden.
 
@@ -150,19 +199,76 @@ Pflicht:
 - Diese drei UIDs sind reserviert und dürfen nicht als normale Fachdaten verwendet werden.
 - Seeder/Migrationen müssen Existenz und Struktur dieser Basissätze prüfen.
 
+### 1.12a 666 Template-Gruppenregel (TEMPLATES)
+**Regel:** Template-Definitionen im 666-Satz liegen unter der Gruppe `TEMPLATES`.
+
+Verbindliche Struktur:
+- `daten.ROOT` enthaelt den Basissatz fuer Neuanlagen.
+- `daten.TEMPLATES` enthaelt Template-Container/Varianten.
+- Wenn `TABLE_INFO` als Template-Metadaten genutzt wird, dann ausschliesslich unter `daten.TEMPLATES.TABLE_INFO`.
+- `daten.TABLE_INFO` im 666-Satz ist ungueltig.
+
+Verboten:
+- `TABLE_INFO` als fachliches Feld in normalen Datensaetzen (nicht reservierte UIDs).
+- Gemischte Ablagepfade pro Tabelle ohne dokumentierte Ausnahme.
+
+### 1.12b ROOT/TABLE_INFO Vereinheitlichung (verbindlich)
+**Regel:** Die Datenstruktur bleibt flach und einheitlich; ROOT und TABLE_INFO haben strikt getrennte Verantwortlichkeiten.
+
+Kanonische ROOT-Kernfelder (tabellenweit):
+- `SELF_GUID`
+- `SELF_NAME`
+- `SELF_LINK_UID`
+- `SELF_CREATED_AT`
+- `SELF_MODIFIED_AT`
+- `SELF_GILT_BIS`
+- `TABLE`
+
+Kanonische TABLE_INFO-Felder (Template-Metadaten):
+- `version`
+- `description`
+- `created_at`
+- `created_by`
+- `schema_migrated`
+
+Abgrenzung:
+- ROOT enthaelt Datensatzidentitaet und Laufzeit/Fachzustand.
+- TABLE_INFO enthaelt Tabellen-/Template-Metadaten.
+- ROOT-Felder werden nicht nach TABLE_INFO verschoben.
+
+Namenskonflikte/Alias-Verbot:
+- Doppelte Semantik mit unterschiedlichen Feldnamen ist unzulaessig.
+- Bei Konflikten ist genau ein kanonischer Feldname festzulegen und zu verwenden.
+
+### 1.12c Pflichtgrad und Fehlerbehandlung (verbindlich)
+**Regel:** TABLE_INFO ist als Template-Gruppe in der 666 verpflichtend, nicht als Pflichtgruppe in jedem Fachdaten-Satz.
+
+Pflichten:
+- Jede fachliche Tabelle mit 666-Basissatz fuehrt `daten.TEMPLATES.TABLE_INFO`.
+- Nicht-reservierte Datensaetze enthalten mindestens ROOT; TABLE_INFO in Fachdaten ist optional und standardmaessig nicht vorgesehen.
+
+Fehlerklassifikation (bei Audit-Abweichungen):
+- **Datenfix:** Bestehende Datensaetze weichen von 666-Struktur oder kanonischen Feldnamen ab.
+- **Programmfix:** Create/Update/Clone/Import-Logik erzeugt erneut Abweichungen oder schreibt ungueltige Pfade.
+- Bei jeder Abweichung sind beide Ebenen zu pruefen; Datenfix ohne Programmfix gilt als unvollstaendig.
+
 ### 1.13 Einheitlicher Neuanlage-Algorithmus (tabellenweit)
-**Regel:** Neuanlage erfolgt immer aus dem 666-Basissatz derselben Tabelle.
+**Regel:** Neuanlage erfolgt linear und zentral in genau einem Algorithmus.
+
+Ausnahme:
+- `asy_benutzer` behaelt den bestehenden Sonderpfad.
 
 Verbindlicher Ablauf:
 1. Name ermitteln/abfragen (Pflicht).
 2. Neue GUID erzeugen.
-3. Daten aus UID `666...` laden und tief kopieren.
-4. `ROOT.SELF_GUID` auf neue GUID setzen.
-5. `ROOT.SELF_NAME` und SQL-Spalte `name` setzen.
-6. Datensatz speichern (direkt oder innerhalb eines Draft-Containers).
+3. Daten aus UID `555...` derselben Tabelle als Basis laden und tief kopieren.
+4. `ROOT`-Eigenschaften des neuen Satzes setzen (`SELF_GUID`, `SELF_NAME`, `TABLE`, optionale Create-Context-Werte).
+5. Fuer jede leere Gruppe der 555-Basis gleichnamige Vorlage in `666...(TEMPLATE|TEMPLATES)` suchen und uebernehmen.
+6. Wenn eine leere 555-Gruppe keine gleichnamige Vorlage in `666...(TEMPLATE|TEMPLATES)` hat: Fehler.
+7. Datensatz speichern (direkt oder innerhalb eines Draft-Containers).
 
 Verboten:
-- Tabellen-/Feature-spezifische Sonder-Neuanlagen, die den 666-Flow umgehen.
+- Tabellen-/Feature-spezifische Sonder-Neuanlagen ausser der expliziten Ausnahme `asy_benutzer`.
 - Parallele zweite Neuanlage-Logik mit abweichender Basiserzeugung.
 
 ### 1.14 UID-, LINK_UID- und ROOT-SYSTEM-Felder
@@ -346,7 +452,7 @@ Siehe Spezifikation: `docs/specs/PDVM_DIALOG_MODAL_SPEC.md`.
 - **Neuanlage** ist eine **Dialog-/Tabellenfunktion**, nicht Edit-Type abhängig.
 - „Neuer Satz“ gehört in den **View-Tab** (Anzeige der Tabelle), **nicht** in den Edit-Tab.
 - Der Edit-Tab zeigt **nur** Speichern/Änderungen (keine Neuanlage).
-- Der neue Datensatz wird **aus Template UID `66666666-6666-6666-6666-666666666666`** erstellt und anschließend in der View sichtbar.
+- Der neue Datensatz wird ueber den zentralen linearen Algorithmus erstellt (555-Basis + Auffuellen aus 666 TEMPLATE/TEMPLATES), danach in der View sichtbar.
 - View/Tabellenanzeige und Edit-Formular bleiben unabhängig (keine Vermischung von Zuständigkeiten).
 
 ### 2.5a Linearer Draft-Flow bei Neuanlage

@@ -1,14 +1,14 @@
-"""Dialog Service
+﻿"""Dialog Service
 
 Architekturregel: keine SQL in Routern.
 Dieses Modul kapselt Zugriff auf sys_dialogdaten / sys_framedaten und stellt
-Hilfsfunktionen für den ersten Dialog-MVP bereit.
+Hilfsfunktionen fÃ¼r den ersten Dialog-MVP bereit.
 
 MVP (Phase 0):
 - DialogDefinition laden (sys_dialogdaten)
 - FrameDefinition laden (sys_framedaten)
 - Dialog-View: Root-Tabelle nur mit Systemspalten uid + name
-- Dialog-Edit: show_json -> liefert vollständigen Datensatz (daten JSON)
+- Dialog-Edit: show_json -> liefert vollstÃ¤ndigen Datensatz (daten JSON)
 """
 
 from __future__ import annotations
@@ -21,6 +21,10 @@ import json
 from typing import Any, Dict, List, Optional
 
 from app.core.pdvm_datenbank import PdvmDatabase
+from app.core.control_runtime_service import (
+    hydrate_runtime_control_by_uid,
+    merge_control_runtime_with_override,
+)
 from app.core.central_write_service import create_record_central, update_record_central
 from app.core.pdvm_central_datenbank import PdvmCentralDatabase
 from app.core.pdvm_central_benutzer import PdvmCentralBenutzer
@@ -34,62 +38,71 @@ _DRAFT_FAKE_GUID = "66666666-6666-6666-6666-666666666662"
 
 
 async def _resolve_groups_from_templates(
-    system_pool,
+    gcs,
     *,
-    daten_copy: Dict[str, Any],
+    root_table: str,
 ) -> Dict[str, Any]:
-    """Löst Top-Level-Gruppen über TEMPLATES der 555...-GUID auf.
+    """Linearer Neuanlage-Algorithmus fuer alle Tabellen ausser asy_benutzer.
 
-     Linearer Ablauf:
-     1) 666...-Datensatz als Basis übernehmen
-     2) 555...-Template laden
-     3) Für jede Basis-Gruppe (außer ROOT/TEMPLATES/ELEMENTS) in
-         555...daten.TEMPLATES nach passender Gruppe suchen
-     4) Merge: Template-Defaults + Basis-Override
+    Ablauf:
+    1) Basis immer aus UID 555 derselben Tabelle
+    2) ROOT wird spaeter zentral ueber _apply_root_identity gesetzt
+    3) Leere Gruppen der 555-Basis werden aus 666.(TEMPLATE|TEMPLATES) aufgefuellt
+    4) Fehlt die gleichnamige Gruppe in 666 TEMPLATE, wird ein Fehler geworfen
     """
-    if not isinstance(daten_copy, dict):
-        return daten_copy
+    if str(root_table or "").strip().lower() == "asy_benutzer":
+        return {}
 
-    db = PdvmDatabase("sys_control_dict", system_pool=system_pool, mandant_pool=None)
-    modul_template_row = await db.get_by_uid(_MODUL_TEMPLATE_UID)
-    if not modul_template_row:
-        raise KeyError(f"Modul-Template nicht gefunden: {_MODUL_TEMPLATE_UID}")
+    _, basis_555_daten = await _load_template_row_and_daten(
+        gcs,
+        root_table=root_table,
+        template_uuid=_MODUL_TEMPLATE_UID,
+    )
+    _, basis_666_daten = await _load_template_row_and_daten(
+        gcs,
+        root_table=root_table,
+        template_uuid=_DEFAULT_TEMPLATE_UID,
+    )
 
-    modul_template_daten = modul_template_row.get("daten")
-    if isinstance(modul_template_daten, str):
-        modul_template_daten = json.loads(modul_template_daten)
-    if not isinstance(modul_template_daten, dict):
-        raise ValueError("Modul-Template 'daten' ist kein JSON-Objekt")
+    if not isinstance(basis_555_daten, dict):
+        raise ValueError("555-Basis 'daten' ist kein JSON-Objekt")
+    if not isinstance(basis_666_daten, dict):
+        raise ValueError("666-Basis 'daten' ist kein JSON-Objekt")
 
-    templates = modul_template_daten.get("TEMPLATES")
-    if not isinstance(templates, dict) or not templates:
-        return daten_copy
+    out = copy.deepcopy(basis_555_daten)
 
-    template_key_map = {str(k).strip().lower(): k for k in templates.keys() if str(k).strip()}
+    template_groups = basis_666_daten.get("TEMPLATE")
+    if not isinstance(template_groups, dict):
+        template_groups = basis_666_daten.get("TEMPLATES")
+    if not isinstance(template_groups, dict):
+        raise ValueError("666-Basis enthaelt keine Gruppe TEMPLATE/TEMPLATES")
 
-    out = copy.deepcopy(daten_copy)
-    for group_name in list(out.keys()):
+    template_key_map = {str(k).strip().lower(): k for k in template_groups.keys() if str(k).strip()}
+
+    for group_name, group_value in list(out.items()):
         group_norm = str(group_name or "").strip()
         if not group_norm:
             continue
-        if group_norm.upper() in {"ROOT", "TEMPLATES", "ELEMENTS"}:
+        if group_norm.upper() == "ROOT":
+            continue
+
+        is_empty_group = group_value is None or (isinstance(group_value, dict) and len(group_value) == 0)
+        if not is_empty_group:
             continue
 
         template_real_key = template_key_map.get(group_norm.lower())
         if template_real_key is None:
-            continue
+            raise ValueError(
+                f"Leere Gruppe '{group_norm}' in 555, aber keine Vorlage in 666 TEMPLATE/TEMPLATES"
+            )
 
-        template_group_value = templates.get(template_real_key)
+        template_group_value = template_groups.get(template_real_key)
         if not isinstance(template_group_value, dict):
-            continue
+            raise ValueError(
+                f"Vorlage fuer Gruppe '{group_norm}' in 666 TEMPLATE/TEMPLATES ist kein Objekt"
+            )
 
-        existing_group_value = out.get(group_name)
-        merged_group = copy.deepcopy(template_group_value)
-
-        if isinstance(existing_group_value, dict):
-            merged_group.update(existing_group_value)
-
-        out[group_name] = merged_group
+        out[group_name] = copy.deepcopy(template_group_value)
 
     return out
 
@@ -99,10 +112,10 @@ async def _resolve_named_group_lists_from_elements(
     *,
     daten_copy: Dict[str, Any],
 ) -> Dict[str, Any]:
-    """Fügt benannte Gruppenlisten aus 555...daten.ELEMENTS ein.
+    """FÃ¼gt benannte Gruppenlisten aus 555...daten.ELEMENTS ein.
 
     Ziel: Auf derselben Ebene (Top-Level) mehrere Gruppen wie
-    PER_PERSONEN, FIN_BASIS etc. linear hinzufügen.
+    PER_PERSONEN, FIN_BASIS etc. linear hinzufÃ¼gen.
 
     Datenmodell (555...daten.ELEMENTS):
     {
@@ -120,11 +133,11 @@ async def _resolve_named_group_lists_from_elements(
 
     Auswahlregel:
     - ROOT.GROUP_LISTS (Liste mit Namen) = explizite Auswahl
-    - sonst: alle Einträge mit AUTO_APPLY=true
+    - sonst: alle EintrÃ¤ge mit AUTO_APPLY=true
 
     Merge-Regel (linear):
     - GROUP_TEMPLATE als Default
-    - vorhandene Basiswerte der Zielgruppe überschreiben Defaults
+    - vorhandene Basiswerte der Zielgruppe Ã¼berschreiben Defaults
     """
     if not isinstance(daten_copy, dict):
         return daten_copy
@@ -190,7 +203,7 @@ async def _resolve_named_group_lists_from_elements(
 
 
 def _strip_template_meta_groups(daten_copy: Dict[str, Any]) -> Dict[str, Any]:
-    """Entfernt reine Template-Metagruppen aus instanziierten Datensätzen."""
+    """Entfernt reine Template-Metagruppen aus instanziierten DatensÃ¤tzen."""
     if not isinstance(daten_copy, dict):
         return daten_copy
 
@@ -201,10 +214,10 @@ def _strip_template_meta_groups(daten_copy: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _apply_root_identity(root: Dict[str, Any], *, self_guid: str, self_name: str, root_patch: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-    """Appliziert ROOT-Patch ohne SELF_GUID/SELF_NAME zu überschreiben.
+    """Appliziert ROOT-Patch ohne SELF_GUID/SELF_NAME zu Ã¼berschreiben.
 
-    Regel für Neuer-Satz: nur bereits vorhandene ROOT-Felder dürfen überschrieben
-    werden (keine neuen ROOT-Keys aus root_patch einführen).
+    Regel fÃ¼r Neuer-Satz: nur bereits vorhandene ROOT-Felder dÃ¼rfen Ã¼berschrieben
+    werden (keine neuen ROOT-Keys aus root_patch einfÃ¼hren).
     """
     out = dict(root or {})
 
@@ -295,26 +308,43 @@ async def _resolve_control_effective_data(system_pool, *, control_data: Dict[str
 
     has_root = isinstance(control_data.get("ROOT"), dict)
     has_control = isinstance(control_data.get("CONTROL"), dict)
+    templates = control_data.get("TEMPLATES") if isinstance(control_data.get("TEMPLATES"), dict) else {}
+    has_template_control = isinstance(templates.get("CONTROL"), dict)
     root_in = control_data.get("ROOT") if has_root else {}
     control_in = control_data.get("CONTROL") if has_control else {}
-    if has_root or has_control:
+    if not control_in and has_template_control:
+        control_in = templates.get("CONTROL") or {}
+
+    # Legacy/Fallback: flache CONTROL-Keys ohne Wrapper auf Top-Level.
+    if not control_in and not has_root and not has_control and not has_template_control:
+        flat = dict(control_data)
+        flat.pop("ROOT", None)
+        flat.pop("CONTROL", None)
+        flat.pop("TEMPLATES", None)
+        if flat:
+            control_in = flat
+
+    control_signature_keys = {"FIELD", "FELD", "TYPE", "LABEL", "GRUPPE", "TABLE", "CONFIGS"}
+    is_control_like = isinstance(control_in, dict) and any(
+        str(k or "").strip().upper() in control_signature_keys for k in control_in.keys()
+    )
+
+    if has_control or has_template_control or is_control_like:
         base = await _load_control_base_template(system_pool)
         base_root = base.get("ROOT") if isinstance(base.get("ROOT"), dict) else {}
         base_control = base.get("CONTROL") if isinstance(base.get("CONTROL"), dict) else {}
 
-        out = copy.deepcopy(control_data)
-
         merged_root = copy.deepcopy(base_root)
         if isinstance(root_in, dict):
             merged_root.update(root_in)
-        out["ROOT"] = merged_root
 
         merged_control = copy.deepcopy(base_control)
         if isinstance(control_in, dict):
             merged_control.update(control_in)
-        out["CONTROL"] = merged_control
-
-        return out
+        return {
+            "ROOT": merged_root,
+            "CONTROL": merged_control,
+        }
 
     modul_type = str(control_data.get("modul_type") or "").strip().lower()
     if not modul_type:
@@ -333,6 +363,42 @@ async def _normalize_control_data_for_storage(system_pool, *, control_data: Dict
     if not isinstance(control_data, dict):
         return {}
 
+    has_root = isinstance(control_data.get("ROOT"), dict)
+    has_control = isinstance(control_data.get("CONTROL"), dict)
+    templates = control_data.get("TEMPLATES") if isinstance(control_data.get("TEMPLATES"), dict) else {}
+    has_template_control = isinstance(templates.get("CONTROL"), dict)
+
+    control_candidate = control_data.get("CONTROL") if has_control else {}
+    if (not isinstance(control_candidate, dict) or not control_candidate) and has_template_control:
+        control_candidate = templates.get("CONTROL")
+    control_candidate = _as_object(control_candidate)
+
+    control_signature_keys = {"FIELD", "FELD", "TYPE", "LABEL", "GRUPPE", "TABLE", "CONFIGS"}
+    is_control_like = any(str(k or "").strip().upper() in control_signature_keys for k in control_candidate.keys())
+
+    if has_control or has_template_control or is_control_like:
+        base = await _load_control_base_template(system_pool)
+        base_root = base.get("ROOT") if isinstance(base.get("ROOT"), dict) else {}
+        base_control = base.get("CONTROL") if isinstance(base.get("CONTROL"), dict) else {}
+
+        root_in = control_data.get("ROOT") if has_root else {}
+        control_in = control_data.get("CONTROL") if has_control else {}
+        if not isinstance(control_in, dict) or not control_in:
+            control_in = templates.get("CONTROL") if has_template_control else {}
+
+        merged_root = copy.deepcopy(base_root)
+        if isinstance(root_in, dict):
+            merged_root.update(root_in)
+
+        merged_control = copy.deepcopy(base_control)
+        if isinstance(control_in, dict):
+            merged_control.update(control_in)
+
+        return {
+            "ROOT": merged_root,
+            "CONTROL": merged_control,
+        }
+
     modul_type = str(control_data.get("modul_type") or "").strip().lower()
     if not modul_type:
         return dict(control_data)
@@ -344,6 +410,33 @@ async def _normalize_control_data_for_storage(system_pool, *, control_data: Dict
     overrides = _compute_overrides_from_defaults(control_data, defaults)
     overrides["modul_type"] = modul_type
     return overrides
+
+
+async def _normalize_new_record_daten_unified(gcs, *, daten: Dict[str, Any]) -> Dict[str, Any]:
+    """Einheitliche Normalisierung für Neuanlage-Datensätze (tabellenunabhängig)."""
+    out = _as_object(daten)
+
+    # 1) Control-Payloads kanonisieren (ROOT + CONTROL), falls control-artig.
+    out = await _normalize_control_data_for_storage(
+        gcs._system_pool,
+        control_data=_as_object(out),
+    )
+
+    # 2) Frame-FIELDS normalisieren (nur wenn FIELDS-Struktur vorhanden).
+    out = await _normalize_frame_fields_for_storage(
+        gcs,
+        daten=_as_object(out),
+    )
+
+    # 3) Dialog-TAB_ELEMENTS kanonisieren (nur wenn entsprechende Struktur vorhanden).
+    out = _normalize_sys_dialog_tab_elements_for_storage(
+        daten=_as_object(out),
+    )
+
+    # 4) Template-Metagruppen duerfen in instanziierten Datensaetzen nicht persistiert werden.
+    out = _strip_template_meta_groups(_as_object(out))
+
+    return out
 
 
 async def _normalize_frame_fields_for_storage(gcs, *, daten: Dict[str, Any]) -> Dict[str, Any]:
@@ -362,14 +455,15 @@ async def _normalize_frame_fields_for_storage(gcs, *, daten: Dict[str, Any]) -> 
         base_guid = dict_ref if dict_ref else key
 
         if _is_guid(base_guid):
-            base_row = await PdvmDatabase.load_control_definition(
-                uuid.UUID(str(base_guid)),
+            base_runtime = await hydrate_runtime_control_by_uid(
+                str(base_guid),
+                override=None,
                 system_pool=gcs._system_pool,
                 mandant_pool=gcs._mandant_pool,
             )
-            base_data = _as_object(base_row.get("daten")) if base_row else {}
-            if base_data:
-                overrides = _compute_overrides_from_defaults(item, base_data)
+            if base_runtime:
+                merged_effective = merge_control_runtime_with_override(base_runtime, item)
+                overrides = _compute_overrides_from_defaults(merged_effective, base_runtime)
                 if dict_ref:
                     overrides["dict_ref"] = str(dict_ref)
                 normalized_fields[key] = overrides
@@ -381,15 +475,117 @@ async def _normalize_frame_fields_for_storage(gcs, *, daten: Dict[str, Any]) -> 
     return out
 
 
+def _normalize_sys_dialog_tab_elements_for_storage(*, daten: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalisiert sys_dialogdaten ROOT.TAB_ELEMENTS in ein kanonisches TAB_XX-Format.
+
+    Regeln:
+    - akzeptiert dict oder list als Eingabe
+    - schreibt immer ROOT.TAB_ELEMENTS als dict mit TAB_01..TAB_NN
+    - setzt TAB numerisch fortlaufend
+    - ergÃ¤nzt fehlende Felder per Root-Defaults (TABLE/EDIT_TYPE/OPEN_EDIT/SELECTION_MODE)
+    - entfernt Legacy ROOT.TAB_XX-BlÃ¶cke
+    """
+    if not isinstance(daten, dict):
+        return daten
+
+    out = dict(daten)
+    root = _as_object(out.get("ROOT"))
+    if not root:
+        return out
+
+    tab_elements_raw = root.get("TAB_ELEMENTS")
+
+    extracted: Dict[int, Dict[str, Any]] = {}
+    if isinstance(tab_elements_raw, dict):
+        for key, value in tab_elements_raw.items():
+            row = _as_object(value)
+            if not row:
+                continue
+            idx_raw = row.get("TAB") if row.get("TAB") is not None else row.get("index")
+            idx: Optional[int] = None
+            if idx_raw is not None:
+                try:
+                    idx = int(idx_raw)
+                except Exception:
+                    idx = None
+            if idx is None:
+                key_norm = str(key or "").strip().upper()
+                if key_norm.startswith("TAB_"):
+                    try:
+                        idx = int(key_norm.split("_", 1)[1])
+                    except Exception:
+                        idx = None
+            if idx is None or idx <= 0:
+                idx = len(extracted) + 1
+            extracted[idx] = row
+    elif isinstance(tab_elements_raw, list):
+        for pos, value in enumerate(tab_elements_raw, start=1):
+            row = _as_object(value)
+            if not row:
+                continue
+            idx_raw = row.get("TAB") if row.get("TAB") is not None else row.get("index")
+            try:
+                idx = int(idx_raw) if idx_raw is not None else pos
+            except Exception:
+                idx = pos
+            if idx <= 0:
+                idx = pos
+            extracted[idx] = row
+
+    if not extracted and isinstance(tab_elements_raw, dict):
+        root["TAB_ELEMENTS"] = {}
+        out["ROOT"] = root
+        return out
+
+    root_table_default = str(root.get("TABLE") or "").strip()
+    root_edit_type_default = str(root.get("EDIT_TYPE") or "").strip()
+    root_open_edit_default = str(root.get("OPEN_EDIT") or "").strip()
+    root_selection_mode_default = str(root.get("SELECTION_MODE") or "").strip()
+
+    normalized: Dict[str, Dict[str, Any]] = {}
+    for pos, idx in enumerate(sorted(extracted.keys()), start=1):
+        row = dict(extracted[idx])
+
+        normalized_row: Dict[str, Any] = {
+            "TAB": pos,
+            "GUID": str(row.get("GUID") or row.get("guid") or "").strip(),
+            "HEAD": str(row.get("HEAD") or row.get("head") or "").strip(),
+            "TABLE": str(row.get("TABLE") or row.get("table") or root_table_default).strip(),
+            "MODULE": str(row.get("MODULE") or row.get("module") or "").strip(),
+            "EDIT_TYPE": str(row.get("EDIT_TYPE") or row.get("edit_type") or root_edit_type_default).strip(),
+            "OPEN_EDIT": str(row.get("OPEN_EDIT") or row.get("open_edit") or root_open_edit_default).strip(),
+            "SELECTION_MODE": str(row.get("SELECTION_MODE") or row.get("selection_mode") or root_selection_mode_default).strip(),
+        }
+
+        for key, value in row.items():
+            key_up = str(key or "").strip().upper()
+            if key_up in normalized_row:
+                continue
+            normalized_row[str(key)] = value
+
+        normalized[f"TAB_{pos:02d}"] = normalized_row
+
+    root["TAB_ELEMENTS"] = normalized
+    root["TABS"] = len(normalized)
+
+    for i in range(1, 21):
+        legacy_key = f"TAB_{i:02d}"
+        if legacy_key in root and legacy_key != "TAB_ELEMENTS":
+            del root[legacy_key]
+
+    out["ROOT"] = root
+    return out
+
+
 class ModulSelectionRequiredException(Exception):
     """Exception wenn Modul-Auswahl erforderlich ist aber fehlt"""
     def __init__(self, modul_group_key: str, available_moduls: List[str]):
         self.modul_group_key = modul_group_key
         self.available_moduls = available_moduls
         super().__init__(
-            f"Template enthält Gruppe 'MODUL' in '{modul_group_key}', "
-            f"aber modul_type wurde nicht übergeben. "
-            f"Verfügbare Module: {available_moduls}"
+            f"Template enthÃ¤lt Gruppe 'MODUL' in '{modul_group_key}', "
+            f"aber modul_type wurde nicht Ã¼bergeben. "
+            f"VerfÃ¼gbare Module: {available_moduls}"
         )
 
 
@@ -401,17 +597,17 @@ async def _resolve_modul_template(
 ) -> Dict[str, Any]:
     """GENERISCHE MODUL-TEMPLATE-MERGE-FUNKTION
     
-        Prüft ob im Template eine Gruppe "MODUL" existiert.
+        PrÃ¼ft ob im Template eine Gruppe "MODUL" existiert.
         Wenn ja:
-            1. Wenn modul_type gegeben → Merge mit Template 555555...MODUL[type]
-            2. Wenn modul_type fehlt → deterministische Standardauswahl (linearer Fallback)
+            1. Wenn modul_type gegeben â†’ Merge mit Template 555555...MODUL[type]
+            2. Wenn modul_type fehlt â†’ deterministische Standardauswahl (linearer Fallback)
     
-    Funktioniert für ALLE Tabellen (sys_control_dict, sys_framedaten, etc.)
+    Funktioniert fÃ¼r ALLE Tabellen (sys_control_dict, sys_framedaten, etc.)
     
     Args:
         system_pool: DB Pool
         daten_copy: Template-Daten (Deep Copy von 666666...)
-        modul_type: Gewählter Modul-Typ (z.B. "edit", "view", "tabs")
+        modul_type: GewÃ¤hlter Modul-Typ (z.B. "edit", "view", "tabs")
     
     Returns:
         Modified daten_copy mit MODUL-Gruppe ersetzt
@@ -419,7 +615,7 @@ async def _resolve_modul_template(
     Raises:
         ValueError: Wenn angeforderter Modul-Typ nicht existiert
     """
-    # 1. Prüfe: Gibt es eine Gruppe "MODUL" im Template?
+    # 1. PrÃ¼fe: Gibt es eine Gruppe "MODUL" im Template?
     has_modul = False
     modul_group_key = None
     
@@ -432,10 +628,10 @@ async def _resolve_modul_template(
             break
     
     if not has_modul:
-        # Kein MODUL → Normale Template-Copy ohne Merge
+        # Kein MODUL â†’ Normale Template-Copy ohne Merge
         return daten_copy
     
-    # 2. MODUL gefunden → Lade Template 555... um verfügbare Module zu kennen
+    # 2. MODUL gefunden â†’ Lade Template 555... um verfÃ¼gbare Module zu kennen
     db = PdvmDatabase("sys_control_dict", system_pool=system_pool, mandant_pool=None)
     modul_template_row = await db.get_by_uid(_MODUL_TEMPLATE_UID)
     
@@ -467,7 +663,7 @@ async def _resolve_modul_template(
                 break
         if selected is None:
             if not available_moduls:
-                raise ValueError("Modul-Template enthält keine MODUL-Einträge")
+                raise ValueError("Modul-Template enthÃ¤lt keine MODUL-EintrÃ¤ge")
             selected = available_moduls[0]
         modul_key = selected
         modul_type_norm = str(selected).strip().lower()
@@ -476,7 +672,7 @@ async def _resolve_modul_template(
             available = list(modul_section.keys())
             raise ValueError(
                 f"Modul-Typ '{modul_type_norm}' nicht gefunden in Template. "
-                f"Verfügbar: {available}"
+                f"VerfÃ¼gbar: {available}"
             )
         modul_key = available_moduls_map[modul_type_norm]
 
@@ -484,7 +680,7 @@ async def _resolve_modul_template(
         available = list(modul_section.keys())
         raise ValueError(
             f"Modul-Typ '{modul_key}' nicht gefunden in Template. "
-            f"Verfügbar: {available}"
+            f"VerfÃ¼gbar: {available}"
         )
 
     modul_data = modul_section[modul_key]
@@ -494,7 +690,7 @@ async def _resolve_modul_template(
     # 5. Ersetze komplette "MODUL"-Gruppe mit Template-Daten
     daten_copy[modul_group_key]["MODUL"] = copy.deepcopy(modul_data)
     
-    # 6. Setze MODUL_TYPE in ROOT (für spätere Referenz)
+    # 6. Setze MODUL_TYPE in ROOT (fÃ¼r spÃ¤tere Referenz)
     if "ROOT" not in daten_copy:
         daten_copy["ROOT"] = {}
     daten_copy["ROOT"]["MODUL_TYPE"] = modul_type_norm
@@ -568,6 +764,67 @@ def _as_object(value: Any) -> Dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
 
+def _as_text(value: Any) -> str:
+    if value is None:
+        return ""
+    return str(value).strip()
+
+
+def _tooltip_ref_from_item(item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    tooltip_raw = item.get("tooltip")
+    if isinstance(tooltip_raw, dict):
+        return tooltip_raw
+    tooltip_raw = item.get("TOOLTIP")
+    if isinstance(tooltip_raw, dict):
+        return tooltip_raw
+
+    configs = _as_object(item.get("configs"))
+    config_ref = configs.get("tooltips")
+    if isinstance(config_ref, dict):
+        return config_ref
+    return None
+
+
+async def _resolve_tooltip_text_from_ref(gcs, ref: Dict[str, Any]) -> Optional[str]:
+    table = _as_text(ref.get("table") or "sys_tooltipdaten").lower()
+    key = _as_text(ref.get("key"))
+    feld = _as_text(ref.get("feld"))
+    preferred_group = _as_text(ref.get("gruppe"))
+
+    if not table or not key or not feld or not _is_guid(key):
+        return None
+
+    db = PdvmDatabase(table, system_pool=gcs._system_pool, mandant_pool=gcs._mandant_pool)
+    row = await db.get_by_uid(uuid.UUID(key))
+    if not row:
+        return None
+
+    daten = _as_object(row.get("daten"))
+    root = _as_object(daten.get("ROOT"))
+    default_group = _as_text(root.get("DEFAULT_LANGUAGE") or "DE-DE")
+
+    groups_to_try: List[str] = []
+    for candidate in [preferred_group, default_group, "DE-DE", "EN-EN"]:
+        c = _as_text(candidate)
+        if c and c not in groups_to_try:
+            groups_to_try.append(c)
+
+    for group in groups_to_try:
+        group_data = _as_object(daten.get(group))
+        entry = group_data.get(feld)
+        if isinstance(entry, str):
+            text = entry.strip()
+            if text:
+                return text
+        if isinstance(entry, dict):
+            for k in ("text", "label", "tooltip", "value"):
+                text = _as_text(entry.get(k))
+                if text:
+                    return text
+
+    return None
+
+
 def _normalize_element_field_type(value: Any) -> str:
     t = str(value or '').strip().lower()
     if t in {'number', 'int', 'float'}:
@@ -625,19 +882,34 @@ async def _resolve_frame_fields(gcs, daten: Dict[str, Any], visited: Optional[se
         base_guid = dict_ref if dict_ref else key
 
         if _is_guid(base_guid):
-            base_uuid = uuid.UUID(str(base_guid))
-            base_row = await PdvmDatabase.load_control_definition(
-                base_uuid,
+            merged = await hydrate_runtime_control_by_uid(
+                str(base_guid),
+                override=item,
                 system_pool=gcs._system_pool,
                 mandant_pool=gcs._mandant_pool,
             )
-            base_data = _as_object(base_row.get("daten")) if base_row else {}
-            if base_data:
-                merged = {**base_data, **item}
+            if merged:
+                if dict_ref:
+                    merged["dict_ref"] = str(dict_ref)
                 merged_fields[key] = merged
                 continue
 
         merged_fields[key] = item
+
+    # Tooltip-Referenzen in Laufzeit-Tooltiptext umwandeln (Storage bleibt Referenz).
+    for key, value in list(merged_fields.items()):
+        item = _as_object(value)
+        ref = _tooltip_ref_from_item(item)
+        if not ref:
+            continue
+        text = await _resolve_tooltip_text_from_ref(gcs, ref)
+        if not text:
+            continue
+        next_item = dict(item)
+        next_item["TOOLTIP_REF"] = ref
+        next_item["tooltip"] = text
+        next_item["TOOLTIP"] = text
+        merged_fields[key] = next_item
 
     out = dict(daten)
     # Resolve element_list to a referenced frame when configured.
@@ -720,8 +992,8 @@ async def load_dialog_record(
     if not root_table:
         raise KeyError("ROOT.TABLE ist leer")
 
-    # sys_benutzer: Sonderfall mit zusätzlichen Spalten (email/benutzer/passwort)
-    if str(root_table).strip().lower() == "sys_benutzer":
+    # asy_benutzer: Sonderfall mit zusÃ¤tzlichen Spalten (email/benutzer/passwort)
+    if str(root_table).strip().lower() == "asy_benutzer":
         benutzer_mgr = PdvmCentralBenutzer(record_uuid)
         row = await benutzer_mgr.get_user()
         if not row:
@@ -759,7 +1031,7 @@ async def load_dialog_record(
     elif resolve_effective and table_norm == "sys_framedaten":
         daten = await _resolve_frame_fields(gcs, _as_object(daten))
 
-    # Einheitliches Payload für show_json
+    # Einheitliches Payload fÃ¼r show_json
     return {
         "uid": str(row.get("uid")),
         "name": row.get("name") or "",
@@ -779,7 +1051,7 @@ async def update_dialog_record_json(
 ) -> Dict[str, Any]:
     """Aktualisiert NUR das JSONB-Feld 'daten' eines Datensatzes.
 
-    Gedacht für edit_type='edit_json' (ähnlich PostgreSQL JSON Editor).
+    Gedacht fÃ¼r edit_type='edit_json' (Ã¤hnlich PostgreSQL JSON Editor).
     """
     if not root_table:
         raise KeyError("ROOT.TABLE ist leer")
@@ -804,8 +1076,12 @@ async def update_dialog_record_json(
             gcs,
             daten=_as_object(daten_to_store),
         )
+    elif table_norm == "sys_dialogdaten":
+        daten_to_store = _normalize_sys_dialog_tab_elements_for_storage(
+            daten=_as_object(daten_to_store),
+        )
 
-    # Name/historisch bleiben unverändert.
+    # Name/historisch bleiben unverÃ¤ndert.
     await update_record_central(
         table_name=root_table,
         uid=record_uuid,
@@ -830,12 +1106,12 @@ async def update_dialog_record_central(
     record_uuid: uuid.UUID,
     daten: Dict[str, Any],
 ) -> Dict[str, Any]:
-    """Aktualisiert Datensatz via PdvmCentralDatabase (Pflicht für edit_user).
+    """Aktualisiert Datensatz via PdvmCentralDatabase (Pflicht fÃ¼r edit_user).
 
     Regeln:
     - Werte werden per set_value(gruppe, feld) gesetzt
-    - SYSTEM-Gruppe ist für Tabellen-Spalten reserviert (Sonderfälle)
-    - sys_benutzer: Spalten email/benutzer werden zusätzlich synchronisiert
+    - SYSTEM-Gruppe ist fÃ¼r Tabellen-Spalten reserviert (SonderfÃ¤lle)
+    - asy_benutzer: Spalten email/benutzer werden zusÃ¤tzlich synchronisiert
     """
     if not root_table:
         raise KeyError("ROOT.TABLE ist leer")
@@ -922,15 +1198,15 @@ async def update_dialog_record_central(
 
     await central.save_all_values()
 
-    # sys_benutzer: Spalten-Sync (email/benutzer)
-    if str(root_table).strip().lower() == "sys_benutzer":
+    # asy_benutzer: Spalten-Sync (email/benutzer)
+    if str(root_table).strip().lower() == "asy_benutzer":
         benutzer_mgr = PdvmCentralBenutzer(record_uuid)
         benutzer_value = system_updates.get("BENUTZER")
         if benutzer_value is not None:
             await benutzer_mgr.update_benutzer(str(benutzer_value))
 
-    # SYSTEM-Gruppe: falls weitere Tabellen-Spalten unterstützt werden, hier ergänzen.
-    # Aktuell wird SYSTEM nur für sys_benutzer (email/benutzer) synchronisiert.
+    # SYSTEM-Gruppe: falls weitere Tabellen-Spalten unterstÃ¼tzt werden, hier ergÃ¤nzen.
+    # Aktuell wird SYSTEM nur fÃ¼r asy_benutzer (email/benutzer) synchronisiert.
 
     return await load_dialog_record(gcs, root_table=root_table, record_uuid=record_uuid)
 
@@ -943,13 +1219,13 @@ async def _load_template_row_and_daten(
 ) -> tuple[Dict[str, Any], Dict[str, Any]]:
     db = PdvmDatabase(root_table, system_pool=gcs._system_pool, mandant_pool=gcs._mandant_pool)
 
-    if str(root_table).strip().lower() == "sys_benutzer":
+    if str(root_table).strip().lower() == "asy_benutzer":
         pool = DatabasePool._pool_auth
         async with pool.acquire() as conn:
             template_row = await conn.fetchrow(
                 """
                 SELECT uid, benutzer, passwort, daten, name, historisch, sec_id
-                FROM sys_benutzer
+                FROM asy_benutzer
                 WHERE uid = $1
             """,
                 template_uuid,
@@ -1008,7 +1284,7 @@ def _collect_edit_control_hints(daten: Dict[str, Any]) -> List[Dict[str, Any]]:
                         "field": key_norm,
                         "code": "hint_missing_collection_type",
                         "message": (
-                            f"Property '{key_norm}' ist ein Objekt. Für edit_control sollte auf dieser Ebene "
+                            f"Property '{key_norm}' ist ein Objekt. FÃ¼r edit_control sollte auf dieser Ebene "
                             f"TYPE=element_list oder TYPE=group_list gesetzt sein."
                         ),
                     }
@@ -1026,7 +1302,7 @@ def _collect_edit_control_hints(daten: Dict[str, Any]) -> List[Dict[str, Any]]:
                             "field": key_norm,
                             "code": "hint_nested_collection_depth",
                             "message": (
-                                f"Property '{key_norm}.{child_key}' ist tiefer verschachtelt. Für edit_control "
+                                f"Property '{key_norm}.{child_key}' ist tiefer verschachtelt. FÃ¼r edit_control "
                                 f"sollte die Sammlung eine Ebene tiefer bleiben."
                             ),
                         }
@@ -1040,7 +1316,7 @@ def _collect_edit_control_hints(daten: Dict[str, Any]) -> List[Dict[str, Any]]:
                     "field": key_norm,
                     "code": "hint_missing_collection_type",
                     "message": (
-                        f"Property '{key_norm}' ist eine Liste. Für edit_control sollte diese Liste als "
+                        f"Property '{key_norm}' ist eine Liste. FÃ¼r edit_control sollte diese Liste als "
                         f"TYPE=element_list oder TYPE=group_list modelliert sein."
                     ),
                 }
@@ -1154,22 +1430,32 @@ async def build_dialog_draft_from_template(
     if not name_norm:
         raise ValueError("name ist leer")
 
-    template_row, template_daten = await _load_template_row_and_daten(
-        gcs,
-        root_table=root_table,
-        template_uuid=template_uuid,
-    )
-
-    daten_copy: Dict[str, Any] = copy.deepcopy(template_daten)
-
-    if resolve_templates:
-        # Neuer-Satz Standard-Algorithmus (linear):
-        # 1) 666... Basis kopieren
-        # 2) Für jede vorhandene Basis-Gruppe passendes 555...TEMPLATES-Group-Template mergen
-        daten_copy = await _resolve_groups_from_templates(
-            gcs._system_pool,
-            daten_copy=daten_copy,
+    if str(root_table).strip().lower() == "asy_benutzer":
+        template_row, template_daten = await _load_template_row_and_daten(
+            gcs,
+            root_table=root_table,
+            template_uuid=template_uuid,
         )
+        daten_copy: Dict[str, Any] = copy.deepcopy(template_daten)
+    else:
+        basis_row, _ = await _load_template_row_and_daten(
+            gcs,
+            root_table=root_table,
+            template_uuid=_MODUL_TEMPLATE_UID,
+        )
+        template_row = basis_row
+        if resolve_templates:
+            daten_copy = await _resolve_groups_from_templates(
+                gcs,
+                root_table=root_table,
+            )
+        else:
+            _, basis_daten = await _load_template_row_and_daten(
+                gcs,
+                root_table=root_table,
+                template_uuid=_MODUL_TEMPLATE_UID,
+            )
+            daten_copy = copy.deepcopy(basis_daten)
 
     root = daten_copy.get("ROOT")
     if not isinstance(root, dict):
@@ -1179,6 +1465,11 @@ async def build_dialog_draft_from_template(
         self_guid=_DRAFT_FAKE_GUID,
         self_name=name_norm,
         root_patch=root_patch,
+    )
+
+    daten_copy = await _normalize_new_record_daten_unified(
+        gcs,
+        daten=_as_object(daten_copy),
     )
 
     return {
@@ -1199,25 +1490,21 @@ async def create_dialog_record_from_template(
     modul_type: Optional[str] = None,
     resolve_templates: bool = True,
 ) -> Dict[str, Any]:
-    """Erstellt einen neuen Datensatz anhand eines Template-Datensatzes.
+    """Erstellt einen neuen Datensatz fuer den Dialog-Flow.
 
     Ziel: "Neuer Satz" im Dialog.
-    - Template ist ein fiktiver Datensatz (Default: 6666...)
-    - daten werden kopiert
+    - Tabellenweit: Basis aus 555, leere Gruppen aus 666.(TEMPLATE|TEMPLATES)
+    - Ausnahme: asy_benutzer nutzt den bestehenden Sonderpfad
     - ROOT.SELF_GUID und ROOT.SELF_NAME werden auf den neuen Datensatz gesetzt
-    - name-Spalte wird auf den übergebenen Namen gesetzt
-    
-    NEU: Generische MODUL-Template-Merge
-    - Wenn Template Gruppe "MODUL" enthält → modul_type MUSS gegeben sein
-    - MODUL-Gruppe wird durch Template aus 555555...MODUL[type] ersetzt
-    
+    - name-Spalte wird auf den Ã¼bergebenen Namen gesetzt
+
     Args:
         gcs: Global Control System
-        root_table: Tabelle für neuen Datensatz
+        root_table: Tabelle fÃ¼r neuen Datensatz
         name: Name des neuen Datensatzes
-        template_uuid: Template-GUID (default: 666666...)
+        template_uuid: Template-GUID fuer asy_benutzer (default: 666666...)
         root_patch: Optional ROOT-Patch
-        modul_type: Optional Modul-Typ für MODUL-Merge (z.B. "edit", "view", "tabs")
+        modul_type: Optional, aktuell ohne Wirkung
     """
     if not root_table:
         raise KeyError("ROOT.TABLE ist leer")
@@ -1227,7 +1514,6 @@ async def create_dialog_record_from_template(
         raise ValueError("name ist leer")
     name_value = name_norm
 
-    db = PdvmDatabase(root_table, system_pool=gcs._system_pool, mandant_pool=gcs._mandant_pool)
     template_row, template_daten = await _load_template_row_and_daten(
         gcs,
         root_table=root_table,
@@ -1236,16 +1522,27 @@ async def create_dialog_record_from_template(
 
     new_uuid = uuid.uuid4()
 
-    daten_copy: Dict[str, Any] = copy.deepcopy(template_daten)
-
-    if resolve_templates:
-        # Neuer-Satz Standard-Algorithmus (linear):
-        # 1) 666... Basis kopieren
-        # 2) Für jede vorhandene Basis-Gruppe passendes 555...TEMPLATES-Group-Template mergen
-        daten_copy = await _resolve_groups_from_templates(
-            gcs._system_pool,
-            daten_copy=daten_copy,
+    if str(root_table).strip().lower() == "asy_benutzer":
+        daten_copy: Dict[str, Any] = copy.deepcopy(template_daten)
+    else:
+        basis_row, _ = await _load_template_row_and_daten(
+            gcs,
+            root_table=root_table,
+            template_uuid=_MODUL_TEMPLATE_UID,
         )
+        template_row = basis_row
+        if resolve_templates:
+            daten_copy = await _resolve_groups_from_templates(
+                gcs,
+                root_table=root_table,
+            )
+        else:
+            _, basis_daten = await _load_template_row_and_daten(
+                gcs,
+                root_table=root_table,
+                template_uuid=_MODUL_TEMPLATE_UID,
+            )
+            daten_copy = copy.deepcopy(basis_daten)
 
     root = daten_copy.get("ROOT")
     if not isinstance(root, dict):
@@ -1257,19 +1554,12 @@ async def create_dialog_record_from_template(
         root_patch=root_patch,
     )
 
-    table_norm = str(root_table).strip().lower()
-    if table_norm == "sys_control_dict":
-        daten_copy = await _normalize_control_data_for_storage(
-            gcs._system_pool,
-            control_data=_as_object(daten_copy),
-        )
-    elif table_norm == "sys_framedaten":
-        daten_copy = await _normalize_frame_fields_for_storage(
-            gcs,
-            daten=_as_object(daten_copy),
-        )
+    daten_copy = await _normalize_new_record_daten_unified(
+        gcs,
+        daten=_as_object(daten_copy),
+    )
 
-    if str(root_table).strip().lower() == "sys_benutzer":
+    if str(root_table).strip().lower() == "asy_benutzer":
         benutzer_value = name_value
 
         passwort_value = template_row.get("passwort")
@@ -1280,7 +1570,7 @@ async def create_dialog_record_from_template(
         async with pool.acquire() as conn:
             await conn.execute(
                 """
-                INSERT INTO sys_benutzer (uid, benutzer, passwort, daten, name, historisch, sec_id)
+                INSERT INTO asy_benutzer (uid, benutzer, passwort, daten, name, historisch, sec_id)
                 VALUES ($1, $2, $3, $4, $5, $6, $7)
             """,
                 new_uuid,
@@ -1294,7 +1584,7 @@ async def create_dialog_record_from_template(
             # Ensure name column and ROOT.SELF_NAME stay aligned with provided name.
             await conn.execute(
                 """
-                UPDATE sys_benutzer
+                UPDATE asy_benutzer
                 SET name = $1, daten = $2, modified_at = NOW()
                 WHERE uid = $3
             """,
@@ -1317,16 +1607,16 @@ async def create_dialog_record_from_template(
 
 
 def extract_dialog_runtime_config(dialog_def: Dict[str, Any]) -> Dict[str, Any]:
-    """Extrahiert für die UI relevante Runtime-Konfiguration aus sys_dialogdaten.
+    """Extrahiert fÃ¼r die UI relevante Runtime-Konfiguration aus sys_dialogdaten.
 
-    Primärquelle: daten.ROOT
-    Zusätzlich (neu): TAB_01/TAB_02/... Blöcke (z.B. für HEAD oder tab-spezifische Optionen).
+    PrimÃ¤rquelle: daten.ROOT
+    ZusÃ¤tzlich (neu): TAB_01/TAB_02/... BlÃ¶cke (z.B. fÃ¼r HEAD oder tab-spezifische Optionen).
     """
     daten = dialog_def.get("daten") or {}
     root = dialog_def.get("root") or {}
 
     def _get_ci(d: Dict[str, Any], *keys: str) -> Any:
-        """Case-insensitive Zugriff auf Dict-Keys (unterstützt auch Varianten wie EDIT_TYPE/edit_type)."""
+        """Case-insensitive Zugriff auf Dict-Keys (unterstÃ¼tzt auch Varianten wie EDIT_TYPE/edit_type)."""
         if not isinstance(d, dict):
             return None
         lower_map = {str(k).lower(): k for k in d.keys()}
@@ -1339,7 +1629,7 @@ def extract_dialog_runtime_config(dialog_def: Dict[str, Any]) -> Dict[str, Any]:
         return None
 
     def _find_tab_block(container: Dict[str, Any], tab_index: int) -> Optional[Dict[str, Any]]:
-        """Findet TAB_01/TAB_02/... Block unabhängig von Schreibweise."""
+        """Findet TAB_01/TAB_02/... Block unabhÃ¤ngig von Schreibweise."""
         if not isinstance(container, dict):
             return None
         for k, v in container.items():
@@ -1349,18 +1639,23 @@ def extract_dialog_runtime_config(dialog_def: Dict[str, Any]) -> Dict[str, Any]:
         return None
 
     def _extract_tabs_from_elements(value: Any) -> Dict[int, Dict[str, Any]]:
-        """Extrahiert TAB-Blöcke aus TAB_ELEMENTS (dict oder list)."""
+        """Extrahiert TAB-BlÃ¶cke aus TAB_ELEMENTS (dict oder list)."""
         out: Dict[int, Dict[str, Any]] = {}
 
         if isinstance(value, dict):
+            fallback_pos = 0
             for key, row in value.items():
                 if not isinstance(row, dict):
                     continue
 
-                idx_raw = row.get("index") or row.get("tab")
+                fallback_pos += 1
+                idx_raw = _get_ci(row, "INDEX", "index", "TAB", "tab")
                 if idx_raw is None:
                     m = __import__("re").match(r"^tab[_\-]?0*(\d+)$", str(key), flags=__import__("re").IGNORECASE)
                     idx_raw = int(m.group(1)) if m else None
+                if idx_raw is None:
+                    # GUID-basierte Dict-Schluessel ohne TAB/index explizit sequentiell zuordnen.
+                    idx_raw = fallback_pos
 
                 try:
                     idx = int(idx_raw)
@@ -1375,7 +1670,7 @@ def extract_dialog_runtime_config(dialog_def: Dict[str, Any]) -> Dict[str, Any]:
             for pos, row in enumerate(value, start=1):
                 if not isinstance(row, dict):
                     continue
-                idx_raw = row.get("index") or row.get("tab") or pos
+                idx_raw = _get_ci(row, "INDEX", "index", "TAB", "tab") or pos
                 try:
                     idx = int(idx_raw)
                 except Exception:
@@ -1509,3 +1804,4 @@ def extract_dialog_runtime_config(dialog_def: Dict[str, Any]) -> Dict[str, Any]:
         "dialog_type": dialog_type,
         "tab_modules": tab_modules,
     }
+
