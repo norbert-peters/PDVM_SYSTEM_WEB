@@ -413,6 +413,24 @@ Scope-Regel V1:
 - Wiederkehrende Update-Ziele sind Mandanten-DBs.
 - AUTH-DB und SYSTEM-DB gelten in diesem Zyklus als initial bereitgestellt und nicht als regulaere Update-Pipeline.
 
+### 1.21 ViewDefinition Datengruppen-Validierung (verbindlich)
+**Regel:** In `sys_viewdaten.daten` gilt fuer Datengruppen neben `ROOT` eine strikt lineare Validierung.
+
+Verbindliche Gruppen:
+- Erlaubt sind nur:
+	- `<ROOT.TABLE in UPPERCASE>`
+	- `**SYSTEM` (technische Gruppe)
+	- `SYSTEM` (Legacy-Variante)
+
+Verbindliche Fehlerfaelle:
+- Fehler nur, wenn neben `ROOT` keine Datengruppe vorhanden ist.
+- Fehler nur, wenn mindestens eine Datengruppe nicht zu den erlaubten Gruppen gehoert.
+
+Verbindliche Nicht-Fehlerfaelle:
+- `**SYSTEM` oder `SYSTEM` alleine ist zulaessig.
+- `<ROOT.TABLE in UPPERCASE>` zusammen mit `**SYSTEM`/`SYSTEM` ist zulaessig.
+- Das Fehlen der Tabellen-Gruppe alleine ist kein Fehler, solange eine erlaubte Datengruppe vorhanden ist.
+
 ---
 
 ## 2. Frontend Architektur (React)

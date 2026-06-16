@@ -886,8 +886,18 @@ Reportdateien:
 Verbindliche Struktur fuer `sys_viewdaten.daten`:
 
 1. `ROOT` enthaelt View-Metadaten.
-2. `**SYSTEM` enthaelt technische Spalten (z. B. `uid`, `name`).
-3. `<ROOT.TABLE in UPPERCASE>` enthaelt fachliche Spalten der Root-Tabelle (z. B. `ASY_BENUTZER`).
+2. Mindestens eine weitere Datengruppe neben `ROOT` ist Pflicht.
+3. Als Datengruppen sind zulaessig:
+	- `**SYSTEM` (optional, technische Spalten)
+	- `SYSTEM` (Legacy-Variante, optional)
+	- `<ROOT.TABLE in UPPERCASE>` (fachliche Spalten der Root-Tabelle)
+4. `**SYSTEM` kann allein vorkommen oder zusammen mit `<ROOT.TABLE in UPPERCASE>`.
+
+Verbindliche Validierungsregel (ViewDefinition):
+
+1. Ein Fehler ist nur zulaessig, wenn es keine Datengruppe neben `ROOT` gibt.
+2. Ein Fehler ist nur zulaessig, wenn eine Datengruppe existiert, die weder `**SYSTEM`/`SYSTEM` noch `<ROOT.TABLE in UPPERCASE>` ist.
+3. Das Fehlen von `<ROOT.TABLE in UPPERCASE>` allein ist kein Fehler, solange eine zulaessige Datengruppe vorhanden ist.
 
 Verbindliche NO_DATA-Regel (vereinfacht):
 

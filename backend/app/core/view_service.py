@@ -22,6 +22,64 @@ from app.core.config import settings
 from app.core.pdvm_datetime import now_pdvm, datetime_to_pdvm, get_form_timestamp
 
 
+_LEGACY_VIEW_TABLE_ALIASES = {
+    "sys_benutzer": "asy_benutzer",
+    "sys_mandanten": "asy_mandanten",
+}
+
+
+def _pick_section_key_ci(daten: Dict[str, Any], wanted: str) -> Optional[str]:
+    if not isinstance(daten, dict):
+        return None
+    target = str(wanted or "").strip().lower()
+    if not target:
+        return None
+    for k in daten.keys():
+        if str(k or "").strip().lower() == target:
+            return str(k)
+    return None
+
+
+def _is_system_section_key(section_key: Any) -> bool:
+    """True fuer SYSTEM-Varianten wie SYSTEM und **SYSTEM."""
+    key = str(section_key or "").strip().upper().lstrip("*")
+    return key == "SYSTEM"
+
+
+def _validate_view_definition_shape(daten: Dict[str, Any], root: Dict[str, Any], view_guid: str) -> None:
+    table_raw = str(root.get("TABLE") or "").strip()
+    table_norm = table_raw.lower()
+    if not table_norm:
+        raise ValueError(f"VIEW_DATA_INVALID: ROOT.TABLE fehlt (view_guid={view_guid})")
+
+    if table_norm in _LEGACY_VIEW_TABLE_ALIASES:
+        raise ValueError(
+            "VIEW_DATA_INVALID: ROOT.TABLE verwendet Legacy-Name "
+            f"'{table_raw}'. Erwartet wird '{_LEGACY_VIEW_TABLE_ALIASES[table_norm]}' (view_guid={view_guid})"
+        )
+
+    expected_section = table_norm.upper()
+    section_keys = [str(k) for k, v in (daten or {}).items() if str(k).upper() != "ROOT" and isinstance(v, dict)]
+
+    # 1) Mindestens eine Datengruppe neben ROOT ist Pflicht.
+    if not section_keys:
+        raise ValueError(
+            "VIEW_DATA_INVALID: Keine Datengruppe neben ROOT gefunden. "
+            f"Erwartet mindestens '{expected_section}' und/oder '**SYSTEM' (view_guid={view_guid})"
+        )
+
+    # 2) Tabellen-Gruppen muessen ROOT.TABLE entsprechen (Ausnahme: SYSTEM/**SYSTEM).
+    invalid_table_sections = [
+        key for key in section_keys if (not _is_system_section_key(key)) and str(key).strip().upper() != expected_section
+    ]
+    if invalid_table_sections:
+        raise ValueError(
+            "VIEW_DATA_INVALID: Ungueltige Datengruppe gefunden. "
+            f"ROOT.TABLE erwartet '{expected_section}', erlaubt ist zusaetzlich nur '**SYSTEM'. "
+            f"Ungueltig: {invalid_table_sections} (view_guid={view_guid})"
+        )
+
+
 def _normalize_uuid_hex(value: Any) -> str:
     """Normalisiert UUID-Strings auf 32 hex chars (ohne Bindestriche)."""
     try:
@@ -175,7 +233,13 @@ async def load_view_definition(gcs: PdvmCentralSystemsteuerung, view_guid: uuid.
     )
 
     daten = view.data or {}
+    if not isinstance(daten, dict):
+        raise ValueError(f"VIEW_DATA_INVALID: daten ist kein Objekt (view_guid={view_guid})")
     root = daten.get("ROOT") or {}
+    if not isinstance(root, dict):
+        raise ValueError(f"VIEW_DATA_INVALID: ROOT ist kein Objekt (view_guid={view_guid})")
+
+    _validate_view_definition_shape(daten, root, str(view_guid))
 
     # Name steht als Spalte in der Tabelle. Für Phase 0/1 genügt ein Fallback.
     # (Wir können später optional den Namen über PdvmDatabase.get_by_uid lesen, falls benötigt.)
@@ -216,8 +280,8 @@ async def load_view_base_rows(
         candidates = [r.strip().lower() for r in roles_str.replace(";", ",").split(",") if r.strip()]
         return role_norm in candidates
 
-    if str(table_name).strip().lower() == "sys_benutzer":
-        # Zugriff auf sys_benutzer nur für Admin-Role
+    if str(table_name).strip().lower() == "asy_benutzer":
+        # Zugriff auf asy_benutzer nur für Admin-Role
         if not _user_has_role("admin"):
             return []
 
