@@ -4,6 +4,7 @@ import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/rea
 import {
   controlDictAPI,
   dialogsAPI,
+  tablesAPI,
   workflowDraftsAPI,
   systemdatenAPI,
   viewsAPI,
@@ -16,6 +17,7 @@ import {
   type DialogUiStateResponse,
   type DialogValidationIssue,
   type WorkflowDraftValidationResponse,
+  type WorkflowDraftCommitLiveResponse,
 } from '../../api/client'
 import { PdvmViewPageContent } from '../views/PdvmViewPage'
 import { PdvmMenuEditor } from './PdvmMenuEditor'
@@ -99,7 +101,7 @@ function resolveGoSelectViewTable(configs: any, controlData?: any): string {
   return String(table || '').trim()
 }
 
-function resolveElementEditorConfig(configs: any): { template: Record<string, any> | null; fields: any[] | null } {
+function resolveElementEditorConfig(configs: any): { template: Record<string, any> | null; fields: any[] | null; elementRef: Record<string, any> | null } {
   const cfg = asObject(configs)
   const cfgElements = asObject(readCfgValue(cfg, ['CONFIGS_ELEMENTS', 'configs_elements']))
 
@@ -111,9 +113,16 @@ function resolveElementEditorConfig(configs: any): { template: Record<string, an
   const cfgElementsFields = readCfgValue(cfgElements, ['element_fields', 'fields', 'ELEMENT_FIELDS'])
   const fieldsRaw = Array.isArray(directFields) ? directFields : Array.isArray(cfgElementsFields) ? cfgElementsFields : null
 
+  const directElementRef = asObject(readCfgValue(cfg, ['element']))
+  const cfgElementsElementRef = asObject(readCfgValue(cfgElements, ['element', 'ELEMENT']))
+  const elementRef = Object.keys(directElementRef).length
+    ? directElementRef
+    : (Object.keys(cfgElementsElementRef).length ? cfgElementsElementRef : null)
+
   return {
     template,
     fields: fieldsRaw,
+    elementRef,
   }
 }
 
@@ -123,16 +132,71 @@ function resolveSelectConfigByType(params: {
   cfgControlConfigs?: any
   cfgLegacy?: any
 }): Record<string, any> {
+  const withSource = (baseRaw: any, sourceRaw: any): Record<string, any> => {
+    const base = asObject(baseRaw)
+    const sourceObj = asObject(sourceRaw)
+    if (!Object.keys(sourceObj).length) return base
+
+    const out: Record<string, any> = { ...base }
+    const paramsObj = asObject(readCfgValue(sourceObj, ['params']))
+
+    const readSourceParam = (keys: string[]) => {
+      const direct = readCfgValue(sourceObj, keys)
+      if (direct !== undefined && direct !== null && String(direct).trim() !== '') return direct
+      const nested = readCfgValue(paramsObj, keys)
+      if (nested !== undefined && nested !== null && String(nested).trim() !== '') return nested
+      return undefined
+    }
+
+    const sourceType = readSourceParam(['type', 'source', 'source_type'])
+    if (sourceType !== undefined) out.source = sourceType
+
+    const table = readSourceParam(['table'])
+    if (table !== undefined) out.table = table
+
+    const key = readSourceParam(['key', 'dataset_uid', 'view_guid'])
+    if (key !== undefined) out.key = key
+
+    const feld = readSourceParam(['feld', 'field'])
+    if (feld !== undefined) out.feld = feld
+
+    const group = readSourceParam(['group', 'gruppe'])
+    if (group !== undefined) out.group = group
+
+    const limit = readSourceParam(['limit'])
+    if (limit !== undefined) out.limit = limit
+
+    const includeInactive = readSourceParam(['include_inactive'])
+    if (includeInactive !== undefined) out.include_inactive = includeInactive
+
+    const prefix = readSourceParam(['prefix'])
+    if (prefix !== undefined) out.prefix = prefix
+
+    const tablePrefix = readSourceParam(['table_prefix'])
+    if (tablePrefix !== undefined) out.table_prefix = tablePrefix
+
+    return out
+  }
+
   const key = params.type === 'multi_dropdown' ? 'multi_dropdown' : 'dropdown'
   const keyUpper = key.toUpperCase()
+  const sourceKey = `${key}_source`
+  const sourceKeyUpper = sourceKey.toUpperCase()
 
-  const fromElements = asObject(asObject(params.cfgElements)[key] ?? asObject(params.cfgElements)[keyUpper])
-  if (Object.keys(fromElements).length) return fromElements
+  const cfgElementsObj = asObject(params.cfgElements)
+  const fromElements = asObject(cfgElementsObj[key] ?? cfgElementsObj[keyUpper])
+  const fromElementsSource = asObject(cfgElementsObj[sourceKey] ?? cfgElementsObj[sourceKeyUpper])
+  if (Object.keys(fromElements).length) return withSource(fromElements, fromElementsSource)
 
-  const fromControlConfigs = asObject(asObject(params.cfgControlConfigs)[key] ?? asObject(params.cfgControlConfigs)[keyUpper])
-  if (Object.keys(fromControlConfigs).length) return fromControlConfigs
+  const cfgControlObj = asObject(params.cfgControlConfigs)
+  const fromControlConfigs = asObject(cfgControlObj[key] ?? cfgControlObj[keyUpper])
+  const fromControlSource = asObject(cfgControlObj[sourceKey] ?? cfgControlObj[sourceKeyUpper])
+  if (Object.keys(fromControlConfigs).length) return withSource(fromControlConfigs, fromControlSource)
 
-  return asObject(asObject(params.cfgLegacy)[key] ?? asObject(params.cfgLegacy)[keyUpper])
+  const cfgLegacyObj = asObject(params.cfgLegacy)
+  const fromLegacy = asObject(cfgLegacyObj[key] ?? cfgLegacyObj[keyUpper])
+  const fromLegacySource = asObject(cfgLegacyObj[sourceKey] ?? cfgLegacyObj[sourceKeyUpper])
+  return withSource(fromLegacy, fromLegacySource)
 }
 
 function cloneValue(value: any): any {
@@ -366,13 +430,49 @@ function collectWorkflowSetupPayload(datenRaw: Record<string, any> | null | unde
   const fromRoot = (field: string) => getFieldValue(daten, 'ROOT', field)
 
   const pickString = (value: any): string => String(value ?? '').trim()
+  const first = (...values: any[]) => values.find((v) => v !== undefined && v !== null && String(v).trim() !== '')
+
+  const workflowName = pickString(first(
+    fromFields('SELF_NAME'),
+    fromFields('WORKFLOW_NAME'),
+    fromRoot('SELF_NAME'),
+    fromRoot('WORKFLOW_NAME'),
+  ))
+
+  const targetTable = pickString(first(
+    fromFields('TABLE'),
+    fromFields('TARGET_TABLE'),
+    fromRoot('TABLE'),
+    fromRoot('TARGET_TABLE'),
+    'sys_dialogdaten',
+  ))
+
+  const header = pickString(first(
+    fromFields('HEADER'),
+    fromFields('DESCRIPTION'),
+    fromRoot('HEADER'),
+    fromRoot('DESCRIPTION'),
+  ))
+
+  const openEdit = pickString(first(
+    fromFields('OPEN_EDIT'),
+    fromRoot('OPEN_EDIT'),
+    'double_click',
+  ))
+
+  const selectionMode = pickString(first(
+    fromFields('SELECTION_MODE'),
+    fromRoot('SELECTION_MODE'),
+    'single',
+  ))
 
   return {
-    WORKFLOW_NAME: pickString(fromFields('WORKFLOW_NAME') ?? fromRoot('WORKFLOW_NAME')),
-    TARGET_TABLE: pickString(fromFields('TARGET_TABLE') ?? fromRoot('TARGET_TABLE') ?? 'sys_dialogdaten'),
-    DESCRIPTION: pickString(fromFields('DESCRIPTION') ?? fromRoot('DESCRIPTION')),
-    DIALOG_TYPE: pickString(fromFields('DIALOG_TYPE') ?? fromRoot('DIALOG_TYPE') ?? 'work'),
-    SELECTION_MODE: pickString(fromFields('SELECTION_MODE') ?? fromRoot('SELECTION_MODE') ?? 'single'),
+    WORKFLOW_NAME: workflowName,
+    TARGET_TABLE: targetTable,
+    DESCRIPTION: header,
+    DIALOG_TYPE: 'work',
+    OPEN_EDIT: openEdit,
+    SELECTION_MODE: selectionMode,
   }
 }
 
@@ -602,7 +702,13 @@ function buildUnifiedControlMatrix(
   if (source === 'frame_fields') {
     const allDefs = extractPicDefs(opts.frameDaten || null)
     const defs = opts.excludeRootGroup
-      ? allDefs.filter((d) => String(d.gruppe || '').trim().toUpperCase() !== 'ROOT')
+      ? allDefs.filter((d) => {
+          const groupNorm = String(d.gruppe || '').trim().toUpperCase()
+          if (groupNorm !== 'ROOT') return true
+          const typeNorm = normalizePicType(d.type)
+          // Keep collection editors in ROOT (e.g. ROOT.TAB_ELEMENTS) visible.
+          return typeNorm === 'element_list' || typeNorm === 'group_list'
+        })
       : allDefs
     const tabsMap = new Map<number, { index: number; head: string; group: string }>()
     const tabMetaMap = parseFrameTabElements(asObject(asObject(opts.frameDaten).ROOT))
@@ -1002,6 +1108,7 @@ export default function PdvmDialogPage() {
 
   const [selectedUid, setSelectedUid] = useState<string | null>(null)
   const [selectedUids, setSelectedUids] = useState<string[]>([])
+  const latestViewSelectedDraftGuidRef = useRef<string>('')
   const ignoredAutoLastCallUidRef = useRef<string>('')
   const [autoLastCallError, setAutoLastCallError] = useState<string | null>(null)
   const suppressPersistRef = useRef<boolean>(true)
@@ -1164,6 +1271,13 @@ export default function PdvmDialogPage() {
     return table ? { dialog_table: table } : undefined
   }, [effectiveDialogTableForDataOps])
 
+  const workflowUiStateDialogTableOption = useMemo(() => {
+    const stableTable = runtimeTableOverride.forceTableOverride && runtimeTableOverride.table
+      ? String(runtimeTableOverride.table || '').trim()
+      : String(effectiveDialogTable || '').trim()
+    return stableTable ? { dialog_table: stableTable } : undefined
+  }, [runtimeTableOverride, effectiveDialogTable])
+
   const createFrameGuid = useMemo(() => {
     const root = asObject(defQuery.data?.root)
     const guid = String(root.CREATE_FRAME_GUID ?? root.create_frame_guid ?? '').trim()
@@ -1321,7 +1435,16 @@ export default function PdvmDialogPage() {
       const selected = Array.isArray(detail.selected_uids) ? detail.selected_uids : []
       const next = selected.map((x: any) => String(x))
       setSelectedUids(next)
-      if (next.length === 1) setSelectedUid(next[0])
+      if (next.length === 1) {
+        const candidate = String(next[0] || '').trim()
+        setSelectedUid(candidate)
+        latestViewSelectedDraftGuidRef.current = candidate
+        if (isWorkflowDialog && isUuidString(candidate)) {
+          persistWorkflowDraftGuid(candidate)
+          setWorkflowDraftStatus(`Workflow-Draft aus View übernommen (${candidate.slice(0, 8)})`)
+          setWorkflowDraftError(null)
+        }
+      }
 
       // Selection belongs to the current view/dialog; allow persisting.
       if (lastCallScopeKey) {
@@ -1336,7 +1459,7 @@ export default function PdvmDialogPage() {
 
     window.addEventListener('pdvm:view-selection-changed', handler as any)
     return () => window.removeEventListener('pdvm:view-selection-changed', handler as any)
-  }, [effectiveViewGuid, openEditMode])
+  }, [effectiveViewGuid, openEditMode, isWorkflowDialog])
 
   // OPEN_EDIT=double_click: listen to the View activation event.
   useEffect(() => {
@@ -1352,12 +1475,18 @@ export default function PdvmDialogPage() {
 
       setSelectedUid(uid)
       setSelectedUids([uid])
+      latestViewSelectedDraftGuidRef.current = uid
+      if (isWorkflowDialog && isUuidString(uid)) {
+        persistWorkflowDraftGuid(uid)
+        setWorkflowDraftStatus(`Workflow-Draft aus View übernommen (${uid.slice(0, 8)})`)
+        setWorkflowDraftError(null)
+      }
       setActiveTab(editTabIndex)
     }
 
     window.addEventListener('pdvm:view-row-activated', handler as any)
     return () => window.removeEventListener('pdvm:view-row-activated', handler as any)
-  }, [effectiveViewGuid, openEditMode, editTabIndex])
+  }, [effectiveViewGuid, openEditMode, editTabIndex, isWorkflowDialog])
 
   const systemdatenUid = useMemo(() => {
     const root = (defQuery.data?.root || {}) as Record<string, any>
@@ -1475,6 +1604,8 @@ export default function PdvmDialogPage() {
   const [workflowDraftError, setWorkflowDraftError] = useState<string | null>(null)
   const [workflowDraftBusy, setWorkflowDraftBusy] = useState(false)
   const [workflowDraftValidation, setWorkflowDraftValidation] = useState<WorkflowDraftValidationResponse | null>(null)
+  const [workflowDraftCommitReport, setWorkflowDraftCommitReport] = useState<WorkflowDraftCommitLiveResponse | null>(null)
+  const [workflowDraftCommitDryRun, setWorkflowDraftCommitDryRun] = useState(true)
 
   const rowsQuery = useQuery<{ dialog_guid: string; table: string; rows: DialogRow[] }>({
     queryKey: ['dialog', 'rows', dialogGuid, effectiveDialogTableForDataOps, pageLimit, pageOffset],
@@ -1485,7 +1616,7 @@ export default function PdvmDialogPage() {
   const recordQuery = useQuery<DialogRecordResponse>({
     queryKey: ['dialog', 'record', dialogGuid, effectiveDialogTableForDataOps, selectedUid],
     queryFn: () => dialogsAPI.getRecord(dialogGuid!, selectedUid!, dataOpsDialogTableOption),
-    enabled: !!dialogGuid && !!selectedUid && !isMenuEditor && !activeDraft,
+    enabled: !!dialogGuid && !!selectedUid && !isMenuEditor && !activeDraft && !isWorkflowDialog,
   })
 
   const lastCallRuntimeState = useMemo(() => {
@@ -1499,13 +1630,21 @@ export default function PdvmDialogPage() {
   const isDraftMode = !!activeDraft
   const currentDaten = activeDraft?.daten || recordQuery.data?.daten || null
   const currentName = activeDraft?.name || recordQuery.data?.name || ''
+  const workflowDisplayDaten = isWorkflowDialog ? (picDraft ? picDraft : currentDaten) : currentDaten
+  const workflowDisplayName = useMemo(() => {
+    if (!isWorkflowDialog) return currentName
+    const root = asObject(asObject(workflowDisplayDaten || {}).ROOT)
+    const fromRoot = String(root.SELF_NAME || root.NAME || '').trim()
+    return fromRoot || currentName
+  }, [isWorkflowDialog, workflowDisplayDaten, currentName])
+
   const unifiedControlMatrix = useMemo(() => {
     if (!usesUnifiedControlMatrix) return null
     const source: UnifiedControlSource = isPdvmEditCore ? 'frame_fields' : 'record_groups'
     return buildUnifiedControlMatrix(source, {
       frameDaten,
       currentDaten: (picDraft ? picDraft : currentDaten) as Record<string, any> | null,
-      excludeRootGroup: isPdvmEditCore,
+      excludeRootGroup: false,
     })
   }, [usesUnifiedControlMatrix, isPdvmEditCore, frameDaten, picDraft, currentDaten])
 
@@ -1516,13 +1655,10 @@ export default function PdvmDialogPage() {
   const effectivePicDefs = useMemo(() => {
     if (usesUnifiedControlMatrix) {
       const defs = unifiedControlMatrix?.defs || []
-      if (isPdvmEditCore) {
-        return defs.filter((d) => String(d.gruppe || '').trim().toUpperCase() !== 'ROOT')
-      }
       return defs
     }
     return picDefs
-  }, [usesUnifiedControlMatrix, unifiedControlMatrix, picDefs, isPdvmEditCore])
+  }, [usesUnifiedControlMatrix, unifiedControlMatrix, picDefs])
 
   const controlResolveListQuery = useQuery({
     queryKey: ['control-dict', 'list', 'resolve', effectiveDialogTable],
@@ -2217,11 +2353,11 @@ export default function PdvmDialogPage() {
       setPicDraft(draft.daten || {})
       setPicDirty(false)
 
-      if (isWorkflowDraftBuilderDialog) {
+      if (isWorkflowDialog) {
         const root = asObject((draft as any)?.daten?.ROOT)
         const workflowDraftGuid = String(root.WORKFLOW_DRAFT_GUID || '').trim()
         if (workflowDraftGuid && isUuidString(workflowDraftGuid)) {
-          setWorkflowDraftGuid(workflowDraftGuid)
+          persistWorkflowDraftGuid(workflowDraftGuid)
         }
       }
     },
@@ -2237,7 +2373,7 @@ export default function PdvmDialogPage() {
   const saveJson = async () => {
     if (editType !== 'edit_json') return
     if (!dialogGuid) return
-    if (!selectedUid && !activeDraft?.draft_id) return
+    if (!isWorkflowDialog && !selectedUid && !activeDraft?.draft_id) return
 
     let parsed: any
     try {
@@ -2273,12 +2409,9 @@ export default function PdvmDialogPage() {
   const savePic = async () => {
     if (!isFieldEditor) return
     if (!dialogGuid || !picDraft) return
-    if (!selectedUid && !activeDraft?.draft_id) return
-    if (isWorkflowDraftBuilderDialog) {
-      await saveWorkflowEditSnapshot()
-      if (Number(activeTab || 0) === Number(workflowSetupTabIndex || 2)) {
-        await saveWorkflowSetup()
-      }
+    if (!isWorkflowDialog && !selectedUid && !activeDraft?.draft_id) return
+    if (isWorkflowDialog) {
+      await saveWorkflowCurrentStepSnapshot()
       setPicDirty(false)
       setWorkflowDraftStatus(`Workflow-Daten gespeichert (${String(workflowDraftGuid || 'neu').slice(0, 8)})`)
       return
@@ -2301,15 +2434,45 @@ export default function PdvmDialogPage() {
     setPicDirty(false)
   }
 
+  const commitElementListChange = async (
+    gruppe: string,
+    feld: string,
+    controlType: string,
+    nextValue: any,
+    preferredTable?: string,
+  ) => {
+    if (!isFieldEditor) return
+    const base = asObject((picDraft ? picDraft : currentDaten) || {})
+    const nextDraft = setControlValueFromEdit(base, gruppe, feld, controlType, nextValue)
+    setPicDraft(nextDraft)
+    setPicDirty(true)
+
+    try {
+      if (isWorkflowDialog) {
+        await saveWorkflowEditSnapshotWithSource(nextDraft, preferredTable)
+        setWorkflowDraftStatus(`Workflow-Daten gespeichert (${String(workflowDraftGuid || 'neu').slice(0, 8)})`)
+      } else {
+        if (!selectedUid && !activeDraft?.draft_id) return
+        await updateMutation.mutateAsync(nextDraft)
+      }
+      setPicDirty(false)
+    } catch (e: any) {
+      const msg = String(e?.response?.data?.detail || e?.message || 'Element-Aenderung konnte nicht gespeichert werden.')
+      if (isWorkflowDialog) {
+        setWorkflowDraftError(msg)
+      } else {
+        setJsonError(msg)
+      }
+    }
+  }
+
   useEffect(() => {
-    if (!isWorkflowDraftBuilderDialog) return
-    if (activeModuleType !== 'edit') return
-    loadWorkflowEditSnapshotForActiveTab().catch(() => {
+    if (!isWorkflowDialog) return
+    loadWorkflowSnapshotForTab(Number(activeTab || 1)).catch(() => {
       // Best-effort load only.
     })
   }, [
-    isWorkflowDraftBuilderDialog,
-    activeModuleType,
+    isWorkflowDialog,
     activeTab,
     workflowDraftGuid,
     selectedUid,
@@ -2394,6 +2557,9 @@ export default function PdvmDialogPage() {
     if (!d) return ''
 
     const root = asObject(d.root)
+    const rootHeader = String(readCfgValue(root, ['HEADER', 'HEADER_TEXT', 'TITLE']) ?? '').trim()
+    if (rootHeader) return rootHeader
+
     const rootLevel = String(readCfgValue(root, ['LEVEL']) ?? '').trim()
     if (rootLevel) return rootLevel
 
@@ -2460,12 +2626,14 @@ export default function PdvmDialogPage() {
       return [] as Array<
         | { kind: 'system'; fieldKey: string; table: string; datasetUid: string; field: string; group?: string }
         | { kind: 'view'; fieldKey: string; viewGuid: string; tableOverride?: string }
+        | { kind: 'source'; fieldKey: string; config: Record<string, any> }
       >
     }
 
     const out: Array<
       | { kind: 'system'; fieldKey: string; table: string; datasetUid: string; field: string; group?: string }
       | { kind: 'view'; fieldKey: string; viewGuid: string; tableOverride?: string }
+      | { kind: 'source'; fieldKey: string; config: Record<string, any> }
     > = []
 
     const current = (picDraft ? picDraft : currentDaten || {}) as Record<string, any>
@@ -2487,13 +2655,33 @@ export default function PdvmDialogPage() {
       })
 
       const keyRaw = String(readCfgValue(cfg, ['key', 'dataset_uid', 'view_guid']) || '').trim()
-      const field = String(readCfgValue(cfg, ['field', 'feld']) || '').trim()
+      const fieldRaw = String(readCfgValue(cfg, ['field', 'feld']) || '').trim()
+      const field = fieldRaw || String(def.feld || '').trim()
       const tableToken = String(readCfgValue(cfg, ['table']) || '').trim()
       const group = String(readCfgValue(cfg, ['group', 'gruppe']) || '').trim()
+      const source = String(readCfgValue(cfg, ['source', 'source_type']) || '').trim().toLowerCase()
       const gruppe = String(def.gruppe || '').trim()
       const table = resolveDropdownTableToken({ tableToken, currentDaten: current, gruppe })
 
       const fieldKey = String(def.key || `${def.gruppe || ''}.${def.feld || ''}`)
+
+      if (source) {
+        if (source === 'view' && keyRaw) {
+          out.push({ kind: 'view', fieldKey, viewGuid: keyRaw, tableOverride: table || undefined })
+          return
+        }
+
+        const sourceConfig: Record<string, any> = {
+          ...cfg,
+          source,
+          ...(table ? { table } : null),
+          ...(group ? { group } : null),
+          ...(keyRaw ? { key: keyRaw } : null),
+          ...(field ? { field } : null),
+        }
+        out.push({ kind: 'source', fieldKey, config: sourceConfig })
+        return
+      }
 
       if (group.toUpperCase() === '*VIEW' && keyRaw) {
         out.push({ kind: 'view', fieldKey, viewGuid: keyRaw, tableOverride: table || undefined })
@@ -2511,7 +2699,9 @@ export default function PdvmDialogPage() {
       queryKey:
         cfg.kind === 'system'
           ? ['systemdaten', 'dropdown', cfg.table, cfg.datasetUid, cfg.field, cfg.group || '']
-          : ['views', 'dropdown-source', cfg.viewGuid, cfg.tableOverride || ''],
+          : cfg.kind === 'view'
+            ? ['views', 'dropdown-source', cfg.viewGuid, cfg.tableOverride || '']
+            : ['systemdaten', 'dropdown-source-config', cfg.fieldKey, JSON.stringify(cfg.config || {})],
       queryFn: () => {
         if (cfg.kind === 'system') {
           return systemdatenAPI.getDropdown({
@@ -2519,6 +2709,11 @@ export default function PdvmDialogPage() {
             dataset_uid: cfg.datasetUid,
             field: cfg.field,
             group: cfg.group,
+          })
+        }
+        if (cfg.kind === 'source') {
+          return systemdatenAPI.getDropdownSource({
+            dropdown_config: cfg.config,
           })
         }
         return viewsAPI.postMatrix(
@@ -2542,7 +2737,17 @@ export default function PdvmDialogPage() {
 
       if (cfg.kind === 'system') {
         const options = (res?.data as any)?.options || []
-        out[cfg.fieldKey] = options.map((opt: any) => ({ value: String(opt.key), label: String(opt.value) }))
+        out[cfg.fieldKey] = options.map((opt: any) => ({ value: String(opt.key), label: String(opt.value), disabled: !!opt.disabled }))
+        return
+      }
+
+      if (cfg.kind === 'source') {
+        const options = (res?.data as any)?.options || []
+        out[cfg.fieldKey] = options.map((opt: any) => ({
+          value: String(opt.key),
+          label: String(opt.value),
+          disabled: !!opt.disabled,
+        }))
         return
       }
 
@@ -2554,8 +2759,21 @@ export default function PdvmDialogPage() {
     return out
   }, [dropdownFieldConfigs, dropdownQueries])
 
+  const dropdownFieldReadOnlyByFieldKey = useMemo(() => {
+    const out: Record<string, boolean> = {}
+    dropdownFieldConfigs.forEach((cfg, idx) => {
+      const res = dropdownQueries[idx]
+      if (cfg.kind !== 'source') return
+      const metaReadOnly = !!(res?.data as any)?.meta?.read_only
+      const options = Array.isArray((res?.data as any)?.options) ? (res?.data as any).options : []
+      const hasSelectable = options.some((opt: any) => !opt?.disabled)
+      out[cfg.fieldKey] = metaReadOnly || (!hasSelectable && options.length > 0)
+    })
+    return out
+  }, [dropdownFieldConfigs, dropdownQueries])
+
   const elementFrameRefs = useMemo(() => {
-    if (!isPdvmEditCore || !isFieldEditor) return [] as Array<{ fieldKey: string; frameGuid: string }>
+    if (!isFieldEditor) return [] as Array<{ fieldKey: string; frameGuid: string }>
 
     const current = (picDraft ? picDraft : currentDaten || {}) as Record<string, any>
     const refs: Array<{ fieldKey: string; frameGuid: string }> = []
@@ -2568,12 +2786,22 @@ export default function PdvmDialogPage() {
       const feld = String(def.feld || '').trim()
       if (!feld) return
 
+      const fieldKey = String(def.key || `${gruppe}.${feld}`)
+      const elementCfg = resolveElementEditorConfig(def.configs)
+      const elementRef = asObject(elementCfg.elementRef)
+      const elementRefKey = String(readCfgValue(elementRef, ['key']) || '').trim()
+      const elementRefTable = String(readCfgValue(elementRef, ['table']) || '').trim().toLowerCase()
+      if (isUuidString(elementRefKey) && (!elementRefTable || elementRefTable === 'sys_framedaten')) {
+        refs.push({ fieldKey, frameGuid: elementRefKey })
+        return
+      }
+
+      if (!isPdvmEditCore) return
       const frameGuidField = `${feld}_GUID`
       const frameGuidRaw = getFieldValue(current, gruppe, frameGuidField)
       const frameGuid = String(frameGuidRaw || '').trim()
       if (!isUuidString(frameGuid)) return
 
-      const fieldKey = String(def.key || `${gruppe}.${feld}`)
       refs.push({ fieldKey, frameGuid })
     })
 
@@ -2673,10 +2901,49 @@ export default function PdvmDialogPage() {
     })),
   })
 
+  const normalizeElementFieldControlData = (datenRaw: any): Record<string, any> => {
+    const daten = asObject(datenRaw)
+    const nested = asObject(daten.CONTROL)
+    if (Object.keys(nested).length) return daten
+
+    const templateControl = asObject(asObject(daten.TEMPLATES).CONTROL)
+    if (Object.keys(templateControl).length) {
+      return {
+        ...daten,
+        CONTROL: templateControl,
+      }
+    }
+
+    const root = asObject(daten.ROOT)
+    const source = Object.keys(root).length ? root : daten
+    if (!Object.keys(source).length) return daten
+
+    const configs = asObject((source as any).CONFIGS ?? (source as any).configs)
+    const configsElements = asObject((source as any).CONFIGS_ELEMENTS ?? (source as any).configs_elements)
+    const fallbackControl = {
+      ...source,
+      TYPE: (source as any).TYPE ?? (source as any).type,
+      LABEL: (source as any).LABEL ?? (source as any).label,
+      TABLE: (source as any).TABLE ?? (source as any).table,
+      GRUPPE: (source as any).GRUPPE ?? (source as any).gruppe,
+      FIELD: (source as any).FIELD ?? (source as any).FELD ?? (source as any).field ?? (source as any).feld,
+      FELD: (source as any).FELD ?? (source as any).FIELD ?? (source as any).feld ?? (source as any).field,
+      TOOLTIP: (source as any).TOOLTIP ?? (source as any).tooltip,
+      READ_ONLY: (source as any).READ_ONLY ?? (source as any).read_only,
+      CONFIGS: configs,
+      CONFIGS_ELEMENTS: configsElements,
+    }
+
+    return {
+      ...daten,
+      CONTROL: fallbackControl,
+    }
+  }
+
   const elementFieldControlByName = useMemo(() => {
     const out: Record<string, Record<string, any>> = {}
     elementFieldControlRefs.forEach((entry, idx) => {
-      const daten = asObject(elementFieldControlQueries[idx]?.data?.daten)
+      const daten = normalizeElementFieldControlData(elementFieldControlQueries[idx]?.data?.daten)
       const controlPayload = asObject(daten.CONTROL)
       if (!Object.keys(controlPayload).length) return
       out[entry.fieldUpper] = daten
@@ -2689,12 +2956,14 @@ export default function PdvmDialogPage() {
       return [] as Array<
         | { kind: 'system'; fieldCompositeKey: string; table: string; datasetUid: string; field: string; group?: string }
         | { kind: 'view'; fieldCompositeKey: string; viewGuid: string; tableOverride?: string }
+        | { kind: 'source'; fieldCompositeKey: string; config: Record<string, any> }
       >
     }
 
     const out: Array<
       | { kind: 'system'; fieldCompositeKey: string; table: string; datasetUid: string; field: string; group?: string }
       | { kind: 'view'; fieldCompositeKey: string; viewGuid: string; tableOverride?: string }
+      | { kind: 'source'; fieldCompositeKey: string; config: Record<string, any> }
     > = []
 
     const current = (picDraft ? picDraft : currentDaten || {}) as Record<string, any>
@@ -2732,7 +3001,8 @@ export default function PdvmDialogPage() {
         if (!Object.keys(cfg).length) return
 
         const keyRaw = String(readCfgValue(cfg, ['key', 'dataset_uid', 'view_guid']) || '').trim()
-        const fieldName = String(readCfgValue(cfg, ['field', 'feld']) || '').trim()
+        const fieldRaw = String(readCfgValue(cfg, ['field', 'feld']) || '').trim()
+        const fieldName = fieldRaw || String(controlPayload.FIELD || controlPayload.FELD || name || '').trim()
         const tableToken = String(readCfgValue(cfg, ['table']) || '').trim()
         const table = resolveDropdownTableToken({
           tableToken,
@@ -2741,7 +3011,26 @@ export default function PdvmDialogPage() {
           elementContext: firstElementContext,
         })
         const group = String(readCfgValue(cfg, ['group', 'gruppe']) || '').trim()
+        const source = String(readCfgValue(cfg, ['source', 'source_type']) || '').trim().toLowerCase()
         const fieldCompositeKey = `${parentFieldKey}::${name}`
+
+        if (source) {
+          if (source === 'view' && keyRaw) {
+            out.push({ kind: 'view', fieldCompositeKey, viewGuid: keyRaw, tableOverride: table || undefined })
+            return
+          }
+
+          const sourceConfig: Record<string, any> = {
+            ...cfg,
+            source,
+            ...(table ? { table } : null),
+            ...(group ? { group } : null),
+            ...(keyRaw ? { key: keyRaw } : null),
+            ...(fieldName ? { field: fieldName } : null),
+          }
+          out.push({ kind: 'source', fieldCompositeKey, config: sourceConfig })
+          return
+        }
 
         if (group.toUpperCase() === '*VIEW' && keyRaw) {
           out.push({ kind: 'view', fieldCompositeKey, viewGuid: keyRaw, tableOverride: table || undefined })
@@ -2761,7 +3050,9 @@ export default function PdvmDialogPage() {
       queryKey:
         cfg.kind === 'system'
           ? ['systemdaten', 'dropdown', cfg.table, cfg.datasetUid, cfg.field, cfg.group || '']
-          : ['views', 'dropdown-source', cfg.viewGuid, cfg.tableOverride || ''],
+          : cfg.kind === 'view'
+            ? ['views', 'dropdown-source', cfg.viewGuid, cfg.tableOverride || '']
+            : ['systemdaten', 'dropdown-source-config', cfg.fieldCompositeKey, JSON.stringify(cfg.config || {})],
       queryFn: () => {
         if (cfg.kind === 'system') {
           return systemdatenAPI.getDropdown({
@@ -2769,6 +3060,11 @@ export default function PdvmDialogPage() {
             dataset_uid: cfg.datasetUid,
             field: cfg.field,
             group: cfg.group,
+          })
+        }
+        if (cfg.kind === 'source') {
+          return systemdatenAPI.getDropdownSource({
+            dropdown_config: cfg.config,
           })
         }
         return viewsAPI.postMatrix(
@@ -2792,6 +3088,16 @@ export default function PdvmDialogPage() {
       if (cfg.kind === 'system') {
         const options = (res?.data as any)?.options || []
         out[cfg.fieldCompositeKey] = options.map((opt: any) => ({ value: String(opt.key), label: String(opt.value) }))
+        return
+      }
+
+      if (cfg.kind === 'source') {
+        const options = (res?.data as any)?.options || []
+        out[cfg.fieldCompositeKey] = options.map((opt: any) => ({
+          value: String(opt.key),
+          label: String(opt.value),
+          disabled: !!opt.disabled,
+        }))
         return
       }
 
@@ -2866,7 +3172,9 @@ export default function PdvmDialogPage() {
         tooltip: tooltip || undefined,
         help_text: tooltip || undefined,
         SAVE_PATH: String(fieldDef.SAVE_PATH || name).trim(),
-        options: resolvedOptions.length ? resolvedOptions : (Array.isArray(fieldDef.options) ? fieldDef.options : undefined),
+        options: resolvedOptions.length
+          ? resolvedOptions
+          : undefined,
         control_debug: controlDebugWithDiag,
         EXPERT_MODE: expertMode,
         ...(readOnly ? { READ_ONLY: true } : {}),
@@ -2918,8 +3226,8 @@ export default function PdvmDialogPage() {
 
   const [workflowMaxTab, setWorkflowMaxTab] = useState(1)
   const workflowStateQuery = useQuery<DialogUiStateResponse>({
-    queryKey: ['dialog', 'ui-state', 'workflow', dialogGuid, effectiveDialogTableForDataOps],
-    queryFn: () => dialogsAPI.getUiState(dialogGuid!, dataOpsDialogTableOption),
+    queryKey: ['dialog', 'ui-state', 'workflow', dialogGuid, workflowUiStateDialogTableOption?.dialog_table || ''],
+    queryFn: () => dialogsAPI.getUiState(dialogGuid!, workflowUiStateDialogTableOption),
     enabled: !!dialogGuid && defQuery.isSuccess && isWorkflowDialog,
   })
 
@@ -2960,44 +3268,30 @@ export default function PdvmDialogPage() {
             },
           },
         },
-        dataOpsDialogTableOption
+        workflowUiStateDialogTableOption
       )
       .catch(() => {
         // Best-effort persistence only.
       })
-  }, [isWorkflowDialog, dialogGuid, dataOpsDialogTableOption, activeTab, workflowMaxTab])
+  }, [isWorkflowDialog, dialogGuid, workflowUiStateDialogTableOption, activeTab, workflowMaxTab])
 
   const workflowDraftRuntimeQuery = useQuery<DialogUiStateResponse>({
-    queryKey: ['dialog', 'ui-state', 'workflow-draft-runtime', dialogGuid, effectiveDialogTableForDataOps],
-    queryFn: () => dialogsAPI.getUiState(dialogGuid!, dataOpsDialogTableOption),
-    enabled: !!dialogGuid && defQuery.isSuccess && isWorkflowDraftBuilderDialog,
-  })
-
-  const workflowOpenDraftsQuery = useQuery({
-    queryKey: ['workflow-drafts', 'open', dialogGuid, workflowDraftTableOptions.draft_table],
-    queryFn: () => workflowDraftsAPI.listOpen(workflowDraftTableOptions),
-    enabled: !!dialogGuid && isWorkflowDraftBuilderDialog,
+    queryKey: ['dialog', 'ui-state', 'workflow-draft-runtime', dialogGuid, workflowUiStateDialogTableOption?.dialog_table || ''],
+    queryFn: () => dialogsAPI.getUiState(dialogGuid!, workflowUiStateDialogTableOption),
+    enabled: !!dialogGuid && defQuery.isSuccess && isWorkflowDialog,
   })
 
   useEffect(() => {
-    if (!isWorkflowDraftBuilderDialog) return
+    if (!isWorkflowDialog) return
     const runtime = (workflowDraftRuntimeQuery.data?.ui_state as any)?.workflow_draft_runtime
     const persistedGuid = String(runtime?.draft_guid || '').trim()
     if (persistedGuid && isUuidString(persistedGuid)) {
       setWorkflowDraftGuid(persistedGuid)
       return
     }
-
-    if (workflowDraftGuid) return
-    const firstOpenGuid = String(workflowOpenDraftsQuery.data?.drafts?.[0]?.draft_guid || '').trim()
-    if (firstOpenGuid && isUuidString(firstOpenGuid)) {
-      setWorkflowDraftGuid(firstOpenGuid)
-    }
   }, [
-    isWorkflowDraftBuilderDialog,
+    isWorkflowDialog,
     workflowDraftRuntimeQuery.data,
-    workflowOpenDraftsQuery.data,
-    workflowDraftGuid,
   ])
 
   const persistWorkflowDraftGuid = (nextGuid: string | null) => {
@@ -3013,41 +3307,91 @@ export default function PdvmDialogPage() {
             },
           },
         },
-        dataOpsDialogTableOption
+        workflowUiStateDialogTableOption
       )
       .catch(() => {
         // Best-effort persistence only.
       })
   }
 
-  const ensureWorkflowDraft = async (): Promise<string> => {
-    if (workflowDraftGuid && isUuidString(workflowDraftGuid)) return workflowDraftGuid
-
-    // Fortsetzen eines bereits gestarteten Workflows: vorhandene GUID aus Auswahl/Record übernehmen.
+  useEffect(() => {
+    if (!isWorkflowDialog) return
+    if (activeModuleType !== 'view') return
     const selectedCandidate = String(selectedUid || '').trim()
+    if (!isUuidString(selectedCandidate)) return
+    if (selectedCandidate === String(workflowDraftGuid || '').trim()) return
+
+    persistWorkflowDraftGuid(selectedCandidate)
+    setWorkflowDraftStatus(`Workflow-Draft aus View übernommen (${selectedCandidate.slice(0, 8)})`)
+    setWorkflowDraftError(null)
+  }, [
+    isWorkflowDialog,
+    activeModuleType,
+    selectedUid,
+    workflowDraftGuid,
+  ])
+
+  useEffect(() => {
+    const current = String(selectedUid || '').trim()
+    if (!current) return
+    latestViewSelectedDraftGuidRef.current = current
+  }, [selectedUid])
+
+  const resolvePipelineDraftGuid = ({
+    requireSelectionOnView,
+  }: {
+    requireSelectionOnView: boolean
+  }): string => {
+    const isOnViewTab = Number(activeTab || 0) === Number(viewTabIndex || 0) || activeModuleType === 'view'
+    const selectedCandidate = String(
+      latestViewSelectedDraftGuidRef.current || selectedUid || selectedUids[0] || ''
+    ).trim()
+    const persistedCandidate = String(workflowDraftGuid || '').trim()
+
+    if (isOnViewTab) {
+      if (isUuidString(selectedCandidate)) {
+        if (selectedCandidate !== persistedCandidate) {
+          persistWorkflowDraftGuid(selectedCandidate)
+        }
+        return selectedCandidate
+      }
+
+      if (isUuidString(persistedCandidate) && !requireSelectionOnView) {
+        return persistedCandidate
+      }
+
+      throw new Error('Bitte im View zuerst einen Satz mit gültiger draft_guid auswählen.')
+    }
+
+    if (isUuidString(persistedCandidate)) return persistedCandidate
+    if (isUuidString(selectedCandidate)) {
+      if (selectedCandidate !== persistedCandidate) {
+        persistWorkflowDraftGuid(selectedCandidate)
+      }
+      return selectedCandidate
+    }
+
+    throw new Error('Keine gültige draft_guid für den aktuellen Pipeline-Schritt verfügbar.')
+  }
+
+  const ensureWorkflowDraft = async (): Promise<string> => {
+    try {
+      return resolvePipelineDraftGuid({ requireSelectionOnView: false })
+    } catch {
+      // Fallback-Pruefung folgt darunter.
+    }
+
+    // Fortsetzen eines bereits gestarteten Workflows: vorhandene GUID aus Record übernehmen.
     const rootFromCurrent = asObject(asObject((picDraft ? picDraft : currentDaten) || {}).ROOT)
     const rootGuidCandidate = String(rootFromCurrent.WORKFLOW_DRAFT_GUID || rootFromCurrent.SELF_GUID || '').trim()
-    const existingGuid = [workflowDraftGuid, rootGuidCandidate, selectedCandidate].find((x) => isUuidString(String(x || '').trim()))
+    const existingGuid = [rootGuidCandidate].find((x) => isUuidString(String(x || '').trim()))
     if (existingGuid) {
       const resolved = String(existingGuid).trim()
       persistWorkflowDraftGuid(resolved)
       return resolved
     }
 
-    const source = (picDraft ? picDraft : currentDaten || {}) as Record<string, any>
-    const setup = collectWorkflowSetupPayload(source)
-    const title = setup.WORKFLOW_NAME || `WORKFLOW_DRAFT_${new Date().toISOString().slice(0, 19)}`
-
-    const created = await workflowDraftsAPI.create({
-      workflow_type: setup.WORKFLOW_TYPE || 'work',
-      title,
-      initial_setup: setup,
-      draft_table: workflowDraftTableOptions.draft_table || null,
-    })
-
-    persistWorkflowDraftGuid(created.draft_guid)
-    setWorkflowDraftStatus(`Draft erstellt: ${created.draft_guid.slice(0, 8)}`)
-    return created.draft_guid
+    throw new Error('Keine gültige draft_guid verfügbar. Bitte im View einen Satz auswählen.')
   }
 
   const saveWorkflowSetup = async (): Promise<string> => {
@@ -3073,39 +3417,103 @@ export default function PdvmDialogPage() {
     const table = String(tableName || '').trim().toLowerCase()
     if (!table) return {}
 
-    const loaded = await workflowDraftsAPI.listTableRecords(draftGuid, table, workflowDraftTableOptions)
-    return asObject(loaded.records)
+    const rows = await tablesAPI.getAllScoped(table, {
+      storage_scope: 'draft',
+      draft_guid: draftGuid,
+    })
+    const out: Record<string, any> = {}
+    for (const row of Array.isArray(rows) ? rows : []) {
+      const uid = String((row as any)?.uid || '').trim()
+      if (!uid) continue
+      try {
+        const full = await tablesAPI.getOneScoped(table, uid, {
+          storage_scope: 'draft',
+          draft_guid: draftGuid,
+        })
+        out[uid] = asObject((full as any)?.daten)
+      } catch {
+        // Einzelne fehlerhafte Rows ignorieren, damit der Workflow nicht blockiert.
+      }
+    }
+    return out
   }
 
-  const saveWorkflowEditSnapshot = async (): Promise<string> => {
+  const saveWorkflowEditSnapshotWithSource = async (
+    sourceRaw: Record<string, any> | null | undefined,
+    preferredTable?: string | null,
+  ): Promise<string> => {
     const draftGuid = await ensureWorkflowDraft()
-    if (!isWorkflowDraftBuilderDialog || activeModuleType !== 'edit') return draftGuid
+    if (!isWorkflowDialog || activeModuleType === 'view') return draftGuid
 
-    const tableName = String(activeModule?.table || '').trim().toLowerCase()
-    if (!tableName) return draftGuid
+    const source = asObject(sourceRaw || {})
+    const sourceRoot = asObject(source.ROOT)
+    const tableName = String(
+      preferredTable ||
+      activeModule?.table ||
+      sourceRoot.TABLE ||
+      effectiveDialogTableForDataOps ||
+      effectiveDialogTable ||
+      'sys_dialogdaten'
+    ).trim().toLowerCase()
+    if (!tableName) {
+      throw new Error('Pipeline-Fehler: Der aktive Workflow-Tab hat keine zugewiesene Tabelle.')
+    }
 
-    const source = asObject((picDraft ? picDraft : currentDaten) || {})
     if (!Object.keys(source).length) return draftGuid
 
-    // Tab-erzeugte Tabellen führen genau einen Datensatz.
-    const existingRecords = await loadWorkflowRecordsByTable(draftGuid, tableName)
-    const existingUid = Object.keys(existingRecords)[0] || ''
-    const recordUid = isUuidString(String(existingUid || '').trim()) ? existingUid : crypto.randomUUID()
+    // Snapshot robust speichern: UID bevorzugt aus Payload-ROOT, Listing nur best effort.
+    const sourceUidCandidate = String(sourceRoot.SELF_GUID || sourceRoot.SELF_UID || '').trim()
+    const recordUid = isUuidString(sourceUidCandidate) ? sourceUidCandidate : crypto.randomUUID()
 
-    await workflowDraftsAPI.upsertTableRecord(
-      draftGuid,
+    await tablesAPI.updateScoped(
       tableName,
+      recordUid,
       {
-        record_uid: recordUid,
-        payload: source,
-        draft_table: workflowDraftTableOptions.draft_table || null,
-        single_record: true,
+        daten: source,
+        name: String(asObject(source.ROOT).SELF_NAME || asObject(source.ROOT).NAME || ''),
+      },
+      {
+        storage_scope: 'draft',
+        draft_guid: draftGuid,
       },
     )
+
+    // Tab-erzeugte Tabellen bleiben im Ein-Satz-Modus: alte Restdatensaetze entfernen (best effort).
+    try {
+      const existingRecords = await loadWorkflowRecordsByTable(draftGuid, tableName)
+      for (const uid of Object.keys(existingRecords)) {
+        const uidNorm = String(uid || '').trim()
+        if (!uidNorm || uidNorm === recordUid) continue
+        try {
+          await tablesAPI.deleteScoped(tableName, uidNorm, {
+            storage_scope: 'draft',
+            draft_guid: draftGuid,
+          })
+        } catch {
+          // Best effort cleanup only.
+        }
+      }
+    } catch {
+      // Listing kann temporär fehlschlagen; Snapshot ist bereits gespeichert.
+    }
 
     await saveWorkflowStateToDraft(draftGuid, Number(activeTab || 1), Number(workflowMaxTab || 1))
 
     return draftGuid
+  }
+
+  const saveWorkflowEditSnapshot = async (): Promise<string> => {
+    const source = asObject((picDraft ? picDraft : currentDaten) || {})
+    return saveWorkflowEditSnapshotWithSource(source)
+  }
+
+  const saveWorkflowCurrentStepSnapshot = async (): Promise<string> => {
+    const currentTab = Number(activeTab || 0)
+    const setupTab = Number(workflowSetupTabIndex || 2)
+    if (isWorkflowDraftBuilderDialog && currentTab === setupTab) {
+      return saveWorkflowSetup()
+    }
+    return saveWorkflowEditSnapshot()
   }
 
   const saveWorkflowStateToDraft = async (
@@ -3132,38 +3540,75 @@ export default function PdvmDialogPage() {
     )
   }
 
-  const loadWorkflowEditSnapshotForActiveTab = async () => {
-    if (!isWorkflowDraftBuilderDialog || activeModuleType !== 'edit') return
-    if (!workflowDraftGuid || !isUuidString(workflowDraftGuid)) return
+  const loadWorkflowSnapshotForTab = async (tabIndexRaw: number) => {
+    if (!isWorkflowDialog) return
 
-    // Setup-Tab: Quelle ist _META.SETUP, nicht der Tabellenrecord.
-    if (Number(activeTab || 0) === Number(workflowSetupTabIndex || 2)) {
+    const tabIndex = Number(tabIndexRaw || 1)
+    if (isWorkflowDraftBuilderDialog && tabIndex === Number(workflowSetupTabIndex || 2)) {
       await loadWorkflowSetup()
       return
     }
 
-    const tableName = String(activeModule?.table || '').trim().toLowerCase()
-    if (!tableName) return
+    const targetTab = moduleTabs.find((m) => Number(m?.index || 0) === tabIndex) || null
+    const moduleType = String(targetTab?.module || '').trim().toLowerCase()
+    if (!moduleType || moduleType === 'view') return
 
-    const records = await loadWorkflowRecordsByTable(workflowDraftGuid, tableName)
-    if (!Object.keys(records).length) {
-      // Setup-Tab darf nicht "leer" wirken: wenn noch kein Tabellen-Record existiert,
-      // Setup aus _META anzeigen.
-      if (Number(activeTab || 0) === Number(workflowSetupTabIndex || 2)) {
-        await loadWorkflowSetup()
-      }
+    const draftGuid = await ensureWorkflowDraft()
+    const tableName = String(targetTab?.table || '').trim().toLowerCase()
+    if (!tableName) {
+      setWorkflowDraftError('Pipeline-Fehler: Workflow-Tab ohne TABLE-Zuordnung.')
+      setPicDraft(null)
+      setPicDirty(false)
       return
     }
 
-    const preferred = String(selectedUid || '').trim()
-    const pickedUid = (preferred && records[preferred] ? preferred : Object.keys(records)[0]) || ''
-    const picked = asObject(records[pickedUid])
-    if (!Object.keys(picked).length) return
-
-    setPicDraft(picked)
-    if (isUuidString(String(pickedUid || '').trim())) {
-      setSelectedUid(String(pickedUid).trim())
+    const ensureStepLinear = async () => {
+      return workflowDraftsAPI.ensureStep(draftGuid, {
+        step: tabIndex,
+        table: tableName,
+        module: moduleType || undefined,
+        head: String(targetTab?.head || '').trim() || undefined,
+        draft_table: workflowDraftTableOptions.draft_table || null,
+      })
     }
+
+    try {
+      await ensureStepLinear()
+    } catch (e: any) {
+      setWorkflowDraftError(String(e?.response?.data?.detail || e?.message || 'Workflow-Step konnte nicht vorbereitet werden'))
+      setPicDraft(null)
+      setPicDirty(false)
+      return
+    }
+
+    let records = await loadWorkflowRecordsByTable(draftGuid, tableName)
+    if (!Object.keys(records).length) {
+      // Linearer Retry: ensure-step erneut ausführen, dann dieselbe Tab-Tabelle erneut lesen.
+      try {
+        await ensureStepLinear()
+      } catch (e: any) {
+        setWorkflowDraftError(String(e?.response?.data?.detail || e?.message || 'Workflow-Step Retry fehlgeschlagen'))
+        setPicDraft(null)
+        setPicDirty(false)
+        return
+      }
+      records = await loadWorkflowRecordsByTable(draftGuid, tableName)
+    }
+
+    if (Object.keys(records).length > 0) {
+      const preferred = String(selectedUid || '').trim()
+      const pickedUid = (preferred && records[preferred] ? preferred : Object.keys(records)[0]) || ''
+      const picked = asObject(records[pickedUid])
+      if (Object.keys(picked).length > 0) {
+        setPicDraft(picked)
+        setPicDirty(false)
+        setWorkflowDraftError(null)
+        return
+      }
+    }
+
+    setWorkflowDraftError(`Keine Daten für den Workflow-Tab gefunden (TABLE=${tableName}).`)
+    setPicDraft(null)
     setPicDirty(false)
   }
 
@@ -3177,22 +3622,42 @@ export default function PdvmDialogPage() {
     const setupItem = (loaded.items || []).find((i) => String(i.item_type || '').toLowerCase() === 'setup')
     const payload = asObject(setupItem?.payload)
 
-    if (!Object.keys(payload).length) {
-      setWorkflowDraftStatus('Kein Setup-Item im Draft gefunden.')
-      return
-    }
+    const root = asObject((loaded as any)?.root)
+    const workItem = (loaded.items || []).find(
+      (i) => String(i.item_type || '').toLowerCase() === 'work' && String(i.item_key || '').toLowerCase() === 'container'
+    )
+    const workflowMeta = asObject(asObject(workItem?.payload).WORKFLOW)
+
+    const effectiveSetup = Object.keys(payload).length
+      ? payload
+      : {
+          WORKFLOW_NAME: String(workflowMeta.WORKFLOW_NAME || root.TITLE || ''),
+          TARGET_TABLE: String(workflowMeta.TARGET_TABLE || 'sys_dialogdaten'),
+          DESCRIPTION: String(workflowMeta.DESCRIPTION || root.HEADER || ''),
+          DIALOG_TYPE: String(workflowMeta.DIALOG_TYPE || workflowMeta.WORKFLOW_TYPE || 'work'),
+          OPEN_EDIT: String(workflowMeta.OPEN_EDIT || root.OPEN_EDIT || 'double_click'),
+          SELECTION_MODE: String(workflowMeta.SELECTION_MODE || 'single'),
+        }
 
     setPicDraft((prev) => {
       let next = asObject(currentDaten || prev || {})
-      next = setFieldValue(next, 'FIELDS', 'WORKFLOW_NAME', String(payload.WORKFLOW_NAME || ''))
-      next = setFieldValue(next, 'FIELDS', 'TARGET_TABLE', String(payload.TARGET_TABLE || 'sys_dialogdaten'))
-      next = setFieldValue(next, 'FIELDS', 'DESCRIPTION', String(payload.DESCRIPTION || ''))
-      next = setFieldValue(next, 'FIELDS', 'DIALOG_TYPE', String(payload.DIALOG_TYPE || 'work'))
-      next = setFieldValue(next, 'FIELDS', 'SELECTION_MODE', String(payload.SELECTION_MODE || 'single'))
+      next = setFieldValue(next, 'FIELDS', 'WORKFLOW_NAME', String(effectiveSetup.WORKFLOW_NAME || ''))
+      next = setFieldValue(next, 'FIELDS', 'SELF_NAME', String(effectiveSetup.WORKFLOW_NAME || ''))
+      next = setFieldValue(next, 'FIELDS', 'TARGET_TABLE', String(effectiveSetup.TARGET_TABLE || 'sys_dialogdaten'))
+      next = setFieldValue(next, 'FIELDS', 'TABLE', String(effectiveSetup.TARGET_TABLE || 'sys_dialogdaten'))
+      next = setFieldValue(next, 'FIELDS', 'DESCRIPTION', String(effectiveSetup.DESCRIPTION || ''))
+      next = setFieldValue(next, 'FIELDS', 'HEADER', String(effectiveSetup.DESCRIPTION || ''))
+      next = setFieldValue(next, 'FIELDS', 'DIALOG_TYPE', String(effectiveSetup.DIALOG_TYPE || 'work'))
+      next = setFieldValue(next, 'FIELDS', 'OPEN_EDIT', String(effectiveSetup.OPEN_EDIT || 'double_click'))
+      next = setFieldValue(next, 'FIELDS', 'SELECTION_MODE', String(effectiveSetup.SELECTION_MODE || 'single'))
       return next
     })
     setPicDirty(false)
-    setWorkflowDraftStatus(`Setup geladen (${workflowDraftGuid.slice(0, 8)})`)
+    if (Object.keys(payload).length) {
+      setWorkflowDraftStatus(`Setup geladen (${workflowDraftGuid.slice(0, 8)})`)
+    } else {
+      setWorkflowDraftStatus(`Setup aus Workflow-Container geladen (${workflowDraftGuid.slice(0, 8)})`)
+    }
   }
 
   const validateWorkflowDraft = async () => {
@@ -3206,12 +3671,37 @@ export default function PdvmDialogPage() {
     }
   }
 
+  const commitWorkflowDraftToLive = async (dryRun: boolean) => {
+    const draftGuid = await ensureWorkflowDraft()
+    const report = await workflowDraftsAPI.commitLive(draftGuid, {
+      draft_table: workflowDraftTableOptions.draft_table || null,
+      dry_run: !!dryRun,
+      persist_report: true,
+      mark_built_if_success: !dryRun,
+    })
+
+    setWorkflowDraftCommitReport(report)
+    if (report.success) {
+      const modeLabel = report.dry_run ? 'Dry-Run' : 'Live-Commit'
+      setWorkflowDraftStatus(`${modeLabel} OK: +${report.created_count} neu, ~${report.updated_count} aktualisiert, -${report.skipped_count} übersprungen`)
+      setWorkflowDraftError(null)
+      if (!report.dry_run) {
+        setWorkflowDraftValidation(null)
+      }
+    } else {
+      const modeLabel = report.dry_run ? 'Dry-Run' : 'Live-Commit'
+      setWorkflowDraftStatus(`${modeLabel} mit ${report.error_count} Fehler(n)`)
+      setWorkflowDraftError(report.errors.map((e) => `${e.table}/${e.record_uid}: ${e.error}`).join(' | '))
+    }
+  }
+
   const runWorkflowDraftAction = async (def: any) => {
     const token = buildActionToken(def)
     if (!token) return
 
     setWorkflowDraftError(null)
     setWorkflowDraftStatus(null)
+    setWorkflowDraftCommitReport(null)
 
     setWorkflowDraftBusy(true)
     try {
@@ -3225,9 +3715,15 @@ export default function PdvmDialogPage() {
       }
       if (token.includes('save') || token.includes('build')) {
         if (activeModuleType === 'edit') {
-          await saveWorkflowEditSnapshot()
+          await saveWorkflowCurrentStepSnapshot()
+        } else {
+          await saveWorkflowSetup()
         }
-        await saveWorkflowSetup()
+        return
+      }
+      if (token.includes('apply') || token.includes('commit') || token.includes('release')) {
+        const dryFromToken = token.includes('dry') || token.includes('preview')
+        await commitWorkflowDraftToLive(dryFromToken ? true : workflowDraftCommitDryRun)
         return
       }
       setWorkflowDraftStatus('Aktion ist fuer den aktuellen Ausbau noch nicht verdrahtet.')
@@ -3446,6 +3942,11 @@ export default function PdvmDialogPage() {
       setMenuEditorRefreshToken((t) => t + 1)
       return
     }
+
+    // Control-/Frame-Definitionen mit erneuern, damit neue sys_control_dict-Änderungen
+    // sofort im Edit-Renderer sichtbar werden (ohne kompletten Seitenreload).
+    await queryClient.invalidateQueries({ queryKey: ['dialog', 'definition', dialogGuid, dialogTable] })
+    await queryClient.invalidateQueries({ queryKey: ['dialog', 'module-frame', dialogGuid] })
 
     await queryClient.invalidateQueries({ queryKey: ['dialog', 'record', dialogGuid, dialogTable, selectedUid] })
     try {
@@ -3865,15 +4366,13 @@ export default function PdvmDialogPage() {
                 type="button"
                 onClick={async () => {
                   const prev = Number(workflowPrevTab || 1)
-                  if (isWorkflowDraftBuilderDialog) {
+                  if (isWorkflowDialog) {
                     try {
-                      const draftGuid = await saveWorkflowEditSnapshot()
-                      if (Number(activeTab || 0) === Number(workflowSetupTabIndex || 2)) {
-                        await saveWorkflowSetup()
-                      }
+                      const draftGuid = await saveWorkflowCurrentStepSnapshot()
                       await saveWorkflowStateToDraft(draftGuid, prev, Number(workflowMaxTab || prev))
-                    } catch {
-                      // Best-effort only.
+                    } catch (e: any) {
+                      setWorkflowDraftError(String(e?.message || 'Workflow-Schritt konnte nicht gespeichert werden.'))
+                      return
                     }
                   }
                   setActiveTab(prev)
@@ -3890,15 +4389,13 @@ export default function PdvmDialogPage() {
               <button
                 type="button"
                 onClick={async () => {
-                  if (isWorkflowDraftBuilderDialog) {
+                  if (isWorkflowDialog) {
                     try {
-                      const draftGuid = await saveWorkflowEditSnapshot()
-                      if (Number(activeTab || 0) === Number(workflowSetupTabIndex || 2)) {
-                        await saveWorkflowSetup()
-                      }
+                      const draftGuid = await saveWorkflowCurrentStepSnapshot()
                       await saveWorkflowStateToDraft(draftGuid, 1, 1)
-                    } catch {
-                      // Don't block restart.
+                    } catch (e: any) {
+                      setWorkflowDraftError(String(e?.message || 'Workflow-Neustart konnte nicht gespeichert werden.'))
+                      return
                     }
                   }
                   setActiveTab(1)
@@ -3919,34 +4416,21 @@ export default function PdvmDialogPage() {
                   const next = Number(workflowNextTab || Math.min(tabs, activeTab + 1))
                   const nextMaxTab = Math.max(Number(workflowMaxTab || 1), next)
 
-                  if (isWorkflowDraftBuilderDialog) {
-                    try {
-                      const draftGuid = await saveWorkflowEditSnapshot()
-                      if (Number(activeTab || 0) === Number(workflowSetupTabIndex || 2)) {
-                        await saveWorkflowSetup()
-                      }
-                      await saveWorkflowStateToDraft(draftGuid, next, nextMaxTab)
-                    } catch {
-                      // Soft-fail: navigation should proceed.
-                    }
+                  try {
+                    resolvePipelineDraftGuid({ requireSelectionOnView: true })
+                    setWorkflowDraftError(null)
+                  } catch (e: any) {
+                    setWorkflowDraftError(String(e?.message || 'Bitte zuerst einen Satz im View auswählen.'))
+                    return
                   }
 
-                  if (isWorkflowDraftBuilderDialog) {
+                  if (isWorkflowDialog) {
                     try {
-                      setWorkflowDraftError(null)
-                      const draftGuid = await ensureWorkflowDraft()
-                      const nextTab = moduleTabs.find((m) => Number(m?.index || 0) === Number(next)) || null
-                      await workflowDraftsAPI.ensureStep(draftGuid, {
-                        step: next,
-                        table: String(nextTab?.table || '').trim() || undefined,
-                        module: String(nextTab?.module || '').trim().toLowerCase() || undefined,
-                        head: String(nextTab?.head || '').trim() || undefined,
-                        draft_table: workflowDraftTableOptions.draft_table || null,
-                      })
+                      const draftGuid = await saveWorkflowCurrentStepSnapshot()
+                      await saveWorkflowStateToDraft(draftGuid, next, nextMaxTab)
                     } catch (e: any) {
-                      // Soft-fail: Nutzer kann im Workflow weitergehen, auch wenn
-                      // step bootstrap kurzfristig nicht vorbereitet werden konnte.
-                      setWorkflowDraftError(String(e?.response?.data?.detail || e?.message || 'Workflow-Step konnte nicht vorbereitet werden'))
+                      setWorkflowDraftError(String(e?.message || 'Workflow-Schritt konnte nicht gespeichert werden.'))
+                      return
                     }
                   }
 
@@ -3976,7 +4460,7 @@ export default function PdvmDialogPage() {
               Refresh Edit
             </button>
 
-            {isFieldEditor && activeTab === editTabIndex ? (
+            {isFieldEditor && activeTab === editTabIndex && !isWorkflowDialog ? (
               <button
                 type="button"
                 onClick={() => {
@@ -4191,7 +4675,7 @@ export default function PdvmDialogPage() {
               ) : (
                 <>
                   <div style={{ marginBottom: 12, color: 'crimson', fontSize: 12 }}>
-                    Dialog hat keine VIEW_GUID. Bitte Dialog/View-Definition prüfen (Zielbild: Dialog arbeitet immer mit einer View).
+                    View-Tab hat keine gueltige TAB-GUID. Bitte Dialog-Tabdefinition pruefen (MODULE=view -&gt; GUID aus sys_viewdaten; MODULE=edit|show|acti -&gt; GUID aus sys_framedaten).
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
@@ -4232,11 +4716,23 @@ export default function PdvmDialogPage() {
                               onClick={() => {
                                 setSelectedUid(r.uid)
                                 setSelectedUids([r.uid])
+                                if (isWorkflowDialog && isUuidString(String(r.uid || '').trim())) {
+                                  const selectedGuid = String(r.uid || '').trim()
+                                  persistWorkflowDraftGuid(selectedGuid)
+                                  setWorkflowDraftStatus(`Workflow-Draft aus View übernommen (${selectedGuid.slice(0, 8)})`)
+                                  setWorkflowDraftError(null)
+                                }
                               }}
                               onDoubleClick={() => {
                                 if (openEditMode === 'double_click') {
                                   setSelectedUid(r.uid)
                                   setSelectedUids([r.uid])
+                                  if (isWorkflowDialog && isUuidString(String(r.uid || '').trim())) {
+                                    const selectedGuid = String(r.uid || '').trim()
+                                    persistWorkflowDraftGuid(selectedGuid)
+                                    setWorkflowDraftStatus(`Workflow-Draft aus View übernommen (${selectedGuid.slice(0, 8)})`)
+                                    setWorkflowDraftError(null)
+                                  }
                                   setActiveTab(editTabIndex)
                                 }
                               }}
@@ -4415,7 +4911,7 @@ export default function PdvmDialogPage() {
                       <div style={{ opacity: 0.75 }}>
                         {isControlEditor
                           ? 'Kein Datensatz ausgewählt. Bitte zuerst im View-Tab auswählen.'
-                          : 'Keine FIELDS im Frame definiert.'}
+                          : 'Kein Datensatz ausgewählt. Bitte zuerst im View-Tab auswählen.'}
                       </div>
                     ) : null}
 
@@ -4618,7 +5114,7 @@ export default function PdvmDialogPage() {
                               type={type === 'multi_dropdown' ? 'multi_dropdown' : (type as any)}
                               value={rawValue}
                               onChange={onChange}
-                              readOnly={!!d.read_only}
+                              readOnly={!!d.read_only || !!dropdownFieldReadOnlyByFieldKey[fieldKey]}
                               options={options}
                               lookupTable={type === 'go_select_view' ? resolveGoSelectViewTable(d.configs, (d as any).CONTROL) : undefined}
                               helpText={validationMessage ? `${validationMessage}${d.tooltip ? ` · ${d.tooltip}` : ''}` : (d.tooltip || '')}
@@ -4626,6 +5122,7 @@ export default function PdvmDialogPage() {
                               elementFields={elementFields}
                               elementLabelKeys={isFrameFieldsList ? ['LABEL', 'NAME', 'FIELD'] : undefined}
                               elementUidLabels={elementUidLabels}
+                              onElementListCommit={(nextValue) => commitElementListChange(gruppe, feld, d.type, nextValue, String(d.table || ''))}
                               elementDraftHydrator={hydrateFrameFieldElementDraft}
                               elementDraftNormalizer={normalizeFrameFieldElementDraft}
                               controlDebug={buildControlDebugForField(d, fieldKey, rawValue, resolvedControl)}
@@ -4654,7 +5151,7 @@ export default function PdvmDialogPage() {
                     </div>
                   ) : null}
 
-                  {(selectedUid || isDraftMode) && currentDaten ? (
+                  {(selectedUid || isDraftMode) && workflowDisplayDaten ? (
                     <div>
                       {!isImportEditor && editType !== 'edit_json' && editType !== 'show_json' ? (
                         <>
@@ -4714,12 +5211,62 @@ export default function PdvmDialogPage() {
                               >
                                 Validieren
                               </button>
+                              {activeModuleType === 'acti' ? (
+                                <>
+                                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                                    <input
+                                      type="checkbox"
+                                      checked={workflowDraftCommitDryRun}
+                                      onChange={(e) => setWorkflowDraftCommitDryRun(!!e.target.checked)}
+                                      disabled={workflowDraftBusy}
+                                    />
+                                    Dry-Run Modus
+                                  </label>
+                                  <button
+                                    type="button"
+                                    className="pdvm-dialog__toolBtn"
+                                    onClick={async () => {
+                                      setWorkflowDraftError(null)
+                                      setWorkflowDraftBusy(true)
+                                      try {
+                                        await commitWorkflowDraftToLive(true)
+                                      } catch (e: any) {
+                                        setWorkflowDraftError(String(e?.response?.data?.detail || e?.message || 'Dry-Run fehlgeschlagen'))
+                                      } finally {
+                                        setWorkflowDraftBusy(false)
+                                      }
+                                    }}
+                                    disabled={workflowDraftBusy}
+                                  >
+                                    Commit Dry-Run
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="pdvm-dialog__toolBtn pdvm-dialog__toolBtn--primary"
+                                    onClick={async () => {
+                                      setWorkflowDraftError(null)
+                                      setWorkflowDraftBusy(true)
+                                      try {
+                                        await commitWorkflowDraftToLive(workflowDraftCommitDryRun)
+                                      } catch (e: any) {
+                                        setWorkflowDraftError(String(e?.response?.data?.detail || e?.message || 'Live-Commit fehlgeschlagen'))
+                                      } finally {
+                                        setWorkflowDraftBusy(false)
+                                      }
+                                    }}
+                                    disabled={workflowDraftBusy || blockApplyForRole}
+                                    title={blockApplyForRole ? 'Apply ist fuer Ihre Rolle nicht freigegeben (nur Admin)' : undefined}
+                                  >
+                                    Commit nach Live
+                                  </button>
+                                </>
+                              ) : null}
                               <div style={{ fontSize: 12, opacity: 0.8, marginLeft: 'auto' }}>
                                 Draft: <span style={{ fontFamily: 'monospace' }}>{workflowDraftGuid || 'neu'}</span>
                               </div>
                             </div>
                           ) : null}
-                          {isWorkflowDraftBuilderDialog && (workflowDraftStatus || workflowDraftError || workflowDraftValidation) ? (
+                          {isWorkflowDraftBuilderDialog && (workflowDraftStatus || workflowDraftError || workflowDraftValidation || workflowDraftCommitReport) ? (
                             <div style={{ marginBottom: 8, fontSize: 12, lineHeight: 1.35 }}>
                               {workflowDraftStatus ? <div style={{ color: '#195e36' }}>{workflowDraftStatus}</div> : null}
                               {workflowDraftError ? <div style={{ color: 'crimson' }}>{workflowDraftError}</div> : null}
@@ -4728,13 +5275,23 @@ export default function PdvmDialogPage() {
                                   Fehler: {workflowDraftValidation.errors.map((e) => e.message).join(' | ')}
                                 </div>
                               ) : null}
+                              {workflowDraftCommitReport ? (
+                                <div style={{ color: workflowDraftCommitReport.success ? '#195e36' : '#9a4f00' }}>
+                                  Commit-Report: modus={workflowDraftCommitReport.dry_run ? 'dry-run' : 'live'},
+                                  neu={workflowDraftCommitReport.created_count},
+                                  update={workflowDraftCommitReport.updated_count},
+                                  skip={workflowDraftCommitReport.skipped_count},
+                                  fehler={workflowDraftCommitReport.error_count}
+                                  {workflowDraftCommitReport.report_meta?.report_id ? `, report_id=${workflowDraftCommitReport.report_meta.report_id}` : ''}
+                                </div>
+                              ) : null}
                             </div>
                           ) : null}
                           <div style={{ marginBottom: 8, fontSize: 12, opacity: 0.8 }}>
-                            UID: <span style={{ fontFamily: 'monospace' }}>{isDraftMode ? activeDraft?.draft_id : recordQuery.data?.uid}</span>
+                            UID: <span style={{ fontFamily: 'monospace' }}>{isDraftMode ? activeDraft?.draft_id : (isWorkflowDialog ? selectedUid : recordQuery.data?.uid)}</span>
                           </div>
                           <div style={{ marginBottom: 8, fontSize: 12, opacity: 0.8 }}>
-                            Name: <span style={{ fontFamily: 'monospace' }}>{currentName}</span>
+                            Name: <span style={{ fontFamily: 'monospace' }}>{workflowDisplayName}</span>
                           </div>
                         </>
                       ) : null}
@@ -5137,7 +5694,7 @@ export default function PdvmDialogPage() {
                                       type={type === 'multi_dropdown' ? 'multi_dropdown' : (type as any)}
                                       value={rawValue}
                                       onChange={onChange}
-                                      readOnly={!!d.read_only}
+                                      readOnly={!!d.read_only || !!dropdownFieldReadOnlyByFieldKey[fieldKey]}
                                       options={options}
                                       lookupTable={type === 'go_select_view' ? resolveGoSelectViewTable(d.configs, (d as any).CONTROL) : undefined}
                                       helpText={validationMessage ? `${validationMessage}${d.tooltip ? ` · ${d.tooltip}` : ''}` : (d.tooltip || '')}
@@ -5145,6 +5702,7 @@ export default function PdvmDialogPage() {
                                       elementFields={elementFields}
                                       elementLabelKeys={isFrameFieldsList ? ['LABEL', 'NAME', 'FIELD'] : undefined}
                                       elementUidLabels={elementUidLabels}
+                                      onElementListCommit={(nextValue) => commitElementListChange(gruppe, feld, d.type, nextValue, String(d.table || ''))}
                                       elementDraftHydrator={hydrateFrameFieldElementDraft}
                                       elementDraftNormalizer={normalizeFrameFieldElementDraft}
                                       controlDebug={buildControlDebugForField(d, fieldKey, rawValue, resolvedControl)}
