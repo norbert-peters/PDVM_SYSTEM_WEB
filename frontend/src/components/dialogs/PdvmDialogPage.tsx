@@ -2662,10 +2662,16 @@ export default function PdvmDialogPage() {
       const source = String(readCfgValue(cfg, ['source', 'source_type']) || '').trim().toLowerCase()
       const gruppe = String(def.gruppe || '').trim()
       const table = resolveDropdownTableToken({ tableToken, currentDaten: current, gruppe })
+      const hasSystemConfig = !!keyRaw && !!field && !!table
 
       const fieldKey = String(def.key || `${def.gruppe || ''}.${def.feld || ''}`)
 
-      if (source) {
+      if (source === 'view' && keyRaw) {
+        out.push({ kind: 'view', fieldKey, viewGuid: keyRaw, tableOverride: table || undefined })
+        return
+      }
+
+      if (source && !hasSystemConfig) {
         if (source === 'view' && keyRaw) {
           out.push({ kind: 'view', fieldKey, viewGuid: keyRaw, tableOverride: table || undefined })
           return
@@ -3013,8 +3019,14 @@ export default function PdvmDialogPage() {
         const group = String(readCfgValue(cfg, ['group', 'gruppe']) || '').trim()
         const source = String(readCfgValue(cfg, ['source', 'source_type']) || '').trim().toLowerCase()
         const fieldCompositeKey = `${parentFieldKey}::${name}`
+        const hasSystemConfig = !!keyRaw && !!fieldName && !!table
 
-        if (source) {
+        if (source === 'view' && keyRaw) {
+          out.push({ kind: 'view', fieldCompositeKey, viewGuid: keyRaw, tableOverride: table || undefined })
+          return
+        }
+
+        if (source && !hasSystemConfig) {
           if (source === 'view' && keyRaw) {
             out.push({ kind: 'view', fieldCompositeKey, viewGuid: keyRaw, tableOverride: table || undefined })
             return
