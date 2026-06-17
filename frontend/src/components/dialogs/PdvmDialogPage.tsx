@@ -2662,6 +2662,7 @@ export default function PdvmDialogPage() {
       const source = String(readCfgValue(cfg, ['source', 'source_type']) || '').trim().toLowerCase()
       const gruppe = String(def.gruppe || '').trim()
       const table = resolveDropdownTableToken({ tableToken, currentDaten: current, gruppe })
+      const selectedValue = String(getFieldValue(current, gruppe || 'ROOT', field) || '').trim().toLowerCase()
       const hasSystemConfig = !!keyRaw && !!field && !!table
 
       const fieldKey = String(def.key || `${def.gruppe || ''}.${def.feld || ''}`)
@@ -2684,6 +2685,7 @@ export default function PdvmDialogPage() {
           ...(group ? { group } : null),
           ...(keyRaw ? { key: keyRaw } : null),
           ...(field ? { field } : null),
+          ...(selectedValue ? { selected_table: selectedValue } : null),
         }
         out.push({ kind: 'source', fieldKey, config: sourceConfig })
         return
@@ -3019,6 +3021,7 @@ export default function PdvmDialogPage() {
         const group = String(readCfgValue(cfg, ['group', 'gruppe']) || '').trim()
         const source = String(readCfgValue(cfg, ['source', 'source_type']) || '').trim().toLowerCase()
         const fieldCompositeKey = `${parentFieldKey}::${name}`
+        const selectedValue = String(firstElementContext?.[name] || '').trim().toLowerCase()
         const hasSystemConfig = !!keyRaw && !!fieldName && !!table
 
         if (source === 'view' && keyRaw) {
@@ -3039,6 +3042,7 @@ export default function PdvmDialogPage() {
             ...(group ? { group } : null),
             ...(keyRaw ? { key: keyRaw } : null),
             ...(fieldName ? { field: fieldName } : null),
+            ...(selectedValue ? { selected_table: selectedValue } : null),
           }
           out.push({ kind: 'source', fieldCompositeKey, config: sourceConfig })
           return
