@@ -64,6 +64,7 @@ SELECT create_pdvm_table('sys_mandanten');
 SELECT create_pdvm_table('sys_beschreibungen');
 SELECT create_pdvm_table('sys_dialogdaten');
 SELECT create_pdvm_table('sys_dropdowndaten');
+SELECT create_pdvm_table('sys_tooltipdaten');
 SELECT create_pdvm_table('sys_framedaten');
 SELECT create_pdvm_table('sys_layout');
 SELECT create_pdvm_table('sys_menudaten');

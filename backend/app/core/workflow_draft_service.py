@@ -896,3 +896,76 @@ class WorkflowDraftService:
             "error_count": len(errors),
             "errors": errors,
         }
+
+    @staticmethod
+    async def persist_commit_report(
+        system_pool: asyncpg.Pool,
+        *,
+        draft_guid: str,
+        report_payload: Dict[str, Any],
+        draft_table: str = DRAFT_TABLE,
+    ) -> Dict[str, Any]:
+        draft_table_norm = WorkflowDraftService._normalize_table_name(draft_table, label="draft_table")
+        await WorkflowDraftService._ensure_tables(
+            system_pool,
+            draft_table=draft_table_norm,
+        )
+
+        draft_uuid = uuid.UUID(str(draft_guid))
+        now_ts = now_pdvm_str()
+        report_id = str(uuid.uuid4())
+
+        async with system_pool.acquire() as conn:
+            draft_row = await WorkflowDraftService._load_draft_row_from_table(
+                conn,
+                draft_guid=str(draft_uuid),
+                draft_table=draft_table_norm,
+            )
+            if not draft_row:
+                raise ValueError("Draft nicht gefunden")
+
+            draft_daten = WorkflowDraftService._as_json_dict(draft_row["daten"])
+            draft_db = draft_daten.get("DRAFT_DB") if isinstance(draft_daten.get("DRAFT_DB"), dict) else {}
+            draft_db = dict(draft_db)
+            meta = draft_db.get("_META") if isinstance(draft_db.get("_META"), dict) else {}
+            meta = dict(meta)
+
+            reports_raw = meta.get("COMMIT_REPORTS")
+            reports: List[Dict[str, Any]] = []
+            if isinstance(reports_raw, list):
+                for item in reports_raw:
+                    if isinstance(item, dict):
+                        reports.append(dict(item))
+
+            entry = {
+                "REPORT_ID": report_id,
+                "CREATED_AT": now_ts,
+                "PAYLOAD": report_payload if isinstance(report_payload, dict) else {},
+            }
+            reports.append(entry)
+
+            # Speicher begrenzen, um _META schlank zu halten.
+            if len(reports) > 30:
+                reports = reports[-30:]
+
+            meta["COMMIT_REPORTS"] = reports
+            meta["LAST_COMMIT_REPORT"] = entry
+            draft_db["_META"] = meta
+            draft_daten["DRAFT_DB"] = draft_db
+
+            await conn.execute(
+                f"""
+                UPDATE {draft_table_norm}
+                SET daten = $2::jsonb,
+                    modified_at = NOW()
+                WHERE uid = $1::uuid
+                """,
+                draft_uuid,
+                json.dumps(draft_daten, ensure_ascii=False),
+            )
+
+        return {
+            "report_id": report_id,
+            "stored_reports": len(reports),
+            "saved_at": now_ts,
+        }

@@ -1,0 +1,38 @@
+{
+  "phase": "hard_migration_v1",
+  "title": "Hard migration sys_control_dict",
+  "mode": "apply",
+  "target_table": "sys_control_dict",
+  "mother": {
+    "uid": "11eaf5bb-545f-4ef5-9816-74e33fbc4c71",
+    "self_name": "SYS_666",
+    "control_key_count": 26
+  },
+  "root_mother": {
+    "uid": "55555555-5555-5555-5555-555555555555",
+    "self_name": "TEMPLATE_555",
+    "root_key_count": 9
+  },
+  "stats": {
+    "controls_total": 84,
+    "controls_template_skipped": 3,
+    "duplicate_groups": 0,
+    "duplicate_retire_candidates": 0,
+    "references_rows_checked": 37,
+    "references_rows_changed": 0,
+    "reference_values_rewritten": 0,
+    "controls_updated": 0,
+    "controls_deleted": 0,
+    "controls_del_marked": 0,
+    "controls_structure_synced": 0,
+    "controls_backup_written": 0,
+    "controls_other_groups_removed": 0,
+    "controls_root_synced": 50
+  },
+  "duplicate_groups": [],
+  "retire_map": {},
+  "changed_reference_rows": [],
+  "updated_control_uids": [],
+  "del_marked_uids": [],
+  "deleted_control_uids": []
+}

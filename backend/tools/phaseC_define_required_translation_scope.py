@@ -59,6 +59,16 @@ def _required_set(rule: Dict[str, Any]) -> Set[str]:
     values = rule.get("required_languages") or []
     return {normalize_language(v) for v in values if str(v or "").strip()}
 
+def _dropdown_option_lang_values(option_item: Dict[str, Any]) -> Dict[str, Any]:
+    item = _as_dict(option_item)
+    out: Dict[str, Any] = {}
+    for k, v in item.items():
+        ku = str(k or "").strip().upper()
+        if ku in {"KEY", "VALUE", "VALUES", "LABEL", "NAME"}:
+            continue
+        out[str(k)] = v
+    return out
+
 
 async def _collect_dropdown_coverage(
     conn: asyncpg.Connection,
@@ -88,8 +98,7 @@ async def _collect_dropdown_coverage(
         options = _as_dict(daten.get("OPTIONS"))
 
         for option_key, option_item in options.items():
-            item = _as_dict(option_item)
-            values = _as_dict(item.get("values"))
+            values = _dropdown_option_lang_values(_as_dict(option_item))
             norm_langs = {normalize_language(k) for k in values.keys() if str(k or "").strip()}
             items_total += 1
 

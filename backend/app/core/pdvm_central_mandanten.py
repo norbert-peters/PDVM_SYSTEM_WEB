@@ -1,6 +1,6 @@
 """
 PDVM Central Mandanten
-Mandanten-Management für sys_mandanten
+Mandanten-Management für asy_mandanten
 
 Zentrale Stelle für Mandanten-Datenbanksteuerung
 Regelt Zugriff auf mandantenspezifische Datenbanken
@@ -17,7 +17,7 @@ class PdvmCentralMandanten(PdvmCentralDatabase):
     Mandanten-Management
     Regelt Zugriff auf mandantenspezifische Datenbanken
     
-    sys_mandanten in auth.db enthält Pfade zu mandant.db und system.db
+    asy_mandanten in auth.db enthält Pfade zu mandant.db und system.db
     """
     
     def __init__(self, mandant_guid: uuid.UUID):
@@ -27,7 +27,7 @@ class PdvmCentralMandanten(PdvmCentralDatabase):
         Args:
             mandant_guid: UUID des Mandanten
         """
-        super().__init__("sys_mandanten", mandant_guid)
+        super().__init__("asy_mandanten", mandant_guid)
         self.mandant_guid = mandant_guid
     
     async def get_mandant(self) -> Optional[Dict]:
@@ -43,7 +43,7 @@ class PdvmCentralMandanten(PdvmCentralDatabase):
             row = await conn.fetchrow("""
                 SELECT uid, name, daten, historisch, 
                        sec_id, created_at, modified_at
-                FROM sys_mandanten
+                FROM asy_mandanten
                 WHERE uid = $1
             """, self.mandant_guid)
             
@@ -138,7 +138,7 @@ class PdvmCentralMandanten(PdvmCentralDatabase):
             
             rows = await conn.fetch(f"""
                 SELECT uid, name, daten, historisch, created_at
-                FROM sys_mandanten
+                FROM asy_mandanten
                 {where_clause}
                 ORDER BY name
             """)
@@ -191,7 +191,7 @@ class PdvmCentralMandanten(PdvmCentralDatabase):
         
         async with pool.acquire() as conn:
             await conn.execute("""
-                INSERT INTO sys_mandanten
+                INSERT INTO asy_mandanten
                 (uid, name, daten, historisch, gilt_bis)
                 VALUES ($1, $2, $3, 0, '9999365.00000')
             """, mandant_guid, name, json.dumps(daten))
@@ -239,7 +239,7 @@ class PdvmCentralMandanten(PdvmCentralDatabase):
         pool = DatabasePool._pool_auth
         async with pool.acquire() as conn:
             await conn.execute("""
-                UPDATE sys_mandanten
+                UPDATE asy_mandanten
                 SET historisch = 1, modified_at = NOW()
                 WHERE uid = $1
             """, self.mandant_guid)
@@ -249,7 +249,7 @@ class PdvmCentralMandanten(PdvmCentralDatabase):
         pool = DatabasePool._pool_auth
         async with pool.acquire() as conn:
             await conn.execute("""
-                UPDATE sys_mandanten
+                UPDATE asy_mandanten
                 SET historisch = 0, modified_at = NOW()
                 WHERE uid = $1
             """, self.mandant_guid)

@@ -1,9 +1,9 @@
-"""
+﻿"""
 PDVM Central Benutzer
-Benutzer-Management für sys_benutzer
+Benutzer-Management fÃ¼r asy_benutzer
 
-Besonderheit: sys_benutzer hat Zusatzspalten 'benutzer' und 'passwort'
-Wird vom Administrator für Benutzerverwaltung verwendet
+Besonderheit: asy_benutzer hat Zusatzspalten 'benutzer' und 'passwort'
+Wird vom Administrator fÃ¼r Benutzerverwaltung verwendet
 """
 import uuid
 from typing import Optional, Dict, List
@@ -17,32 +17,32 @@ import json
 class PdvmCentralBenutzer(PdvmCentralDatabase):
     """
     Benutzer-Management
-    Wird vom Administrator für Benutzerverwaltung verwendet
+    Wird vom Administrator fÃ¼r Benutzerverwaltung verwendet
     
-    Besonderheit: sys_benutzer hat Zusatzspalten 'benutzer' und 'passwort'
+    Besonderheit: asy_benutzer hat Zusatzspalten 'benutzer' und 'passwort'
     """
     
     def __init__(self, user_guid: uuid.UUID):
         """
-        Initialisiert Benutzer-Manager für spezifischen User
+        Initialisiert Benutzer-Manager fÃ¼r spezifischen User
         
         Args:
             user_guid: UUID des Benutzers
         """
-        super().__init__("sys_benutzer", user_guid)
+        super().__init__("asy_benutzer", user_guid)
         self.user_guid = user_guid
     
     async def get_user(self) -> Optional[Dict]:
         """
-        Lädt kompletten User mit allen Spalten
+        LÃ¤dt kompletten User mit allen Spalten
         
         Returns:
             Dict mit uid, email, benutzer, passwort, daten, historisch, etc.
             None wenn nicht gefunden
         """
-        # Standard: use PdvmDatabase routing (auth DB for sys_benutzer)
+        # Standard: use PdvmDatabase routing (auth DB for asy_benutzer)
         try:
-            db = PdvmDatabase("sys_benutzer")
+            db = PdvmDatabase("asy_benutzer")
             row = await db.get_by_uid(self.user_guid)
             if not row:
                 return None
@@ -58,14 +58,14 @@ class PdvmCentralBenutzer(PdvmCentralDatabase):
                     row = await conn.fetchrow("""
                         SELECT uid, email, benutzer, passwort, daten,
                                historisch, sec_id, created_at, modified_at
-                        FROM sys_benutzer 
+                        FROM asy_benutzer 
                         WHERE uid = $1
                     """, self.user_guid)
                 except asyncpg.exceptions.UndefinedColumnError:
                     row = await conn.fetchrow("""
                         SELECT uid, benutzer, passwort, daten,
                                historisch, sec_id, created_at, modified_at
-                        FROM sys_benutzer 
+                        FROM asy_benutzer 
                         WHERE uid = $1
                     """, self.user_guid)
 
@@ -91,7 +91,7 @@ class PdvmCentralBenutzer(PdvmCentralDatabase):
     
     async def get_user_by_email(self, email: str) -> Optional[Dict]:
         """
-        Lädt User anhand Email
+        LÃ¤dt User anhand Email
         
         Args:
             email: Email-Adresse
@@ -105,14 +105,14 @@ class PdvmCentralBenutzer(PdvmCentralDatabase):
                 row = await conn.fetchrow("""
                     SELECT uid, email, benutzer, passwort, daten,
                            historisch, sec_id, created_at, modified_at
-                    FROM sys_benutzer 
+                    FROM asy_benutzer 
                     WHERE email = $1
                 """, email)
             except asyncpg.exceptions.UndefinedColumnError:
                 row = await conn.fetchrow("""
                     SELECT uid, benutzer, passwort, daten,
                            historisch, sec_id, created_at, modified_at
-                    FROM sys_benutzer 
+                    FROM asy_benutzer 
                     WHERE daten->'USER'->>'EMAIL' = $1
                 """, email)
             
@@ -135,7 +135,7 @@ class PdvmCentralBenutzer(PdvmCentralDatabase):
     
     async def change_password(self, new_password_hash: str):
         """
-        Ändert Passwort des Users
+        Ã„ndert Passwort des Users
         
         Args:
             new_password_hash: Bcrypt-Hash des neuen Passworts
@@ -143,14 +143,14 @@ class PdvmCentralBenutzer(PdvmCentralDatabase):
         pool = DatabasePool._pool_auth
         async with pool.acquire() as conn:
             await conn.execute("""
-                UPDATE sys_benutzer 
+                UPDATE asy_benutzer 
                 SET passwort = $1, modified_at = NOW() 
                 WHERE uid = $2
             """, new_password_hash, self.user_guid)
     
     async def update_email(self, new_email: str):
         """
-        Ändert Email-Adresse des Users
+        Ã„ndert Email-Adresse des Users
         
         Args:
             new_email: Neue Email-Adresse
@@ -159,7 +159,7 @@ class PdvmCentralBenutzer(PdvmCentralDatabase):
         async with pool.acquire() as conn:
             try:
                 await conn.execute("""
-                    UPDATE sys_benutzer 
+                    UPDATE asy_benutzer 
                     SET email = $1, modified_at = NOW() 
                     WHERE uid = $2
                 """, new_email, self.user_guid)
@@ -168,13 +168,13 @@ class PdvmCentralBenutzer(PdvmCentralDatabase):
                 pass
 
         # Fallback: JSONB USER.EMAIL
-        user = await PdvmCentralDatabase.load("sys_benutzer", str(self.user_guid))
+        user = await PdvmCentralDatabase.load("asy_benutzer", str(self.user_guid))
         user.set_value("USER", "EMAIL", new_email)
         await user.save_all_values()
     
     async def update_benutzer(self, new_benutzer: str):
         """
-        Ändert Benutzername
+        Ã„ndert Benutzername
         
         Args:
             new_benutzer: Neuer Benutzername
@@ -182,7 +182,7 @@ class PdvmCentralBenutzer(PdvmCentralDatabase):
         pool = DatabasePool._pool_auth
         async with pool.acquire() as conn:
             await conn.execute("""
-                UPDATE sys_benutzer 
+                UPDATE asy_benutzer 
                 SET benutzer = $1, modified_at = NOW() 
                 WHERE uid = $2
             """, new_benutzer, self.user_guid)
@@ -192,7 +192,7 @@ class PdvmCentralBenutzer(PdvmCentralDatabase):
         pool = DatabasePool._pool_auth
         async with pool.acquire() as conn:
             await conn.execute("""
-                UPDATE sys_benutzer 
+                UPDATE asy_benutzer 
                 SET historisch = 1, modified_at = NOW() 
                 WHERE uid = $1
             """, self.user_guid)
@@ -202,7 +202,7 @@ class PdvmCentralBenutzer(PdvmCentralDatabase):
         pool = DatabasePool._pool_auth
         async with pool.acquire() as conn:
             await conn.execute("""
-                UPDATE sys_benutzer 
+                UPDATE asy_benutzer 
                 SET historisch = 0, modified_at = NOW() 
                 WHERE uid = $1
             """, self.user_guid)
@@ -210,7 +210,7 @@ class PdvmCentralBenutzer(PdvmCentralDatabase):
     @staticmethod
     async def get_all_users(include_inactive: bool = False) -> List[Dict]:
         """
-        Lädt alle Benutzer (für Admin)
+        LÃ¤dt alle Benutzer (fÃ¼r Admin)
         
         Args:
             include_inactive: True = auch deaktivierte User
@@ -227,7 +227,7 @@ class PdvmCentralBenutzer(PdvmCentralDatabase):
             
             rows = await conn.fetch(f"""
                 SELECT uid, email, benutzer, daten, historisch, created_at
-                FROM sys_benutzer
+                FROM asy_benutzer
                 {where_clause}
                 ORDER BY benutzer
             """)
@@ -250,7 +250,7 @@ class PdvmCentralBenutzer(PdvmCentralDatabase):
         sec_id: Optional[uuid.UUID] = None
     ) -> uuid.UUID:
         """
-        Erstellt neuen Benutzer (für Admin)
+        Erstellt neuen Benutzer (fÃ¼r Admin)
         
         Args:
             email: Email-Adresse
@@ -269,7 +269,7 @@ class PdvmCentralBenutzer(PdvmCentralDatabase):
         
         async with pool.acquire() as conn:
             await conn.execute("""
-                INSERT INTO sys_benutzer 
+                INSERT INTO asy_benutzer 
                 (uid, email, benutzer, passwort, daten, historisch, sec_id, gilt_bis)
                 VALUES ($1, $2, $3, $4, $5, 0, $6, '9999365.00000')
             """, user_guid, email, benutzer, passwort_hash, daten_json, sec_id)
@@ -279,7 +279,7 @@ class PdvmCentralBenutzer(PdvmCentralDatabase):
     @staticmethod
     async def email_exists(email: str) -> bool:
         """
-        Prüft ob Email bereits existiert
+        PrÃ¼ft ob Email bereits existiert
         
         Returns:
             True wenn Email bereits verwendet
@@ -289,13 +289,14 @@ class PdvmCentralBenutzer(PdvmCentralDatabase):
             try:
                 count = await conn.fetchval("""
                     SELECT COUNT(*) 
-                    FROM sys_benutzer 
+                    FROM asy_benutzer 
                     WHERE email = $1 AND historisch = 0
                 """, email)
             except asyncpg.exceptions.UndefinedColumnError:
                 count = await conn.fetchval("""
                     SELECT COUNT(*) 
-                    FROM sys_benutzer 
+                    FROM asy_benutzer 
                     WHERE daten->'USER'->>'EMAIL' = $1 AND historisch = 0
                 """, email)
             return count > 0
+

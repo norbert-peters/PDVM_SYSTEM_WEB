@@ -113,9 +113,9 @@ def _parse_form_bool(value: str, default: bool = False) -> bool:
 def _table_name_from_data_filename(filename: str) -> str:
     """
     Erwartete Dateinamen fuer data-Dateien, z. B.:
-    - sys_systemdaten.jsonl
-    - data_sys_systemdaten.jsonl
-    - data-sys_systemdaten.jsonl
+    - asy_systemdaten.jsonl
+    - data_asy_systemdaten.jsonl
+    - data-asy_systemdaten.jsonl
     """
     name = os.path.basename(str(filename or "")).strip().lower()
     if name.endswith(".jsonl"):

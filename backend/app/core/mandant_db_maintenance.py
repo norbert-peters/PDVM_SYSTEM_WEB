@@ -1,10 +1,10 @@
-"""
+﻿"""
 Mandanten-Datenbank Wartung
-Wird nach Mandant-Login ausgeführt, bevor PdvmCentralSystemsteuerung initialisiert wird.
+Wird nach Mandant-Login ausgefÃ¼hrt, bevor PdvmCentralSystemsteuerung initialisiert wird.
 
-Verantwortlich für:
-1. Prüfung und Anlage fehlender Tabellen (aus CONFIG.FEATURES)
-2. Prüfung und Korrektur der Spalten-Struktur
+Verantwortlich fÃ¼r:
+1. PrÃ¼fung und Anlage fehlender Tabellen (aus CONFIG.FEATURES)
+2. PrÃ¼fung und Korrektur der Spalten-Struktur
 3. Korrektur von gilt_bis Werten (Standard: 9999-12-31 23:59:59)
 """
 import logging
@@ -31,7 +31,7 @@ class MandantDatabaseMaintenance:
         Args:
             mandant_pool: Connection Pool zur Mandanten-DB
             mandant_uid: UID des Mandanten
-            mandant_daten: Mandanten-Daten aus sys_mandanten (bereits geladen beim Login)
+            mandant_daten: Mandanten-Daten aus asy_mandanten (bereits geladen beim Login)
         """
         self.pool = mandant_pool
         self.mandant_uid = mandant_uid
@@ -39,12 +39,12 @@ class MandantDatabaseMaintenance:
     
     async def run_maintenance(self) -> Dict[str, Any]:
         """
-        Führt komplette Wartung aus
+        FÃ¼hrt komplette Wartung aus
         
         Returns:
-            Dict mit Statistiken über durchgeführte Aktionen
+            Dict mit Statistiken Ã¼ber durchgefÃ¼hrte Aktionen
         """
-        logger.info(f"🔧 Starte Datenbank-Wartung für Mandant {self.mandant_uid}")
+        logger.info(f"ðŸ”§ Starte Datenbank-Wartung fÃ¼r Mandant {self.mandant_uid}")
         
         stats = {
             'tables_created': [],
@@ -59,8 +59,8 @@ class MandantDatabaseMaintenance:
         }
         
         async with self.pool.acquire() as conn:
-            # PHASE 1: Standard-System-Tabellen zuerst prüfen und warten
-            # Diese müssen existieren bevor wir CONFIGS lesen können
+            # PHASE 1: Standard-System-Tabellen zuerst prÃ¼fen und warten
+            # Diese mÃ¼ssen existieren bevor wir CONFIGS lesen kÃ¶nnen
             standard_tables = [
                 'msy_anwendungsdaten',
                 'msy_systemsteuerung',
@@ -73,22 +73,22 @@ class MandantDatabaseMaintenance:
                 'msy_feld_aenderungshistorie',
             ]
             
-            logger.info(f"📋 Phase 1: Standard-System-Tabellen ({len(standard_tables)})")
+            logger.info(f"ðŸ“‹ Phase 1: Standard-System-Tabellen ({len(standard_tables)})")
             for table_name in standard_tables:
                 try:
                     exists = await self._table_exists(conn, table_name)
                     if not exists:
                         await self._create_pdvm_table(conn, table_name)
                         stats['tables_created'].append(table_name)
-                        logger.info(f"✅ Tabelle {table_name} erstellt")
+                        logger.info(f"âœ… Tabelle {table_name} erstellt")
                     else:
-                        # Tabelle existiert - prüfe Spalten
+                        # Tabelle existiert - prÃ¼fe Spalten
                         updated = await self._verify_and_fix_columns(conn, table_name)
                         if updated:
                             stats['tables_updated'].append(table_name)
-                            logger.info(f"✅ Tabelle {table_name} aktualisiert")
+                            logger.info(f"âœ… Tabelle {table_name} aktualisiert")
                 except Exception as e:
-                    logger.error(f"❌ Fehler bei Tabelle {table_name}: {e}")
+                    logger.error(f"âŒ Fehler bei Tabelle {table_name}: {e}")
                     stats['errors'].append(f"{table_name}: {e}")
             
             # PHASE 2: Jetzt FEATURES aus Mandanten-Daten lesen (OHNE DB-Query!)
@@ -110,15 +110,15 @@ class MandantDatabaseMaintenance:
                 for t in feature_tables
                 if t not in {'msy_control_dict', 'msy_control_dict_audit', 'sys_contr_dict_man', 'sys_contr_dict_man_audit'}
             ]
-            logger.info(f"📋 Phase 2: Feature-Tabellen aus CONFIGS ({len(feature_tables)})")
+            logger.info(f"ðŸ“‹ Phase 2: Feature-Tabellen aus CONFIGS ({len(feature_tables)})")
             
-            # PHASE 3: Feature-Tabellen prüfen und warten
-            # WICHTIG: Auth-Tabellen überspringen (haben Sonderschema)
-            skip_auth_tables = {'sys_benutzer', 'asy_benutzer'}
+            # PHASE 3: Feature-Tabellen prÃ¼fen und warten
+            # WICHTIG: Auth-Tabellen Ã¼berspringen (haben Sonderschema)
+            skip_auth_tables = {'asy_benutzer', 'asy_benutzer'}
             feature_tables_filtered = [t for t in feature_tables if t not in skip_auth_tables]
-            logger.info(f"📋 Phase 3: Feature-Tabellen warten ({len(feature_tables_filtered)} Tabellen)")
+            logger.info(f"ðŸ“‹ Phase 3: Feature-Tabellen warten ({len(feature_tables_filtered)} Tabellen)")
             if any(t in feature_tables for t in skip_auth_tables):
-                logger.info(f"⚠️ Auth-Tabelle in Features übersprungen (Sonderschema)")
+                logger.info(f"âš ï¸ Auth-Tabelle in Features Ã¼bersprungen (Sonderschema)")
             
             for table_name in feature_tables_filtered:
                 try:
@@ -126,18 +126,18 @@ class MandantDatabaseMaintenance:
                     if not exists:
                         await self._create_pdvm_table(conn, table_name)
                         stats['tables_created'].append(table_name)
-                        logger.info(f"✅ Feature-Tabelle {table_name} erstellt")
+                        logger.info(f"âœ… Feature-Tabelle {table_name} erstellt")
                     else:
-                        # Tabelle existiert - prüfe Spalten
+                        # Tabelle existiert - prÃ¼fe Spalten
                         updated = await self._verify_and_fix_columns(conn, table_name)
                         if updated:
                             stats['tables_updated'].append(table_name)
-                            logger.info(f"✅ Feature-Tabelle {table_name} aktualisiert")
+                            logger.info(f"âœ… Feature-Tabelle {table_name} aktualisiert")
                 except Exception as e:
-                    logger.error(f"❌ Fehler bei Feature-Tabelle {table_name}: {e}")
+                    logger.error(f"âŒ Fehler bei Feature-Tabelle {table_name}: {e}")
                     stats['errors'].append(f"{table_name}: {e}")
             
-            # PHASE 4: Korrigiere gilt_bis für alle Tabellen (außer Auth-Sondertabellen)
+            # PHASE 4: Korrigiere gilt_bis fÃ¼r alle Tabellen (auÃŸer Auth-Sondertabellen)
             all_tables = list(set(standard_tables + feature_tables_filtered))
             records_updated = await self._fix_gilt_bis_values(conn, all_tables)
             stats['records_updated'] = records_updated
@@ -153,9 +153,9 @@ class MandantDatabaseMaintenance:
             )
             stats['row_uids_rekeyed'] = row_uids_rekeyed
 
-            # PHASE 6: Voll-Normalisierung über ALLE Tabellen dieser DB
+            # PHASE 6: Voll-Normalisierung Ã¼ber ALLE Tabellen dieser DB
             all_public_tables = await self._get_public_tables(conn)
-            logger.info(f"📋 Phase 6: Voll-Normalisierung ({len(all_public_tables)} Tabellen)")
+            logger.info(f"ðŸ“‹ Phase 6: Voll-Normalisierung ({len(all_public_tables)} Tabellen)")
             link_uid_cols_added = await self._ensure_link_uid_columns(conn, all_public_tables)
             root_self_synced = await self._sync_root_self_fields(conn, all_public_tables)
             link_uid_synced_all = await self._sync_link_uid_values(conn, all_public_tables)
@@ -164,10 +164,10 @@ class MandantDatabaseMaintenance:
             stats['root_self_synced'] = root_self_synced
             stats['link_uid_synced'] = stats['link_uid_synced'] + link_uid_synced_all
 
-            # PHASE 7: Retention-Cleanup für Feld-Aenderungshistorie
+            # PHASE 7: Retention-Cleanup fÃ¼r Feld-Aenderungshistorie
             stats['history_rows_deleted'] = await self._cleanup_history_retention(conn)
             
-        logger.info(f"✅ Wartung abgeschlossen: {stats}")
+        logger.info(f"âœ… Wartung abgeschlossen: {stats}")
         return stats
     
     async def _get_feature_tables(self) -> List[str]:
@@ -182,16 +182,16 @@ class MandantDatabaseMaintenance:
         tables = set()
         
         try:
-            logger.debug(f"📖 Mandanten-Daten Gruppen: {list(self.mandant_daten.keys())}")
+            logger.debug(f"ðŸ“– Mandanten-Daten Gruppen: {list(self.mandant_daten.keys())}")
             
             # CONFIG.FEATURES
             if 'CONFIG' in self.mandant_daten:
                 configs = self.mandant_daten['CONFIG']
-                logger.debug(f"📖 CONFIG gefunden, Keys: {list(configs.keys())}")
+                logger.debug(f"ðŸ“– CONFIG gefunden, Keys: {list(configs.keys())}")
                 
                 if 'FEATURES' in configs:
                     features = configs['FEATURES']
-                    logger.info(f"📋 FEATURES gefunden: {features}")
+                    logger.info(f"ðŸ“‹ FEATURES gefunden: {features}")
                     if isinstance(features, list):
                         tables.update(features)
                     elif isinstance(features, dict):
@@ -199,18 +199,18 @@ class MandantDatabaseMaintenance:
                         tables.update(features.keys())
                 
             else:
-                logger.warning(f"⚠️ Keine CONFIG Gruppe in Mandanten-Daten gefunden")
-                logger.warning(f"   Verfügbare Gruppen: {list(self.mandant_daten.keys())}")
+                logger.warning(f"âš ï¸ Keine CONFIG Gruppe in Mandanten-Daten gefunden")
+                logger.warning(f"   VerfÃ¼gbare Gruppen: {list(self.mandant_daten.keys())}")
         
         except Exception as e:
-            logger.warning(f"⚠️ Fehler beim Extrahieren der Feature-Tabellen: {e}")
+            logger.warning(f"âš ï¸ Fehler beim Extrahieren der Feature-Tabellen: {e}")
             import traceback
             logger.warning(traceback.format_exc())
         
         return list(tables)
     
     async def _table_exists(self, conn: asyncpg.Connection, table_name: str) -> bool:
-        """Prüft ob Tabelle existiert"""
+        """PrÃ¼ft ob Tabelle existiert"""
         return await conn.fetchval("""
             SELECT EXISTS (
                 SELECT FROM information_schema.tables 
@@ -231,7 +231,7 @@ class MandantDatabaseMaintenance:
         return [str(r['tablename']) for r in rows]
 
     async def _get_column_types(self, conn: asyncpg.Connection, table_name: str) -> Dict[str, str]:
-        """Liefert Spaltennamen -> Datentyp für eine Tabelle."""
+        """Liefert Spaltennamen -> Datentyp fÃ¼r eine Tabelle."""
         rows = await conn.fetch(
             """
             SELECT column_name, data_type
@@ -244,7 +244,7 @@ class MandantDatabaseMaintenance:
 
     @staticmethod
     def _quote_ident(identifier: str) -> str:
-        """Sicheres Quoting für SQL-Identifier."""
+        """Sicheres Quoting fÃ¼r SQL-Identifier."""
         return '"' + str(identifier).replace('"', '""') + '"'
 
     @staticmethod
@@ -278,7 +278,7 @@ class MandantDatabaseMaintenance:
         # Indizes erstellen
         for idx_col in PDVM_TABLE_INDEXES:
             if idx_col == 'daten':
-                # GIN Index für JSONB
+                # GIN Index fÃ¼r JSONB
                 await conn.execute(f"""
                     CREATE INDEX IF NOT EXISTS idx_{table_name}_{idx_col} 
                     ON {table_name} USING GIN({idx_col})
@@ -291,7 +291,7 @@ class MandantDatabaseMaintenance:
                 """)
 
     async def _ensure_link_uid_columns(self, conn: asyncpg.Connection, tables: List[str]) -> int:
-        """Fügt link_uid + Index in allen Tabellen mit uid-Spalte hinzu (falls fehlend)."""
+        """FÃ¼gt link_uid + Index in allen Tabellen mit uid-Spalte hinzu (falls fehlend)."""
         added = 0
 
         for table_name in tables:
@@ -305,7 +305,7 @@ class MandantDatabaseMaintenance:
                 if 'link_uid' not in col_types:
                     await conn.execute(f"ALTER TABLE {q_table} ADD COLUMN link_uid UUID")
                     added += 1
-                    logger.info(f"➕ {table_name}: Spalte link_uid ergänzt")
+                    logger.info(f"âž• {table_name}: Spalte link_uid ergÃ¤nzt")
 
                 idx_name = self._build_safe_index_name(table_name, 'link_uid')
                 q_idx = self._quote_ident(idx_name)
@@ -314,7 +314,7 @@ class MandantDatabaseMaintenance:
                 )
 
             except Exception as e:
-                logger.warning(f"⚠️ link_uid-Spaltenprüfung fehlgeschlagen ({table_name}): {e}")
+                logger.warning(f"âš ï¸ link_uid-SpaltenprÃ¼fung fehlgeschlagen ({table_name}): {e}")
 
         return added
     
@@ -343,12 +343,12 @@ class MandantDatabaseMaintenance:
     
     async def _verify_and_fix_columns(self, conn: asyncpg.Connection, table_name: str) -> bool:
         """
-        Prüft ALLE Spalten einer Tabelle:
-        1. Fügt fehlende Spalten hinzu
+        PrÃ¼ft ALLE Spalten einer Tabelle:
+        1. FÃ¼gt fehlende Spalten hinzu
         2. Korrigiert falsche Datentypen (via temp column)
         
         Returns:
-            True wenn Änderungen vorgenommen wurden
+            True wenn Ã„nderungen vorgenommen wurden
         """
         updated = False
         
@@ -368,29 +368,29 @@ class MandantDatabaseMaintenance:
             for row in existing_columns
         }
         
-        # Prüfe jede erforderliche Spalte
+        # PrÃ¼fe jede erforderliche Spalte
         for col_name, col_definition in PDVM_TABLE_COLUMNS.items():
             if col_name not in existing_column_dict:
-                # Spalte fehlt - hinzufügen
+                # Spalte fehlt - hinzufÃ¼gen
                 try:
                     await conn.execute(f"""
                         ALTER TABLE {table_name}
                         ADD COLUMN {col_name} {col_definition}
                     """)
                     
-                    logger.info(f"  ➕ Spalte {col_name} zu {table_name} hinzugefügt")
+                    logger.info(f"  âž• Spalte {col_name} zu {table_name} hinzugefÃ¼gt")
                     updated = True
                     
                 except Exception as e:
-                    logger.error(f"  ❌ Fehler beim Hinzufügen von {col_name}: {e}")
+                    logger.error(f"  âŒ Fehler beim HinzufÃ¼gen von {col_name}: {e}")
             
             else:
-                # Spalte existiert - prüfe Datentyp
+                # Spalte existiert - prÃ¼fe Datentyp
                 col_info = existing_column_dict[col_name]
                 actual_type = col_info['data_type'].lower()
                 expected_type = self._get_expected_pg_type(col_name, col_definition)
                 
-                # Normalisierung für Vergleich
+                # Normalisierung fÃ¼r Vergleich
                 type_mismatch = False
                 
                 if expected_type == 'timestamp without time zone' and actual_type in ['text', 'character varying']:
@@ -402,14 +402,14 @@ class MandantDatabaseMaintenance:
                 elif expected_type == 'integer' and actual_type in ['text', 'character varying', 'bigint']:
                     type_mismatch = True
                 elif expected_type == 'text' and actual_type in ['character varying']:
-                    # varchar zu text ist ok, keine Konvertierung nötig
+                    # varchar zu text ist ok, keine Konvertierung nÃ¶tig
                     pass
                 
                 if type_mismatch:
                     try:
-                        logger.info(f"  🔄 Konvertiere {table_name}.{col_name} von {actual_type} zu {expected_type}")
+                        logger.info(f"  ðŸ”„ Konvertiere {table_name}.{col_name} von {actual_type} zu {expected_type}")
                         
-                        # Temporäre Spalte mit korrektem Typ erstellen
+                        # TemporÃ¤re Spalte mit korrektem Typ erstellen
                         await conn.execute(f"""
                             ALTER TABLE {table_name}
                             ADD COLUMN {col_name}_temp {col_definition.split('DEFAULT')[0].strip()}
@@ -433,7 +433,7 @@ class MandantDatabaseMaintenance:
                                 END
                             """)
                         elif expected_type == 'uuid':
-                            # UUID: Nur gültige UUIDs übernehmen, sonst NULL
+                            # UUID: Nur gÃ¼ltige UUIDs Ã¼bernehmen, sonst NULL
                             await conn.execute(f"""
                                 UPDATE {table_name}
                                 SET {col_name}_temp = CASE
@@ -459,7 +459,7 @@ class MandantDatabaseMaintenance:
                                 SET {col_name}_temp = {col_name}
                             """)
                         
-                        # Alte Spalte löschen
+                        # Alte Spalte lÃ¶schen
                         await conn.execute(f"""
                             ALTER TABLE {table_name}
                             DROP COLUMN {col_name}
@@ -471,18 +471,18 @@ class MandantDatabaseMaintenance:
                             RENAME COLUMN {col_name}_temp TO {col_name}
                         """)
                         
-                        logger.info(f"  ✅ {table_name}.{col_name} erfolgreich zu {expected_type} konvertiert")
+                        logger.info(f"  âœ… {table_name}.{col_name} erfolgreich zu {expected_type} konvertiert")
                         updated = True
                         
                     except Exception as e:
-                        logger.error(f"  ❌ Fehler bei {col_name} Konvertierung: {e}")
+                        logger.error(f"  âŒ Fehler bei {col_name} Konvertierung: {e}")
                         import traceback
                         logger.error(traceback.format_exc())
         
         return updated
 
     async def _sync_link_uid_values(self, conn: asyncpg.Connection, tables: List[str]) -> int:
-        """Synchronisiert link_uid = uid für Datensätze ohne link_uid."""
+        """Synchronisiert link_uid = uid fÃ¼r DatensÃ¤tze ohne link_uid."""
         total_synced = 0
 
         for table_name in tables:
@@ -513,15 +513,15 @@ class MandantDatabaseMaintenance:
                 total_synced += synced
 
                 if synced > 0:
-                    logger.info(f"🔗 {table_name}: {synced} link_uid Werte synchronisiert")
+                    logger.info(f"ðŸ”— {table_name}: {synced} link_uid Werte synchronisiert")
 
             except Exception as e:
-                logger.warning(f"⚠️ link_uid Sync in {table_name} fehlgeschlagen: {e}")
+                logger.warning(f"âš ï¸ link_uid Sync in {table_name} fehlgeschlagen: {e}")
 
         return total_synced
 
     async def _rekey_row_uids_for_link_tables(self, conn: asyncpg.Connection, table_names: List[str]) -> int:
-        """Entkoppelt uid von link_uid für Tabellen mit exakter link_uid-Adressierung."""
+        """Entkoppelt uid von link_uid fÃ¼r Tabellen mit exakter link_uid-Adressierung."""
         total_rekeyed = 0
 
         for table_name in table_names:
@@ -557,17 +557,17 @@ class MandantDatabaseMaintenance:
 
                 total_rekeyed += rekeyed
                 if rekeyed > 0:
-                    logger.info(f"🆔 {table_name}: {rekeyed} Row-UIDs von link_uid entkoppelt")
+                    logger.info(f"ðŸ†” {table_name}: {rekeyed} Row-UIDs von link_uid entkoppelt")
 
             except Exception as e:
-                logger.warning(f"⚠️ Row-UID Rekey fehlgeschlagen ({table_name}): {e}")
+                logger.warning(f"âš ï¸ Row-UID Rekey fehlgeschlagen ({table_name}): {e}")
 
         return total_rekeyed
 
     async def _cleanup_history_retention(self, conn: asyncpg.Connection) -> int:
-        """Bereinigt alte Einträge aus sys_feld_aenderungshistorie."""
+        """Bereinigt alte Eintraege aus der Mandanten-Historie."""
         try:
-            exists = await self._table_exists(conn, FieldChangeHistoryService.HISTORY_TABLE)
+            exists = await self._table_exists(conn, FieldChangeHistoryService.HISTORY_TABLE_MANDANT)
             if not exists:
                 return 0
 
@@ -582,11 +582,11 @@ class MandantDatabaseMaintenance:
             deleted = await FieldChangeHistoryService.cleanup_retention(conn, retention_months)
             if deleted > 0:
                 logger.info(
-                    f"🧹 Historie-Cleanup: {deleted} Zeilen älter als {retention_months} Monate gelöscht"
+                    f"ðŸ§¹ Historie-Cleanup: {deleted} Zeilen Ã¤lter als {retention_months} Monate gelÃ¶scht"
                 )
             return deleted
         except Exception as e:
-            logger.warning(f"⚠️ Historie-Cleanup fehlgeschlagen: {e}")
+            logger.warning(f"âš ï¸ Historie-Cleanup fehlgeschlagen: {e}")
             return 0
 
     async def _sync_root_self_fields(self, conn: asyncpg.Connection, tables: List[str]) -> int:
@@ -669,9 +669,9 @@ class MandantDatabaseMaintenance:
                         if legacy_key in root and self_key in root and str(root.get(legacy_key)) == str(root.get(self_key)):
                             root.pop(legacy_key, None)
 
-                    # Einmal-Bereinigung: In sys_mandanten sind SELF_* Zeitfelder führend.
+                    # Einmal-Bereinigung: In asy_mandanten sind SELF_* Zeitfelder fÃ¼hrend.
                     # Legacy ROOT.CREATED_AT/MODIFIED_AT werden entfernt, sobald SELF vorhanden ist.
-                    if str(table_name).strip().lower() == 'sys_mandanten':
+                    if str(table_name).strip().lower() == 'asy_mandanten':
                         if 'SELF_CREATED_AT' in root:
                             root.pop('CREATED_AT', None)
                         if 'SELF_MODIFIED_AT' in root:
@@ -689,27 +689,27 @@ class MandantDatabaseMaintenance:
                 total_synced += synced
 
                 if synced > 0:
-                    logger.info(f"🧩 {table_name}: {synced} ROOT.SELF Felder synchronisiert und Duplikate bereinigt")
+                    logger.info(f"ðŸ§© {table_name}: {synced} ROOT.SELF Felder synchronisiert und Duplikate bereinigt")
 
             except Exception as e:
-                logger.warning(f"⚠️ ROOT.SELF Sync in {table_name} fehlgeschlagen: {e}")
+                logger.warning(f"âš ï¸ ROOT.SELF Sync in {table_name} fehlgeschlagen: {e}")
 
         return total_synced
     
     async def _fix_gilt_bis_values(self, conn: asyncpg.Connection, tables: List[str]) -> int:
         """
-        Korrigiert gilt_bis Werte für alte Datensätze
-        Setzt gilt_bis = '9999-12-31 23:59:59' für alle Datensätze mit modified_at < 2026-01-08
+        Korrigiert gilt_bis Werte fÃ¼r alte DatensÃ¤tze
+        Setzt gilt_bis = '9999-12-31 23:59:59' fÃ¼r alle DatensÃ¤tze mit modified_at < 2026-01-08
         
         Returns:
-            Anzahl aktualisierter Datensätze
+            Anzahl aktualisierter DatensÃ¤tze
         """
         cutoff_date = datetime(2026, 1, 8)
         total_updated = 0
         
         for table_name in tables:
             try:
-                # Prüfe ob Tabelle gilt_bis Spalte hat
+                # PrÃ¼fe ob Tabelle gilt_bis Spalte hat
                 has_gilt_bis = await conn.fetchval("""
                     SELECT EXISTS (
                         SELECT FROM information_schema.columns
@@ -723,7 +723,7 @@ class MandantDatabaseMaintenance:
                 # Konvertiere GILT_BIS_MAX String zu datetime
                 gilt_bis_dt = datetime.strptime(GILT_BIS_MAX, '%Y-%m-%d %H:%M:%S')
                 
-                # Update alte Datensätze
+                # Update alte DatensÃ¤tze
                 result = await conn.execute(f"""
                     UPDATE {table_name}
                     SET gilt_bis = $1
@@ -734,33 +734,33 @@ class MandantDatabaseMaintenance:
                 # Parse "UPDATE X" result
                 count = int(result.split()[-1]) if result.startswith('UPDATE') else 0
                 if count > 0:
-                    logger.info(f"  🔄 {table_name}: {count} Datensätze aktualisiert")
+                    logger.info(f"  ðŸ”„ {table_name}: {count} DatensÃ¤tze aktualisiert")
                     total_updated += count
                     
             except Exception as e:
-                logger.error(f"  ❌ Fehler bei gilt_bis Update für {table_name}: {e}")
+                logger.error(f"  âŒ Fehler bei gilt_bis Update fÃ¼r {table_name}: {e}")
         
         if total_updated > 0:
-            logger.info(f"✅ Gesamt {total_updated} Datensätze mit gilt_bis korrigiert")
+            logger.info(f"âœ… Gesamt {total_updated} DatensÃ¤tze mit gilt_bis korrigiert")
         
         return total_updated
 
 
 async def run_system_maintenance(system_pool: asyncpg.Pool) -> Dict[str, Any]:
     """
-    Wartung für pdvm_system Datenbank
+    Wartung fÃ¼r pdvm_system Datenbank
     
-    Prüft und korrigiert System-Tabellen (sys_menudaten, sys_layout, etc.)
+    PrÃ¼ft und korrigiert System-Tabellen (sys_menudaten, sys_layout, etc.)
     
     Args:
         system_pool: Connection Pool zur pdvm_system Datenbank
         
     Returns:
-        Statistiken über durchgeführte Aktionen
+        Statistiken Ã¼ber durchgefÃ¼hrte Aktionen
     """
     from app.core.pdvm_table_schema import PDVM_SYSTEM_TABLES
     
-    logger.info(f"🔧 Starte System-Datenbank-Wartung (pdvm_system)")
+    logger.info(f"ðŸ”§ Starte System-Datenbank-Wartung (pdvm_system)")
     
     stats = {
         'tables_created': [],
@@ -772,27 +772,27 @@ async def run_system_maintenance(system_pool: asyncpg.Pool) -> Dict[str, Any]:
         'errors': []
     }
     
-    # Erstelle temporäre Maintenance-Instanz (ohne mandant_uid und mandant_daten)
+    # Erstelle temporÃ¤re Maintenance-Instanz (ohne mandant_uid und mandant_daten)
     # Wir nutzen nur die Hilfsmethoden
     temp_maintenance = MandantDatabaseMaintenance(system_pool, "", {})
     
     async with system_pool.acquire() as conn:
-        # System-Tabellen prüfen und warten
+        # System-Tabellen prÃ¼fen und warten
         for table_name in PDVM_SYSTEM_TABLES:
             try:
                 exists = await temp_maintenance._table_exists(conn, table_name)
                 if not exists:
                     await temp_maintenance._create_pdvm_table(conn, table_name)
                     stats['tables_created'].append(table_name)
-                    logger.info(f"✅ System-Tabelle {table_name} erstellt")
+                    logger.info(f"âœ… System-Tabelle {table_name} erstellt")
                 else:
-                    # Tabelle existiert - prüfe Spalten
+                    # Tabelle existiert - prÃ¼fe Spalten
                     updated = await temp_maintenance._verify_and_fix_columns(conn, table_name)
                     if updated:
                         stats['tables_updated'].append(table_name)
-                        logger.info(f"✅ System-Tabelle {table_name} aktualisiert")
+                        logger.info(f"âœ… System-Tabelle {table_name} aktualisiert")
             except Exception as e:
-                logger.error(f"❌ Fehler bei System-Tabelle {table_name}: {e}")
+                logger.error(f"âŒ Fehler bei System-Tabelle {table_name}: {e}")
                 stats['errors'].append(f"{table_name}: {e}")
         
         # gilt_bis Werte korrigieren
@@ -803,7 +803,7 @@ async def run_system_maintenance(system_pool: asyncpg.Pool) -> Dict[str, Any]:
         link_uid_synced = await temp_maintenance._sync_link_uid_values(conn, PDVM_SYSTEM_TABLES)
         stats['link_uid_synced'] = link_uid_synced
 
-        # Voll-Normalisierung für alle Tabellen in pdvm_system
+        # Voll-Normalisierung fÃ¼r alle Tabellen in pdvm_system
         all_public_tables = await temp_maintenance._get_public_tables(conn)
         link_uid_cols_added = await temp_maintenance._ensure_link_uid_columns(conn, all_public_tables)
         root_self_synced = await temp_maintenance._sync_root_self_fields(conn, all_public_tables)
@@ -813,7 +813,7 @@ async def run_system_maintenance(system_pool: asyncpg.Pool) -> Dict[str, Any]:
         stats['root_self_synced'] = root_self_synced
         stats['link_uid_synced'] = stats['link_uid_synced'] + link_uid_synced_all
     
-    logger.info(f"✅ System-Wartung abgeschlossen: {stats}")
+    logger.info(f"âœ… System-Wartung abgeschlossen: {stats}")
     return stats
 
 
@@ -823,15 +823,15 @@ async def run_mandant_maintenance(
     mandant_daten: Dict[str, Any]
 ) -> Dict[str, Any]:
     """
-    Convenience-Funktion für Wartung
+    Convenience-Funktion fÃ¼r Wartung
     
     Args:
         mandant_pool: Connection Pool zur Mandanten-DB
         mandant_uid: UID des Mandanten
-        mandant_daten: Mandanten-Daten aus Login (enthält CONFIGS.FEATURES)
+        mandant_daten: Mandanten-Daten aus Login (enthÃ¤lt CONFIGS.FEATURES)
         
     Returns:
-        Statistiken über durchgeführte Aktionen
+        Statistiken Ã¼ber durchgefÃ¼hrte Aktionen
     """
     maintenance = MandantDatabaseMaintenance(mandant_pool, mandant_uid, mandant_daten)
     return await maintenance.run_maintenance()
@@ -839,10 +839,10 @@ async def run_mandant_maintenance(
 
 async def run_auth_maintenance(auth_pool: asyncpg.Pool) -> Dict[str, Any]:
     """
-    Wartung für auth Datenbank (insb. sys_benutzer, sys_mandanten).
-    Führt Voll-Normalisierung für alle Tabellen aus.
+    Wartung fÃ¼r auth Datenbank (insb. asy_benutzer, asy_mandanten).
+    FÃ¼hrt Voll-Normalisierung fÃ¼r alle Tabellen aus.
     """
-    logger.info("🔧 Starte Auth-Datenbank-Wartung (auth)")
+    logger.info("ðŸ”§ Starte Auth-Datenbank-Wartung (auth)")
 
     stats = {
         'tables_created': [],
@@ -857,21 +857,21 @@ async def run_auth_maintenance(auth_pool: asyncpg.Pool) -> Dict[str, Any]:
     temp_maintenance = MandantDatabaseMaintenance(auth_pool, "", {})
 
     async with auth_pool.acquire() as conn:
-        # Historie-Tabelle in auth-DB sicherstellen (für Änderungen an auth-Tabellen).
-        history_table = FieldChangeHistoryService.HISTORY_TABLE
+        # Historie-Tabelle in auth-DB sicherstellen (fÃ¼r Ã„nderungen an auth-Tabellen).
+        history_table = FieldChangeHistoryService.HISTORY_TABLE_AUTH
         try:
             exists = await temp_maintenance._table_exists(conn, history_table)
             if not exists:
                 await temp_maintenance._create_pdvm_table(conn, history_table)
                 stats['tables_created'].append(history_table)
-                logger.info(f"✅ Auth-Tabelle {history_table} erstellt")
+                logger.info(f"âœ… Auth-Tabelle {history_table} erstellt")
             else:
                 updated = await temp_maintenance._verify_and_fix_columns(conn, history_table)
                 if updated:
                     stats['tables_updated'].append(history_table)
-                    logger.info(f"✅ Auth-Tabelle {history_table} aktualisiert")
+                    logger.info(f"âœ… Auth-Tabelle {history_table} aktualisiert")
         except Exception as e:
-            logger.error(f"❌ Fehler bei Auth-Tabelle {history_table}: {e}")
+            logger.error(f"âŒ Fehler bei Auth-Tabelle {history_table}: {e}")
             stats['errors'].append(f"{history_table}: {e}")
 
         all_public_tables = await temp_maintenance._get_public_tables(conn)
@@ -883,5 +883,6 @@ async def run_auth_maintenance(auth_pool: asyncpg.Pool) -> Dict[str, Any]:
         stats['root_self_synced'] = root_self_synced
         stats['link_uid_synced'] = link_uid_synced
 
-    logger.info(f"✅ Auth-Wartung abgeschlossen: {stats}")
+    logger.info(f"âœ… Auth-Wartung abgeschlossen: {stats}")
     return stats
+

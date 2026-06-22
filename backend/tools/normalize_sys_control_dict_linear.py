@@ -18,6 +18,7 @@ import argparse
 import asyncio
 import json
 import sys
+import copy
 from pathlib import Path
 from typing import Any, Dict, Tuple
 
@@ -28,6 +29,10 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from app.core.connection_manager import ConnectionManager
+
+
+_DEFAULT_TEMPLATE_UID = "66666666-6666-6666-6666-666666666666"
+_MODUL_TEMPLATE_UID = "55555555-5555-5555-5555-555555555555"
 
 
 def _as_dict(value: Any) -> Dict[str, Any]:
@@ -79,7 +84,22 @@ def _upper_top_keys(control_data: Dict[str, Any]) -> Dict[str, Any]:
     return out
 
 
-def normalize_row(uid: str, row_name: str, daten: Dict[str, Any]) -> Tuple[Dict[str, Any], str, bool]:
+def _extract_666_defaults(daten: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    if not isinstance(daten, dict):
+        return {}, {}
+    root = daten.get("ROOT") if isinstance(daten.get("ROOT"), dict) else {}
+    control = daten.get("CONTROL") if isinstance(daten.get("CONTROL"), dict) else {}
+    return copy.deepcopy(root), copy.deepcopy(control)
+
+
+def normalize_row(
+    uid: str,
+    row_name: str,
+    daten: Dict[str, Any],
+    *,
+    base_root: Dict[str, Any],
+    base_control: Dict[str, Any],
+) -> Tuple[Dict[str, Any], str, bool]:
     if not isinstance(daten, dict):
         return daten, row_name, False
 
@@ -88,10 +108,14 @@ def normalize_row(uid: str, row_name: str, daten: Dict[str, Any]) -> Tuple[Dict[
     root_in = _as_dict(daten.get("ROOT"))
     control_in = _as_dict(daten.get("CONTROL"))
 
+    if not root_in and not control_in and any(str(k).upper() in {"TEMPLATES", "ELEMENTS"} for k in daten.keys()):
+        return daten, row_name, False
+
     if not control_in:
         control_in = {k: v for k, v in daten.items() if str(k).upper() not in {"ROOT", "CONTROL"}}
 
-    control = _upper_top_keys(control_in)
+    control = copy.deepcopy(base_control)
+    control.update(_upper_top_keys(control_in))
 
     table_name = str(
         _pick_ci(control, "TABLE")
@@ -123,7 +147,8 @@ def normalize_row(uid: str, row_name: str, daten: Dict[str, Any]) -> Tuple[Dict[
     if table_name:
         control["TABLE"] = str(table_name).strip().lower()
 
-    root: Dict[str, Any] = {}
+    root: Dict[str, Any] = copy.deepcopy(base_root)
+    root.update(root_in)
     root["SELF_GUID"] = str(uid)
     root["SELF_NAME"] = canonical_name
     root["NAME"] = canonical_name
@@ -168,6 +193,18 @@ async def main() -> int:
     changed_uids = []
 
     try:
+        template_row = await conn.fetchrow(
+            "SELECT daten FROM public.sys_control_dict WHERE historisch = 0 AND uid = $1::uuid",
+            _DEFAULT_TEMPLATE_UID,
+        )
+        template_daten = template_row.get("daten") if template_row else {}
+        if isinstance(template_daten, str):
+            try:
+                template_daten = json.loads(template_daten)
+            except Exception:
+                template_daten = {}
+        base_root, base_control = _extract_666_defaults(template_daten if isinstance(template_daten, dict) else {})
+
         if args.uid:
             rows = await conn.fetch(
                 "SELECT uid, name, daten FROM public.sys_control_dict WHERE historisch = 0 AND uid = $1::uuid",
@@ -180,6 +217,9 @@ async def main() -> int:
 
         for row in rows:
             uid = str(row["uid"])
+            if uid in {_DEFAULT_TEMPLATE_UID, _MODUL_TEMPLATE_UID}:
+                continue
+
             row_name = str(row.get("name") or "")
             daten = row.get("daten") or {}
             if isinstance(daten, str):
@@ -190,7 +230,13 @@ async def main() -> int:
             if not isinstance(daten, dict):
                 continue
 
-            normalized_daten, normalized_name, changed = normalize_row(uid, row_name, daten)
+            normalized_daten, normalized_name, changed = normalize_row(
+                uid,
+                row_name,
+                daten,
+                base_root=base_root,
+                base_control=base_control,
+            )
             if not changed:
                 continue
 

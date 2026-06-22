@@ -58,17 +58,25 @@ class WorkflowDraftAccess:
         return {}
 
     @staticmethod
-    def _merge_defined_fields(template_dict: Dict[str, Any], incoming: Dict[str, Any]) -> Dict[str, Any]:
+    def _merge_defined_fields(
+        template_dict: Dict[str, Any],
+        incoming: Dict[str, Any],
+        path: Tuple[str, ...] = (),
+    ) -> Dict[str, Any]:
         out = copy.deepcopy(template_dict) if isinstance(template_dict, dict) else {}
         if not isinstance(incoming, dict):
             return out
 
         for key, value in incoming.items():
             if key not in out:
+                # ROOT.TAB_ELEMENTS ist eine dynamische Collection (TAB_01..TAB_NN)
+                # und darf nicht durch das 555-Template auf leere Keys begrenzt werden.
+                if path and str(path[-1]).strip().upper() == "TAB_ELEMENTS":
+                    out[key] = copy.deepcopy(value)
                 continue
             existing = out.get(key)
             if isinstance(existing, dict) and isinstance(value, dict):
-                out[key] = WorkflowDraftAccess._merge_defined_fields(existing, value)
+                out[key] = WorkflowDraftAccess._merge_defined_fields(existing, value, path=path + (str(key),))
             else:
                 out[key] = value
         return out

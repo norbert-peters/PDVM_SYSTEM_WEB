@@ -24,7 +24,7 @@ import { PdvmMenuEditor } from './PdvmMenuEditor'
 import { PdvmImportDataEditor, PdvmImportDataSteps } from './PdvmImportDataEditor'
 import { PdvmJsonEditor, type PdvmJsonEditorHandle, type PdvmJsonEditorMode } from '../common/PdvmJsonEditor'
 import { PdvmDialogModal, type PdvmDialogModalField } from '../common/PdvmDialogModal'
-import { PdvmInputControl, type PdvmDropdownOption, type PdvmElementField } from '../common/PdvmInputControl'
+import { PdvmInputControl, type PdvmDropdownOption, type PdvmElementDefinition, type PdvmElementField } from '../common/PdvmInputControl'
 import { useAuth } from '../../hooks/useAuth'
 import '../../styles/components/dialog.css'
 
@@ -101,29 +101,31 @@ function resolveGoSelectViewTable(configs: any, controlData?: any): string {
   return String(table || '').trim()
 }
 
-function resolveElementEditorConfig(configs: any): { template: Record<string, any> | null; fields: any[] | null; elementRef: Record<string, any> | null } {
+function resolveElementEditorConfig(configs: any): { elementRef: Record<string, any> | null } {
+  // Lineare Regel:
+  // element_list liest die Element-Frame-Referenz ausschliesslich aus CONFIGS.element
+  // (bzw. gleicher Struktur in control_flat.CONFIGS.element).
   const cfg = asObject(configs)
-  const cfgElements = asObject(readCfgValue(cfg, ['CONFIGS_ELEMENTS', 'configs_elements']))
 
-  const directTemplate = asObject(readCfgValue(cfg, ['element_template', 'template', 'elemente_template']))
-  const cfgElementsTemplate = asObject(readCfgValue(cfgElements, ['element_template', 'template', 'elemente_template', 'ELEMENT_TEMPLATE']))
-  const template = Object.keys(directTemplate).length ? directTemplate : Object.keys(cfgElementsTemplate).length ? cfgElementsTemplate : null
-
-  const directFields = readCfgValue(cfg, ['element_fields', 'fields'])
-  const cfgElementsFields = readCfgValue(cfgElements, ['element_fields', 'fields', 'ELEMENT_FIELDS'])
-  const fieldsRaw = Array.isArray(directFields) ? directFields : Array.isArray(cfgElementsFields) ? cfgElementsFields : null
-
-  const directElementRef = asObject(readCfgValue(cfg, ['element']))
-  const cfgElementsElementRef = asObject(readCfgValue(cfgElements, ['element', 'ELEMENT']))
-  const elementRef = Object.keys(directElementRef).length
-    ? directElementRef
-    : (Object.keys(cfgElementsElementRef).length ? cfgElementsElementRef : null)
-
-  return {
-    template,
-    fields: fieldsRaw,
-    elementRef,
+  const directElement = asObject(readCfgValue(cfg, ['element']))
+  if (Object.keys(directElement).length) {
+    return { elementRef: directElement }
   }
+
+  const nestedConfigs = asObject(readCfgValue(cfg, ['CONFIGS', 'configs']))
+  const nestedElement = asObject(readCfgValue(nestedConfigs, ['element']))
+  if (Object.keys(nestedElement).length) {
+    return { elementRef: nestedElement }
+  }
+
+  const controlFlat = asObject(readCfgValue(cfg, ['control_flat']))
+  const controlConfigs = asObject(readCfgValue(controlFlat, ['CONFIGS', 'configs']))
+  const controlElement = asObject(readCfgValue(controlConfigs, ['element']))
+  if (Object.keys(controlElement).length) {
+    return { elementRef: controlElement }
+  }
+
+  return { elementRef: null }
 }
 
 function resolveSelectConfigByType(params: {
@@ -186,12 +188,16 @@ function resolveSelectConfigByType(params: {
   const cfgElementsObj = asObject(params.cfgElements)
   const fromElements = asObject(cfgElementsObj[key] ?? cfgElementsObj[keyUpper])
   const fromElementsSource = asObject(cfgElementsObj[sourceKey] ?? cfgElementsObj[sourceKeyUpper])
-  if (Object.keys(fromElements).length) return withSource(fromElements, fromElementsSource)
+  if (Object.keys(fromElements).length || Object.keys(fromElementsSource).length) {
+    return withSource(fromElements, fromElementsSource)
+  }
 
   const cfgControlObj = asObject(params.cfgControlConfigs)
   const fromControlConfigs = asObject(cfgControlObj[key] ?? cfgControlObj[keyUpper])
   const fromControlSource = asObject(cfgControlObj[sourceKey] ?? cfgControlObj[sourceKeyUpper])
-  if (Object.keys(fromControlConfigs).length) return withSource(fromControlConfigs, fromControlSource)
+  if (Object.keys(fromControlConfigs).length || Object.keys(fromControlSource).length) {
+    return withSource(fromControlConfigs, fromControlSource)
+  }
 
   const cfgLegacyObj = asObject(params.cfgLegacy)
   const fromLegacy = asObject(cfgLegacyObj[key] ?? cfgLegacyObj[keyUpper])
@@ -486,12 +492,39 @@ function buildElementFieldsFromFrameDaten(
       const row = asObject(d as any)
       const name = String((d as any).feld ?? row.FELD ?? (d as any).name ?? row.NAME ?? '').trim()
       if (!name) return null
+      const explicitControlUid = String(
+        (row as any).control_uid ??
+        (row as any).CONTROL_UID ??
+        (row as any).control_guid ??
+        (row as any).CONTROL_GUID ??
+        '',
+      ).trim()
+      const controlUid = isUuidString(explicitControlUid) ? explicitControlUid : ''
+      const inlineControlRaw = asObject((row as any).CONTROL)
       const label = String((d as any).label ?? row.LABEL ?? (d as any).name ?? row.NAME ?? name).trim() || name
       const fieldType = mapPicTypeToElementFieldType((d as any).type ?? row.TYPE)
       const displayOrder = Number((d as any).display_order ?? row.DISPLAY_ORDER)
       const tooltip = String((d as any).tooltip ?? row.TOOLTIP ?? row.HELP_TEXT ?? '').trim()
       const required = toBoolean((d as any).required ?? row.REQUIRED)
       const expertMode = !!expertModeEnabled
+      const savePath = String((row as any).save_path ?? (row as any).SAVE_PATH ?? name).trim() || name
+      const cfg = asObject((d as any).configs)
+      const cfgElements = asObject((cfg as any).CONFIGS_ELEMENTS)
+      const inlineControl = Object.keys(inlineControlRaw).length
+        ? inlineControlRaw
+        : {
+            TYPE: String((d as any).type || '').trim(),
+            LABEL: label,
+            FIELD: name,
+            FELD: name,
+            TABLE: String((d as any).table || '').trim(),
+            GRUPPE: String((d as any).gruppe || '').trim(),
+            READ_ONLY: !!(d as any).read_only,
+            SOURCE_PATH: String((d as any).source_path || '').trim(),
+            TOOLTIP: tooltip || undefined,
+            CONFIGS: cfg,
+            CONFIGS_ELEMENTS: cfgElements,
+          }
 
       return {
         name,
@@ -500,13 +533,15 @@ function buildElementFieldsFromFrameDaten(
         required,
         tooltip: tooltip || undefined,
         help_text: tooltip || undefined,
+        ...(controlUid ? { CONTROL_UID: controlUid } : {}),
+        ...(Object.keys(inlineControl).length ? { CONTROL: inlineControl } : {}),
         control_debug: {
-          ...asObject(row.CONTROL),
+          ...inlineControl,
           FIELD_KEY: `ELEMENT.${name}`,
           EXPERT_MODE: expertMode,
         },
         EXPERT_MODE: expertMode,
-        SAVE_PATH: name,
+        SAVE_PATH: savePath,
         display_order: Number.isFinite(displayOrder) ? displayOrder : undefined,
       } as PdvmElementField
     })
@@ -532,6 +567,119 @@ function buildElementTemplateFromFields(fields: PdvmElementField[]): Record<stri
     out[field.name] = ''
   })
   return out
+}
+
+function buildElementDefinitionsFromFrameDaten(frameDaten: Record<string, any> | null | undefined): PdvmElementDefinition[] {
+  const fd = asObject(frameDaten)
+  const root = asObject(fd.ROOT)
+  const raw = readCfgValue(root, ['ELEMENTS', 'elements'])
+
+  const out: PdvmElementDefinition[] = []
+
+  const extractFrameGuid = (value: Record<string, any>): string => {
+    const direct = String(readCfgValue(value, ['frame', 'frame_guid']) || '').trim()
+    if (isUuidString(direct)) return direct
+    const frameObj = asObject(readCfgValue(value, ['frame_ref', 'frame_config']))
+    const fromFrameObj = String(readCfgValue(frameObj, ['key', 'guid', 'uid']) || '').trim()
+    if (isUuidString(fromFrameObj)) return fromFrameObj
+    return ''
+  }
+
+  const pushDef = (uidRaw: any, valueRaw: any) => {
+    const uid = String(uidRaw || '').trim()
+    if (!uid) return
+    const value = asObject(valueRaw)
+    const label = String(readCfgValue(value, ['label', 'name', 'title']) || uid).trim() || uid
+    const template = asObject(readCfgValue(value, ['template', 'TEMPLATE']))
+    const frameGuid = extractFrameGuid(value)
+    const noFields = toBoolean(readCfgValue(value, ['no_fields', 'NO_FIELDS']))
+    const sourcePath = String(readCfgValue(value, ['source_path', 'SOURCE_PATH']) || '').trim()
+    out.push({
+      uid,
+      label,
+      template: Object.keys(template).length ? template : undefined,
+      frameGuid: frameGuid || undefined,
+      noFields,
+      sourcePath: sourcePath || undefined,
+    })
+  }
+
+  if (Array.isArray(raw)) {
+    raw.forEach((entry) => {
+      const obj = asObject(entry)
+      const uid = String(readCfgValue(obj, ['uid', 'guid', 'key']) || '').trim()
+      if (!uid) return
+      pushDef(uid, obj)
+    })
+  } else {
+    const obj = asObject(raw)
+    Object.entries(obj).forEach(([uid, value]) => pushDef(uid, value))
+  }
+
+  // Fallback for template frames using collection-style definitions in FIELDS
+  // (example: FIELDS.CONFIGS = { help: {...}, element: {...}, ... }).
+  if (out.length === 0) {
+    const fields = asObject(fd.FIELDS)
+    const rootFieldToken = String(readCfgValue(root, ['FIELD', 'FELD']) || '').trim()
+
+    const pushFromCollection = (collectionRaw: any) => {
+      const collection = asObject(collectionRaw)
+      Object.entries(collection).forEach(([key, value]) => {
+        const uid = String(key || '').trim()
+        if (!uid) return
+        const row = asObject(value)
+        if (!Object.keys(row).length) return
+
+        const label = String(readCfgValue(row, ['label', 'name', 'title']) || uid).trim() || uid
+        const template = asObject(readCfgValue(row, ['template', 'TEMPLATE']))
+        const frameGuid = extractFrameGuid(row)
+        const noFields = toBoolean(readCfgValue(row, ['no_fields', 'NO_FIELDS']))
+        const sourcePath = String(readCfgValue(row, ['source_path', 'SOURCE_PATH']) || '').trim()
+        out.push({
+          uid,
+          label,
+          template: Object.keys(template).length ? template : undefined,
+          frameGuid: frameGuid || undefined,
+          noFields,
+          sourcePath: sourcePath || undefined,
+        })
+      })
+    }
+
+    if (rootFieldToken) {
+      const direct = readCfgValue(fields, [rootFieldToken])
+      pushFromCollection(direct)
+    }
+
+    if (out.length === 0) {
+      Object.values(fields).forEach((fieldValue) => {
+        if (out.length > 0) return
+        const candidate = asObject(fieldValue)
+        if (!Object.keys(candidate).length) return
+        const maybeCollection = Object.values(candidate)
+        const looksLikeCollection =
+          maybeCollection.length > 0 &&
+          maybeCollection.every((entry) => {
+            const row = asObject(entry)
+            return Object.keys(row).length > 0
+          })
+        if (!looksLikeCollection) return
+        pushFromCollection(candidate)
+      })
+    }
+  }
+
+  const unique = new Map<string, PdvmElementDefinition>()
+  out.forEach((d) => {
+    if (!unique.has(d.uid)) unique.set(d.uid, d)
+  })
+  return Array.from(unique.values())
+}
+
+function readElementFrameType(frameDaten: Record<string, any> | null | undefined): string {
+  const fd = asObject(frameDaten)
+  const root = asObject(fd.ROOT)
+  return String(readCfgValue(root, ['FRAME_TYPE', 'frame_type']) || '').trim().toLowerCase()
 }
 
 function isCollectionObject(value: any): boolean {
@@ -746,10 +894,13 @@ function extractPicDefs(frameDaten: Record<string, any> | null | undefined): Pic
     const root = asObject((item as any).ROOT)
     const configsRaw = asObject((item as any).configs ?? (item as any).CONFIGS)
     const cfgElements = asObject((item as any).CONFIGS_ELEMENTS ?? control.CONFIGS_ELEMENTS)
+    const cfgElementsDropdown = asObject((cfgElements as any).dropdown)
     const mergedConfigs = {
       ...configsRaw,
       ...(Object.keys(cfgElements).length ? { CONFIGS_ELEMENTS: cfgElements } : {}),
-      ...(Object.keys(asObject((configsRaw as any).dropdown)).length ? {} : { dropdown: asObject((cfgElements as any).dropdown) }),
+      ...(Object.keys(asObject((configsRaw as any).dropdown)).length || !Object.keys(cfgElementsDropdown).length
+        ? {}
+        : { dropdown: cfgElementsDropdown }),
     }
 
     const displayOrderRaw = (item as any).display_order ?? (item as any).DISPLAY_ORDER ?? control.DISPLAY_ORDER ?? control.EXPERT_ORDER
@@ -898,7 +1049,22 @@ function buildCreateContextFieldsFromFrame(frameDaten: Record<string, any> | nul
 
 function getFieldValue(daten: Record<string, any>, gruppe: string, feld: string) {
   const isTopLevel = gruppe === '__ROOT__' || gruppe === '__TOP__'
-  const baseObj = isTopLevel ? asObject(daten) : asObject(daten[gruppe])
+  const resolveGroupObject = (source: Record<string, any>, groupPath: string): Record<string, any> => {
+    const parts = String(groupPath || '')
+      .split('.')
+      .map((p) => p.trim())
+      .filter(Boolean)
+    if (!parts.length) return {}
+
+    let cursor: any = source
+    for (const part of parts) {
+      if (!cursor || typeof cursor !== 'object' || Array.isArray(cursor)) return {}
+      cursor = cursor[part]
+    }
+    return asObject(cursor)
+  }
+
+  const baseObj = isTopLevel ? asObject(daten) : resolveGroupObject(asObject(daten), gruppe)
   if (!feld.includes('.')) return baseObj[feld]
   return feld.split('.').reduce((acc: any, part: string) => {
     if (!acc || typeof acc !== 'object') return undefined
@@ -921,16 +1087,138 @@ function getValueByPath(source: Record<string, any> | null | undefined, path: st
   return cursor
 }
 
+function setValueByPath(source: Record<string, any>, path: string, value: any): Record<string, any> {
+  const parts = String(path || '')
+    .split('.')
+    .map((p) => p.trim())
+    .filter(Boolean)
+  if (!parts.length) return source
+
+  const out = { ...source }
+  let cursor: any = out
+  parts.forEach((part, idx) => {
+    if (idx === parts.length - 1) {
+      cursor[part] = value
+      return
+    }
+
+    const next = cursor[part]
+    if (!next || typeof next !== 'object' || Array.isArray(next)) {
+      cursor[part] = {}
+    } else {
+      cursor[part] = { ...next }
+    }
+    cursor = cursor[part]
+  })
+
+  return out
+}
+
+function normalizeSourcePath(raw: any): string {
+  const path = String(raw || '').trim()
+  if (!path) return 'root'
+  return path
+}
+
+function isRootSourcePath(sourcePath: string): boolean {
+  const norm = String(sourcePath || '').trim().toLowerCase()
+  return !norm || norm === 'root' || norm === '__root__' || norm === '__top__'
+}
+
+function getControlSourceRoot(daten: Record<string, any>, sourcePathRaw?: string): Record<string, any> {
+  const sourcePath = normalizeSourcePath(sourcePathRaw)
+  if (isRootSourcePath(sourcePath)) return asObject(daten)
+  return asObject(getValueByPath(asObject(daten), sourcePath))
+}
+
+function validateCollectionSourcePath(daten: Record<string, any>, sourcePathRaw?: string): string | null {
+  const sourcePath = normalizeSourcePath(sourcePathRaw)
+  if (isRootSourcePath(sourcePath)) return null
+
+  const resolved = getValueByPath(asObject(daten), sourcePath)
+  if (resolved === undefined || resolved === null) {
+    return `Ungültige SOURCE_PATH: '${sourcePath}' konnte im Datensatz nicht aufgelöst werden.`
+  }
+  if (typeof resolved !== 'object' || Array.isArray(resolved)) {
+    return `Ungültige SOURCE_PATH: '${sourcePath}' muss auf ein Objekt zeigen (aktuell: ${Array.isArray(resolved) ? 'array' : typeof resolved}).`
+  }
+  return null
+}
+
+function setControlSourceRoot(daten: Record<string, any>, sourcePathRaw: string | undefined, sourceRootValue: Record<string, any>): Record<string, any> {
+  const sourcePath = normalizeSourcePath(sourcePathRaw)
+  if (isRootSourcePath(sourcePath)) return asObject(sourceRootValue)
+  return setValueByPath(asObject(daten), sourcePath, asObject(sourceRootValue))
+}
+
+function getControlBoundValue(daten: Record<string, any>, sourcePath: string | undefined, gruppe: string, feld: string): any {
+  const sourceRoot = getControlSourceRoot(daten, sourcePath)
+  return getFieldValue(sourceRoot, gruppe, feld)
+}
+
+function setControlBoundValue(
+  daten: Record<string, any>,
+  sourcePath: string | undefined,
+  gruppe: string,
+  feld: string,
+  value: any,
+): Record<string, any> {
+  const sourceRoot = getControlSourceRoot(daten, sourcePath)
+  const nextSourceRoot = setFieldValue(sourceRoot, gruppe, feld, value)
+  return setControlSourceRoot(daten, sourcePath, asObject(nextSourceRoot))
+}
+
 function setFieldValue(daten: Record<string, any>, gruppe: string, feld: string, value: any) {
   const out = { ...daten }
   const isTopLevel = gruppe === '__ROOT__' || gruppe === '__TOP__'
-  const groupObj = isTopLevel ? asObject(out) : asObject(out[gruppe])
+
+  const readGroupObjectByPath = (source: Record<string, any>, groupPath: string): Record<string, any> => {
+    const parts = String(groupPath || '')
+      .split('.')
+      .map((p) => p.trim())
+      .filter(Boolean)
+    if (!parts.length) return {}
+
+    let cursor: any = source
+    for (const part of parts) {
+      if (!cursor || typeof cursor !== 'object' || Array.isArray(cursor)) return {}
+      cursor = cursor[part]
+    }
+
+    return asObject(cursor)
+  }
+
+  const writeGroupObjectByPath = (source: Record<string, any>, groupPath: string, nextGroupObj: Record<string, any>) => {
+    const parts = String(groupPath || '')
+      .split('.')
+      .map((p) => p.trim())
+      .filter(Boolean)
+    if (!parts.length) return
+
+    let cursor: any = source
+    parts.forEach((part, idx) => {
+      if (idx === parts.length - 1) {
+        cursor[part] = nextGroupObj
+        return
+      }
+
+      const next = cursor[part]
+      if (!next || typeof next !== 'object' || Array.isArray(next)) {
+        cursor[part] = {}
+      } else {
+        cursor[part] = { ...next }
+      }
+      cursor = cursor[part]
+    })
+  }
+
+  const groupObj = isTopLevel ? asObject(out) : readGroupObjectByPath(asObject(out), gruppe)
   if (!feld.includes('.')) {
     const next = { ...groupObj, [feld]: value }
     if (isTopLevel) {
       return next
     }
-    out[gruppe] = next
+    writeGroupObjectByPath(out, gruppe, next)
     return out
   }
   const parts = feld.split('.').filter(Boolean)
@@ -948,8 +1236,19 @@ function setFieldValue(daten: Record<string, any>, gruppe: string, feld: string,
   if (isTopLevel) {
     return root
   }
-  out[gruppe] = root
+  writeGroupObjectByPath(out, gruppe, root)
   return out
+}
+
+function groupPathEndsWithField(gruppe: string, feld: string): boolean {
+  const groupParts = String(gruppe || '')
+    .split('.')
+    .map((p) => p.trim())
+    .filter(Boolean)
+  const fieldNorm = String(feld || '').trim().toUpperCase()
+  if (!groupParts.length || !fieldNorm) return false
+  const tail = String(groupParts[groupParts.length - 1] || '').trim().toUpperCase()
+  return tail === fieldNorm
 }
 
 function isElementCollectionType(typeRaw: any): boolean {
@@ -962,14 +1261,21 @@ function getControlValueForRender(
   gruppe: string,
   feld: string,
   typeRaw: any,
+  sourcePath?: string,
 ): any {
-  const direct = getFieldValue(currentDaten, gruppe, feld)
+  const direct = getControlBoundValue(currentDaten, sourcePath, gruppe, feld)
   if (!isElementCollectionType(typeRaw)) return direct
 
+  const sourceRoot = getControlSourceRoot(currentDaten, sourcePath)
+
   // Sonderfall FIELDS/FIELDS: Collection liegt auf Gruppenebene.
-  if ((direct === undefined || direct === null) && gruppe && feld && gruppe.toUpperCase() === feld.toUpperCase()) {
-    const groupObj = asObject((currentDaten as any)[gruppe])
+  if ((direct === undefined || direct === null) && gruppe && feld && (gruppe.toUpperCase() === feld.toUpperCase() || groupPathEndsWithField(gruppe, feld))) {
+    const groupObj = asObject(getFieldValue(sourceRoot, '__ROOT__', gruppe))
     if (Object.keys(groupObj).length) return groupObj
+
+    const nested = getFieldValue(sourceRoot, '__ROOT__', gruppe)
+    const nestedObj = asObject(nested)
+    if (Object.keys(nestedObj).length) return nestedObj
   }
 
   return direct
@@ -981,14 +1287,13 @@ function setControlValueFromEdit(
   feld: string,
   typeRaw: any,
   value: any,
+  sourcePath?: string,
 ): Record<string, any> {
-  if (isElementCollectionType(typeRaw) && gruppe && feld && gruppe.toUpperCase() === feld.toUpperCase()) {
-    const out = { ...asObject(base) }
-    out[gruppe] = asObject(value)
-    return out
+  if (isElementCollectionType(typeRaw) && gruppe && feld && (gruppe.toUpperCase() === feld.toUpperCase() || groupPathEndsWithField(gruppe, feld))) {
+    return setControlBoundValue(asObject(base), sourcePath, '__ROOT__', gruppe, asObject(value))
   }
 
-  return setFieldValue(base, gruppe, feld, value)
+  return setControlBoundValue(asObject(base), sourcePath, gruppe, feld, value)
 }
 
 function getFirstCollectionRow(value: any): Record<string, any> | null {
@@ -2180,6 +2485,7 @@ export default function PdvmDialogPage() {
 
   const jsonEditorRef = useRef<PdvmJsonEditorHandle | null>(null)
   const [jsonError, setJsonError] = useState<string | null>(null)
+  const [picSaveError, setPicSaveError] = useState<string | null>(null)
   const [jsonDirty, setJsonDirty] = useState(false)
   const [jsonMode, setJsonMode] = useState<PdvmJsonEditorMode>('text')
   const [jsonSearch, setJsonSearch] = useState('')
@@ -2239,6 +2545,7 @@ export default function PdvmDialogPage() {
     if (!isFieldEditor) return
     setPicDraft(currentDaten || {})
     setPicDirty(false)
+    setPicSaveError(null)
   }, [currentDaten, isFieldEditor])
 
   const controlFieldLookupQuery = useQuery({
@@ -2410,58 +2717,98 @@ export default function PdvmDialogPage() {
     if (!isFieldEditor) return
     if (!dialogGuid || !picDraft) return
     if (!isWorkflowDialog && !selectedUid && !activeDraft?.draft_id) return
+    setPicSaveError(null)
+
     if (isWorkflowDialog) {
       await saveWorkflowCurrentStepSnapshot()
       setPicDirty(false)
       setWorkflowDraftStatus(`Workflow-Daten gespeichert (${String(workflowDraftGuid || 'neu').slice(0, 8)})`)
       return
     }
-    if (activeDraft?.draft_id) {
-      try {
-        await commitDraftMutation.mutateAsync(picDraft)
-      } catch (e: any) {
-        const issues = (e?.response?.data?.detail?.validation_errors || []) as DialogValidationIssue[]
-        if (Array.isArray(issues) && issues.length > 0) {
-          setDraftValidationIssues(issues)
-          setJsonError(issues[0]?.message || 'Validierung fehlgeschlagen')
-          return
+    try {
+      let savedRecord: DialogRecordResponse | null = null
+
+      if (activeDraft?.draft_id) {
+        try {
+          savedRecord = await commitDraftMutation.mutateAsync(picDraft)
+        } catch (e: any) {
+          const issues = (e?.response?.data?.detail?.validation_errors || []) as DialogValidationIssue[]
+          if (Array.isArray(issues) && issues.length > 0) {
+            setDraftValidationIssues(issues)
+            const msg = issues[0]?.message || 'Validierung fehlgeschlagen'
+            setJsonError(msg)
+            setPicSaveError(msg)
+            return
+          }
+          throw e
         }
-        throw e
+      } else {
+        savedRecord = await updateMutation.mutateAsync(picDraft)
       }
-    } else {
-      await updateMutation.mutateAsync(picDraft)
+
+      if (savedRecord?.daten && typeof savedRecord.daten === 'object' && !Array.isArray(savedRecord.daten)) {
+        setPicDraft(savedRecord.daten as Record<string, any>)
+      }
+
+      setPicDirty(false)
+      setPicSaveError(null)
+    } catch (e: any) {
+      const detail = e?.response?.data?.detail
+      const msg =
+        (typeof detail === 'string' && detail) ||
+        (detail && typeof detail === 'object' && (detail.message || detail.error)) ||
+        e?.message ||
+        'Speichern fehlgeschlagen'
+      setPicSaveError(String(msg))
     }
-    setPicDirty(false)
   }
 
   const commitElementListChange = async (
     gruppe: string,
     feld: string,
-    controlType: string,
+    controlType: string | undefined,
     nextValue: any,
     preferredTable?: string,
+    sourcePath?: string,
   ) => {
     if (!isFieldEditor) return
     const base = asObject((picDraft ? picDraft : currentDaten) || {})
-    const nextDraft = setControlValueFromEdit(base, gruppe, feld, controlType, nextValue)
+
+    const sourcePathRaw = String(sourcePath || '').trim()
+    const selectedUidRaw = String(selectedUid || '').trim().toLowerCase()
+    let effectiveSourcePath = sourcePathRaw
+
+    // Prevent writing collection updates into record-wrapper paths like root.<record_uid>.*.
+    // For persisted dialog records, canonical control groups live at root-level in daten.
+    if (isElementCollectionType(controlType) && sourcePathRaw) {
+      const sourceNorm = sourcePathRaw.toLowerCase()
+      if (selectedUidRaw && (sourceNorm === `root.${selectedUidRaw}` || sourceNorm.startsWith(`root.${selectedUidRaw}.`))) {
+        effectiveSourcePath = 'root'
+      }
+
+      if (!isRootSourcePath(effectiveSourcePath)) {
+        const canonicalExisting = getControlBoundValue(base, undefined, gruppe, feld)
+        if (canonicalExisting !== undefined) {
+          effectiveSourcePath = 'root'
+        }
+      }
+    }
+
+    const nextDraft = setControlValueFromEdit(base, gruppe, feld, controlType, nextValue, effectiveSourcePath)
     setPicDraft(nextDraft)
     setPicDirty(true)
+    setPicSaveError(null)
+    updateMutation.reset()
 
-    try {
-      if (isWorkflowDialog) {
+    // Element-Änderungen werden bei "Übernehmen" nur lokal in der Dialogstruktur gehalten.
+    // Persistenz erfolgt ausschließlich über den globalen Dialog-Button "Speichern".
+    if (isWorkflowDialog) {
+      try {
         await saveWorkflowEditSnapshotWithSource(nextDraft, preferredTable)
         setWorkflowDraftStatus(`Workflow-Daten gespeichert (${String(workflowDraftGuid || 'neu').slice(0, 8)})`)
-      } else {
-        if (!selectedUid && !activeDraft?.draft_id) return
-        await updateMutation.mutateAsync(nextDraft)
-      }
-      setPicDirty(false)
-    } catch (e: any) {
-      const msg = String(e?.response?.data?.detail || e?.message || 'Element-Aenderung konnte nicht gespeichert werden.')
-      if (isWorkflowDialog) {
+      } catch (e: any) {
+        const msg = String(e?.response?.data?.detail || e?.message || 'Element-Aenderung konnte nicht lokal übernommen werden.')
         setWorkflowDraftError(msg)
-      } else {
-        setJsonError(msg)
       }
     }
   }
@@ -2782,8 +3129,6 @@ export default function PdvmDialogPage() {
 
   const elementFrameRefs = useMemo(() => {
     if (!isFieldEditor) return [] as Array<{ fieldKey: string; frameGuid: string }>
-
-    const current = (picDraft ? picDraft : currentDaten || {}) as Record<string, any>
     const refs: Array<{ fieldKey: string; frameGuid: string }> = []
 
     uiPicDefs.forEach((def) => {
@@ -2803,14 +3148,6 @@ export default function PdvmDialogPage() {
         refs.push({ fieldKey, frameGuid: elementRefKey })
         return
       }
-
-      if (!isPdvmEditCore) return
-      const frameGuidField = `${feld}_GUID`
-      const frameGuidRaw = getFieldValue(current, gruppe, frameGuidField)
-      const frameGuid = String(frameGuidRaw || '').trim()
-      if (!isUuidString(frameGuid)) return
-
-      refs.push({ fieldKey, frameGuid })
     })
 
     const uniqueByField = new Map<string, { fieldKey: string; frameGuid: string }>()
@@ -2819,91 +3156,169 @@ export default function PdvmDialogPage() {
     })
 
     return Array.from(uniqueByField.values())
-  }, [isPdvmEditCore, isFieldEditor, uiPicDefs, picDraft, currentDaten])
+  }, [isFieldEditor, uiPicDefs])
 
   const elementFrameQueries = useQueries({
     queries: elementFrameRefs.map((ref) => ({
       queryKey: ['dialogs', 'frame', ref.frameGuid],
       queryFn: () => dialogsAPI.getFrameDefinition(ref.frameGuid),
-      enabled: isPdvmEditCore && !!ref.frameGuid,
+      enabled: isFieldEditor && !!ref.frameGuid,
     })),
   })
 
   const elementFrameConfigByFieldKey = useMemo(() => {
-    const out: Record<string, { fields: PdvmElementField[]; template: Record<string, any>; frame: FrameDefinitionResponse }> = {}
+    const out: Record<string, { fields: PdvmElementField[]; template: Record<string, any>; definitions: PdvmElementDefinition[]; frame: FrameDefinitionResponse; frameType: string }> = {}
     elementFrameRefs.forEach((ref, idx) => {
       const frame = elementFrameQueries[idx]?.data as FrameDefinitionResponse | undefined
       if (!frame?.daten) return
       const fields = buildElementFieldsFromFrameDaten(frame.daten, globalExpertMode)
-      if (!fields.length) return
+      const definitions = buildElementDefinitionsFromFrameDaten(frame.daten)
+      const frameType = readElementFrameType(frame.daten)
       out[ref.fieldKey] = {
         fields,
-        template: buildElementTemplateFromFields(fields),
+        template: fields.length ? buildElementTemplateFromFields(fields) : {},
+        definitions,
         frame,
+        frameType,
       }
     })
     return out
   }, [elementFrameRefs, elementFrameQueries])
 
-  const elementFieldCandidates = useMemo(() => {
-    if (!usesUnifiedControlMatrix) return [] as string[]
-    const out = new Set<string>()
-
-    uiPicDefs.forEach((def) => {
-      const type = normalizePicType(def.type)
-      if (type !== 'element_list' && type !== 'group_list') return
-
-      const fieldKey = String(def.key || `${def.gruppe || ''}.${def.feld || ''}`)
-      const frameFields = elementFrameConfigByFieldKey[fieldKey]?.fields || []
-      const cfgFieldsRaw = resolveElementEditorConfig(def.configs).fields || []
-      const cfgFields = Array.isArray(cfgFieldsRaw) ? cfgFieldsRaw : []
-      const source = frameFields.length ? frameFields : cfgFields
-
-      source.forEach((field: any) => {
-        const nameUpper = String(field?.name || '').trim().toUpperCase()
-        if (nameUpper) out.add(nameUpper)
+  const elementDefinitionFrameRefs = useMemo(() => {
+    const refs: Array<{ frameGuid: string }> = []
+    Object.values(elementFrameConfigByFieldKey).forEach((cfg) => {
+      ;(cfg.definitions || []).forEach((def) => {
+        const guid = String((def as any)?.frameGuid || '').trim()
+        if (!isUuidString(guid)) return
+        refs.push({ frameGuid: guid })
       })
     })
 
-    return Array.from(out)
-  }, [usesUnifiedControlMatrix, uiPicDefs, elementFrameConfigByFieldKey])
+    const unique = new Map<string, { frameGuid: string }>()
+    refs.forEach((ref) => {
+      if (!unique.has(ref.frameGuid)) unique.set(ref.frameGuid, ref)
+    })
+    return Array.from(unique.values())
+  }, [elementFrameConfigByFieldKey])
 
-  const elementFieldControlRefs = useMemo(() => {
-    if (!usesUnifiedControlMatrix) return [] as Array<{ fieldUpper: string; uid: string }>
-    const rows = controlResolveListQuery.data?.items || []
-    if (!rows.length || !elementFieldCandidates.length) return [] as Array<{ fieldUpper: string; uid: string }>
+  const elementDefinitionFrameQueries = useQueries({
+    queries: elementDefinitionFrameRefs.map((ref) => ({
+      queryKey: ['dialogs', 'element-definition-frame', ref.frameGuid],
+      queryFn: () => dialogsAPI.getFrameDefinition(ref.frameGuid),
+      enabled: isFieldEditor && !!ref.frameGuid,
+    })),
+  })
 
-    const tableNorm = String(effectiveDialogTable || '').trim().toLowerCase()
-    const refs: Array<{ fieldUpper: string; uid: string }> = []
+  const elementDefinitionFrameConfigByGuid = useMemo(() => {
+    const out: Record<string, { fields: PdvmElementField[]; template: Record<string, any>; frameType: string }> = {}
+    elementDefinitionFrameRefs.forEach((ref, idx) => {
+      const frame = elementDefinitionFrameQueries[idx]?.data as FrameDefinitionResponse | undefined
+      if (!frame?.daten) return
+      const fields = buildElementFieldsFromFrameDaten(frame.daten, globalExpertMode)
+      out[ref.frameGuid] = {
+        fields,
+        template: fields.length ? buildElementTemplateFromFields(fields) : {},
+        frameType: readElementFrameType(frame.daten),
+      }
+    })
+    return out
+  }, [elementDefinitionFrameRefs, elementDefinitionFrameQueries, globalExpertMode])
 
-    elementFieldCandidates.forEach((fieldUpper) => {
-      const candidates = rows
-        .map((row) => {
-          const uid = String(row.uid || '').trim()
-          const rowField = String(row.field || '').trim().toUpperCase()
-          const rowTable = String(row.table || '').trim().toLowerCase()
-          const rowGroup = String(row.gruppe || '').trim().toUpperCase()
-          if (!uid || !rowField || rowField !== fieldUpper) return null
-          let score = 0
-          if (tableNorm && rowTable === tableNorm) score += 10
-          if (!rowTable) score += 5
-          if (rowGroup === 'ROOT') score += 2
-          if (!rowGroup) score += 1
-          return { uid, score }
+  const elementFrameConfigResolvedByFieldKey = useMemo(() => {
+    const out: Record<string, {
+      fields: PdvmElementField[]
+      template: Record<string, any>
+      definitions: PdvmElementDefinition[]
+      frame: FrameDefinitionResponse
+      frameType: string
+      fieldsByDefinitionUid: Record<string, PdvmElementField[]>
+      validationError?: string
+    }> = {}
+
+    Object.entries(elementFrameConfigByFieldKey).forEach(([fieldKey, cfg]) => {
+      const defsResolved: PdvmElementDefinition[] = []
+      const fieldsByDefinitionUid: Record<string, PdvmElementField[]> = {}
+      const definitionErrors: string[] = []
+
+      if (String(cfg.frameType || '').trim().toLowerCase() === 'element_list' && (!cfg.definitions || cfg.definitions.length === 0)) {
+        definitionErrors.push('FRAME_TYPE=element_list erwartet mindestens eine ELEMENTS-Definition im Template-Frame.')
+      }
+
+      ;(cfg.definitions || []).forEach((def) => {
+        const frameGuid = String((def as any)?.frameGuid || '').trim()
+        const defUid = String(def.uid || '').trim()
+        const noFields = !!(def as any).noFields
+        const sourcePath = String((def as any).sourcePath || '').trim()
+        const child = frameGuid ? elementDefinitionFrameConfigByGuid[frameGuid] : null
+
+        if (!noFields && !frameGuid) {
+          definitionErrors.push(`Element-Definition '${defUid || '?'}' benötigt frame/frame_guid oder no_fields=true.`)
+        }
+        if (frameGuid && !child) {
+          definitionErrors.push(`Element-Definition '${defUid || '?'}' referenziert unbekanntes Frame: ${frameGuid}.`)
+        }
+        if (child && String(child.frameType || '').trim().toLowerCase() !== 'element') {
+          definitionErrors.push(`Element-Definition '${defUid || '?'}' muss auf FRAME_TYPE='element' zeigen.`)
+        }
+        if (!sourcePath) {
+          definitionErrors.push(`Element-Definition '${defUid || '?'}' hat keinen SOURCE_PATH.`)
+        }
+
+        const resolvedTemplate =
+          (def.template && typeof def.template === 'object' && Object.keys(def.template).length > 0)
+            ? def.template
+            : (child?.template || undefined)
+
+        if (defUid && child?.fields?.length) {
+          fieldsByDefinitionUid[defUid] = child.fields
+        }
+
+        defsResolved.push({
+          ...def,
+          template: resolvedTemplate,
+          frameGuid: frameGuid || undefined,
+          noFields,
+          sourcePath: sourcePath || undefined,
         })
-        .filter(Boolean) as Array<{ uid: string; score: number }>
+      })
 
-      if (!candidates.length) return
-      candidates.sort((a, b) => b.score - a.score)
-      refs.push({ fieldUpper, uid: candidates[0].uid })
+      const uniqueErrors = Array.from(new Set(definitionErrors.map((msg) => String(msg || '').trim()).filter(Boolean)))
+      const validationError = uniqueErrors.length ? `Element-Frame blockiert: ${uniqueErrors.join(' ')}` : undefined
+
+      out[fieldKey] = {
+        ...cfg,
+        definitions: defsResolved,
+        fieldsByDefinitionUid,
+        validationError,
+      }
     })
 
-    return refs
-  }, [usesUnifiedControlMatrix, controlResolveListQuery.data, elementFieldCandidates, effectiveDialogTable])
+    return out
+  }, [elementFrameConfigByFieldKey, elementDefinitionFrameConfigByGuid])
+
+  const elementFieldControlRefs = useMemo(() => {
+    if (!usesUnifiedControlMatrix) return [] as Array<{ uid: string }>
+
+    const refs: Array<{ uid: string }> = []
+    Object.values(elementFrameConfigByFieldKey).forEach((cfg) => {
+      ;(cfg.fields || []).forEach((field: any) => {
+        const uid = String((field as any).CONTROL_UID || '').trim()
+        if (!isUuidString(uid)) return
+        refs.push({ uid })
+      })
+    })
+
+    const unique = new Map<string, { uid: string }>()
+    refs.forEach((ref) => {
+      if (!unique.has(ref.uid)) unique.set(ref.uid, ref)
+    })
+    return Array.from(unique.values())
+  }, [usesUnifiedControlMatrix, elementFrameConfigByFieldKey])
 
   const elementFieldControlQueries = useQueries({
     queries: elementFieldControlRefs.map((entry) => ({
-      queryKey: ['control-dict', 'element-field', entry.uid],
+      queryKey: ['control-dict', 'element-field-direct', entry.uid],
       queryFn: () => controlDictAPI.getControl(entry.uid),
       enabled: usesUnifiedControlMatrix,
     })),
@@ -2948,16 +3363,40 @@ export default function PdvmDialogPage() {
     }
   }
 
-  const elementFieldControlByName = useMemo(() => {
+  const elementFieldControlByUid = useMemo(() => {
     const out: Record<string, Record<string, any>> = {}
     elementFieldControlRefs.forEach((entry, idx) => {
       const daten = normalizeElementFieldControlData(elementFieldControlQueries[idx]?.data?.daten)
       const controlPayload = asObject(daten.CONTROL)
       if (!Object.keys(controlPayload).length) return
-      out[entry.fieldUpper] = daten
+      out[entry.uid] = daten
     })
     return out
   }, [elementFieldControlRefs, elementFieldControlQueries])
+
+  const resolveElementFieldControl = (fieldDefRaw: any): {
+    data: Record<string, any>
+    source: 'inline' | 'uid' | 'none'
+  } => {
+    const fieldDef = asObject(fieldDefRaw)
+    const inlineControl = asObject((fieldDef as any).CONTROL)
+    if (Object.keys(inlineControl).length) {
+      return {
+        data: normalizeElementFieldControlData({ CONTROL: inlineControl }),
+        source: 'inline',
+      }
+    }
+
+    const controlUid = String((fieldDef as any).CONTROL_UID || '').trim()
+    if (isUuidString(controlUid)) {
+      const byUid = normalizeElementFieldControlData(elementFieldControlByUid[controlUid])
+      if (Object.keys(asObject(byUid.CONTROL)).length) {
+        return { data: byUid, source: 'uid' }
+      }
+    }
+
+    return { data: {}, source: 'none' }
+  }
 
   const elementDropdownFieldConfigs = useMemo(() => {
     if (!isFieldEditor) {
@@ -2985,17 +3424,20 @@ export default function PdvmDialogPage() {
       const feld = String(def.feld || '').trim()
       const parentCollection = gruppe && feld ? getFieldValue(current, gruppe, feld) : null
       const firstElementContext = getFirstCollectionRow(parentCollection)
-      const frameFields = elementFrameConfigByFieldKey[parentFieldKey]?.fields || []
-      const cfgFieldsRaw = resolveElementEditorConfig(def.configs).fields || []
-      const cfgFields = Array.isArray(cfgFieldsRaw) ? cfgFieldsRaw : []
-      const source = frameFields.length ? frameFields : cfgFields
+      const cfg = elementFrameConfigResolvedByFieldKey[parentFieldKey]
+      const sourceBase = Array.isArray(cfg?.fields) ? cfg.fields : []
+      const sourceByDefinition = Object.values(cfg?.fieldsByDefinitionUid || {})
+        .flat()
+        .filter((row) => row && typeof row === 'object') as PdvmElementField[]
+      const source = [...sourceBase, ...sourceByDefinition]
 
       source.forEach((field: any) => {
         const name = String(field?.name || '').trim()
         if (!name) return
-        const lookupKey = name.toUpperCase()
-        const controlData = asObject(elementFieldControlByName[lookupKey])
+        const resolvedControl = resolveElementFieldControl(field)
+        const controlData = asObject(resolvedControl.data)
         const controlPayload = asObject(controlData.CONTROL)
+        if (!Object.keys(controlPayload).length) return
         const controlConfigs = asObject((controlPayload as any).CONFIGS ?? (controlPayload as any).configs)
         const cfgElements = asObject((controlPayload as any).CONFIGS_ELEMENTS ?? (controlPayload as any).configs_elements)
         const fieldType = mapPicTypeToElementFieldType(controlPayload.TYPE)
@@ -3059,7 +3501,7 @@ export default function PdvmDialogPage() {
     })
 
     return out
-  }, [isFieldEditor, uiPicDefs, elementFrameConfigByFieldKey, elementFieldControlByName, picDraft, currentDaten])
+  }, [isFieldEditor, uiPicDefs, elementFrameConfigResolvedByFieldKey, elementFieldControlByUid, picDraft, currentDaten])
 
   const elementDropdownQueries = useQueries({
     queries: elementDropdownFieldConfigs.map((cfg) => ({
@@ -3132,13 +3574,37 @@ export default function PdvmDialogPage() {
       const name = String(fieldDef.name || '').trim()
       if (!name) return fieldDef as PdvmElementField
 
-      const lookupKey = name.toUpperCase()
-      const controlData = asObject(elementFieldControlByName[lookupKey])
+      const resolvedControl = resolveElementFieldControl(fieldDef)
+      const controlData = asObject(resolvedControl.data)
       const controlPayload = asObject(controlData.CONTROL)
-      if (!Object.keys(controlPayload).length) return fieldDef as PdvmElementField
+      if (!Object.keys(controlPayload).length) {
+        const controlUid = String((fieldDef as any).CONTROL_UID || '').trim()
+        const unresolvedMsg = isUuidString(controlUid)
+          ? `Control-Auflösung fehlgeschlagen für Element-Feld '${name}' (CONTROL_UID='${controlUid}' konnte nicht geladen werden).`
+          : `Control-Auflösung fehlt für Element-Feld '${name}' (im Frame ist weder CONTROL noch CONTROL_UID gesetzt).`
+        return {
+          ...fieldDef,
+          name,
+          label: String((fieldDef as any).label || name).trim() || name,
+          tooltip: String(fieldDef.tooltip || unresolvedMsg).trim(),
+          help_text: String(fieldDef.help_text || unresolvedMsg).trim(),
+          control_debug: {
+            ...asObject((fieldDef as any).control_debug),
+            FIELD_KEY: `${parentFieldKey}.${name}`,
+            EXPERT_MODE: globalExpertMode,
+            RESOLUTION_STATUS: 'missing_control',
+            RESOLUTION_WARNING: unresolvedMsg,
+          },
+          EXPERT_MODE: globalExpertMode,
+        } as PdvmElementField
+      }
 
       const explicitType = String((fieldDef as any).type || '').trim().toLowerCase()
       const mappedType = explicitType === 'go_select_view' ? 'go_select_view' : mapPicTypeToElementFieldType(controlPayload.TYPE)
+      const goSelectLookupTable =
+        mappedType === 'go_select_view'
+          ? resolveGoSelectViewTable(asObject(controlPayload.CONFIGS), controlPayload)
+          : ''
       const readOnly = toBoolean(controlPayload.READ_ONLY)
       const expertMode = globalExpertMode
       const tooltip = String(controlPayload.TOOLTIP ?? fieldDef.tooltip ?? fieldDef.help_text ?? '').trim()
@@ -3174,6 +3640,7 @@ export default function PdvmDialogPage() {
       const controlDebugWithDiag = {
         ...controlDebug,
         EXPERT_MODE: globalExpertMode,
+        RESOLUTION_SOURCE: resolvedControl.source,
         DROPDOWN_TABLE_TOKEN: tableToken || undefined,
         DROPDOWN_TABLE_RESOLVED: resolvedTable || undefined,
         DROPDOWN_TABLE_WARNING: tableWarning || undefined,
@@ -3182,12 +3649,15 @@ export default function PdvmDialogPage() {
       return {
         ...fieldDef,
         type: mappedType,
+        CONTROL: controlPayload,
+        configs: asObject(controlPayload.CONFIGS),
         label: String(controlPayload.LABEL ?? fieldDef.label ?? name).trim() || name,
         required: toBoolean(fieldDef.required ?? false),
         placeholder: String(fieldDef.placeholder ?? '').trim() || undefined,
         tooltip: tooltip || undefined,
         help_text: tooltip || undefined,
         SAVE_PATH: String(fieldDef.SAVE_PATH || name).trim(),
+        lookupTable: goSelectLookupTable || undefined,
         options: resolvedOptions.length
           ? resolvedOptions
           : undefined,
@@ -4480,9 +4950,7 @@ export default function PdvmDialogPage() {
               <button
                 type="button"
                 onClick={() => {
-                  savePic().catch(() => {
-                    // ignore
-                  })
+                  savePic()
                 }}
                 disabled={!picDirty || (!selectedUid && !isDraftMode) || activeTab !== editTabIndex || createMutation.isPending || updateMutation.isPending || commitDraftMutation.isPending}
                 className="pdvm-dialog__toolBtn"
@@ -4510,6 +4978,26 @@ export default function PdvmDialogPage() {
 
         {defQuery.data ? (
           <div style={{ marginTop: 6, fontSize: 12, opacity: 0.75, display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+            {isFieldEditor && activeTab === editTabIndex && picDirty ? (
+              <div style={{ color: '#8a6d3b', fontWeight: 600 }}>
+                Lokale Aenderungen vorhanden: erst mit "Speichern" wird in die Datenbank persistiert.
+              </div>
+            ) : null}
+            {isFieldEditor && activeTab === editTabIndex && !picDirty && updateMutation.isSuccess ? (
+              <div style={{ color: '#195e36', fontWeight: 600 }}>
+                Gespeichert.
+              </div>
+            ) : null}
+            {isFieldEditor && activeTab === editTabIndex && updateMutation.isPending ? (
+              <div style={{ color: '#1d4f91', fontWeight: 600 }}>
+                Speichere...
+              </div>
+            ) : null}
+            {isFieldEditor && activeTab === editTabIndex && !!picSaveError ? (
+              <div style={{ color: 'crimson', fontWeight: 600 }}>
+                Fehler beim Speichern: {picSaveError}
+              </div>
+            ) : null}
             <div>
               open_edit_mode: <span style={{ fontFamily: 'monospace' }}>{String(defQuery.data.open_edit_mode || '')}</span>
             </div>
@@ -4959,14 +5447,21 @@ export default function PdvmDialogPage() {
                           if (!feld) return null
 
                           const current = picDraft ? picDraft : currentDaten || {}
-                          const rawValue = getControlValueForRender(current as Record<string, any>, gruppe, feld, d.type)
+                          const rawValue = getControlValueForRender(current as Record<string, any>, gruppe, feld, d.type, d.source_path)
                           const type = normalizePicType(d.type)
                           const fieldKey = String(d.key || `${gruppe}.${feld}`)
                           const validationKey = `${gruppe}.${feld}`
                           const validationMessage = draftErrorByField[validationKey]
                           const options = dropdownOptionsByFieldKey[fieldKey] || []
                           const resolvedControl = resolvedControlByGroupField[`${gruppe.toUpperCase()}::${feld.toUpperCase()}`] || null
-                          const elementFrameConfig = elementFrameConfigByFieldKey[fieldKey]
+                          const elementFrameConfig = elementFrameConfigResolvedByFieldKey[fieldKey]
+                          const elementValidationError =
+                            (type === 'element_list' || type === 'group_list')
+                              ? [
+                                  validateCollectionSourcePath(current as Record<string, any>, d.source_path),
+                                  String(elementFrameConfig?.validationError || '').trim() || null,
+                                ].filter(Boolean).join(' · ') || null
+                              : null
                           const isFrameFieldsList =
                             String(effectiveDialogTable || '').trim().toLowerCase() === 'sys_framedaten' &&
                             (type === 'element_list' || type === 'group_list') &&
@@ -5010,13 +5505,30 @@ export default function PdvmDialogPage() {
                                 },
                               ]
                             : null
-                          const elementConfig = resolveElementEditorConfig(d.configs)
-                          const elementTemplate = elementFrameConfig?.template || elementConfig.template || fallbackElementTemplate || null
-                          const elementFieldsRaw = elementFrameConfig?.fields || elementConfig.fields || fallbackElementFields || null
+                          const elementTemplate = elementFrameConfig?.template || fallbackElementTemplate || null
+                          const elementFieldsRaw = elementFrameConfig?.fields || fallbackElementFields || null
+                          const elementDefinitions = elementFrameConfig?.definitions || []
+                          const elementFrameType = String(elementFrameConfig?.frameType || '').trim().toLowerCase()
                           const frameFieldsEditorRaw = isFrameFieldsList
                             ? buildFrameFieldsElementEditorFields(elementFieldsRaw, controlTemplatePayload)
                             : elementFieldsRaw
                           const elementFields = enrichElementFields(frameFieldsEditorRaw, fieldKey)
+                          const enrichedFieldsByDefinitionUid = Object.fromEntries(
+                            Object.entries(elementFrameConfig?.fieldsByDefinitionUid || {}).map(([uid, fields]) => [
+                              uid,
+                              enrichElementFields(fields, fieldKey),
+                            ]),
+                          ) as Record<string, PdvmElementField[]>
+                          const elementResolutionSourceFields = elementFrameType === 'element_list'
+                            ? Object.values(enrichedFieldsByDefinitionUid).flat()
+                            : elementFields
+                          const elementControlResolutionError = elementResolutionSourceFields
+                            .map((f) => String((f as any)?.control_debug?.RESOLUTION_WARNING || '').trim())
+                            .filter(Boolean)
+                            .join(' · ') || null
+                          const combinedElementValidationError = [elementValidationError, elementControlResolutionError]
+                            .filter(Boolean)
+                            .join(' · ') || null
 
                           const hydrateFrameFieldElementDraft = isFrameFieldsList
                             ? (draft: Record<string, any>, draftUid?: string | null) => {
@@ -5088,9 +5600,11 @@ export default function PdvmDialogPage() {
                           const onChange = (value: any) => {
                             setPicDraft((prev) => {
                               const base = prev || (currentDaten || {})
-                              return setControlValueFromEdit(base as Record<string, any>, gruppe, feld, d.type, value)
+                              return setControlValueFromEdit(base as Record<string, any>, gruppe, feld, d.type, value, d.source_path)
                             })
                             setPicDirty(true)
+                            setPicSaveError(null)
+                            updateMutation.reset()
                           }
 
                           if (type === 'action') {
@@ -5132,13 +5646,21 @@ export default function PdvmDialogPage() {
                               onChange={onChange}
                               readOnly={!!d.read_only || !!dropdownFieldReadOnlyByFieldKey[fieldKey]}
                               options={options}
-                              lookupTable={type === 'go_select_view' ? resolveGoSelectViewTable(d.configs, (d as any).CONTROL) : undefined}
+                              lookupTable={
+                                type === 'go_select_view'
+                                  ? String((d as any).lookupTable || '').trim() || resolveGoSelectViewTable(d.configs, (d as any).CONTROL)
+                                  : undefined
+                              }
                               helpText={validationMessage ? `${validationMessage}${d.tooltip ? ` · ${d.tooltip}` : ''}` : (d.tooltip || '')}
                               elementTemplate={elementTemplate}
                               elementFields={elementFields}
+                              elementFieldsByUid={enrichedFieldsByDefinitionUid}
+                              elementDefinitions={elementDefinitions}
+                              elementFrameType={elementFrameType}
+                              elementValidationError={combinedElementValidationError}
                               elementLabelKeys={isFrameFieldsList ? ['LABEL', 'NAME', 'FIELD'] : undefined}
                               elementUidLabels={elementUidLabels}
-                              onElementListCommit={(nextValue) => commitElementListChange(gruppe, feld, d.type, nextValue, String(d.table || ''))}
+                              onElementListCommit={(nextValue) => commitElementListChange(gruppe, feld, d.type, nextValue, String(d.table || ''), d.source_path)}
                               elementDraftHydrator={hydrateFrameFieldElementDraft}
                               elementDraftNormalizer={normalizeFrameFieldElementDraft}
                               controlDebug={buildControlDebugForField(d, fieldKey, rawValue, resolvedControl)}
@@ -5539,14 +6061,21 @@ export default function PdvmDialogPage() {
                                   if (!feld) return null
 
                                   const current = picDraft ? picDraft : currentDaten || {}
-                                  const rawValue = getControlValueForRender(current as Record<string, any>, gruppe, feld, d.type)
+                                  const rawValue = getControlValueForRender(current as Record<string, any>, gruppe, feld, d.type, d.source_path)
                                   const type = normalizePicType(d.type)
                                   const fieldKey = String(d.key || `${gruppe}.${feld}`)
                                   const validationKey = `${gruppe}.${feld}`
                                   const validationMessage = draftErrorByField[validationKey]
                                   const options = dropdownOptionsByFieldKey[fieldKey] || []
                                   const resolvedControl = resolvedControlByGroupField[`${gruppe.toUpperCase()}::${feld.toUpperCase()}`] || null
-                                  const elementFrameConfig = elementFrameConfigByFieldKey[fieldKey]
+                                  const elementFrameConfig = elementFrameConfigResolvedByFieldKey[fieldKey]
+                                  const elementValidationError =
+                                    (type === 'element_list' || type === 'group_list')
+                                      ? [
+                                          validateCollectionSourcePath(current as Record<string, any>, d.source_path),
+                                          String(elementFrameConfig?.validationError || '').trim() || null,
+                                        ].filter(Boolean).join(' · ') || null
+                                      : null
                                   const isFrameFieldsList =
                                     String(effectiveDialogTable || '').trim().toLowerCase() === 'sys_framedaten' &&
                                     (type === 'element_list' || type === 'group_list') &&
@@ -5590,13 +6119,30 @@ export default function PdvmDialogPage() {
                                         },
                                       ]
                                     : null
-                                  const elementConfig = resolveElementEditorConfig(d.configs)
-                                  const elementTemplate = elementFrameConfig?.template || elementConfig.template || fallbackElementTemplate || null
-                                  const elementFieldsRaw = elementFrameConfig?.fields || elementConfig.fields || fallbackElementFields || null
+                                  const elementTemplate = elementFrameConfig?.template || fallbackElementTemplate || null
+                                  const elementFieldsRaw = elementFrameConfig?.fields || fallbackElementFields || null
+                                  const elementDefinitions = elementFrameConfig?.definitions || []
+                                  const elementFrameType = String(elementFrameConfig?.frameType || '').trim().toLowerCase()
                                   const frameFieldsEditorRaw = isFrameFieldsList
                                     ? buildFrameFieldsElementEditorFields(elementFieldsRaw, controlTemplatePayload)
                                     : elementFieldsRaw
                                   const elementFields = enrichElementFields(frameFieldsEditorRaw, fieldKey)
+                                  const enrichedFieldsByDefinitionUid = Object.fromEntries(
+                                    Object.entries(elementFrameConfig?.fieldsByDefinitionUid || {}).map(([uid, fields]) => [
+                                      uid,
+                                      enrichElementFields(fields, fieldKey),
+                                    ]),
+                                  ) as Record<string, PdvmElementField[]>
+                                  const elementResolutionSourceFields = elementFrameType === 'element_list'
+                                    ? Object.values(enrichedFieldsByDefinitionUid).flat()
+                                    : elementFields
+                                  const elementControlResolutionError = elementResolutionSourceFields
+                                    .map((f) => String((f as any)?.control_debug?.RESOLUTION_WARNING || '').trim())
+                                    .filter(Boolean)
+                                    .join(' · ') || null
+                                  const combinedElementValidationError = [elementValidationError, elementControlResolutionError]
+                                    .filter(Boolean)
+                                    .join(' · ') || null
 
                                   const hydrateFrameFieldElementDraft = isFrameFieldsList
                                     ? (draft: Record<string, any>, draftUid?: string | null) => {
@@ -5668,9 +6214,11 @@ export default function PdvmDialogPage() {
                                   const onChange = (value: any) => {
                                     setPicDraft((prev) => {
                                       const base = prev || (currentDaten || {})
-                                      return setControlValueFromEdit(base as Record<string, any>, gruppe, feld, d.type, value)
+                                      return setControlValueFromEdit(base as Record<string, any>, gruppe, feld, d.type, value, d.source_path)
                                     })
                                     setPicDirty(true)
+                                    setPicSaveError(null)
+                                    updateMutation.reset()
                                   }
 
                                   if (type === 'action') {
@@ -5712,13 +6260,21 @@ export default function PdvmDialogPage() {
                                       onChange={onChange}
                                       readOnly={!!d.read_only || !!dropdownFieldReadOnlyByFieldKey[fieldKey]}
                                       options={options}
-                                      lookupTable={type === 'go_select_view' ? resolveGoSelectViewTable(d.configs, (d as any).CONTROL) : undefined}
+                                      lookupTable={
+                                        type === 'go_select_view'
+                                          ? String((d as any).lookupTable || '').trim() || resolveGoSelectViewTable(d.configs, (d as any).CONTROL)
+                                          : undefined
+                                      }
                                       helpText={validationMessage ? `${validationMessage}${d.tooltip ? ` · ${d.tooltip}` : ''}` : (d.tooltip || '')}
                                       elementTemplate={elementTemplate}
                                       elementFields={elementFields}
+                                      elementFieldsByUid={enrichedFieldsByDefinitionUid}
+                                      elementDefinitions={elementDefinitions}
+                                      elementFrameType={elementFrameType}
+                                      elementValidationError={combinedElementValidationError}
                                       elementLabelKeys={isFrameFieldsList ? ['LABEL', 'NAME', 'FIELD'] : undefined}
                                       elementUidLabels={elementUidLabels}
-                                      onElementListCommit={(nextValue) => commitElementListChange(gruppe, feld, d.type, nextValue, String(d.table || ''))}
+                                      onElementListCommit={(nextValue) => commitElementListChange(gruppe, feld, d.type, nextValue, String(d.table || ''), d.source_path)}
                                       elementDraftHydrator={hydrateFrameFieldElementDraft}
                                       elementDraftNormalizer={normalizeFrameFieldElementDraft}
                                       controlDebug={buildControlDebugForField(d, fieldKey, rawValue, resolvedControl)}

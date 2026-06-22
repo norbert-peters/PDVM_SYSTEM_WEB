@@ -210,7 +210,7 @@ def get_workflow_draft_blueprint_specs() -> List[BlueprintSpec]:
         [
             _field("draft_tabs", "TAB_HEAD", "Tab Head", "string", 10),
             _field("draft_tabs", "TAB_MODULE", "Tab Module", "dropdown", 20),
-            _field("draft_tabs", "TAB_GUID", "Tab GUID", "string", 30),
+            _field("draft_tabs", "GUID", "GUID", "string", 30),
             _field("draft_tabs", "ADD_TAB_ACTION", "Add Tab", "action", 40),
             _field("draft_tabs", "REMOVE_TAB_ACTION", "Remove Tab", "action", 50),
         ]

@@ -205,7 +205,7 @@ async def save_theme_preference(
     gcs = Depends(get_gcs_instance)
 ):
     """
-    Speichert Theme-Präferenz (light/dark) in sys_systemsteuerung
+    Speichert Theme-Präferenz (light/dark) in msy_systemsteuerung
     
     Args:
         theme_mode: 'light' oder 'dark'
@@ -236,7 +236,7 @@ async def get_theme_preference(
     gcs = Depends(get_gcs_instance)
 ):
     """
-    Lädt gespeicherte Theme-Präferenz aus sys_systemsteuerung
+    Lädt gespeicherte Theme-Präferenz aus msy_systemsteuerung
     
     Returns:
         Theme-Präferenz oder default 'light'
@@ -258,8 +258,6 @@ async def get_theme_preference(
     except Exception as e:
         logger.error(f"Fehler beim Laden der Theme-Präferenz: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-        logger.error(f"Fehler beim Laden der Theme-Präferenz: {e}")
-        return {"theme_mode": "light"}  # Default bei Fehler
 
 
 @router.get("/{mandant_uid}/{theme}")

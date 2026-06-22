@@ -7,7 +7,15 @@ import './PdvmInputControl.css'
 
 export type PdvmInputType = 'string' | 'number' | 'text' | 'dropdown' | 'multi_dropdown' | 'true_false' | 'datetime' | 'date' | 'time' | 'go_select_view' | 'element_list' | 'elemente_list' | 'group_list'
 
-export type PdvmDropdownOption = { value: string; label: string }
+export type PdvmDropdownOption = { value: string; label: string; disabled?: boolean }
+export type PdvmElementDefinition = {
+  uid: string
+  label: string
+  template?: Record<string, any>
+  frameGuid?: string
+  noFields?: boolean
+  sourcePath?: string
+}
 export type PdvmElementField = {
   name: string
   label: string
@@ -23,21 +31,6 @@ export type PdvmElementField = {
   display_order?: number
 }
 
-function getValueByPath(source: Record<string, any> | null | undefined, path: string): any {
-  const obj = source && typeof source === 'object' ? source : {}
-  const parts = String(path || '')
-    .split('.')
-    .map((p) => p.trim())
-    .filter(Boolean)
-  if (!parts.length) return undefined
-  let cursor: any = obj
-  for (const part of parts) {
-    if (!cursor || typeof cursor !== 'object') return undefined
-    cursor = cursor[part]
-  }
-  return cursor
-}
-
 function getValueByKeyCaseInsensitive(source: Record<string, any> | null | undefined, key: string): any {
   const obj = source && typeof source === 'object' ? source : {}
   const k = String(key || '').trim()
@@ -50,27 +43,59 @@ function getValueByKeyCaseInsensitive(source: Record<string, any> | null | undef
   return undefined
 }
 
-function setValueByPath(target: Record<string, any>, path: string, value: any): Record<string, any> {
+function getValueByPathCaseInsensitive(source: Record<string, any> | null | undefined, path: string): any {
+  const obj = source && typeof source === 'object' ? source : {}
+  const parts = String(path || '')
+    .split('.')
+    .map((p) => p.trim())
+    .filter(Boolean)
+  if (!parts.length) return undefined
+
+  let cursor: any = obj
+  for (const part of parts) {
+    if (!cursor || typeof cursor !== 'object') return undefined
+
+    if (Object.prototype.hasOwnProperty.call(cursor, part)) {
+      cursor = cursor[part]
+      continue
+    }
+
+    const match = Object.keys(cursor).find((k) => String(k || '').toLowerCase() === part.toLowerCase())
+    if (!match) return undefined
+    cursor = cursor[match]
+  }
+
+  return cursor
+}
+
+function setValueByPathPreferExistingCase(target: Record<string, any>, path: string, value: any): Record<string, any> {
   const parts = String(path || '')
     .split('.')
     .map((p) => p.trim())
     .filter(Boolean)
   if (!parts.length) return target
+
   const out = { ...target }
   let cursor: any = out
+
   parts.forEach((part, idx) => {
+    const existingKey = Object.keys(cursor).find((k) => String(k || '').toLowerCase() === part.toLowerCase())
+    const resolvedKey = existingKey || part
+
     if (idx === parts.length - 1) {
-      cursor[part] = value
+      cursor[resolvedKey] = value
       return
     }
-    const next = cursor[part]
+
+    const next = cursor[resolvedKey]
     if (!next || typeof next !== 'object' || Array.isArray(next)) {
-      cursor[part] = {}
+      cursor[resolvedKey] = {}
     } else {
-      cursor[part] = { ...next }
+      cursor[resolvedKey] = { ...next }
     }
-    cursor = cursor[part]
+    cursor = cursor[resolvedKey]
   })
+
   return out
 }
 
@@ -242,6 +267,32 @@ function normalizeCollectionValue(value: any): Record<string, any> {
   return {}
 }
 
+function hasMeaningfulElementValue(value: any): boolean {
+  if (value === null || value === undefined) return false
+  if (typeof value === 'string') return value.trim().length > 0
+  if (typeof value === 'number') return Number.isFinite(value)
+  if (typeof value === 'boolean') return true
+  if (Array.isArray(value)) return value.some((entry) => hasMeaningfulElementValue(entry))
+  if (typeof value === 'object') {
+    const entries = Object.entries(value)
+    if (!entries.length) return false
+    return entries.some(([, v]) => hasMeaningfulElementValue(v))
+  }
+  return true
+}
+
+function normalizeOccupiedCollectionValue(value: any): Record<string, any> {
+  const raw = normalizeCollectionValue(value)
+  const out: Record<string, any> = {}
+  Object.entries(raw).forEach(([key, row]) => {
+    const uid = String(key || '').trim()
+    if (!uid) return
+    if (!hasMeaningfulElementValue(row)) return
+    out[uid] = row
+  })
+  return out
+}
+
 function cloneAny<T>(value: T): T {
   if (value == null) return value
   try {
@@ -315,7 +366,12 @@ export function PdvmInputControl(props: {
   elementTemplate?: Record<string, any> | null
   elementLabelKeys?: string[]
   elementUidLabels?: Record<string, string>
+  onElementListCommit?: (nextValue: Record<string, any>) => void | Promise<void>
   elementFields?: PdvmElementField[]
+  elementFieldsByUid?: Record<string, PdvmElementField[]>
+  elementDefinitions?: PdvmElementDefinition[]
+  elementFrameType?: string
+  elementValidationError?: string | null
   elementDraftHydrator?: (draft: Record<string, any>, uid?: string | null) => Record<string, any>
   elementDraftNormalizer?: (draft: Record<string, any>, uid?: string | null) => Record<string, any>
 }) {
@@ -328,6 +384,8 @@ export function PdvmInputControl(props: {
   const [elementModalTitle, setElementModalTitle] = useState<string>('')
   const [elementModalDraft, setElementModalDraft] = useState<Record<string, any> | null>(null)
   const [elementModalBase, setElementModalBase] = useState<Record<string, any> | null>(null)
+  const [elementListGuardrailError, setElementListGuardrailError] = useState<string | null>(null)
+  const [elementAddDefinitionUid, setElementAddDefinitionUid] = useState<string>('')
   const [multiAddValue, setMultiAddValue] = useState<string>('')
 
   const controlDebugRaw = props.controlDebug && typeof props.controlDebug === 'object' ? (props.controlDebug as Record<string, any>) : null
@@ -356,9 +414,52 @@ export function PdvmInputControl(props: {
   const disabled = !!props.disabled || !!props.readOnly
   const helpEnabled = props.helpEnabled ?? true
   const isElementList = effectiveType === 'element_list' || effectiveType === 'elemente_list' || effectiveType === 'group_list'
+  const elementFrameType = useMemo(() => String(props.elementFrameType || '').trim().toLowerCase(), [props.elementFrameType])
+  const isElementFrameTypeList = elementFrameType === 'element_list'
+  const isElementFrameTypeSingle = elementFrameType === 'element'
   const elementFields = useMemo(() => {
     return Array.isArray(props.elementFields) ? props.elementFields : null
   }, [props.elementFields])
+  const elementDefinitions = useMemo(() => {
+    const defs = Array.isArray(props.elementDefinitions) ? props.elementDefinitions : []
+    const out: PdvmElementDefinition[] = []
+    const seen = new Set<string>()
+    defs.forEach((d) => {
+      const uid = String(d?.uid || '').trim()
+      if (!uid || seen.has(uid)) return
+      seen.add(uid)
+      out.push({
+        uid,
+        label: String(d?.label || uid).trim() || uid,
+        template: d?.template && typeof d.template === 'object' ? d.template : undefined,
+        frameGuid: String((d as any)?.frameGuid || '').trim() || undefined,
+      })
+    })
+    return out
+  }, [props.elementDefinitions])
+  const elementFieldsByUid = useMemo(() => {
+    const source = props.elementFieldsByUid && typeof props.elementFieldsByUid === 'object'
+      ? (props.elementFieldsByUid as Record<string, PdvmElementField[]>)
+      : {}
+    const out: Record<string, PdvmElementField[]> = {}
+    Object.entries(source).forEach(([uid, fields]) => {
+      const key = String(uid || '').trim()
+      if (!key) return
+      if (!Array.isArray(fields) || fields.length === 0) return
+      out[key] = fields
+    })
+    return out
+  }, [props.elementFieldsByUid])
+  const elementListHasDefinitionSource = !isElementFrameTypeList || elementDefinitions.length > 0
+  const structuralElementGuardrailError = useMemo(() => {
+    const explicit = String(props.elementValidationError || '').trim()
+    if (explicit) return explicit
+    if (!elementListHasDefinitionSource) {
+      return 'Speichern blockiert: FRAME_TYPE=element_list benötigt eine gültige ELEMENTS-Definitionsquelle im Template-Frame.'
+    }
+    return null
+  }, [props.elementValidationError, elementListHasDefinitionSource])
+  const effectiveElementGuardrailError = elementListGuardrailError || structuralElementGuardrailError
 
   const helpText = useMemo(() => {
     const s = String(props.helpText || '').trim()
@@ -385,11 +486,30 @@ export function PdvmInputControl(props: {
     })
     return map
   }, [props.options])
+  const optionKeyByLower = useMemo(() => {
+    const map = new Map<string, string>()
+    ;(props.options || []).forEach((opt) => {
+      const key = String(opt.value || '').trim()
+      if (!key) return
+      const low = key.toLowerCase()
+      if (!map.has(low)) map.set(low, key)
+    })
+    return map
+  }, [props.options])
+  const dropdownValue = useMemo(() => {
+    const raw = String(props.value ?? '').trim()
+    if (!raw) return ''
+    if (optionMap.has(raw)) return raw
+    const normalized = optionKeyByLower.get(raw.toLowerCase())
+    return normalized || raw
+  }, [props.value, optionMap, optionKeyByLower])
   const availableMultiOptions = useMemo(() => {
     const selected = new Set(multiDropdownValue)
+    const selectedLower = new Set(multiDropdownValue.map((v) => String(v || '').trim().toLowerCase()))
     return (props.options || []).filter((opt) => {
       const key = String(opt.value || '').trim()
-      return key && !selected.has(key)
+      if (!key) return false
+      return !selected.has(key) && !selectedLower.has(key.toLowerCase())
     })
   }, [props.options, multiDropdownValue])
   const trueFalseValue = useMemo(() => normalizeTrueFalseValue(props.value), [props.value])
@@ -513,12 +633,31 @@ export function PdvmInputControl(props: {
   const debugDateTimeRaw = (controlDebugPayload as any)?.DATETIME_PDVM_RAW
 
   const elementLabelKeys = useMemo(() => {
-    const keys = props.elementLabelKeys && props.elementLabelKeys.length ? props.elementLabelKeys : ['label', 'name', 'feld']
+    const keys = props.elementLabelKeys && props.elementLabelKeys.length ? props.elementLabelKeys : ['HEAD', 'label', 'name', 'feld']
     return keys.map((k) => String(k)).filter(Boolean)
   }, [props.elementLabelKeys])
 
-  const elementMap = useMemo(() => normalizeCollectionValue(props.value), [props.value])
+  const elementMap = useMemo(() => normalizeOccupiedCollectionValue(props.value), [props.value])
   const elementCount = Object.keys(elementMap).length
+  const usedElementUids = useMemo(() => {
+    return new Set(Object.keys(elementMap).map((uid) => String(uid || '').trim()).filter(Boolean))
+  }, [elementMap])
+  const availableElementDefinitions = useMemo(() => {
+    if (!elementDefinitions.length) return [] as PdvmElementDefinition[]
+    if (isElementFrameTypeSingle) return elementDefinitions
+    return elementDefinitions.filter((d) => !usedElementUids.has(d.uid))
+  }, [elementDefinitions, usedElementUids, isElementFrameTypeSingle])
+
+  useEffect(() => {
+    if (!elementDefinitions.length) {
+      if (elementAddDefinitionUid) setElementAddDefinitionUid('')
+      return
+    }
+    const hasSelected = availableElementDefinitions.some((d) => d.uid === elementAddDefinitionUid)
+    if (hasSelected) return
+    const fallback = availableElementDefinitions[0]?.uid || ''
+    if (fallback !== elementAddDefinitionUid) setElementAddDefinitionUid(fallback)
+  }, [elementDefinitions, availableElementDefinitions, elementAddDefinitionUid])
 
   const elementEntries = useMemo(() => {
     const out = Object.entries(elementMap).map(([uid, cfg]) => ({ uid, cfg }))
@@ -531,8 +670,23 @@ export function PdvmInputControl(props: {
   }, [elementMap, elementLabelKeys])
 
   const elementModalFields = useMemo(() => {
-    if (elementFields && elementFields.length) {
-      const ordered = [...elementFields]
+    const activeDefinitionUid = (() => {
+      const currentUid = String(elementModalUid || '').trim()
+      if (currentUid && elementFieldsByUid[currentUid]?.length) return currentUid
+      if (isElementFrameTypeSingle && elementDefinitions.length > 0) {
+        const singleUid = String(elementDefinitions[0].uid || '').trim()
+        if (singleUid && elementFieldsByUid[singleUid]?.length) return singleUid
+      }
+      return ''
+    })()
+
+    const activeDefinitionFields = activeDefinitionUid ? elementFieldsByUid[activeDefinitionUid] : null
+    const baseElementFields = activeDefinitionFields && activeDefinitionFields.length
+      ? activeDefinitionFields
+      : elementFields
+
+    if (baseElementFields && baseElementFields.length) {
+      const ordered = [...baseElementFields]
       ordered.sort((a, b) => {
         const ao = Number(a.display_order)
         const bo = Number(b.display_order)
@@ -588,7 +742,7 @@ export function PdvmInputControl(props: {
           display_order: (idx + 1) * 10,
         } as PdvmElementField
       })
-  }, [elementFields, elementModalBase, elementModalDraft])
+  }, [elementFields, elementFieldsByUid, elementModalBase, elementModalDraft, elementModalUid, isElementFrameTypeSingle, elementDefinitions])
 
   const getElementLabel = (cfg: any, uid: string) => {
     for (const key of elementLabelKeys) {
@@ -602,7 +756,17 @@ export function PdvmInputControl(props: {
     }
     const byUid = props.elementUidLabels ? String(props.elementUidLabels[uid] || '').trim() : ''
     if (byUid) return byUid
+
+    const byDefinition = elementDefinitions.find((d) => d.uid === uid)
+    if (byDefinition?.label) return byDefinition.label
+
     return uid
+  }
+
+  const getElementTooltip = (cfg: any, uid: string) => {
+    const guid = String(getValueByKeyCaseInsensitive(cfg, 'GUID') ?? '').trim()
+    if (guid) return `GUID: ${guid}`
+    return `UID: ${uid}`
   }
 
   const createGuid = () => {
@@ -629,6 +793,34 @@ export function PdvmInputControl(props: {
 
   const addElement = () => {
     if (disabled) return
+    if (structuralElementGuardrailError) {
+      setElementListGuardrailError(structuralElementGuardrailError)
+      return
+    }
+    setElementListGuardrailError(null)
+
+    if (isElementFrameTypeSingle) {
+      const firstDef = elementDefinitions[0]
+      const uid = createGuid()
+      const tplSource = firstDef?.template || props.elementTemplate || {}
+      const tpl = tplSource && typeof tplSource === 'object' ? JSON.parse(JSON.stringify(tplSource)) : {}
+      const title = firstDef?.label ? `Element hinzufügen: ${firstDef.label}` : 'Element hinzufügen'
+      openElementModal(uid, tpl, title)
+      return
+    }
+
+    if (elementDefinitions.length || isElementFrameTypeList) {
+      const selectedUid = String(elementAddDefinitionUid || '').trim()
+      const selectedDef = availableElementDefinitions.find((d) => d.uid === selectedUid) || availableElementDefinitions[0]
+      if (!selectedDef) return
+
+      const uid = selectedDef.uid
+      const tplSource = selectedDef.template || props.elementTemplate || {}
+      const tpl = tplSource && typeof tplSource === 'object' ? JSON.parse(JSON.stringify(tplSource)) : {}
+      openElementModal(uid, tpl, `Element hinzufügen: ${selectedDef.label}`)
+      return
+    }
+
     const uid = createGuid()
     const tpl = props.elementTemplate ? JSON.parse(JSON.stringify(props.elementTemplate)) : {}
     openElementModal(uid, tpl, 'Element hinzufügen')
@@ -636,17 +828,42 @@ export function PdvmInputControl(props: {
 
   const editElement = (uid: string, cfg: any) => {
     if (disabled) return
+    if (structuralElementGuardrailError) {
+      setElementListGuardrailError(structuralElementGuardrailError)
+      return
+    }
+    setElementListGuardrailError(null)
     openElementModal(uid, cfg, 'Element bearbeiten')
   }
 
   const deleteElement = (uid: string) => {
     if (disabled) return
+    if (structuralElementGuardrailError) {
+      setElementListGuardrailError(structuralElementGuardrailError)
+      return
+    }
+    setElementListGuardrailError(null)
     const next = { ...elementMap }
     delete next[uid]
     props.onChange(next)
+    try {
+      const pending = props.onElementListCommit?.(next)
+      if (pending && typeof (pending as any).catch === 'function') {
+        ;(pending as Promise<void>).catch(() => {
+          // Best effort background commit.
+        })
+      }
+    } catch {
+      // Best effort background commit.
+    }
   }
 
-  const saveElementModal = () => {
+  const saveElementModal = async () => {
+    if (structuralElementGuardrailError) {
+      setElementModalError(structuralElementGuardrailError)
+      return
+    }
+
     const uid = elementModalUid
     if (!uid) return
 
@@ -674,12 +891,12 @@ export function PdvmInputControl(props: {
     for (const field of elementModalFields) {
       if (!field.required) continue
       const savePath = String(field.SAVE_PATH || field.name || '').trim()
-      let raw = getValueByPath(draft, savePath)
+      let raw = getValueByPathCaseInsensitive(draft, savePath)
       if ((raw == null || String(raw).trim() === '') && /^feld$/i.test(savePath) && targetUid) {
         raw = targetUid
       }
       if (raw == null || String(raw).trim() === '') {
-        raw = getValueByPath(draftRaw, savePath)
+        raw = getValueByPathCaseInsensitive(draftRaw, savePath)
       }
       const text = raw == null ? '' : String(raw).trim()
       if (!text) {
@@ -689,11 +906,24 @@ export function PdvmInputControl(props: {
     }
 
     const next = { ...elementMap }
+    if (targetUid !== uid && Object.prototype.hasOwnProperty.call(next, targetUid)) {
+      setElementModalError(`Element '${targetUid}' ist bereits vorhanden.`)
+      return
+    }
     if (targetUid !== uid) {
       delete next[uid]
     }
     next[targetUid] = draft
-    props.onChange(next)
+    const sanitizedNext = normalizeOccupiedCollectionValue(next)
+    setElementListGuardrailError(null)
+    props.onChange(sanitizedNext)
+    try {
+      await props.onElementListCommit?.(sanitizedNext)
+    } catch (err: any) {
+      const msg = String(err?.response?.data?.detail || err?.message || 'Element konnte nicht gespeichert werden.')
+      setElementModalError(msg)
+      return
+    }
     setElementModalOpen(false)
     setElementModalError(null)
     setElementModalUid(null)
@@ -739,24 +969,60 @@ export function PdvmInputControl(props: {
       <div className={`pdvm-pic__control ${isElementList ? 'pdvm-pic__control--stack' : ''}`.trim()}>
         {isElementList ? (
           <div className="pdvm-dialog__elementList">
-            <div className="pdvm-dialog__elementMeta">Einträge: {elementCount}</div>
-            {elementEntries.length === 0 ? <div className="pdvm-dialog__elementEmpty">Keine Einträge vorhanden.</div> : null}
-            {elementEntries.map(({ uid, cfg }) => (
-              <div key={uid} className="pdvm-dialog__elementItem" title={JSON.stringify(cfg, null, 2)}>
-                <div className="pdvm-dialog__elementLabel">{getElementLabel(cfg, uid)}</div>
-                <div className="pdvm-dialog__elementActions">
-                  <button type="button" className="pdvm-dialog__toolBtn" onClick={() => editElement(uid, cfg)} disabled={disabled}>
-                    Bearbeiten
-                  </button>
-                  <button type="button" className="pdvm-dialog__toolBtn" onClick={() => deleteElement(uid)} disabled={disabled}>
-                    Entfernen
-                  </button>
+            {effectiveElementGuardrailError ? (
+              <div className="pdvm-dialog__elementEmpty">{effectiveElementGuardrailError}</div>
+            ) : (
+              <>
+                <div className="pdvm-dialog__elementMeta">Einträge: {elementCount}</div>
+                {elementEntries.length === 0 ? <div className="pdvm-dialog__elementEmpty">Keine Einträge vorhanden.</div> : null}
+                {elementEntries.map(({ uid, cfg }) => (
+                  <div key={uid} className="pdvm-dialog__elementItem" title={getElementTooltip(cfg, uid)}>
+                    <div className="pdvm-dialog__elementLabel">{getElementLabel(cfg, uid)}</div>
+                    <div className="pdvm-dialog__elementActions">
+                      <button type="button" className="pdvm-dialog__toolBtn" onClick={() => editElement(uid, cfg)} disabled={disabled}>
+                        Bearbeiten
+                      </button>
+                      <button type="button" className="pdvm-dialog__toolBtn" onClick={() => deleteElement(uid)} disabled={disabled}>
+                        Entfernen
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {elementDefinitions.length && !isElementFrameTypeSingle ? (
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <select
+                      className="pdvm-pic__select"
+                      value={elementAddDefinitionUid}
+                      disabled={disabled || availableElementDefinitions.length === 0}
+                      onChange={(e) => setElementAddDefinitionUid(String(e.target.value || '').trim())}
+                    >
+                      <option value="">(Element auswählen)</option>
+                      {availableElementDefinitions.map((def) => (
+                        <option key={def.uid} value={def.uid}>
+                          {def.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : null}
+                <button
+                  type="button"
+                  className="pdvm-dialog__toolBtn"
+                  onClick={addElement}
+                  disabled={
+                    disabled ||
+                    (isElementFrameTypeSingle && elementDefinitions.length === 0) ||
+                    (isElementFrameTypeList && availableElementDefinitions.length === 0) ||
+                    (elementDefinitions.length > 0 && !isElementFrameTypeSingle && availableElementDefinitions.length === 0)
+                  }
+                >
+                  + Element hinzufuegen
+                </button>
+                <div style={{ marginTop: 8, fontSize: 12, opacity: 0.8 }}>
+                  Hinweis: "Uebernehmen" aendert nur die Struktur im aktuellen Dialogsatz. Erst "Speichern" im Dialog persistiert in die Datenbank.
                 </div>
-              </div>
-            ))}
-            <button type="button" className="pdvm-dialog__toolBtn" onClick={addElement} disabled={disabled}>
-              + Element hinzufuegen
-            </button>
+              </>
+            )}
           </div>
         ) : null}
 
@@ -822,14 +1088,14 @@ export function PdvmInputControl(props: {
           <select
             id={props.id}
             className="pdvm-pic__select"
-            value={String(props.value ?? '')}
+            value={dropdownValue}
             disabled={disabled}
             onBlur={props.onBlur}
             onChange={(e) => props.onChange(e.target.value)}
           >
             <option value="">(bitte auswählen)</option>
             {(props.options || []).map((opt) => (
-              <option key={opt.value} value={opt.value}>
+              <option key={opt.value} value={opt.value} disabled={!!opt.disabled}>
                 {opt.label}
               </option>
             ))}
@@ -867,7 +1133,9 @@ export function PdvmInputControl(props: {
             <div className="pdvm-pic__multiSelected">
               {multiDropdownValue.length ? (
                 multiDropdownValue.map((value) => {
-                  const label = optionMap.get(value) || value
+                  const low = String(value || '').trim().toLowerCase()
+                  const resolvedKey = optionKeyByLower.get(low) || String(value || '').trim()
+                  const label = optionMap.get(resolvedKey) || value
                   return (
                     <span key={value} className="pdvm-pic__chip">
                       <span className="pdvm-pic__chipLabel">{label}</span>
@@ -903,7 +1171,7 @@ export function PdvmInputControl(props: {
               >
                 <option value="">(Wert auswählen)</option>
                 {availableMultiOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
+                  <option key={opt.value} value={opt.value} disabled={!!opt.disabled}>
                     {opt.label}
                   </option>
                 ))}
@@ -1017,24 +1285,28 @@ export function PdvmInputControl(props: {
       <PdvmDialogModal
         open={elementModalOpen}
         kind="confirm"
-        title={elementModalTitle}
+        title={`${elementModalTitle} (Uebernehmen = lokal, Speichern im Dialog = persistent)`}
         message={
           <div className="pdvm-pic__elementEditor">
             {elementModalFields.length ? (
               elementModalFields.map((field) => {
                 const fieldType = mapElementFieldTypeToInputType(field.type)
                 const parentExpert = !!((props.controlDebug as any)?.EXPERT_MODE ?? (props.controlDebug as any)?.expert_mode ?? false)
-                const fieldExpert = !!((field as any).EXPERT_MODE ?? false)
+                const fieldExpertRaw = (field as any).EXPERT_MODE ?? (field as any).expert_mode
+                const fieldExpert = fieldExpertRaw === undefined || fieldExpertRaw === null ? undefined : !!fieldExpertRaw
                 const nestedControlDebug = (field.control_debug && typeof field.control_debug === 'object'
                   ? field.control_debug
                   : {
                       FIELD_KEY: `ELEMENT.${field.name}`,
                     }) as Record<string, any>
-                nestedControlDebug.EXPERT_MODE = !!(nestedControlDebug.EXPERT_MODE ?? fieldExpert ?? parentExpert)
+                const nestedExpertRaw = nestedControlDebug.EXPERT_MODE ?? nestedControlDebug.expert_mode
+                nestedControlDebug.EXPERT_MODE = nestedExpertRaw === undefined || nestedExpertRaw === null
+                  ? (fieldExpert === undefined ? parentExpert : fieldExpert)
+                  : !!nestedExpertRaw
                 const nestedSavePath = String(field.SAVE_PATH || field.name || '').trim()
                 const nestedValue = (() => {
                   if (!nestedSavePath || !elementModalDraft || typeof elementModalDraft !== 'object') return ''
-                  return getValueByPath(elementModalDraft as Record<string, any>, nestedSavePath)
+                  return getValueByPathCaseInsensitive(elementModalDraft as Record<string, any>, nestedSavePath)
                 })()
                 nestedControlDebug.SOURCE_PATH = String(nestedControlDebug.SOURCE_PATH || nestedControlDebug.source_path || `root.${String(props.id || props.label || 'ELEMENT').replace(/\s+/g, '_')}`)
                 nestedControlDebug.FIELD_KEY = String(nestedControlDebug.FIELD_KEY || `ELEMENT.${field.name}`)
@@ -1068,7 +1340,7 @@ export function PdvmInputControl(props: {
                         const savePath = String(field.SAVE_PATH || field.name || '').trim()
                         if (!savePath) return base
                         const updated = {
-                          ...setValueByPath(base, savePath, value),
+                          ...setValueByPathPreferExistingCase(base, savePath, value),
                         }
                         return props.elementDraftHydrator ? props.elementDraftHydrator(updated, elementModalUid) : updated
                       })
@@ -1082,7 +1354,7 @@ export function PdvmInputControl(props: {
           </div>
         }
         error={elementModalError}
-        confirmLabel="Speichern"
+        confirmLabel="Übernehmen"
         cancelLabel="Abbrechen"
         onCancel={() => {
           setElementModalOpen(false)
@@ -1091,7 +1363,9 @@ export function PdvmInputControl(props: {
           setElementModalBase(null)
           setElementModalDraft(null)
         }}
-        onConfirm={() => saveElementModal()}
+        onConfirm={() => {
+          void saveElementModal()
+        }}
       />
     </div>
   )

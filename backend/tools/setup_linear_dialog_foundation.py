@@ -196,7 +196,7 @@ def _dialog_template_555() -> Dict[str, Any]:
     return {
         "TEMPLATES": {
             "TAB_ELEMENTS": {
-                "TAB_GUID": {
+                "GUID": {
                     "TAB": 0,
                     "GUID": "",
                     "HEAD": "",

@@ -1,7 +1,7 @@
 """
 Zentrale Connection-Verwaltung für Multi-Tenant Architektur
 
-Alle Datenbank-Verbindungen (außer auth) werden dynamisch aus sys_mandanten geladen.
+Alle Datenbank-Verbindungen (außer auth) werden dynamisch aus asy_mandanten geladen.
 Dies ermöglicht:
 - Mehrere PostgreSQL-Server (11, 18, etc.)
 - Verschiedene Hosts/Ports pro Mandant
@@ -9,6 +9,7 @@ Dies ermöglicht:
 """
 from typing import Optional, Dict, Tuple
 import asyncpg
+import json
 from .config import settings
 import logging
 from urllib.parse import urlparse, unquote
@@ -47,10 +48,24 @@ class ConnectionManager:
     
     Hierarchie:
     1. AUTH-DB: Fix in config.py (global, einmalig)
-    2. SYSTEM-DB (pdvm_system): Name aus sys_mandanten.MANDANT.SYSTEM_DB + Connection aus MANDANT.*
-    3. MANDANTEN-DB: Alle Daten aus sys_mandanten.MANDANT.*
+    2. SYSTEM-DB (pdvm_system): Name aus asy_mandanten.MANDANT.SYSTEM_DB + Connection aus MANDANT.*
+    3. MANDANTEN-DB: Alle Daten aus asy_mandanten.MANDANT.*
     """
     
+    @staticmethod
+    def _normalize_mandant_daten(raw_daten) -> Dict[str, object]:
+        """Normalisiert asy_mandanten.daten auf Dict (JSON-String kompatibel)."""
+        if isinstance(raw_daten, dict):
+            return raw_daten
+        if isinstance(raw_daten, str):
+            try:
+                parsed = json.loads(raw_daten)
+                if isinstance(parsed, dict):
+                    return parsed
+            except Exception:
+                logger.warning("⚠️ asy_mandanten.daten ist kein gültiges JSON-Objekt")
+        return {}
+
     @staticmethod
     async def get_auth_config() -> ConnectionConfig:
         """
@@ -70,7 +85,7 @@ class ConnectionManager:
     @staticmethod
     async def get_mandant_config(mandant_id: str) -> Tuple[ConnectionConfig, ConnectionConfig]:
         """
-        Lädt Connection-Config für einen Mandanten aus sys_mandanten.
+        Lädt Connection-Config für einen Mandanten aus asy_mandanten.
         
         Returns:
             Tuple[system_config, mandant_config]
@@ -83,19 +98,19 @@ class ConnectionManager:
         # Verbinde mit auth DB um Mandanten-Daten zu laden
         auth_config = await ConnectionManager.get_auth_config()
         
-        # Hole Mandanten-Daten aus sys_mandanten (in auth DB)
+        # Hole Mandanten-Daten aus asy_mandanten (in auth DB)
         conn = await asyncpg.connect(**auth_config.to_dict())
         try:
             # Lade Mandanten-Record
             mandant = await conn.fetchrow(
-                "SELECT daten FROM sys_mandanten WHERE uid = $1",
+                "SELECT daten FROM asy_mandanten WHERE uid = $1",
                 mandant_id
             )
             
             if not mandant:
                 raise ValueError(f"Mandant '{mandant_id}' nicht gefunden")
             
-            daten = mandant['daten']
+            daten = ConnectionManager._normalize_mandant_daten(mandant['daten'])
             mandant_info = daten.get('MANDANT', {})
             
             # Extrahiere Connection-Parameter

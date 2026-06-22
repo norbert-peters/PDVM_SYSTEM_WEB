@@ -154,6 +154,8 @@ export interface DialogRow {
 export interface DialogRowsRequest {
   limit?: number
   offset?: number
+  storage_scope?: 'live' | 'draft' | string
+  draft_guid?: string | null
 }
 
 export interface DialogRowsResponse {
@@ -173,6 +175,8 @@ export interface DialogRecordResponse {
 
 export interface DialogRecordUpdateRequest {
   daten: Record<string, any>
+  storage_scope?: 'live' | 'draft' | string
+  draft_guid?: string | null
 }
 
 export interface DialogValidationIssue {
@@ -332,27 +336,33 @@ export interface WorkflowDraftEnsureStepResponse {
   work_item_uid: string
 }
 
-export interface WorkflowDraftTableRecordsResponse {
-  success: boolean
-  table: string
-  count: number
-  records: Record<string, Record<string, any>>
-}
-
-export interface WorkflowDraftUpsertTableRecordRequest {
-  record_uid?: string | null
-  payload: Record<string, any>
+export interface WorkflowDraftCommitLiveRequest {
   draft_table?: string | null
-  single_record?: boolean
+  tables?: string[] | null
+  mark_built_if_success?: boolean
+  dry_run?: boolean
+  persist_report?: boolean
 }
 
-export interface WorkflowDraftUpsertTableRecordResponse {
+export interface WorkflowDraftCommitLiveResponse {
   success: boolean
   message: string
-  table: string
-  bucket: string
-  record_uid: string
-  record: Record<string, any>
+  dry_run: boolean
+  draft_guid: string
+  workflow_name: string
+  workflow_type: string
+  created_count: number
+  updated_count: number
+  skipped_count: number
+  error_count: number
+  errors: Array<{ table: string; record_uid: string; error: string }>
+  details: Array<{ table: string; record_uid: string; status: string; reason?: string }>
+  report_saved?: boolean
+  report_meta?: {
+    report_id?: string
+    stored_reports?: number
+    saved_at?: string
+  }
 }
 
 export interface ImportPreviewResponse {
@@ -397,6 +407,11 @@ export interface ImportClearRequest {
   dataset_uid: string
 }
 
+export interface TableStorageScopeOptions {
+  storage_scope?: 'live' | 'draft' | string
+  draft_guid?: string | null
+}
+
 export interface PasswordResetResponse {
   user_uid: string
   email: string
@@ -416,6 +431,8 @@ export interface LockAccountResponse {
 
 export interface DialogTableOverrideOptions {
   dialog_table?: string | null
+  storage_scope?: 'live' | 'draft' | string
+  draft_guid?: string | null
 }
 
 export interface LookupRow {
@@ -484,9 +501,11 @@ export interface SystemdatenTextResponse {
 
 export interface SystemdatenDropdownResponse {
   map: Record<string, string>
-  options: Array<{ key: string; value: string }>
+  options: Array<{ key: string; value: string; disabled?: boolean; read_only?: boolean; reason?: string }>
   language: string
   default_language: string
+  source?: string
+  meta?: Record<string, any>
 }
 
 export interface SystemdatenMenuConfigsResponse {
@@ -623,6 +642,56 @@ export const tablesAPI = {
     })
     return response.data
   },
+
+  getAllScoped: async (tableName: string, opts?: TableStorageScopeOptions): Promise<any[]> => {
+    const response = await api.get(`/tables/${tableName}`, {
+      params: {
+        ...(opts?.storage_scope ? { storage_scope: opts.storage_scope } : null),
+        ...(opts?.draft_guid ? { draft_guid: opts.draft_guid } : null),
+      } as any,
+    })
+    return response.data
+  },
+
+  getOneScoped: async (tableName: string, uid: string, opts?: TableStorageScopeOptions): Promise<any> => {
+    const response = await api.get(`/tables/${tableName}/${uid}`, {
+      params: {
+        ...(opts?.storage_scope ? { storage_scope: opts.storage_scope } : null),
+        ...(opts?.draft_guid ? { draft_guid: opts.draft_guid } : null),
+      } as any,
+    })
+    return response.data
+  },
+
+  createScoped: async (tableName: string, data: any, opts?: TableStorageScopeOptions): Promise<any> => {
+    const response = await api.post(`/tables/${tableName}`, data, {
+      params: {
+        ...(opts?.storage_scope ? { storage_scope: opts.storage_scope } : null),
+        ...(opts?.draft_guid ? { draft_guid: opts.draft_guid } : null),
+      } as any,
+    })
+    return response.data
+  },
+
+  updateScoped: async (tableName: string, uid: string, data: any, opts?: TableStorageScopeOptions): Promise<any> => {
+    const response = await api.put(`/tables/${tableName}/${uid}`, data, {
+      params: {
+        ...(opts?.storage_scope ? { storage_scope: opts.storage_scope } : null),
+        ...(opts?.draft_guid ? { draft_guid: opts.draft_guid } : null),
+      } as any,
+    })
+    return response.data
+  },
+
+  deleteScoped: async (tableName: string, uid: string, opts?: TableStorageScopeOptions): Promise<any> => {
+    const response = await api.delete(`/tables/${tableName}/${uid}`, {
+      params: {
+        ...(opts?.storage_scope ? { storage_scope: opts.storage_scope } : null),
+        ...(opts?.draft_guid ? { draft_guid: opts.draft_guid } : null),
+      } as any,
+    })
+    return response.data
+  },
 }
 
 // Menu API
@@ -742,21 +811,33 @@ export const dialogsAPI = {
 
   getDefinition: async (dialogGuid: string, opts?: DialogTableOverrideOptions): Promise<DialogDefinitionResponse> => {
     const response = await api.get(`/dialogs/${dialogGuid}`, {
-      params: opts?.dialog_table ? { dialog_table: opts.dialog_table } : undefined,
+      params: {
+        ...(opts?.dialog_table ? { dialog_table: opts.dialog_table } : null),
+        ...(opts?.storage_scope ? { storage_scope: opts.storage_scope } : null),
+        ...(opts?.draft_guid ? { draft_guid: opts.draft_guid } : null),
+      } as any,
     })
     return response.data
   },
 
   postRows: async (dialogGuid: string, payload: DialogRowsRequest, opts?: DialogTableOverrideOptions): Promise<DialogRowsResponse> => {
     const response = await api.post(`/dialogs/${dialogGuid}/rows`, payload, {
-      params: opts?.dialog_table ? { dialog_table: opts.dialog_table } : undefined,
+      params: {
+        ...(opts?.dialog_table ? { dialog_table: opts.dialog_table } : null),
+        ...(opts?.storage_scope ? { storage_scope: opts.storage_scope } : null),
+        ...(opts?.draft_guid ? { draft_guid: opts.draft_guid } : null),
+      } as any,
     })
     return response.data
   },
 
   getRecord: async (dialogGuid: string, recordUid: string, opts?: DialogTableOverrideOptions): Promise<DialogRecordResponse> => {
     const response = await api.get(`/dialogs/${dialogGuid}/record/${recordUid}`, {
-      params: opts?.dialog_table ? { dialog_table: opts.dialog_table } : undefined,
+      params: {
+        ...(opts?.dialog_table ? { dialog_table: opts.dialog_table } : null),
+        ...(opts?.storage_scope ? { storage_scope: opts.storage_scope } : null),
+        ...(opts?.draft_guid ? { draft_guid: opts.draft_guid } : null),
+      } as any,
     })
     return response.data
   },
@@ -768,7 +849,11 @@ export const dialogsAPI = {
     opts?: DialogTableOverrideOptions
   ): Promise<DialogRecordResponse> => {
     const response = await api.put(`/dialogs/${dialogGuid}/record/${recordUid}`, payload, {
-      params: opts?.dialog_table ? { dialog_table: opts.dialog_table } : undefined,
+      params: {
+        ...(opts?.dialog_table ? { dialog_table: opts.dialog_table } : null),
+        ...(opts?.storage_scope ? { storage_scope: opts.storage_scope } : null),
+        ...(opts?.draft_guid ? { draft_guid: opts.draft_guid } : null),
+      } as any,
     })
     return response.data
   },
@@ -779,7 +864,11 @@ export const dialogsAPI = {
     opts?: DialogTableOverrideOptions
   ): Promise<DialogDraftResponse> => {
     const response = await api.post(`/dialogs/${dialogGuid}/draft/start`, payload, {
-      params: opts?.dialog_table ? { dialog_table: opts.dialog_table } : undefined,
+      params: {
+        ...(opts?.dialog_table ? { dialog_table: opts.dialog_table } : null),
+        ...(opts?.storage_scope ? { storage_scope: opts.storage_scope } : null),
+        ...(opts?.draft_guid ? { draft_guid: opts.draft_guid } : null),
+      } as any,
     })
     return response.data
   },
@@ -791,7 +880,11 @@ export const dialogsAPI = {
     opts?: DialogTableOverrideOptions
   ): Promise<DialogDraftResponse> => {
     const response = await api.put(`/dialogs/${dialogGuid}/draft/${draftId}`, payload, {
-      params: opts?.dialog_table ? { dialog_table: opts.dialog_table } : undefined,
+      params: {
+        ...(opts?.dialog_table ? { dialog_table: opts.dialog_table } : null),
+        ...(opts?.storage_scope ? { storage_scope: opts.storage_scope } : null),
+        ...(opts?.draft_guid ? { draft_guid: opts.draft_guid } : null),
+      } as any,
     })
     return response.data
   },
@@ -803,7 +896,11 @@ export const dialogsAPI = {
     opts?: DialogTableOverrideOptions
   ): Promise<DialogRecordResponse> => {
     const response = await api.post(`/dialogs/${dialogGuid}/draft/${draftId}/commit`, payload, {
-      params: opts?.dialog_table ? { dialog_table: opts.dialog_table } : undefined,
+      params: {
+        ...(opts?.dialog_table ? { dialog_table: opts.dialog_table } : null),
+        ...(opts?.storage_scope ? { storage_scope: opts.storage_scope } : null),
+        ...(opts?.draft_guid ? { draft_guid: opts.draft_guid } : null),
+      } as any,
     })
     return response.data
   },
@@ -819,7 +916,11 @@ export const dialogsAPI = {
         record_uid: recordUid,
       },
       {
-        params: opts?.dialog_table ? { dialog_table: opts.dialog_table } : undefined,
+        params: {
+          ...(opts?.dialog_table ? { dialog_table: opts.dialog_table } : null),
+          ...(opts?.storage_scope ? { storage_scope: opts.storage_scope } : null),
+          ...(opts?.draft_guid ? { draft_guid: opts.draft_guid } : null),
+        } as any,
       }
     )
     return response.data
@@ -827,7 +928,11 @@ export const dialogsAPI = {
 
   getUiState: async (dialogGuid: string, opts?: DialogTableOverrideOptions): Promise<DialogUiStateResponse> => {
     const response = await api.get(`/dialogs/${dialogGuid}/ui-state`, {
-      params: opts?.dialog_table ? { dialog_table: opts.dialog_table } : undefined,
+      params: {
+        ...(opts?.dialog_table ? { dialog_table: opts.dialog_table } : null),
+        ...(opts?.storage_scope ? { storage_scope: opts.storage_scope } : null),
+        ...(opts?.draft_guid ? { draft_guid: opts.draft_guid } : null),
+      } as any,
     })
     return response.data
   },
@@ -838,7 +943,11 @@ export const dialogsAPI = {
     opts?: DialogTableOverrideOptions
   ): Promise<DialogUiStateResponse> => {
     const response = await api.put(`/dialogs/${dialogGuid}/ui-state`, payload, {
-      params: opts?.dialog_table ? { dialog_table: opts.dialog_table } : undefined,
+      params: {
+        ...(opts?.dialog_table ? { dialog_table: opts.dialog_table } : null),
+        ...(opts?.storage_scope ? { storage_scope: opts.storage_scope } : null),
+        ...(opts?.draft_guid ? { draft_guid: opts.draft_guid } : null),
+      } as any,
     })
     return response.data
   },
@@ -848,7 +957,11 @@ export const dialogsAPI = {
     opts?: DialogTableOverrideOptions
   ): Promise<DialogCreateTableOptionsResponse> => {
     const response = await api.get(`/dialogs/${dialogGuid}/create-table-options`, {
-      params: opts?.dialog_table ? { dialog_table: opts.dialog_table } : undefined,
+      params: {
+        ...(opts?.dialog_table ? { dialog_table: opts.dialog_table } : null),
+        ...(opts?.storage_scope ? { storage_scope: opts.storage_scope } : null),
+        ...(opts?.draft_guid ? { draft_guid: opts.draft_guid } : null),
+      } as any,
     })
     return response.data
   },
@@ -917,25 +1030,11 @@ export const workflowDraftsAPI = {
     return response.data
   },
 
-  listTableRecords: async (
+  commitLive: async (
     draftGuid: string,
-    tableName: string,
-    opts?: WorkflowDraftTableOptions
-  ): Promise<WorkflowDraftTableRecordsResponse> => {
-    const response = await api.get(`/workflow-drafts/${draftGuid}/records/${tableName}`, {
-      params: {
-        ...(opts?.draft_table ? { draft_table: opts.draft_table } : null),
-      } as any,
-    })
-    return response.data
-  },
-
-  upsertTableRecord: async (
-    draftGuid: string,
-    tableName: string,
-    payload: WorkflowDraftUpsertTableRecordRequest
-  ): Promise<WorkflowDraftUpsertTableRecordResponse> => {
-    const response = await api.post(`/workflow-drafts/${draftGuid}/records/${tableName}`, payload)
+    payload: WorkflowDraftCommitLiveRequest
+  ): Promise<WorkflowDraftCommitLiveResponse> => {
+    const response = await api.post(`/workflow-drafts/${draftGuid}/commit-live`, payload)
     return response.data
   },
 }
@@ -1008,6 +1107,18 @@ export const systemdatenAPI = {
   getDropdown: async (opts: { table: string; dataset_uid: string; field: string; group?: string; language?: string }): Promise<SystemdatenDropdownResponse> => {
     const response = await api.get('/systemdaten/dropdown', {
       params: opts,
+    })
+    return response.data
+  },
+
+  getDropdownSource: async (opts: { dropdown_config: Record<string, any>; dropdown_source?: Record<string, any>; language?: string }): Promise<SystemdatenDropdownResponse> => {
+    const response = await api.post('/systemdaten/dropdown-source', {
+      dropdown_config: opts.dropdown_config,
+      ...(opts.dropdown_source ? { dropdown_source: opts.dropdown_source } : null),
+    }, {
+      params: {
+        ...(opts.language ? { language: opts.language } : null),
+      } as any,
     })
     return response.data
   },

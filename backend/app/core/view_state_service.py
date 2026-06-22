@@ -13,6 +13,10 @@ Wichtig:
 from __future__ import annotations
 
 from typing import Any, Dict, List, Tuple, Optional
+import uuid
+
+from app.core.pdvm_datenbank import PdvmDatabase
+from app.core.control_runtime_service import hydrate_runtime_control_by_uid
 
 
 USER_KEYS = {
@@ -28,13 +32,12 @@ SYSTEM_KEYS = {
     "type",
     "default",
     "dropdown",
-    "control_type",
     "expert_mode",
     "searchable",
     "sortable",
-    "sortDirection",
-    "sortByOriginal",
-    "filterType",
+    "sort_direction",
+    "sort_by_original",
+    "filter_type",
     "table",
     "configs",
 }
@@ -68,6 +71,63 @@ def _pick_section_key(daten: Dict[str, Any], wanted: str) -> Optional[str]:
     return None
 
 
+def _pick_ci_value(obj: Any, *keys: str) -> Any:
+    if not isinstance(obj, dict):
+        return None
+    for key in keys:
+        if key in obj:
+            return obj.get(key)
+        wanted = str(key or "").strip().lower()
+        if not wanted:
+            continue
+        for k, v in obj.items():
+            if str(k or "").strip().lower() == wanted:
+                return v
+    return None
+
+
+def derive_effective_no_data(
+    view_daten: Dict[str, Any],
+    *,
+    root_no_data: Any = False,
+) -> bool:
+    """Leitet den effektiven NO_DATA-Zustand aus Root-Flag + View-Sektionen ab.
+
+    Regel (vereinfacht):
+    - True, wenn ROOT.NO_DATA explizit true ist.
+    - Sonst True, wenn neben SYSTEM-Sektionen keine fachlichen Spalten angeboten werden.
+    """
+    if _truthy(root_no_data):
+        return True
+
+    daten = view_daten or {}
+    if not isinstance(daten, dict):
+        return True
+
+    has_non_system_controls = False
+    for section_key, section_val in daten.items():
+        section_name = str(section_key or "").strip()
+        if section_name.upper() == "ROOT":
+            continue
+        if not _is_plain_object(section_val):
+            continue
+
+        # "SYSTEM" und "**SYSTEM" als technische Sektionen behandeln.
+        normalized_section = section_name.lstrip("*").strip().upper()
+        if normalized_section == "SYSTEM":
+            continue
+
+        for control_val in section_val.values():
+            if _is_plain_object(control_val):
+                has_non_system_controls = True
+                break
+
+        if has_non_system_controls:
+            break
+
+    return not has_non_system_controls
+
+
 def extract_controls_origin(
     view_daten: Dict[str, Any],
     *,
@@ -78,7 +138,7 @@ def extract_controls_origin(
 
     Neu (PDVM-Regel):
     - Sektion = TABLENAME (uppercase) + Default-Sektion "**System"
-    - ROOT.NO_DATA bedeutet: table-Sektion NICHT berücksichtigen, aber weiterhin über View rendern
+    - effektives NO_DATA bedeutet: table-Sektion NICHT berücksichtigen, aber weiterhin über View rendern
 
     Fallback: Wenn die neuen Sektionen nicht vorhanden sind, wird legacy (alle Sektionen außer ROOT) verwendet.
     """
@@ -142,7 +202,7 @@ def merge_controls(
     Regeln:
     - systemkritische Felder kommen aus origin
     - userkritische Felder (show, display_order, width) kommen aus source, wenn vorhanden
-    - Controls nur in source bleiben erhalten (optional: veraltet)
+    - Controls nur in source gelten als veraltet und werden verworfen
     """
 
     effective: Dict[str, Dict[str, Any]] = {}
@@ -169,23 +229,20 @@ def merge_controls(
 
         effective[guid] = merged
 
-    # 2) Controls nur in source (veraltet)
-    for guid, src_control in source.items():
+    stale_source_guids: List[str] = []
+    for guid, src_control in (source or {}).items():
         if guid in effective:
             continue
         if not _is_plain_object(src_control):
             continue
-
-        merged = dict(src_control)
-        merged.setdefault("show", False)
-        merged.setdefault("display_order", 0)
-        merged["_orphan"] = True
-        effective[guid] = merged
+        stale_source_guids.append(str(guid))
 
     meta: Dict[str, Any] = {
         "origin_count": len(origin),
         "source_count": len(source),
         "effective_count": len(effective),
+        "stale_source_count": len(stale_source_guids),
+        "stale_source_guids": stale_source_guids,
     }
 
     # Sicherheitsnetz: mindestens 1 sichtbare Spalte
@@ -219,19 +276,6 @@ def normalize_controls_source(
 
         normalized[guid] = norm
 
-    # Zusätzlich: falls source bereits orphan-controls hatte, behalten wir die user-keys (optional)
-    for guid, src in (source or {}).items():
-        if guid in normalized:
-            continue
-        if not _is_plain_object(src):
-            continue
-        norm: Dict[str, Any] = {}
-        for k in USER_KEYS:
-            if k in src:
-                norm[k] = src[k]
-        if norm:
-            normalized[guid] = norm
-
     return normalized
 
 
@@ -243,3 +287,56 @@ def effective_controls_as_list(effective: Dict[str, Dict[str, Any]]) -> List[Dic
         item["control_guid"] = guid
         out.append(item)
     return out
+
+
+async def resolve_view_control_references(
+    origin: Dict[str, Dict[str, Any]],
+    *,
+    system_pool: Any,
+    mandant_pool: Any,
+) -> Dict[str, Dict[str, Any]]:
+    """Löst schlanke View-Control-Referenzen (nur UID-Key) gegen sys_control_dict auf.
+
+    Erwartetes Muster in sys_viewdaten:
+    - section[<control_uid>] = {"TABLE": "..."}
+
+    In diesem Fall fehlen gruppe/feld/type/label im View-Datensatz und werden aus
+    sys_control_dict geladen. View-spezifische Overrides (z.B. TABLE) bleiben erhalten.
+    """
+
+    resolved: Dict[str, Dict[str, Any]] = {}
+
+    for guid, cfg in (origin or {}).items():
+        current = dict(cfg or {})
+
+        # Zentrale Runtime-Hydration: Basis kommt aus sys_control_dict,
+        # View-Werte ueberschreiben nur erlaubte/definierte Properties.
+        merged = await hydrate_runtime_control_by_uid(
+            str(guid),
+            override=current,
+            system_pool=system_pool,
+            mandant_pool=mandant_pool,
+        )
+
+        # Legacy-Viewdaten koennen einen generischen Typ (z.B. string/base) enthalten,
+        # obwohl die Control-Definition inzwischen dropdown/date/... vorgibt.
+        base_type = _pick_ci_value(merged, "type")
+        override_type = _pick_ci_value(current, "type", "TYPE")
+        override_norm = str(override_type or "").strip().lower()
+        base_norm = str(base_type or "").strip().lower()
+        if override_type is not None and override_norm in {"base", "string", "text"} and base_norm not in {"", "base", "string", "text"}:
+            merged["type"] = base_type
+
+        # Fehlende Config-Teile aus der Basis ergänzen (nicht überschreiben).
+        base_cfg = _pick_ci_value(merged, "configs")
+        cur_cfg = _pick_ci_value(current, "configs", "CONFIGS")
+        if isinstance(base_cfg, dict) and isinstance(cur_cfg, dict):
+            cfg_next = dict(base_cfg)
+            for k, v in cur_cfg.items():
+                if k in cfg_next:
+                    cfg_next[k] = v
+            merged["configs"] = cfg_next
+
+        resolved[str(guid)] = merged
+
+    return resolved

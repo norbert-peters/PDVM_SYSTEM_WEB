@@ -431,7 +431,7 @@ async def get_last_navigation(
     current_user: dict = Depends(get_current_user),
     gcs = Depends(get_gcs_instance),
 ) -> MenuLastNavigationState:
-    """Liest die letzte Menü-Navigation des Users aus sys_systemsteuerung.
+    """Liest die letzte Menü-Navigation des Users aus msy_systemsteuerung.
 
     Persistenz-Key:
     - Gruppe: user_guid
@@ -469,7 +469,7 @@ async def put_last_navigation(
     current_user: dict = Depends(get_current_user),
     gcs = Depends(get_gcs_instance),
 ) -> MenuLastNavigationState:
-    """Speichert die letzte Menü-Navigation des Users in sys_systemsteuerung."""
+    """Speichert die letzte Menü-Navigation des Users in msy_systemsteuerung."""
 
     try:
         key = str(uuid.UUID(str(gcs.user_guid)))

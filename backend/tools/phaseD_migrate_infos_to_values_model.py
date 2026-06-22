@@ -1,10 +1,10 @@
 """
-Phase D: Migration sprachbezogener Daten auf values-Modell.
+Phase D: Migration sprachbezogener Daten auf lineares Sprachmodell.
 
 Ziele:
-1. Sprachgruppen (z. B. DE-DE) auflösen und Sprache in values-Mapping bringen.
+1. Sprachgruppen (z. B. DE-DE) auflösen und Sprache linear als Sprach-Property ablegen.
 2. EN-US als zusätzliche Sprache pro Eintrag aufnehmen.
-3. sys_dropdowndaten: ein Dropdown pro Datensatz (bei Mehrfachfeldern Split).
+3. sys_dropdowndaten: ein Dropdown pro Datensatz (bei Mehrfachfeldern Split), mit OPTIONS.<key>.<lang>.
 4. Mapping-Infos für mögliche Frame/View-Nachkonfiguration erzeugen.
 
 Scope:
@@ -43,7 +43,7 @@ UID_666 = "66666666-6666-6666-6666-666666666666"
 DE = "DE-DE"
 EN = "EN-US"
 SUPPORTED_LANGUAGES = [DE, EN]
-MIGRATION_TAG = "phaseD_infos_values_v1"
+MIGRATION_TAG = "phaseD_infos_values_linear_v2"
 
 
 @dataclass
@@ -210,17 +210,21 @@ def _build_dropdown_records_from_row(row: Dict[str, Any]) -> List[Dict[str, Any]
     root = _as_dict(data.get("ROOT"))
     default_lang = _norm_lang(root.get("DEFAULT_LANGUAGE") or DE) or DE
 
-    # Bereits im Zielmodell?
+    # Bereits im Zielmodell? (strict linear)
     if isinstance(data.get("OPTIONS"), dict):
         field_key = _norm_key(root.get("FIELD_KEY") or row.get("name") or row.get("uid"))
         opts = _as_dict(data.get("OPTIONS"))
         options_out: Dict[str, Any] = {}
         for ok, ov in opts.items():
             ovd = _as_dict(ov)
-            values = _as_dict(ovd.get("values"))
+            values = {
+                str(k): v
+                for k, v in ovd.items()
+                if str(k or "").strip().upper() not in {"KEY", "VALUE", "VALUES", "LABEL", "NAME"}
+            }
             de_val = str(values.get(DE) or values.get(default_lang) or "")
             en_val = str(values.get(EN) or de_val)
-            options_out[str(ok)] = {"key": str(ok), "values": {DE: de_val, EN: en_val}}
+            options_out[str(ok)] = {DE: de_val, EN: en_val}
 
         payload = {
             "ROOT": {
@@ -268,10 +272,7 @@ def _build_dropdown_records_from_row(row: Dict[str, Any]) -> List[Dict[str, Any]
         for opt_key, values in sorted(options_by_key.items(), key=lambda kv: kv[0]):
             de_val = str(values.get(DE) or values.get(default_lang) or "")
             en_val = str(values.get(EN) or de_val)
-            options_out[opt_key] = {
-                "key": opt_key,
-                "values": {DE: de_val, EN: en_val},
-            }
+            options_out[opt_key] = {DE: de_val, EN: en_val}
 
         payload = {
             "ROOT": {
@@ -357,7 +358,7 @@ async def build_report(apply: bool) -> Dict[str, Any]:
 
     report: Dict[str, Any] = {
         "phase": "phaseD",
-        "title": "Migrate infos tables to values language model",
+        "title": "Migrate infos tables to linear language model",
         "mode": "apply" if apply else "dry-run",
         "database": cfg.database,
         "summary": {
@@ -510,7 +511,7 @@ def _default_output_path() -> Path:
 
 def _print_summary(report: Dict[str, Any]) -> None:
     s = report.get("summary", {})
-    print("\n=== Phase D Infos Values Migration ===")
+    print("\n=== Phase D Infos Linear Migration ===")
     print(f"Mode: {report.get('mode')}")
     print(f"Rows scanned: {s.get('rows_scanned', 0)}")
     print(f"Rows updated: {s.get('rows_updated', 0)}")
@@ -531,7 +532,7 @@ async def _run(args: argparse.Namespace) -> int:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Phase D migrate infos to values model")
+    parser = argparse.ArgumentParser(description="Phase D migrate infos to linear model")
     parser.add_argument("--apply", action="store_true", help="Änderungen schreiben")
     parser.add_argument("--output", default=str(_default_output_path()), help="Pfad für JSON-Report")
     args = parser.parse_args()

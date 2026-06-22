@@ -11,20 +11,7 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-KNOWN_PREFIXES = {"asy_", "sys_", "dev_", "msy_", "tst_"}
-
-# Temporary rollout allowlist for legacy tables that would otherwise route by sys_ prefix.
-LEGACY_ROUTE_ALLOWLIST = {
-    "sys_benutzer": "auth",
-    "sys_mandanten": "auth",
-    "sys_anwendungsdaten": "mandant",
-    "sys_systemsteuerung": "mandant",
-    "sys_security": "mandant",
-    "sys_error_log": "mandant",
-    "sys_error_acknowledgements": "mandant",
-    "sys_error_acknowledgments": "mandant",
-    "sys_feld_aenderungshistorie": "mandant",
-}
+KNOWN_PREFIXES = {"asy_", "sys_", "dev_", "msy_"}
 
 
 def resolve_db_name_by_prefix(table_name: str) -> str:
@@ -32,16 +19,17 @@ def resolve_db_name_by_prefix(table_name: str) -> str:
     if not table:
         raise ValueError("Leerer Tabellenname ist nicht erlaubt")
 
-    if table in LEGACY_ROUTE_ALLOWLIST:
-        return LEGACY_ROUTE_ALLOWLIST[table]
+    if "_" not in table:
+        logger.error(f"❌ Tabellennamen ohne Praefix sind unzulaessig: table={table}")
+        raise ValueError(f"Tabellenname ohne Praefix ist unzulaessig: {table}")
 
-    prefix = table.split("_", 1)[0] + "_" if "_" in table else ""
+    prefix = table.split("_", 1)[0] + "_"
 
     if prefix == "asy_":
         return "auth"
     if prefix in {"sys_", "dev_"}:
         return "system"
-    if prefix in {"msy_", "tst_"}:
+    if prefix == "msy_":
         return "mandant"
 
     if prefix:
@@ -49,8 +37,8 @@ def resolve_db_name_by_prefix(table_name: str) -> str:
             logger.info(f"🔎 App-Praefix erkannt, route nach mandant: table={table} prefix={prefix}")
         return "mandant"
 
-    logger.error(f"❌ Unbekanntes Tabellen-Praefix ohne Delimiter: table={table}")
-    raise ValueError(f"Unbekanntes Tabellen-Praefix fuer Routing: {table}")
+    logger.info(f"🔎 App-Praefix erkannt, route nach mandant: table={table} prefix={prefix}")
+    return "mandant"
 
 class DatabasePool:
     """

@@ -20,6 +20,8 @@ from app.core.security import get_current_user, require_admin_or_develop_user
 from app.core.pdvm_central_systemsteuerung import get_gcs_session
 from app.core.workflow_draft_access import WorkflowDraftAccess
 from app.core.workflow_draft_service import WorkflowDraftService
+from app.core.central_write_service import create_record_central, update_record_central
+from app.core.pdvm_datenbank import PdvmDatabase
 
 
 router = APIRouter()
@@ -47,11 +49,12 @@ class EnsureDraftStepRequest(BaseModel):
     draft_table: Optional[str] = Field(default=None)
 
 
-class UpsertDraftTableRecordRequest(BaseModel):
-    record_uid: Optional[str] = Field(default=None)
-    payload: Dict[str, Any] = Field(default_factory=dict)
+class CommitDraftToLiveRequest(BaseModel):
     draft_table: Optional[str] = Field(default=None)
-    single_record: Optional[bool] = Field(default=False)
+    tables: Optional[list[str]] = Field(default=None, description="Optionale Liste von Tabellen für Teil-Commit")
+    mark_built_if_success: Optional[bool] = Field(default=True)
+    dry_run: Optional[bool] = Field(default=False)
+    persist_report: Optional[bool] = Field(default=True)
 
 
 async def get_gcs_instance(current_user: dict = Depends(get_current_user)):
@@ -126,6 +129,16 @@ def _normalize_workflow_name(*, payload_workflow: Dict[str, Any], draft_root: Di
 def _normalize_bucket_name(table_name: str) -> str:
     table = str(table_name or "").strip().upper()
     return table
+
+
+def _extract_work_container_payload(items: list[Dict[str, Any]]) -> Dict[str, Any]:
+    for item in items:
+        item_type = str(item.get("item_type") or "").strip().lower()
+        item_key = str(item.get("item_key") or "").strip().lower()
+        if item_type == "work" and item_key == "container":
+            payload = item.get("payload") if isinstance(item.get("payload"), dict) else {}
+            return dict(payload)
+    return {}
 
 
 @router.post("/bootstrap")
@@ -387,7 +400,7 @@ async def ensure_draft_step(
         work_payload["WORKFLOW"] = workflow_meta
 
         created: Dict[str, str] = {}
-        if module_norm == "edit" and tab_table:
+        if tab_table and module_norm != "view":
             work_payload, uid_value = await WorkflowDraftAccess.ensure_table_record_in_payload(
                 system_pool,
                 payload=work_payload,
@@ -468,41 +481,10 @@ async def ensure_draft_step(
         raise HTTPException(status_code=500, detail=f"Workflow-Step konnte nicht vorbereitet werden: {exc}")
 
 
-@router.get("/{draft_guid}/records/{table_name}")
-async def list_draft_table_records(
+@router.post("/{draft_guid}/commit-live")
+async def commit_draft_to_live(
     draft_guid: str,
-    table_name: str,
-    draft_table: Optional[str] = None,
-    gcs=Depends(get_gcs_instance),
-    _operator: dict = Depends(require_admin_or_develop_user),
-):
-    system_pool = _require_system_pool(gcs)
-
-    try:
-        draft_table_norm = _resolve_draft_table(draft_table=draft_table)
-        rows = await WorkflowDraftAccess.list_table_records(
-            system_pool,
-            draft_guid=draft_guid,
-            table_name=table_name,
-            draft_table=draft_table_norm,
-        )
-        return {
-            "success": True,
-            "table": str(table_name or "").strip().lower(),
-            "count": len(rows),
-            "records": rows,
-        }
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Draft-Records konnten nicht geladen werden: {exc}")
-
-
-@router.post("/{draft_guid}/records/{table_name}")
-async def upsert_draft_table_record(
-    draft_guid: str,
-    table_name: str,
-    payload: UpsertDraftTableRecordRequest,
+    payload: CommitDraftToLiveRequest,
     gcs=Depends(get_gcs_instance),
     operator_user: dict = Depends(require_admin_or_develop_user),
 ):
@@ -511,22 +493,161 @@ async def upsert_draft_table_record(
     try:
         user_guid = _extract_user_guid(operator_user, gcs)
         draft_table_norm = _resolve_draft_table(draft_table=payload.draft_table)
-        saved = await WorkflowDraftAccess.save_table_record(
+
+        data = await WorkflowDraftService.load_draft(
             system_pool,
             draft_guid=draft_guid,
-            table_name=table_name,
-            record_uid=payload.record_uid,
-            payload=payload.payload,
-            updated_by_user_guid=user_guid,
             draft_table=draft_table_norm,
-            single_record=bool(payload.single_record),
         )
+
+        root = data.get("root") if isinstance(data.get("root"), dict) else {}
+        items = data.get("items") if isinstance(data.get("items"), list) else []
+        work_payload = _extract_work_container_payload(items)
+        workflow_meta = work_payload.get("WORKFLOW") if isinstance(work_payload.get("WORKFLOW"), dict) else {}
+
+        selected_tables: Optional[set[str]] = None
+        if isinstance(payload.tables, list) and payload.tables:
+            selected_tables = {
+                _normalize_table_name(str(t), label="tables[]", default="").lower()
+                for t in payload.tables
+                if str(t or "").strip()
+            }
+
+        created_count = 0
+        updated_count = 0
+        skipped_count = 0
+        errors: list[Dict[str, Any]] = []
+        details: list[Dict[str, Any]] = []
+        dry_run = bool(payload.dry_run)
+
+        system_pool_ref = getattr(gcs, "_pool_system", None) or getattr(gcs, "_system_pool", None)
+        mandant_pool_ref = getattr(gcs, "_pool_mandant", None) or getattr(gcs, "_mandant_pool", None)
+
+        for key, bucket in work_payload.items():
+            bucket_name = str(key or "").strip()
+            if not bucket_name or bucket_name.upper() == "WORKFLOW":
+                continue
+            if not isinstance(bucket, dict):
+                continue
+
+            table_name = bucket_name.lower()
+            if selected_tables is not None and table_name not in selected_tables:
+                continue
+
+            for record_uid, record_payload in bucket.items():
+                uid_txt = str(record_uid or "").strip()
+                if not uid_txt:
+                    skipped_count += 1
+                    details.append({"table": table_name, "record_uid": "", "status": "skipped", "reason": "missing_uid"})
+                    continue
+
+                try:
+                    uid_obj = uuid.UUID(uid_txt)
+                except Exception:
+                    skipped_count += 1
+                    details.append({"table": table_name, "record_uid": uid_txt, "status": "skipped", "reason": "invalid_uid"})
+                    continue
+
+                if not isinstance(record_payload, dict):
+                    skipped_count += 1
+                    details.append({"table": table_name, "record_uid": uid_txt, "status": "skipped", "reason": "invalid_payload"})
+                    continue
+
+                record_name = ""
+                root_obj = record_payload.get("ROOT") if isinstance(record_payload.get("ROOT"), dict) else {}
+                if isinstance(root_obj, dict):
+                    record_name = str(root_obj.get("SELF_NAME") or root_obj.get("NAME") or "").strip()
+
+                try:
+                    table_db = PdvmDatabase(
+                        table_name,
+                        system_pool=system_pool_ref,
+                        mandant_pool=mandant_pool_ref,
+                    )
+                    existing = await table_db.get_by_uid(uid_obj)
+
+                    if existing:
+                        if not dry_run:
+                            await update_record_central(
+                                table_name=table_name,
+                                uid=uid_obj,
+                                daten=record_payload,
+                                name=record_name or None,
+                                gcs=gcs,
+                                actor_user_uid=user_guid,
+                                actor_ip=operator_user.get("client_ip"),
+                            )
+                        updated_count += 1
+                        details.append({"table": table_name, "record_uid": uid_txt, "status": "would_update" if dry_run else "updated"})
+                    else:
+                        if not dry_run:
+                            await create_record_central(
+                                table_name=table_name,
+                                uid=uid_obj,
+                                daten=record_payload,
+                                name=record_name,
+                                gcs=gcs,
+                            )
+                        created_count += 1
+                        details.append({"table": table_name, "record_uid": uid_txt, "status": "would_create" if dry_run else "created"})
+                except Exception as exc:
+                    errors.append(
+                        {
+                            "table": table_name,
+                            "record_uid": uid_txt,
+                            "error": str(exc),
+                        }
+                    )
+                    details.append({"table": table_name, "record_uid": uid_txt, "status": "error", "reason": str(exc)})
+
+        if not dry_run and bool(payload.mark_built_if_success) and len(errors) == 0 and (created_count + updated_count) > 0:
+            await WorkflowDraftService.save_draft_item(
+                system_pool,
+                draft_guid=draft_guid,
+                item_type="state",
+                item_key="workflow_state",
+                payload={"STATUS": "built"},
+                updated_by_user_guid=user_guid,
+                draft_table=draft_table_norm,
+            )
+
+        commit_result_payload = {
+            "dry_run": dry_run,
+            "draft_guid": str(data.get("draft_guid") or draft_guid),
+            "workflow_name": str(workflow_meta.get("WORKFLOW_NAME") or root.get("TITLE") or "").strip(),
+            "workflow_type": str(workflow_meta.get("WORKFLOW_TYPE") or root.get("WORKFLOW_TYPE") or "work").strip().lower(),
+            "created_count": created_count,
+            "updated_count": updated_count,
+            "skipped_count": skipped_count,
+            "error_count": len(errors),
+            "errors": errors,
+            "details": details,
+        }
+
+        report_meta: Dict[str, Any] = {}
+        if bool(payload.persist_report):
+            report_meta = await WorkflowDraftService.persist_commit_report(
+                system_pool,
+                draft_guid=draft_guid,
+                report_payload=commit_result_payload,
+                draft_table=draft_table_norm,
+            )
+
         return {
-            "success": True,
-            "message": "Draft-Record gespeichert",
-            **saved,
+            "success": len(errors) == 0,
+            "message": (
+                "Dry-Run erfolgreich" if dry_run and len(errors) == 0
+                else "Dry-Run mit Fehlern" if dry_run
+                else "Draft nach Live übertragen" if len(errors) == 0
+                else "Draft teilweise nach Live übertragen"
+            ),
+            **commit_result_payload,
+            "report_saved": bool(payload.persist_report),
+            "report_meta": report_meta,
         }
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+    except HTTPException:
+        raise
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Draft-Record konnte nicht gespeichert werden: {exc}")
+        raise HTTPException(status_code=500, detail=f"Draft-Commit nach Live fehlgeschlagen: {exc}")

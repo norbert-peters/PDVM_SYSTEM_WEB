@@ -23,7 +23,8 @@ from app.core.pdvm_datetime import datetime_to_pdvm, pdvm_to_str
 
 
 class FieldChangeHistoryService:
-    HISTORY_TABLE = "sys_feld_aenderungshistorie"
+    HISTORY_TABLE_AUTH = "asy_feld_aenderungshistorie"
+    HISTORY_TABLE_SYSTEM = "sys_feld_aenderungshistorie"
     HISTORY_TABLE_MANDANT = "msy_feld_aenderungshistorie"
     CONFLICT_MESSAGE = "Daten zwischenzeitlich geändert. Bitte neu lesen"
 
@@ -92,16 +93,30 @@ class FieldChangeHistoryService:
         target_norm = str(target_table or "").strip().lower()
 
         # Mandanten-Tabellen bevorzugen msy_* Historie.
-        if target_norm.startswith(("msy_", "tst_")):
+        if target_norm.startswith("msy_"):
             if await cls._table_exists(conn, cls.HISTORY_TABLE_MANDANT):
                 return cls.HISTORY_TABLE_MANDANT
-            if await cls._table_exists(conn, cls.HISTORY_TABLE):
-                return cls.HISTORY_TABLE
+            if await cls._table_exists(conn, cls.HISTORY_TABLE_SYSTEM):
+                return cls.HISTORY_TABLE_SYSTEM
+            if await cls._table_exists(conn, cls.HISTORY_TABLE_AUTH):
+                return cls.HISTORY_TABLE_AUTH
             return None
 
-        # System/Auth/Legacy: sys_* Historie bevorzugen.
-        if await cls._table_exists(conn, cls.HISTORY_TABLE):
-            return cls.HISTORY_TABLE
+        # Auth-Tabellen: asy_* Historie bevorzugen.
+        if target_norm.startswith("asy_"):
+            if await cls._table_exists(conn, cls.HISTORY_TABLE_AUTH):
+                return cls.HISTORY_TABLE_AUTH
+            if await cls._table_exists(conn, cls.HISTORY_TABLE_SYSTEM):
+                return cls.HISTORY_TABLE_SYSTEM
+            if await cls._table_exists(conn, cls.HISTORY_TABLE_MANDANT):
+                return cls.HISTORY_TABLE_MANDANT
+            return None
+
+        # System/Legacy: sys_* Historie bevorzugen.
+        if await cls._table_exists(conn, cls.HISTORY_TABLE_SYSTEM):
+            return cls.HISTORY_TABLE_SYSTEM
+        if await cls._table_exists(conn, cls.HISTORY_TABLE_AUTH):
+            return cls.HISTORY_TABLE_AUTH
         if await cls._table_exists(conn, cls.HISTORY_TABLE_MANDANT):
             return cls.HISTORY_TABLE_MANDANT
         return None
@@ -109,7 +124,7 @@ class FieldChangeHistoryService:
     @classmethod
     async def is_history_table(cls, conn: asyncpg.Connection, table_name: str) -> bool:
         table_norm = str(table_name or "").strip().lower()
-        return table_norm in {cls.HISTORY_TABLE, cls.HISTORY_TABLE_MANDANT}
+        return table_norm in {cls.HISTORY_TABLE_AUTH, cls.HISTORY_TABLE_SYSTEM, cls.HISTORY_TABLE_MANDANT}
 
     @classmethod
     def _policy_for_field(cls, field_name: str) -> str:
@@ -207,7 +222,7 @@ class FieldChangeHistoryService:
         if history_table is None:
             return 0
 
-        if str(target_table).strip().lower() in {cls.HISTORY_TABLE, cls.HISTORY_TABLE_MANDANT}:
+        if str(target_table).strip().lower() in {cls.HISTORY_TABLE_AUTH, cls.HISTORY_TABLE_SYSTEM, cls.HISTORY_TABLE_MANDANT}:
             return 0
 
         old_flat = cls._flatten_group_fields(old_data)

@@ -1,9 +1,9 @@
-"""
+﻿"""
 Data Manager Layer
-Business Logic für spezifische Datentypen
+Business Logic fÃ¼r spezifische Datentypen
 
 Nach Desktop-Vorbild: PdvmCentralDatenbank
-Hält Instanzen im Memory, validiert, cached
+HÃ¤lt Instanzen im Memory, validiert, cached
 """
 import logging
 from typing import Dict, List, Optional, Any
@@ -16,32 +16,32 @@ logger = logging.getLogger(__name__)
 
 class MandantDataManager:
     """
-    DataManager für Mandanten
+    DataManager fÃ¼r Mandanten
     
     Features:
     - In-Memory Cache
     - Validierung
-    - Geschäftslogik
-    - Berechtigungsprüfung
+    - GeschÃ¤ftslogik
+    - BerechtigungsprÃ¼fung
     """
     
     def __init__(self):
-        # Database Service für sys_mandanten Tabelle
-        self.db_service = PdvmDatabaseService(database="auth", table="sys_mandanten")
+        # Database Service fÃ¼r asy_mandanten Tabelle
+        self.db_service = PdvmDatabaseService(database="auth", table="asy_mandanten")
         
         # In-Memory Cache
         self._cache: Dict[str, Dict[str, Any]] = {}
         self._cache_loaded = False
     
     async def _load_cache(self, force: bool = False):
-        """Lädt alle Mandanten in Cache"""
+        """LÃ¤dt alle Mandanten in Cache"""
         if self._cache_loaded and not force:
             return
         
         mandanten = await self.db_service.list_all(historisch=0)
         self._cache = {str(m['uid']): m for m in mandanten}
         self._cache_loaded = True
-        logger.info(f"📦 Mandanten-Cache geladen: {len(self._cache)} Mandanten")
+        logger.info(f"ðŸ“¦ Mandanten-Cache geladen: {len(self._cache)} Mandanten")
     
     async def list_all(self, include_inactive: bool = False) -> List[Dict[str, Any]]:
         """
@@ -56,14 +56,14 @@ class MandantDataManager:
         await self._load_cache()
         
         if include_inactive:
-            # Direkt aus DB für historische
+            # Direkt aus DB fÃ¼r historische
             return await self.db_service.list_all(historisch=None)
         
         return list(self._cache.values())
     
     async def get_by_id(self, mandant_id: str | UUID) -> Optional[Dict[str, Any]]:
         """
-        Lädt Mandant per ID
+        LÃ¤dt Mandant per ID
         
         Args:
             mandant_id: UUID des Mandanten
@@ -75,7 +75,7 @@ class MandantDataManager:
         
         mandant_id = str(mandant_id)
         
-        # Erst Cache prüfen
+        # Erst Cache prÃ¼fen
         if mandant_id in self._cache:
             return self._cache[mandant_id]
         
@@ -102,7 +102,7 @@ class MandantDataManager:
             database: Datenbank-Name
             description: Beschreibung
             is_allowed: Berechtigung aktiv
-            config: Zusätzliche Konfiguration
+            config: ZusÃ¤tzliche Konfiguration
             
         Returns:
             Erstellter Mandant
@@ -138,7 +138,7 @@ class MandantDataManager:
         # Cache aktualisieren
         self._cache[str(mandant['uid'])] = mandant
         
-        logger.info(f"✅ Mandant erstellt: {name} (UID: {mandant['uid']})")
+        logger.info(f"âœ… Mandant erstellt: {name} (UID: {mandant['uid']})")
         return mandant
     
     async def update(
@@ -192,7 +192,7 @@ class MandantDataManager:
         # Cache aktualisieren
         self._cache[str(mandant_id)] = updated
         
-        logger.info(f"✅ Mandant aktualisiert: {mandant_id}")
+        logger.info(f"âœ… Mandant aktualisiert: {mandant_id}")
         return updated
 
     async def update_value(
@@ -239,7 +239,7 @@ class MandantDataManager:
         )
 
         self._cache[str(mandant_id)] = updated
-        logger.info(f"✅ Mandant-Wert aktualisiert: {mandant_id} {group_key}.{field}")
+        logger.info(f"âœ… Mandant-Wert aktualisiert: {mandant_id} {group_key}.{field}")
         return updated
     
     async def check_access(
@@ -248,11 +248,11 @@ class MandantDataManager:
         user_id: Optional[str | UUID] = None
     ) -> bool:
         """
-        Prüft ob User Zugriff auf Mandant hat
+        PrÃ¼ft ob User Zugriff auf Mandant hat
         
         Args:
             mandant_id: UUID des Mandanten
-            user_id: UUID des Users (optional, später für Rechte)
+            user_id: UUID des Users (optional, spÃ¤ter fÃ¼r Rechte)
             
         Returns:
             True wenn berechtigt
@@ -262,10 +262,10 @@ class MandantDataManager:
         if not mandant:
             return False
         
-        # Prüfe is_allowed Flag
+        # PrÃ¼fe is_allowed Flag
         is_allowed = mandant['daten'].get('MANDANT', {}).get('IS_ALLOWED', False)
         
-        # TODO: Später User-spezifische Rechte prüfen
+        # TODO: SpÃ¤ter User-spezifische Rechte prÃ¼fen
         # if user_id:
         #     allowed_users = mandant['daten'].get('SECURITY', {}).get('ALLOWED_USERS', [])
         #     if str(user_id) not in allowed_users:
@@ -275,7 +275,7 @@ class MandantDataManager:
     
     async def get_database_name(self, mandant_id: str | UUID) -> Optional[str]:
         """
-        Gibt Datenbank-Name für Mandant zurück
+        Gibt Datenbank-Name fÃ¼r Mandant zurÃ¼ck
         
         Args:
             mandant_id: UUID des Mandanten
@@ -304,11 +304,11 @@ class MandantDataManager:
     
     async def delete(self, mandant_id: str | UUID, hard: bool = False) -> bool:
         """
-        Löscht Mandanten
+        LÃ¶scht Mandanten
         
         Args:
             mandant_id: UUID des Mandanten
-            hard: True=wirklich löschen, False=historisch setzen
+            hard: True=wirklich lÃ¶schen, False=historisch setzen
             
         Returns:
             True wenn erfolgreich
@@ -322,16 +322,16 @@ class MandantDataManager:
         return success
     
     def clear_cache(self):
-        """Leert Cache (für Tests/Reload)"""
+        """Leert Cache (fÃ¼r Tests/Reload)"""
         self._cache.clear()
         self._cache_loaded = False
-        logger.info("🗑️  Mandanten-Cache geleert")
+        logger.info("ðŸ—‘ï¸  Mandanten-Cache geleert")
 
 
 class PersonDataManager:
     """
-    DataManager für Persondaten
-    Beispiel für mandanten-spezifische Daten
+    DataManager fÃ¼r Persondaten
+    Beispiel fÃ¼r mandanten-spezifische Daten
     """
     
     def __init__(self, mandant_database: str):
@@ -350,7 +350,7 @@ class PersonDataManager:
         return await self.db_service.list_all(historisch=0)
     
     async def get_by_id(self, person_id: str | UUID) -> Optional[Dict[str, Any]]:
-        """Lädt Person per ID"""
+        """LÃ¤dt Person per ID"""
         # Erst Cache
         if str(person_id) in self._cache:
             return self._cache[str(person_id)]
@@ -411,7 +411,7 @@ class PersonDataManager:
         # Cache
         self._cache[str(person['uid'])] = person
         
-        logger.info(f"✅ Person erstellt: {name}")
+        logger.info(f"âœ… Person erstellt: {name}")
         return person
     
     async def search_by_name(self, search_term: str) -> List[Dict[str, Any]]:
@@ -420,3 +420,4 @@ class PersonDataManager:
             search_term=search_term,
             search_fields=['name']
         )
+

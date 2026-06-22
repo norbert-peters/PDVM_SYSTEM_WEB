@@ -20,6 +20,7 @@ from app.core.security import get_current_user
 from app.core.pdvm_central_systemsteuerung import get_gcs_session
 from app.core.view_service import load_view_definition, load_view_base_rows
 from app.core.view_state_service import (
+    derive_effective_no_data,
     extract_controls_origin,
     merge_controls,
     normalize_controls_source,
@@ -79,7 +80,14 @@ def _normalize_table_override(value: Optional[str]) -> Optional[str]:
     return t
 
 
-def _allow_table_override(*, root: Dict[str, Any], root_table: str, table_override: str, edit_type: Optional[str] = None) -> bool:
+def _allow_table_override(
+    *,
+    root: Dict[str, Any],
+    view_daten: Dict[str, Any],
+    root_table: str,
+    table_override: str,
+    edit_type: Optional[str] = None,
+) -> bool:
     """Allow table override only in explicitly safe contexts.
 
     Baseline rule stays strict (ROOT.NO_DATA=true), but we allow common system use-cases:
@@ -90,7 +98,15 @@ def _allow_table_override(*, root: Dict[str, Any], root_table: str, table_overri
     if et in {"show_json", "edit_json"}:
         return True
 
-    no_data = _truthy((root or {}).get("NO_DATA") or (root or {}).get("no_data"))
+    rt = str(root_table or "").strip().lower()
+    to = str(table_override or "").strip().lower()
+    if rt and to and rt == to:
+        return True
+
+    no_data = derive_effective_no_data(
+        view_daten or {},
+        root_no_data=(root or {}).get("NO_DATA") or (root or {}).get("no_data"),
+    )
     if no_data:
         return True
 
@@ -98,8 +114,6 @@ def _allow_table_override(*, root: Dict[str, Any], root_table: str, table_overri
     if allow_flag:
         return True
 
-    rt = str(root_table or "").strip().lower()
-    to = str(table_override or "").strip().lower()
     if rt.startswith("sys_") and to.startswith("sys_"):
         return True
 
@@ -198,6 +212,8 @@ async def get_view_definition(view_guid: str, gcs=Depends(get_gcs_instance)):
             "expert_mode": bool(gcs.get_expert_mode()),
         }
         return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except KeyError:
         raise HTTPException(status_code=404, detail=f"View nicht gefunden: {view_guid}")
 
@@ -217,6 +233,8 @@ async def get_view_base(
 
     try:
         definition = await load_view_definition(gcs, view_uuid)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except KeyError:
         raise HTTPException(status_code=404, detail=f"View nicht gefunden: {view_guid}")
 
@@ -226,8 +244,11 @@ async def get_view_base(
         raise HTTPException(status_code=400, detail="View ROOT.TABLE ist leer")
 
     table_override = _normalize_table_override(table)
-    no_data = _truthy((root or {}).get("NO_DATA") or (root or {}).get("no_data"))
-    if table_override and not _allow_table_override(root=root, root_table=root_table, table_override=table_override):
+    no_data = derive_effective_no_data(
+        definition.get("daten") or {},
+        root_no_data=(root or {}).get("NO_DATA") or (root or {}).get("no_data"),
+    )
+    if table_override and not _allow_table_override(root=root, view_daten=definition.get("daten") or {}, root_table=root_table, table_override=table_override):
         raise HTTPException(
             status_code=400,
             detail="table override ist nur erlaubt, wenn ROOT.NO_DATA=true oder ROOT.ALLOW_TABLE_OVERRIDE=true (oder sys_* -> sys_*)",
@@ -287,16 +308,21 @@ async def get_view_state(
 
     try:
         definition = await load_view_definition(gcs, view_uuid)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except KeyError:
         raise HTTPException(status_code=404, detail=f"View nicht gefunden: {view_guid}")
 
     root = definition.get("root") or {}
     root_table = str((root or {}).get("TABLE") or "").strip()
-    no_data = _truthy((root or {}).get("NO_DATA") or (root or {}).get("no_data"))
+    no_data = derive_effective_no_data(
+        definition.get("daten") or {},
+        root_no_data=(root or {}).get("NO_DATA") or (root or {}).get("no_data"),
+    )
 
     table_override = _normalize_table_override(table)
     force_override = _is_force_override_enabled(force_table_override)
-    if table_override and not force_override and not _allow_table_override(root=root, root_table=root_table, table_override=table_override, edit_type=edit_type):
+    if table_override and not force_override and not _allow_table_override(root=root, view_daten=definition.get("daten") or {}, root_table=root_table, table_override=table_override, edit_type=edit_type):
         raise HTTPException(
             status_code=400,
             detail="table override ist nur erlaubt, wenn ROOT.NO_DATA=true oder ROOT.ALLOW_TABLE_OVERRIDE=true (oder sys_* -> sys_*)",
@@ -353,16 +379,21 @@ async def put_view_state(
 
     try:
         definition = await load_view_definition(gcs, view_uuid)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except KeyError:
         raise HTTPException(status_code=404, detail=f"View nicht gefunden: {view_guid}")
 
     root = definition.get("root") or {}
     root_table = str((root or {}).get("TABLE") or "").strip()
-    no_data = _truthy((root or {}).get("NO_DATA") or (root or {}).get("no_data"))
+    no_data = derive_effective_no_data(
+        definition.get("daten") or {},
+        root_no_data=(root or {}).get("NO_DATA") or (root or {}).get("no_data"),
+    )
 
     table_override = _normalize_table_override(table)
     force_override = _is_force_override_enabled(force_table_override)
-    if table_override and not force_override and not _allow_table_override(root=root, root_table=root_table, table_override=table_override, edit_type=edit_type):
+    if table_override and not force_override and not _allow_table_override(root=root, view_daten=definition.get("daten") or {}, root_table=root_table, table_override=table_override, edit_type=edit_type):
         raise HTTPException(
             status_code=400,
             detail="table override ist nur erlaubt, wenn ROOT.NO_DATA=true oder ROOT.ALLOW_TABLE_OVERRIDE=true (oder sys_* -> sys_*)",

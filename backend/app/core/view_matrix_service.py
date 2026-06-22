@@ -23,6 +23,7 @@ from app.core.dropdown_service import get_user_language, resolve_dropdown_by_con
 from app.core.view_service import load_view_definition, load_view_base_rows
 from app.core.view_state_service import (
     effective_controls_as_list,
+    derive_effective_no_data,
     extract_controls_origin,
     merge_controls,
     normalize_controls_source,
@@ -42,7 +43,7 @@ def _stable_json(obj: Any) -> str:
 
 
 def _normalize_type(control: Dict[str, Any]) -> str:
-    t = str(control.get("type") or control.get("control_type") or "").strip().lower()
+    t = str(control.get("type") or control.get("TYPE") or "").strip().lower()
     if not t:
         return "string"
     if t == "text":
@@ -307,15 +308,19 @@ async def build_view_matrix(
         s = str(value).strip().lower()
         return s in {"1", "true", "yes", "y", "on"}
 
-    no_data = _truthy((root or {}).get("NO_DATA") or (root or {}).get("no_data"))
+    no_data = derive_effective_no_data(
+        definition.get("daten") or {},
+        root_no_data=(root or {}).get("NO_DATA") or (root or {}).get("no_data"),
+    )
     et = str(edit_type or "").strip().lower() or "view"
     if table_override:
         allow_flag = _truthy((root or {}).get("ALLOW_TABLE_OVERRIDE") or (root or {}).get("allow_table_override"))
         rt = str(table or "").strip().lower()
         to = str(table_override or "").strip().lower()
+        allow_same_table = bool(rt and to and rt == to)
         allow_sys_to_sys = rt.startswith("sys_") and to.startswith("sys_")
         allow_dialog_json = et in {"show_json", "edit_json"}
-        if not (force_table_override or no_data or allow_flag or allow_sys_to_sys or allow_dialog_json):
+        if not (force_table_override or allow_same_table or no_data or allow_flag or allow_sys_to_sys or allow_dialog_json):
             raise ValueError("table_override ist nur erlaubt, wenn ROOT.NO_DATA=true oder ROOT.ALLOW_TABLE_OVERRIDE=true (oder sys_* -> sys_*)")
         table = str(table_override).strip()
         if not table:
@@ -350,20 +355,32 @@ async def build_view_matrix(
     try:
         user_lang = get_user_language(gcs)
         for c in effective_controls_as_list(effective):
-            control_guid = str((c or {}).get("control_guid") or "")
+            control_guid = str(_get_ci(c, "control_guid") or "")
             if not control_guid:
                 continue
             if _normalize_type(c) != "dropdown":
                 continue
 
-            cfg = (c or {}).get("configs") or {}
-            dd = cfg.get("dropdown") if isinstance(cfg, dict) else None
+            cfg = _get_ci(c, "configs")
+            if not isinstance(cfg, dict):
+                cfg = {}
+
+            # Case-insensitive + Legacy-Fallbacks fuer Dropdown-Config.
+            dd = _get_ci(cfg, "dropdown")
+            if not isinstance(dd, dict):
+                dd = _get_ci(c, "dropdown")
+
+            ds = _get_ci(cfg, "dropdown_source")
+            if not isinstance(ds, dict):
+                ds = _get_ci(c, "dropdown_source")
+
             if not isinstance(dd, dict):
                 continue
 
             resolved = await resolve_dropdown_by_config(
                 gcs,
                 dropdown_config=dd,
+                dropdown_source=ds if isinstance(ds, dict) else None,
                 language=user_lang,
             )
             dropdowns[control_guid] = {

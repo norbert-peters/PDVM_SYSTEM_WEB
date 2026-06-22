@@ -36,6 +36,7 @@ from app.core.dialog_service import (
 )
 from app.core.pdvm_datenbank import PdvmDatabase
 from app.core.control_template_service import ControlTemplateService
+from app.core.workflow_draft_access import WorkflowDraftAccess
 from app.core.workflow_draft_service import WorkflowDraftService
 
 router = APIRouter()
@@ -375,6 +376,17 @@ async def _read_ui_state(gcs, *, group: str) -> Dict[str, Any]:
     except Exception:
         return {}
 
+    if isinstance(raw, dict):
+        return dict(raw)
+    if isinstance(raw, str):
+        try:
+            parsed = json.loads(raw)
+            if isinstance(parsed, dict):
+                return parsed
+        except Exception:
+            return {}
+    return {}
+
 
 def _coerce_dialog_drafts(raw: Any) -> Dict[str, Dict[str, Any]]:
     if not isinstance(raw, dict):
@@ -526,6 +538,8 @@ class DialogDefinitionResponse(BaseModel):
 class DialogRowsRequest(BaseModel):
     limit: int = Field(default=200, ge=1, le=2000)
     offset: int = Field(default=0, ge=0)
+    storage_scope: Optional[str] = Field(default=None)
+    draft_guid: Optional[str] = Field(default=None)
 
 
 class DialogRow(BaseModel):
@@ -550,6 +564,8 @@ class DialogRecordResponse(BaseModel):
 
 class DialogRecordUpdateRequest(BaseModel):
     daten: Dict[str, Any]
+    storage_scope: Optional[str] = Field(default=None)
+    draft_guid: Optional[str] = Field(default=None)
 
 
 class DialogRecordCreateRequest(BaseModel):
@@ -557,6 +573,8 @@ class DialogRecordCreateRequest(BaseModel):
     template_uid: Optional[str] = None
     is_template: Optional[bool] = None
     modul_type: Optional[str] = Field(None, description="Für edit_dict: edit, view, tabs")
+    storage_scope: Optional[str] = Field(default=None)
+    draft_guid: Optional[str] = Field(default=None)
 
 
 class DialogValidationIssue(BaseModel):
@@ -743,6 +761,29 @@ def _extract_uuid_or_fail(*, label: str, value: Optional[str]) -> str:
         return str(uuid.UUID(token))
     except Exception:
         raise HTTPException(status_code=400, detail=f"{label} ist ungueltig")
+
+
+def _normalize_storage_scope(storage_scope: Optional[str]) -> str:
+    scope = str(storage_scope or "").strip().lower()
+    if not scope:
+        return "live"
+    if scope not in {"live", "draft"}:
+        raise HTTPException(status_code=400, detail="storage_scope muss 'live' oder 'draft' sein")
+    return scope
+
+
+def _resolve_dialog_storage_scope(runtime: Dict[str, Any], storage_scope: Optional[str]) -> str:
+    scope = _normalize_storage_scope(storage_scope)
+    # Work-Dialoge laufen standardmäßig im Draft-Scope.
+    if (storage_scope is None or str(storage_scope).strip() == "") and _is_work_dialog(runtime):
+        return "draft"
+    return scope
+
+
+def _require_draft_guid_for_scope(storage_scope: str, draft_guid: Optional[str]) -> str:
+    if storage_scope != "draft":
+        return ""
+    return _extract_uuid_or_fail(label="draft_guid", value=draft_guid)
 
 
 async def _bootstrap_workflow_draft_records(
@@ -1448,7 +1489,14 @@ async def post_dialog_draft_commit(
 
 
 @router.post("/{dialog_guid}/rows", response_model=DialogRowsResponse)
-async def post_dialog_rows(dialog_guid: str, payload: DialogRowsRequest, dialog_table: Optional[str] = None, gcs=Depends(get_gcs_instance)):
+async def post_dialog_rows(
+    dialog_guid: str,
+    payload: DialogRowsRequest,
+    dialog_table: Optional[str] = None,
+    storage_scope: Optional[str] = None,
+    draft_guid: Optional[str] = None,
+    gcs=Depends(get_gcs_instance),
+):
     try:
         dialog_uuid = uuid.UUID(dialog_guid)
     except Exception:
@@ -1462,21 +1510,69 @@ async def post_dialog_rows(dialog_guid: str, payload: DialogRowsRequest, dialog_
     runtime = extract_dialog_runtime_config(dialog_def)
     dialog_table_norm = _normalize_dialog_table(dialog_table)
     table = _resolve_runtime_root_table(runtime, dialog_table_norm=dialog_table_norm)
+    scope_raw = storage_scope if storage_scope is not None else payload.storage_scope
+    scope = _resolve_dialog_storage_scope(runtime, scope_raw)
+    draft_guid_raw = draft_guid if draft_guid is not None else payload.draft_guid
+    draft_guid_value = _require_draft_guid_for_scope(scope, draft_guid_raw)
 
     if not table:
         raise HTTPException(status_code=400, detail="Dialog ROOT.TABLE ist leer")
+
+    if scope == "draft":
+        system_pool = getattr(gcs, "_pool_system", None) or getattr(gcs, "_system_pool", None)
+        if not system_pool:
+            raise HTTPException(status_code=500, detail="Systemdatenbank-Pool nicht verfuegbar")
+
+        draft_table = _extract_work_draft_table(dialog_def)
+        records = await WorkflowDraftAccess.list_table_records(
+            system_pool,
+            draft_guid=draft_guid_value,
+            table_name=table,
+            draft_table=draft_table,
+        )
+        rows = [
+            {
+                "uid": str(uid),
+                "name": str(_as_dict(_as_dict(record).get("ROOT")).get("SELF_NAME") or _as_dict(_as_dict(record).get("ROOT")).get("NAME") or uid),
+            }
+            for uid, record in records.items()
+        ]
+        rows = rows[payload.offset : payload.offset + payload.limit]
+        return {
+            "dialog_guid": dialog_guid,
+            "table": table,
+            "rows": rows,
+            "meta": {
+                "limit": payload.limit,
+                "offset": payload.offset,
+                "storage_scope": scope,
+                "draft_guid": draft_guid_value,
+            },
+        }
 
     rows = await load_dialog_rows_uid_name(gcs, root_table=table, limit=payload.limit, offset=payload.offset)
     return {
         "dialog_guid": dialog_guid,
         "table": table,
         "rows": rows,
-        "meta": {"limit": payload.limit, "offset": payload.offset},
+        "meta": {
+            "limit": payload.limit,
+            "offset": payload.offset,
+            "storage_scope": scope,
+            "draft_guid": draft_guid_value if scope == "draft" else None,
+        },
     }
 
 
 @router.get("/{dialog_guid}/record/{record_uid}", response_model=DialogRecordResponse)
-async def get_dialog_record(dialog_guid: str, record_uid: str, dialog_table: Optional[str] = None, gcs=Depends(get_gcs_instance)):
+async def get_dialog_record(
+    dialog_guid: str,
+    record_uid: str,
+    dialog_table: Optional[str] = None,
+    storage_scope: Optional[str] = None,
+    draft_guid: Optional[str] = None,
+    gcs=Depends(get_gcs_instance),
+):
     try:
         dialog_uuid = uuid.UUID(dialog_guid)
     except Exception:
@@ -1495,9 +1591,36 @@ async def get_dialog_record(dialog_guid: str, record_uid: str, dialog_table: Opt
     runtime = extract_dialog_runtime_config(dialog_def)
     dialog_table_norm = _normalize_dialog_table(dialog_table)
     table = _resolve_runtime_root_table(runtime, dialog_table_norm=dialog_table_norm)
+    scope = _resolve_dialog_storage_scope(runtime, storage_scope)
+    draft_guid_value = _require_draft_guid_for_scope(scope, draft_guid)
 
     if not table:
         raise HTTPException(status_code=400, detail="Dialog ROOT.TABLE ist leer")
+
+    if scope == "draft":
+        system_pool = getattr(gcs, "_pool_system", None) or getattr(gcs, "_system_pool", None)
+        if not system_pool:
+            raise HTTPException(status_code=500, detail="Systemdatenbank-Pool nicht verfuegbar")
+
+        draft_table = _extract_work_draft_table(dialog_def)
+        records = await WorkflowDraftAccess.list_table_records(
+            system_pool,
+            draft_guid=draft_guid_value,
+            table_name=table,
+            draft_table=draft_table,
+        )
+        record = records.get(str(record_uuid)) if isinstance(records, dict) else None
+        if not isinstance(record, dict):
+            raise HTTPException(status_code=404, detail=f"Datensatz nicht gefunden: {record_uid}")
+
+        root = _as_dict(record.get("ROOT"))
+        return {
+            "uid": str(record_uuid),
+            "name": str(root.get("SELF_NAME") or root.get("NAME") or ""),
+            "daten": record,
+            "historisch": 0,
+            "modified_at": None,
+        }
 
     edit_type = str(runtime.get("edit_type") or "show_json").strip().lower()
     resolve_effective = not _use_raw_json_payload(edit_type)
@@ -1519,6 +1642,8 @@ async def put_dialog_record(
     record_uid: str,
     payload: DialogRecordUpdateRequest,
     dialog_table: Optional[str] = None,
+    storage_scope: Optional[str] = None,
+    draft_guid: Optional[str] = None,
     gcs=Depends(get_gcs_instance),
 ):
     """Aktualisiert einen Datensatz.
@@ -1545,9 +1670,40 @@ async def put_dialog_record(
     runtime = extract_dialog_runtime_config(dialog_def)
     dialog_table_norm = _normalize_dialog_table(dialog_table)
     table = _resolve_runtime_root_table(runtime, dialog_table_norm=dialog_table_norm)
+    scope_raw = storage_scope if storage_scope is not None else payload.storage_scope
+    scope = _resolve_dialog_storage_scope(runtime, scope_raw)
+    draft_guid_raw = draft_guid if draft_guid is not None else payload.draft_guid
+    draft_guid_value = _require_draft_guid_for_scope(scope, draft_guid_raw)
 
     if not table:
         raise HTTPException(status_code=400, detail="Dialog ROOT.TABLE ist leer")
+
+    if scope == "draft":
+        system_pool = getattr(gcs, "_pool_system", None) or getattr(gcs, "_system_pool", None)
+        if not system_pool:
+            raise HTTPException(status_code=500, detail="Systemdatenbank-Pool nicht verfuegbar")
+
+        user_guid = _extract_uuid_or_fail(label="user_guid", value=str(getattr(gcs, "user_guid", "") or ""))
+        draft_table = _extract_work_draft_table(dialog_def)
+        saved = await WorkflowDraftAccess.save_table_record(
+            system_pool,
+            draft_guid=draft_guid_value,
+            table_name=table,
+            record_uid=str(record_uuid),
+            payload=payload.daten,
+            updated_by_user_guid=user_guid,
+            draft_table=draft_table,
+            single_record=False,
+        )
+        record = _as_dict(saved.get("record"))
+        root = _as_dict(record.get("ROOT"))
+        return {
+            "uid": str(saved.get("record_uid") or record_uuid),
+            "name": str(root.get("SELF_NAME") or root.get("NAME") or ""),
+            "daten": record,
+            "historisch": 0,
+            "modified_at": None,
+        }
 
     edit_type = str(runtime.get("edit_type") or "show_json").strip().lower()
     _ensure_module_allows_write(runtime, edit_type=edit_type)
@@ -1705,6 +1861,8 @@ async def post_dialog_record_create(
     dialog_guid: str,
     payload: DialogRecordCreateRequest,
     dialog_table: Optional[str] = None,
+    storage_scope: Optional[str] = None,
+    draft_guid: Optional[str] = None,
     gcs=Depends(get_gcs_instance),
 ):
     """Kompatibilitaets-Endpoint: nutzt denselben linearen Neuer-Satz-Flow wie Draft.
@@ -1727,6 +1885,10 @@ async def post_dialog_record_create(
     runtime = extract_dialog_runtime_config(dialog_def)
     dialog_table_norm = _normalize_dialog_table(dialog_table)
     table = _resolve_runtime_root_table(runtime, dialog_table_norm=dialog_table_norm)
+    scope_raw = storage_scope if storage_scope is not None else payload.storage_scope
+    scope = _resolve_dialog_storage_scope(runtime, scope_raw)
+    draft_guid_raw = draft_guid if draft_guid is not None else payload.draft_guid
+    draft_guid_value = _require_draft_guid_for_scope(scope, draft_guid_raw)
 
     if not table:
         raise HTTPException(status_code=400, detail="Dialog ROOT.TABLE ist leer")
@@ -1743,6 +1905,44 @@ async def post_dialog_record_create(
                 template_uuid = uuid.UUID(s)
             except Exception:
                 raise HTTPException(status_code=400, detail="Ungültige template_uid")
+
+    if scope == "draft":
+        system_pool = getattr(gcs, "_pool_system", None) or getattr(gcs, "_system_pool", None)
+        if not system_pool:
+            raise HTTPException(status_code=500, detail="Systemdatenbank-Pool nicht verfuegbar")
+
+        user_guid = _extract_uuid_or_fail(label="user_guid", value=str(getattr(gcs, "user_guid", "") or ""))
+
+        effective_template_uuid = template_uuid or uuid.UUID("66666666-6666-6666-6666-666666666666")
+        built = await build_dialog_draft_from_template(
+            gcs,
+            root_table=table,
+            name=name,
+            template_uuid=effective_template_uuid,
+            root_patch=None,
+            modul_type=payload.modul_type,
+            resolve_templates=True,
+        )
+        draft_table = _extract_work_draft_table(dialog_def)
+        saved = await WorkflowDraftAccess.save_table_record(
+            system_pool,
+            draft_guid=draft_guid_value,
+            table_name=table,
+            record_uid=None,
+            payload=_as_dict(built.get("daten")),
+            updated_by_user_guid=user_guid,
+            draft_table=draft_table,
+            single_record=False,
+        )
+        record = _as_dict(saved.get("record"))
+        root = _as_dict(record.get("ROOT"))
+        return {
+            "uid": str(saved.get("record_uid") or ""),
+            "name": str(root.get("SELF_NAME") or root.get("NAME") or name),
+            "daten": record,
+            "historisch": 0,
+            "modified_at": None,
+        }
 
     try:
         root_patch = None
@@ -1867,7 +2067,7 @@ async def put_dialog_ui_state(
     group = _compute_dialog_ui_state_group(dialog_guid=dialog_guid, root_table=table, edit_type=edit_type)
 
     existing = await _read_ui_state(gcs, group=group)
-    next_state = dict(existing)
+    next_state = dict(existing or {})
     incoming = payload.ui_state if isinstance(payload.ui_state, dict) else {}
     next_state.update(incoming)
 

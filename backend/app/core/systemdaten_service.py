@@ -6,7 +6,7 @@ Zweck:
 - Stellt systemweite, sprachabhängige Konfigurationen bereit.
 - Für den Menüeditor: Liste der erlaubten Menu-Commands + Parameter-Schema.
 
-Erwartete Struktur in sys_systemdaten.daten (Beispiel):
+Erwartete Struktur in asy_systemdaten.daten (Beispiel):
 {
   "ROOT": {"DEFAULT_LANGUAGE": "DE-DE"},
   "DE-DE": {
@@ -53,17 +53,44 @@ def _norm_field(value: Any) -> str:
 
 
 async def _load_first_systemdaten_row(gcs) -> Optional[Dict[str, Any]]:
-    """Best-effort: lädt den ersten sys_systemdaten Datensatz.
+    """Best-effort: lädt den ersten Systemdaten-Datensatz.
 
-    Für produktive Nutzung sollte die GUID in sys_dialogdaten konfiguriert werden.
-    Wenn die Tabelle noch nicht existiert, wird None zurückgegeben.
+    Priorität:
+    1) sys_systemdaten
+    2) asy_systemdaten (Legacy)
     """
-    db = PdvmDatabase("sys_systemdaten", system_pool=gcs._system_pool, mandant_pool=gcs._mandant_pool)
+    for table_name in ("sys_systemdaten", "asy_systemdaten"):
+        db = PdvmDatabase(table_name, system_pool=gcs._system_pool, mandant_pool=gcs._mandant_pool)
+        try:
+            rows = await db.get_all(order_by="created_at ASC", limit=1)
+            if rows:
+                return rows[0]
+        except Exception:
+            continue
+    return None
+
+
+async def _load_systemdaten_by_uid(gcs, dataset_uid: str) -> Optional[Dict[str, Any]]:
+    """Lädt einen Systemdaten-Datensatz per UID mit Tabellen-Fallback.
+
+    Priorität:
+    1) sys_systemdaten
+    2) asy_systemdaten (Legacy)
+    """
     try:
-        rows = await db.get_all(order_by="created_at ASC", limit=1)
-        return rows[0] if rows else None
+        uid_obj = uuid.UUID(str(dataset_uid))
     except Exception:
         return None
+
+    for table_name in ("sys_systemdaten", "asy_systemdaten"):
+        db = PdvmDatabase(table_name, system_pool=gcs._system_pool, mandant_pool=gcs._mandant_pool)
+        try:
+            row = await db.get_by_uid(uid_obj)
+            if row:
+                return row
+        except Exception:
+            continue
+    return None
 
 
 async def load_menu_command_catalog(
@@ -73,7 +100,7 @@ async def load_menu_command_catalog(
     dataset_uid: Optional[str] = None,
     field: str = "menü_command",
 ) -> Dict[str, Any]:
-    """Liefert das Command-Katalog-Objekt (commands[]) aus sys_systemdaten.
+    """Liefert das Command-Katalog-Objekt (commands[]) aus Systemdaten.
 
     Returns:
         {"commands": [...], "language": "DE-DE", "default_language": "DE-DE"}
@@ -83,12 +110,7 @@ async def load_menu_command_catalog(
 
     row: Optional[Dict[str, Any]] = None
     if dataset_uid:
-        try:
-            uid_obj = uuid.UUID(str(dataset_uid))
-            db = PdvmDatabase("sys_systemdaten", system_pool=gcs._system_pool, mandant_pool=gcs._mandant_pool)
-            row = await db.get_by_uid(uid_obj)
-        except Exception:
-            row = None
+        row = await _load_systemdaten_by_uid(gcs, dataset_uid)
 
     if row is None:
         row = await _load_first_systemdaten_row(gcs)
@@ -184,9 +206,9 @@ async def load_systemdaten_text(
     group: Optional[str] = None,
     language: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Lädt einen Text-Eintrag aus sys_systemdaten.
+    """Lädt einen Text-Eintrag aus Systemdaten.
 
-    - dataset_uid: GUID des sys_systemdaten Datensatzes
+    - dataset_uid: GUID des Systemdaten-Datensatzes
     - entry_key: UUID-Key oder Name (z.B. "menu_command")
     - group: optionaler Gruppen-Container (z.B. MENU_COMMANDS), sonst language/default
     """
@@ -195,13 +217,7 @@ async def load_systemdaten_text(
     if not entry_key_norm:
         return {"text": None, "label": None, "name": None}
 
-    try:
-        uid_obj = uuid.UUID(str(dataset_uid))
-    except Exception:
-        return {"text": None, "label": None, "name": None}
-
-    db = PdvmDatabase("sys_systemdaten", system_pool=gcs._system_pool, mandant_pool=gcs._mandant_pool)
-    row = await db.get_by_uid(uid_obj)
+    row = await _load_systemdaten_by_uid(gcs, dataset_uid)
     daten = (row or {}).get("daten")
     if not isinstance(daten, dict):
         return {"text": None, "label": None, "name": None}
@@ -246,14 +262,8 @@ async def load_menu_param_configs(
     *,
     dataset_uid: str,
 ) -> Dict[str, Any]:
-    """Lädt MENU_CONFIGS aus sys_systemdaten und gibt sie nach name gemappt zurück."""
-    try:
-        uid_obj = uuid.UUID(str(dataset_uid))
-    except Exception:
-        return {"configs": {}}
-
-    db = PdvmDatabase("sys_systemdaten", system_pool=gcs._system_pool, mandant_pool=gcs._mandant_pool)
-    row = await db.get_by_uid(uid_obj)
+    """Lädt MENU_CONFIGS aus Systemdaten und gibt sie nach name gemappt zurück."""
+    row = await _load_systemdaten_by_uid(gcs, dataset_uid)
     daten = (row or {}).get("daten")
     if not isinstance(daten, dict):
         return {"configs": {}}

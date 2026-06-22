@@ -1,7 +1,7 @@
 """View Table State Service
 
 Phase 1 (erweitert):
-- Persistiert Sort- und Filter-Zustand pro View in sys_systemsteuerung
+- Persistiert Sort- und Filter-Zustand pro View in msy_systemsteuerung
 
 Wichtig:
 - Niemals nach sys_viewdaten zurückschreiben.

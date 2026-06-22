@@ -30,7 +30,6 @@ type ViewControl = {
   feld: string
   label?: string
   type?: string
-  control_type?: string
   show?: boolean
   display_order?: number
   width?: number
@@ -93,12 +92,27 @@ function pickCi(obj: unknown, ...keys: string[]): any {
 function resolveFormatType(control: ViewControl): string {
   const t = String(control.type || '').trim().toLowerCase()
   if (t) return t
-
-  // Compatibility fallback: if a view only has control_type, derive a sensible format.
-  const ct = String(control.control_type || '').trim().toLowerCase()
-  if (ct === 'dropdown') return 'dropdown'
-  if (ct === 'datetime') return 'datetime'
   return 'string'
+}
+
+function resolveDropdownLabel(map: Record<string, any> | null, raw: unknown): string | null {
+  if (!map || typeof map !== 'object') return null
+  const key = String(raw ?? '')
+  if (!key) return null
+
+  if (map[key] !== undefined && map[key] !== null) return String(map[key])
+
+  const trimmed = key.trim()
+  if (trimmed && map[trimmed] !== undefined && map[trimmed] !== null) return String(map[trimmed])
+
+  const lower = trimmed.toLowerCase()
+  if (!lower) return null
+  for (const [k, v] of Object.entries(map)) {
+    const kk = String(k || '').trim().toLowerCase()
+    if (kk === lower && v !== undefined && v !== null) return String(v)
+  }
+
+  return null
 }
 
 
@@ -124,12 +138,10 @@ function formatValueNormal(control: ViewControl, raw: unknown, dropdowns?: Recor
   if (type === 'dropdown') {
     const guid = String(control.control_guid || '')
     const resolver = dropdowns && guid ? (dropdowns as any)[guid] : null
-    const map = resolver && typeof resolver === 'object' ? (resolver as any).map : null
-    const key = String(raw)
-    if (map && typeof map === 'object' && map[key] !== undefined && map[key] !== null) {
-      return String(map[key])
-    }
-    return key
+    const map = resolver && typeof resolver === 'object' ? ((resolver as any).map as Record<string, any>) : null
+    const resolved = resolveDropdownLabel(map, raw)
+    if (resolved !== null) return resolved
+    return String(raw)
   }
 
   return String(raw)
@@ -161,8 +173,7 @@ function extractControls(definition: ViewDefinitionResponse): ViewControl[] {
       const feld = pickCi(controlVal, 'feld', 'FELD', 'field', 'FIELD')
       const label = pickCi(controlVal, 'label', 'LABEL', 'name', 'NAME')
       const type = pickCi(controlVal, 'type', 'TYPE')
-      const controlType = pickCi(controlVal, 'control_type', 'CONTROL_TYPE')
-      const show = pickCi(controlVal, 'show', 'SHOW', 'display_show', 'DISPLAY_SHOW')
+      const show = pickCi(controlVal, 'display_show', 'DISPLAY_SHOW')
       const displayOrder = pickCi(controlVal, 'display_order', 'DISPLAY_ORDER')
       const sortable = pickCi(controlVal, 'sortable', 'SORTABLE')
       const searchable = pickCi(controlVal, 'searchable', 'SEARCHABLE')
@@ -174,7 +185,6 @@ function extractControls(definition: ViewDefinitionResponse): ViewControl[] {
         feld: String(feld || ''),
         label: label !== undefined ? String(label) : undefined,
         type: type !== undefined ? String(type) : undefined,
-        control_type: controlType !== undefined ? String(controlType) : undefined,
         show: show !== false,
         display_order: Number(displayOrder || 0),
         sortable: !!sortable,
@@ -197,8 +207,7 @@ function controlsFromState(state: ViewStateResponse | undefined): ViewControl[] 
       const feld = pickCi(c, 'feld', 'FELD', 'field', 'FIELD')
       const label = pickCi(c, 'label', 'LABEL', 'name', 'NAME')
       const type = pickCi(c, 'type', 'TYPE')
-      const controlType = pickCi(c, 'control_type', 'CONTROL_TYPE')
-      const show = pickCi(c, 'show', 'SHOW', 'display_show', 'DISPLAY_SHOW')
+      const show = pickCi(c, 'show')
       const displayOrder = pickCi(c, 'display_order', 'DISPLAY_ORDER')
       const width = pickCi(c, 'width', 'WIDTH')
       const sortable = pickCi(c, 'sortable', 'SORTABLE')
@@ -211,7 +220,6 @@ function controlsFromState(state: ViewStateResponse | undefined): ViewControl[] 
         feld: String(feld || ''),
         label: label !== undefined ? String(label) : undefined,
         type: type !== undefined ? String(type) : undefined,
-        control_type: controlType !== undefined ? String(controlType) : undefined,
         show: show !== false,
         display_order: Number(displayOrder || 0),
         width: width !== undefined ? Number(width) : undefined,
@@ -501,7 +509,7 @@ export function PdvmViewPageContent({
   }
   const isDirty = !!draftControlsSource && !!draftTableStateSource && draftJson !== lastSavedJsonRef.current
 
-  const controls = useMemo(() => {
+  const controlsLegacy = useMemo(() => {
     const fallback = fallbackUidNameControls()
     if (stateQuery.data) {
       const base = applyDraftToControls(controlsFromState(stateQuery.data), draftControlsSource)
@@ -519,7 +527,7 @@ export function PdvmViewPageContent({
     return base.length > 0 ? base : fallback
   }, [defQuery.data, stateQuery.data, draftControlsSource])
 
-  const allControls = useMemo(() => {
+  const allControlsLegacy = useMemo(() => {
     const fallback = fallbackUidNameControls()
     if (stateQuery.data) {
       const base = applyDraftToControls(controlsFromState(stateQuery.data), draftControlsSource).sort(
@@ -569,6 +577,38 @@ export function PdvmViewPageContent({
     enabled: !!viewGuid && !!defQuery.data && !!stateQuery.data && !!draftControlsSource && !!draftTableStateSource,
   })
 
+  const controls = useMemo(() => {
+    const fallback = fallbackUidNameControls()
+
+    const matrixEffective = matrixQuery.data?.controls_effective
+    if (Array.isArray(matrixEffective) && matrixEffective.length > 0) {
+      const base = applyDraftToControls(
+        controlsFromState({ controls_effective: matrixEffective } as any),
+        draftControlsSource
+      )
+        .filter((c) => c.show)
+        .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+      return base.length > 0 ? base : fallback
+    }
+
+    return controlsLegacy.length > 0 ? controlsLegacy : fallback
+  }, [matrixQuery.data?.controls_effective, draftControlsSource, controlsLegacy])
+
+  const allControls = useMemo(() => {
+    const fallback = fallbackUidNameControls()
+
+    const matrixEffective = matrixQuery.data?.controls_effective
+    if (Array.isArray(matrixEffective) && matrixEffective.length > 0) {
+      const base = applyDraftToControls(
+        controlsFromState({ controls_effective: matrixEffective } as any),
+        draftControlsSource
+      ).sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+      return base.length > 0 ? base : fallback
+    }
+
+    return allControlsLegacy.length > 0 ? allControlsLegacy : fallback
+  }, [matrixQuery.data?.controls_effective, draftControlsSource, allControlsLegacy])
+
   const tableStateEffective: TableState =
     draftTableStateSource ||
     ((stateQuery.data?.table_state_effective as any) || {
@@ -617,7 +657,7 @@ export function PdvmViewPageContent({
         const dr = r as any as ViewBaseRow & { group_key?: string }
         const baseIndex = dataIndex
         dataIndex += 1
-        if (collapsedGroupKeys.has(String((dr as any).group_key || ''))) continue
+        if (groupEnabled && collapsedGroupKeys.has(String((dr as any).group_key || ''))) continue
         out.push({ kind: 'data', row: dr, baseIndex })
       }
     }
@@ -700,7 +740,17 @@ export function PdvmViewPageContent({
   }
 
   if (defQuery.isLoading) return <div style={{ padding: 16 }}>View lädt…</div>
-  if (defQuery.error) return <div style={{ padding: 16, color: 'crimson' }}>Fehler beim Laden der ViewDefinition</div>
+  if (defQuery.error) {
+    const detail =
+      (defQuery.error as any)?.response?.data?.detail ||
+      (defQuery.error as any)?.message ||
+      ''
+    return (
+      <div style={{ padding: 16, color: 'crimson' }}>
+        Fehler beim Laden der ViewDefinition{detail ? `: ${String(detail)}` : ''}
+      </div>
+    )
+  }
 
   const resetFilterSort = () => {
     if (!draftTableStateSource) return
@@ -1366,7 +1416,10 @@ export function PdvmViewPageContent({
                   >
                     {controls.map((c) => {
                       const raw = getRawValue(row, c)
-                      const cell = expertMode ? formatValueExpert(raw) : formatValueNormal(c, raw, dropdowns)
+                      const typeNorm = resolveFormatType(c)
+                      const cell = expertMode && typeNorm !== 'dropdown'
+                        ? formatValueExpert(raw)
+                        : formatValueNormal(c, raw, dropdowns)
                       const tooltip = getAbdatumTooltip(row, c)
 
                       return (

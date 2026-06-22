@@ -177,6 +177,20 @@ Begruendung:
 - Frames brauchen eine eigene visuelle Ordnung, ohne die zentrale Control-Definition zu duplizieren.
 - Ohne erlaubtes `TAB`-Override landen Felder implizit in Tab 1 und die Frame-Darstellung wird inkonsistent.
 
+### 1.10c pdvm_edit Control-Autonomie und Expert-Debug-Konsistenz (verbindlich)
+**Regel:** Fuer `EDIT_TYPE=pdvm_edit` gilt ein einheitlicher Laufzeitvertrag ohne bereichsspezifische Sonderpfade.
+
+Pflichten:
+- Jedes InputControl wird immer ueber denselben Datenzugriffsvertrag aufgeloest: `SOURCE_PATH` + `GRUPPE` + `FELD`.
+- `FRAME_TYPE` beschreibt nur den Host-/Containerkontext (z. B. workspace, popup, element-editor) und darf den Datenzugriffsweg nicht aendern.
+- Auch Child-Frames in `element_list` werden als normale InputControls mit voller Runtime-Hydration gerendert.
+- Die Control-Rohansicht (`{}`) bleibt **ausschliesslich Expert-Mode** vorbehalten.
+- Wenn Expert-Mode aktiv ist, muss die Rohansicht fuer alle InputControls im selben Renderkontext konsistent verfuegbar sein (keine Mischform).
+
+Nicht zulaessig:
+- Kontextabhaengige Speziallogik, bei der einzelne InputControls im selben Expert-Mode keine Rohansicht erhalten.
+- Datenzugriffslogik, die alternativ Parent-/Dialogpfade nutzt, obwohl `SOURCE_PATH` + `GRUPPE` + `FELD` fuer das Control vorliegen.
+
 ### 1.11 Schutz von Basis-/Template-GUIDs (maschinenfest)
 **Regel:** Reservierte Basis-/Template-Datensaetze duerfen durch Migrationen nicht geaendert werden.
 

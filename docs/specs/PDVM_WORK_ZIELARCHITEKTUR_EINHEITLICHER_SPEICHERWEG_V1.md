@@ -259,6 +259,78 @@ Folge:
 
 1. Unklare Datenlage, Performanceverlust
 
+---
+
+## 9. Element-List Definitionen mit eigenem Frame (neu)
+
+Status: verbindlich ab 19.06.2026
+
+Ziel:
+
+1. `element_list`-Controls definieren nur die auswählbaren Elementtypen.
+2. Jeder Elementtyp kann ein eigenes Frame für die Edit-Felder referenzieren.
+3. Darstellung und Bearbeitung laufen vollständig über InputControls (keine Sonder-Renderer).
+
+### 9.1 Datenmodell
+
+Im Parent-Template-Frame (referenziert über `CONTROL.CONFIGS.element.key`) werden die Elementtypen geführt.
+
+Beispiel (Collection):
+
+1. `help`: `{ "label": "...", "frame": "<GUID>", "no_fields": false }`
+2. `dropdown_source`: `{ "label": "...", "frame": "<GUID>" }`
+3. `tooltips`: `{ "label": "...", "no_fields": true }`
+
+Regeln:
+
+1. `frame` und `frame_guid` sind gleichwertig.
+2. `no_fields=true` erlaubt explizit feldlose Elemente.
+3. Ohne `frame` und ohne `no_fields=true` ist die Definition ungültig.
+
+### 9.2 Frame-Typen
+
+1. Parent-Template-Frame muss `ROOT.FRAME_TYPE = element_list` oder `element` haben.
+2. Element-spezifische Child-Frames müssen `ROOT.FRAME_TYPE = element` haben.
+
+### 9.3 Gruppenregel (linear)
+
+Verbindlich für Child-Frames:
+
+1. `GRUPPE` der Felder ist immer `ELEMENT`.
+2. Keine verschachtelten Gruppen wie `CONFIGS.ELEMENT`.
+3. Zielpfade werden über Feldnamen/SAVE_PATH abgebildet, nicht über GRUPPE.
+
+Beispiel:
+
+1. Feld `type` -> `CONFIGS.dropdown_source.type`
+2. Feld `params.limit` -> `CONFIGS.dropdown_source.params.limit`
+3. Feld `params.include_inactive` -> `CONFIGS.dropdown_source.params.include_inactive`
+
+### 9.4 Laufzeitverhalten
+
+1. Beim Hinzufügen wird der gewählte Elementtyp aus der Definitionsliste gewählt.
+2. Wenn der Elementtyp ein Child-Frame hat, stammen Modal-Felder und Defaults aus diesem Frame.
+3. Label-Anzeige in Listenpriorität:
+1. Feldwert `label`/`name`/konfigurierter Label-Key
+2. Definition-Label
+3. Key/UID
+
+### 9.5 Guardrails (Backend)
+
+1. `CONTROL.TYPE=element_list` erfordert weiterhin `CONFIGS.element.key` (Template-Frame GUID).
+2. Das referenzierte Template-Frame muss existieren.
+3. Es muss mindestens eine Elementdefinition geben.
+4. Für jede Definition gilt:
+1. `frame`/`frame_guid` muss gesetzt und gültige GUID sein, oder
+2. `no_fields=true` muss gesetzt sein.
+5. Referenzierte Child-Frames müssen `ROOT.FRAME_TYPE=element` haben.
+
+Bei Verstoß wird Speichern mit Fehler beendet (kein stiller Fallback).
+
+Referenzbeispiel:
+
+1. [docs/specs/PDVM_ELEMENT_LIST_FRAME_BEISPIEL_V1.md](docs/specs/PDVM_ELEMENT_LIST_FRAME_BEISPIEL_V1.md)
+
 Gegenmassnahme:
 
 1. Tab-erzeugte Tabellen im Ein-Satz-Modus

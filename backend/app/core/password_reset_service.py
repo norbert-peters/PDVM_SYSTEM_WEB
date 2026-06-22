@@ -1,4 +1,4 @@
-"""Password Reset Service
+﻿"""Password Reset Service
 
 Implements OTP generation, persistence and email delivery.
 """
@@ -32,7 +32,7 @@ def _parse_security_time(value: Any) -> Optional[datetime]:
     if not value:
         return None
 
-    # Primär: PDVM float/timestamp
+    # PrimÃ¤r: PDVM float/timestamp
     try:
         pdvm_val = float(value)
         if pdvm_val >= 1001.0:
@@ -202,7 +202,7 @@ async def issue_password_reset(
     try:
         user_uuid = uuid.UUID(str(user_uid))
     except Exception:
-        raise ValueError("Ungültige User-GUID")
+        raise ValueError("UngÃ¼ltige User-GUID")
 
     benutzer_mgr = PdvmCentralBenutzer(user_uuid)
     user = await benutzer_mgr.get_user()
@@ -256,7 +256,7 @@ async def issue_password_reset(
     )
 
     await update_record_central(
-        table_name="sys_benutzer",
+        table_name="asy_benutzer",
         uid=user_uuid,
         daten=updated,
         name=user.get("name"),
@@ -267,12 +267,12 @@ async def issue_password_reset(
     )
 
     # Send email
-    subject = "PDVM Passwort zurücksetzen"
+    subject = "PDVM Passwort zurÃ¼cksetzen"
     body = (
         "Ihr neues einmaliges Passwort wurde erzeugt.\n\n"
         f"Passwort: {otp}\n"
-        f"Gültigkeit: {expires_minutes} Minuten\n\n"
-        "Bitte melden Sie sich an und ändern Sie Ihr Passwort sofort."
+        f"GÃ¼ltigkeit: {expires_minutes} Minuten\n\n"
+        "Bitte melden Sie sich an und Ã¤ndern Sie Ihr Passwort sofort."
     )
 
     email_sent = False
@@ -303,7 +303,7 @@ async def update_account_lock(
     try:
         user_uuid = uuid.UUID(str(user_uid))
     except Exception:
-        raise ValueError("Ungültige User-GUID")
+        raise ValueError("UngÃ¼ltige User-GUID")
 
     benutzer_mgr = PdvmCentralBenutzer(user_uuid)
     user = await benutzer_mgr.get_user()
@@ -319,7 +319,7 @@ async def update_account_lock(
     )
 
     await update_record_central(
-        table_name="sys_benutzer",
+        table_name="asy_benutzer",
         uid=user_uuid,
         daten=updated,
         name=user.get("name"),
@@ -339,7 +339,7 @@ async def clear_password_reset_flags(
     try:
         user_uuid = uuid.UUID(str(user_uid))
     except Exception:
-        raise ValueError("Ungültige User-GUID")
+        raise ValueError("UngÃ¼ltige User-GUID")
 
     benutzer_mgr = PdvmCentralBenutzer(user_uuid)
     user = await benutzer_mgr.get_user()
@@ -357,7 +357,7 @@ async def clear_password_reset_flags(
     )
 
     await update_record_central(
-        table_name="sys_benutzer",
+        table_name="asy_benutzer",
         uid=user_uuid,
         daten=updated,
         name=user.get("name"),
@@ -378,7 +378,7 @@ async def mark_password_changed(
     try:
         user_uuid = uuid.UUID(str(user_uid))
     except Exception:
-        raise ValueError("Ungültige User-GUID")
+        raise ValueError("UngÃ¼ltige User-GUID")
 
     benutzer_mgr = PdvmCentralBenutzer(user_uuid)
     user = await benutzer_mgr.get_user()
@@ -393,7 +393,7 @@ async def mark_password_changed(
     )
 
     await update_record_central(
-        table_name="sys_benutzer",
+        table_name="asy_benutzer",
         uid=user_uuid,
         daten=updated,
         name=user.get("name"),
@@ -402,3 +402,4 @@ async def mark_password_changed(
         actor_user_uid=actor_user_uid,
         actor_ip=actor_ip,
     )
+

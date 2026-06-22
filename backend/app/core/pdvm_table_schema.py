@@ -1,13 +1,13 @@
-"""
+﻿"""
 PDVM Standard-Tabellen-Schema
-Zentrale Definition der Standard-Struktur für ALLE PDVM-Tabellen (außer sys_benutzer)
+Zentrale Definition der Standard-Struktur fÃ¼r ALLE PDVM-Tabellen (auÃŸer asy_benutzer)
 """
 
-# Standard-Datum für unbegrenzte Gültigkeit
+# Standard-Datum fÃ¼r unbegrenzte GÃ¼ltigkeit
 GILT_BIS_MAX = "9999-12-31 23:59:59"
 
 # Standard PDVM-Tabellen-Struktur
-# WICHTIG: Diese Struktur gilt für ALLE Tabellen außer sys_benutzer
+# WICHTIG: Diese Struktur gilt fÃ¼r ALLE Tabellen auÃŸer asy_benutzer
 PDVM_TABLE_COLUMNS = {
     'uid': 'UUID PRIMARY KEY DEFAULT uuid_generate_v4()',
     'link_uid': 'UUID',
@@ -22,7 +22,7 @@ PDVM_TABLE_COLUMNS = {
     'backup_daten': 'JSONB DEFAULT \'{}\'::jsonb'
 }
 
-# Standard-Indizes für PDVM-Tabellen
+# Standard-Indizes fÃ¼r PDVM-Tabellen
 PDVM_TABLE_INDEXES = [
     'link_uid',
     'created_at',
@@ -34,7 +34,7 @@ PDVM_TABLE_INDEXES = [
 ]
 
 # System-Tabellen (pdvm_system Datenbank)
-# Mandantenübergreifende Strukturdaten und Layouts
+# MandantenÃ¼bergreifende Strukturdaten und Layouts
 PDVM_SYSTEM_TABLES = [
     'sys_beschreibungen',
     'sys_dropdowndaten',
@@ -47,4 +47,5 @@ PDVM_SYSTEM_TABLES = [
     'sys_feld_aenderungshistorie',
     'sys_control_dict'
 ]
+
 

@@ -160,7 +160,7 @@ class UserManager:
             async with pool.acquire() as conn:
                 user = await conn.fetchrow("""
                     SELECT uid, benutzer, passwort, name, daten
-                    FROM sys_benutzer
+                    FROM asy_benutzer
                     WHERE uid = $1::uuid
                 """, user_id)
                 
@@ -199,7 +199,7 @@ class UserManager:
             async with pool.acquire() as conn:
                 user = await conn.fetchrow("""
                     SELECT uid, benutzer, passwort, name, daten
-                    FROM sys_benutzer
+                    FROM asy_benutzer
                     WHERE benutzer = $1
                 """, email)
                 
@@ -239,7 +239,7 @@ class UserManager:
                 user = await conn.fetchrow(
                     """
                     SELECT uid, benutzer, passwort, name, daten
-                    FROM sys_benutzer
+                    FROM asy_benutzer
                     WHERE LOWER(daten->'USER'->>'EMAIL') = $1
                 """,
                     email,
@@ -301,7 +301,7 @@ class UserManager:
                         daten->'SECURITY'->>'FAILED_LOGINS',
                         '0'
                     )
-                    FROM sys_benutzer
+                    FROM asy_benutzer
                     WHERE benutzer = $1
                 """, email)
                 
@@ -313,7 +313,7 @@ class UserManager:
                 
                 # Update
                 await conn.execute("""
-                UPDATE sys_benutzer
+                UPDATE asy_benutzer
                 SET daten = jsonb_set(
                     jsonb_set(
                         jsonb_set(
@@ -358,7 +358,7 @@ class UserManager:
                 
                 # Update Last-Login und Reset Failed-Attempts
                 await conn.execute("""
-                UPDATE sys_benutzer
+                UPDATE asy_benutzer
                 SET daten = jsonb_set(
                     jsonb_set(
                         jsonb_set(
@@ -454,7 +454,7 @@ class UserManager:
             async with pool.acquire() as conn:
                 # Reset Account-Lock und Failed-Attempts
                 await conn.execute("""
-                    UPDATE sys_benutzer
+                    UPDATE asy_benutzer
                     SET daten = jsonb_set(
                         jsonb_set(
                             jsonb_set(

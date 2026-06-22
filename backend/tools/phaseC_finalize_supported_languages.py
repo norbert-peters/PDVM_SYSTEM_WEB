@@ -50,6 +50,17 @@ def _as_dict(value: Any) -> Dict[str, Any]:
     return {}
 
 
+def _dropdown_option_lang_values(option_item: Dict[str, Any]) -> Dict[str, Any]:
+    item = _as_dict(option_item)
+    out: Dict[str, Any] = {}
+    for k, v in item.items():
+        ku = str(k or "").strip().upper()
+        if ku in {"KEY", "VALUE", "VALUES", "LABEL", "NAME"}:
+            continue
+        out[str(k)] = v
+    return out
+
+
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -82,8 +93,7 @@ async def _collect_dropdowndaten(conn: asyncpg.Connection) -> Dict[str, Any]:
 
         options = _as_dict(daten.get("OPTIONS"))
         for opt in options.values():
-            o = _as_dict(opt)
-            values = _as_dict(o.get("values"))
+            values = _dropdown_option_lang_values(_as_dict(opt))
             for k in values.keys():
                 raw = str(k or "").strip()
                 if not raw:

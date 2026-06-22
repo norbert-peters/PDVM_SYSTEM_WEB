@@ -1,0 +1,1275 @@
+{
+  "title": "ROOT und TABLE_INFO Vereinheitlichungs-Audit",
+  "database": "pdvm_system",
+  "dialog_uid_focus": "14b932e7-451c-5509-b4b4-aac3199e2936",
+  "summary": {
+    "tables_analyzed": 13,
+    "tables_with_table_info_in_666": 7,
+    "tables_without_table_info_in_666": 6,
+    "tables_with_invalid_666_group_structure": 0,
+    "tables_with_invalid_666_direct_table_info": 0
+  },
+  "common_candidates": {
+    "root_keys_common_all_tables": [],
+    "root_keys_majority_70pct": [
+      "SELF_CREATED_AT",
+      "SELF_GILT_BIS",
+      "SELF_GUID",
+      "SELF_LINK_UID",
+      "SELF_MODIFIED_AT",
+      "SELF_NAME",
+      "TABLE"
+    ],
+    "table_info_keys_majority_70pct": []
+  },
+  "dialog_focus": {
+    "found": true,
+    "uid": "14b932e7-451c-5509-b4b4-aac3199e2936",
+    "name": "WORKFLOW_DRAFT_BUILDER_DIALOG_TEMPLATE",
+    "root_keys_dialog": [
+      "DIALOG_TYPE",
+      "HEADER",
+      "OPEN_EDIT",
+      "SELECTION_MODE",
+      "SELF_CREATED_AT",
+      "SELF_GILT_BIS",
+      "SELF_GUID",
+      "SELF_LINK_UID",
+      "SELF_MODIFIED_AT",
+      "SELF_NAME",
+      "TABLE",
+      "TABLE_INFO",
+      "TABS",
+      "TAB_ELEMENTS"
+    ],
+    "root_keys_555": [
+      "DIALOG_TYPE",
+      "HEADER",
+      "OPEN_EDIT",
+      "SELECTION_MODE",
+      "SELF_CREATED_AT",
+      "SELF_GILT_BIS",
+      "SELF_GUID",
+      "SELF_LINK_UID",
+      "SELF_MODIFIED_AT",
+      "SELF_NAME",
+      "TABLE",
+      "TABS",
+      "TAB_ELEMENTS"
+    ],
+    "root_keys_666": [
+      "DIALOG_TYPE",
+      "HEADER",
+      "OPEN_EDIT",
+      "SELECTION_MODE",
+      "SELF_CREATED_AT",
+      "SELF_GILT_BIS",
+      "SELF_GUID",
+      "SELF_LINK_UID",
+      "SELF_MODIFIED_AT",
+      "SELF_NAME",
+      "TABLE",
+      "TABS",
+      "TAB_ELEMENTS"
+    ],
+    "missing_vs_555": [],
+    "missing_vs_666": [],
+    "extra_vs_666": [
+      "TABLE_INFO"
+    ]
+  },
+  "tables": [
+    {
+      "table": "dev_workflow_draft",
+      "active_rows": 15,
+      "non_reserved_rows": 12,
+      "reserved_presence": {
+        "000": true,
+        "555": true,
+        "666": true
+      },
+      "root_keys_555": [
+        "SELF_CREATED_AT",
+        "SELF_GILT_BIS",
+        "SELF_GUID",
+        "SELF_LINK_UID",
+        "SELF_MODIFIED_AT",
+        "SELF_NAME"
+      ],
+      "root_keys_666": [
+        "IS_TEMPLATE",
+        "REVISION",
+        "SELF_CREATED_AT",
+        "SELF_GILT_BIS",
+        "SELF_GUID",
+        "SELF_LINK_UID",
+        "SELF_MODIFIED_AT",
+        "SELF_NAME",
+        "STATUS",
+        "TITLE",
+        "WORKFLOW_TYPE"
+      ],
+      "templates_keys_555": [],
+      "groups_666": [],
+      "groups_666_invalid_extra": [],
+      "table_info": {
+        "exists_in_666": false,
+        "path_in_666": "",
+        "keys_666": [],
+        "invalid_direct_path_666_table_info": false
+      },
+      "conformance": {
+        "non_reserved_rows_with_missing_root_keys_vs_666": 3,
+        "examples": [
+          {
+            "uid": "e8a4b35d-eea2-4573-8b8f-be49f7cc107d",
+            "name": "TEST_DIALOG_DRAFT_AUTORUN",
+            "missing": [
+              "IS_TEMPLATE",
+              "SELF_NAME",
+              "STATUS",
+              "TITLE",
+              "WORKFLOW_TYPE"
+            ]
+          },
+          {
+            "uid": "1e83a31a-a321-461c-a6ad-3f15124ea28a",
+            "name": "TEST_DIALOG_DRAFT_AUTORUN_2",
+            "missing": [
+              "IS_TEMPLATE",
+              "SELF_NAME"
+            ]
+          },
+          {
+            "uid": "39a2e57b-fdbb-4aa8-a8cf-45a651910682",
+            "name": "Erster Dialogversuch 2",
+            "missing": [
+              "IS_TEMPLATE",
+              "SELF_NAME"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "table": "dev_workflow_draft_item",
+      "active_rows": 28,
+      "non_reserved_rows": 25,
+      "reserved_presence": {
+        "000": true,
+        "555": true,
+        "666": true
+      },
+      "root_keys_555": [
+        "SELF_CREATED_AT",
+        "SELF_GILT_BIS",
+        "SELF_GUID",
+        "SELF_LINK_UID",
+        "SELF_MODIFIED_AT",
+        "SELF_NAME"
+      ],
+      "root_keys_666": [
+        "IS_TEMPLATE",
+        "SELF_CREATED_AT",
+        "SELF_GILT_BIS",
+        "SELF_GUID",
+        "SELF_LINK_UID",
+        "SELF_MODIFIED_AT",
+        "SELF_NAME"
+      ],
+      "templates_keys_555": [],
+      "groups_666": [
+        "TEMPLATES"
+      ],
+      "groups_666_invalid_extra": [],
+      "table_info": {
+        "exists_in_666": false,
+        "path_in_666": "",
+        "keys_666": [],
+        "invalid_direct_path_666_table_info": false
+      },
+      "conformance": {
+        "non_reserved_rows_with_missing_root_keys_vs_666": 25,
+        "examples": [
+          {
+            "uid": "798dd13a-34c2-5143-af1f-a73448d33df9",
+            "name": "setup:setup",
+            "missing": [
+              "IS_TEMPLATE",
+              "SELF_NAME"
+            ]
+          },
+          {
+            "uid": "5dfc4edf-c420-5ddb-9ec7-ac7492b1700f",
+            "name": "setup:setup",
+            "missing": [
+              "IS_TEMPLATE",
+              "SELF_NAME"
+            ]
+          },
+          {
+            "uid": "0d161df4-6233-5256-9f88-d53ee4c8d16a",
+            "name": "work:container",
+            "missing": [
+              "IS_TEMPLATE",
+              "SELF_NAME"
+            ]
+          },
+          {
+            "uid": "b8af0d94-7782-55fb-80e3-3a213892bcec",
+            "name": "setup:setup",
+            "missing": [
+              "IS_TEMPLATE",
+              "SELF_NAME"
+            ]
+          },
+          {
+            "uid": "eda2071c-3eb6-5d46-9688-89fd1656eb2a",
+            "name": "tabs:tabs",
+            "missing": [
+              "IS_TEMPLATE",
+              "SELF_NAME"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "table": "sys_beschreibungen",
+      "active_rows": 3,
+      "non_reserved_rows": 0,
+      "reserved_presence": {
+        "000": true,
+        "555": true,
+        "666": true
+      },
+      "root_keys_555": [
+        "RECORD_TYPE",
+        "SELF_CREATED_AT",
+        "SELF_GILT_BIS",
+        "SELF_GUID",
+        "SELF_LINK_UID",
+        "SELF_MODIFIED_AT",
+        "SELF_NAME",
+        "TABLE"
+      ],
+      "root_keys_666": [
+        "RECORD_TYPE",
+        "SELF_CREATED_AT",
+        "SELF_GILT_BIS",
+        "SELF_GUID",
+        "SELF_LINK_UID",
+        "SELF_MODIFIED_AT",
+        "SELF_NAME",
+        "TABLE"
+      ],
+      "templates_keys_555": [],
+      "groups_666": [
+        "TEMPLATES"
+      ],
+      "groups_666_invalid_extra": [],
+      "table_info": {
+        "exists_in_666": true,
+        "path_in_666": "666.TEMPLATES.TABLE_INFO",
+        "keys_666": [
+          "created_at",
+          "created_by",
+          "description",
+          "schema_migrated",
+          "version"
+        ],
+        "invalid_direct_path_666_table_info": false
+      },
+      "conformance": {
+        "non_reserved_rows_with_missing_root_keys_vs_666": 0,
+        "examples": []
+      }
+    },
+    {
+      "table": "sys_control_dict",
+      "active_rows": 157,
+      "non_reserved_rows": 154,
+      "reserved_presence": {
+        "000": true,
+        "555": true,
+        "666": true
+      },
+      "root_keys_555": [
+        "FIELD",
+        "NAME",
+        "SELF_CREATED_AT",
+        "SELF_GILT_BIS",
+        "SELF_GUID",
+        "SELF_LINK_UID",
+        "SELF_MODIFIED_AT",
+        "SELF_NAME",
+        "TABLE"
+      ],
+      "root_keys_666": [
+        "FIELD",
+        "NAME",
+        "SELF_CREATED_AT",
+        "SELF_GILT_BIS",
+        "SELF_GUID",
+        "SELF_LINK_UID",
+        "SELF_MODIFIED_AT",
+        "SELF_NAME",
+        "TABLE"
+      ],
+      "templates_keys_555": [],
+      "groups_666": [
+        "TEMPLATES"
+      ],
+      "groups_666_invalid_extra": [],
+      "table_info": {
+        "exists_in_666": false,
+        "path_in_666": "",
+        "keys_666": [],
+        "invalid_direct_path_666_table_info": false
+      },
+      "conformance": {
+        "non_reserved_rows_with_missing_root_keys_vs_666": 0,
+        "examples": []
+      }
+    },
+    {
+      "table": "sys_dialogdaten",
+      "active_rows": 17,
+      "non_reserved_rows": 14,
+      "reserved_presence": {
+        "000": true,
+        "555": true,
+        "666": true
+      },
+      "root_keys_555": [
+        "DIALOG_TYPE",
+        "HEADER",
+        "OPEN_EDIT",
+        "SELECTION_MODE",
+        "SELF_CREATED_AT",
+        "SELF_GILT_BIS",
+        "SELF_GUID",
+        "SELF_LINK_UID",
+        "SELF_MODIFIED_AT",
+        "SELF_NAME",
+        "TABLE",
+        "TABS",
+        "TAB_ELEMENTS"
+      ],
+      "root_keys_666": [
+        "DIALOG_TYPE",
+        "HEADER",
+        "OPEN_EDIT",
+        "SELECTION_MODE",
+        "SELF_CREATED_AT",
+        "SELF_GILT_BIS",
+        "SELF_GUID",
+        "SELF_LINK_UID",
+        "SELF_MODIFIED_AT",
+        "SELF_NAME",
+        "TABLE",
+        "TABS",
+        "TAB_ELEMENTS"
+      ],
+      "templates_keys_555": [],
+      "groups_666": [
+        "TEMPLATES"
+      ],
+      "groups_666_invalid_extra": [],
+      "table_info": {
+        "exists_in_666": true,
+        "path_in_666": "666.TEMPLATES.TABLE_INFO",
+        "keys_666": [
+          "created_at",
+          "created_by",
+          "description",
+          "schema_migrated",
+          "version"
+        ],
+        "invalid_direct_path_666_table_info": false
+      },
+      "conformance": {
+        "non_reserved_rows_with_missing_root_keys_vs_666": 9,
+        "examples": [
+          {
+            "uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f101",
+            "name": "sys_control_dict Dialog",
+            "missing": [
+              "HEADER",
+              "OPEN_EDIT",
+              "SELECTION_MODE"
+            ]
+          },
+          {
+            "uid": "2faf05e6-007e-4f45-a1d3-a9e83dfd7d8b",
+            "name": "Edit Frame Dialog",
+            "missing": [
+              "HEADER",
+              "OPEN_EDIT"
+            ]
+          },
+          {
+            "uid": "72eada00-508e-405c-bae4-261c90e4dd71",
+            "name": "Dialogdaten Editor",
+            "missing": [
+              "HEADER",
+              "OPEN_EDIT",
+              "SELECTION_MODE"
+            ]
+          },
+          {
+            "uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23001",
+            "name": "Dialogdaten Editor",
+            "missing": [
+              "HEADER",
+              "OPEN_EDIT",
+              "SELECTION_MODE"
+            ]
+          },
+          {
+            "uid": "5d79b918-e617-55f2-bf5b-28200aca6a75",
+            "name": "WORKFLOW_DIALOG_RELEASE_TEMPLATE",
+            "missing": [
+              "HEADER"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "table": "sys_dropdowndaten",
+      "active_rows": 19,
+      "non_reserved_rows": 16,
+      "reserved_presence": {
+        "000": true,
+        "555": true,
+        "666": true
+      },
+      "root_keys_555": [
+        "BESCHREIBUNG_NAME",
+        "DEFAULT_LANGUAGE",
+        "RECORD_TYPE",
+        "SELF_CREATED_AT",
+        "SELF_GILT_BIS",
+        "SELF_GUID",
+        "SELF_LINK_UID",
+        "SELF_MODIFIED_AT",
+        "SELF_NAME",
+        "TABLE"
+      ],
+      "root_keys_666": [
+        "BESCHREIBUNG_NAME",
+        "DEFAULT_LANGUAGE",
+        "RECORD_TYPE",
+        "SELF_CREATED_AT",
+        "SELF_GILT_BIS",
+        "SELF_GUID",
+        "SELF_LINK_UID",
+        "SELF_MODIFIED_AT",
+        "SELF_NAME",
+        "TABLE"
+      ],
+      "templates_keys_555": [],
+      "groups_666": [
+        "TEMPLATES"
+      ],
+      "groups_666_invalid_extra": [],
+      "table_info": {
+        "exists_in_666": true,
+        "path_in_666": "666.TEMPLATES.TABLE_INFO",
+        "keys_666": [
+          "created_at",
+          "created_by",
+          "description",
+          "schema_migrated",
+          "version"
+        ],
+        "invalid_direct_path_666_table_info": false
+      },
+      "conformance": {
+        "non_reserved_rows_with_missing_root_keys_vs_666": 16,
+        "examples": [
+          {
+            "uid": "ad4efe1f-2630-5307-a014-80ce93ed4f87",
+            "name": "Pdvm System::filter_type",
+            "missing": [
+              "BESCHREIBUNG_NAME"
+            ]
+          },
+          {
+            "uid": "14eaec28-9cb8-5d88-a837-04483b32eeba",
+            "name": "Pdvm System::mode",
+            "missing": [
+              "BESCHREIBUNG_NAME"
+            ]
+          },
+          {
+            "uid": "f41d9a90-ae29-5c66-9b93-675019f6c774",
+            "name": "Pdvm System::systemtabellen",
+            "missing": [
+              "BESCHREIBUNG_NAME"
+            ]
+          },
+          {
+            "uid": "66ef77fc-7d5b-5c47-99ec-8a0cbd1b5cab",
+            "name": "Allgemeines::language",
+            "missing": [
+              "BESCHREIBUNG_NAME"
+            ]
+          },
+          {
+            "uid": "ddaa6590-6d08-461b-a061-75faec26f4ba",
+            "name": "",
+            "missing": [
+              "BESCHREIBUNG_NAME"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "table": "sys_ext_table",
+      "active_rows": 6,
+      "non_reserved_rows": 3,
+      "reserved_presence": {
+        "000": true,
+        "555": true,
+        "666": true
+      },
+      "root_keys_555": [
+        "ALLOW_INSERT_NEW",
+        "ALLOW_OVERWRITE",
+        "ALLOW_ROW_DELETE",
+        "CONFLICT_POLICY",
+        "CONFLICT_RULES",
+        "CUSTOM_HEADERS",
+        "DATASET_KEY",
+        "EDIT_TYPE",
+        "HAS_HEADERS",
+        "HEADER_OVERRIDES",
+        "LAST_IMPORT_AT",
+        "MATCH_KEYS",
+        "NAME",
+        "SELF_CREATED_AT",
+        "SELF_GILT_BIS",
+        "SELF_GUID",
+        "SELF_LINK_UID",
+        "SELF_MODIFIED_AT",
+        "SELF_NAME",
+        "TABLE"
+      ],
+      "root_keys_666": [
+        "ALLOW_INSERT_NEW",
+        "ALLOW_OVERWRITE",
+        "ALLOW_ROW_DELETE",
+        "CONFLICT_POLICY",
+        "CONFLICT_RULES",
+        "CUSTOM_HEADERS",
+        "DATASET_KEY",
+        "EDIT_TYPE",
+        "HAS_HEADERS",
+        "HEADER_OVERRIDES",
+        "LAST_IMPORT_AT",
+        "MATCH_KEYS",
+        "NAME",
+        "SELF_CREATED_AT",
+        "SELF_GILT_BIS",
+        "SELF_GUID",
+        "SELF_LINK_UID",
+        "SELF_MODIFIED_AT",
+        "SELF_NAME",
+        "TABLE"
+      ],
+      "templates_keys_555": [],
+      "groups_666": [
+        "TEMPLATES"
+      ],
+      "groups_666_invalid_extra": [],
+      "table_info": {
+        "exists_in_666": true,
+        "path_in_666": "666.TEMPLATES.TABLE_INFO",
+        "keys_666": [
+          "created_at",
+          "created_by",
+          "description",
+          "schema_migrated",
+          "version"
+        ],
+        "invalid_direct_path_666_table_info": false
+      },
+      "conformance": {
+        "non_reserved_rows_with_missing_root_keys_vs_666": 3,
+        "examples": [
+          {
+            "uid": "0ef104cc-4171-4b6f-a5f9-5b068ff9b5b6",
+            "name": "test 2 einlesen",
+            "missing": [
+              "CUSTOM_HEADERS",
+              "HAS_HEADERS",
+              "HEADER_OVERRIDES",
+              "TABLE"
+            ]
+          },
+          {
+            "uid": "9c170db8-678f-4a34-9252-50741597d227",
+            "name": "1. Test",
+            "missing": [
+              "CUSTOM_HEADERS",
+              "HAS_HEADERS",
+              "HEADER_OVERRIDES",
+              "LAST_IMPORT_AT",
+              "TABLE"
+            ]
+          },
+          {
+            "uid": "dbc8dfb3-ee98-4a4c-b93d-2ff462e4d1ae",
+            "name": "Test 1 einlesen",
+            "missing": [
+              "TABLE"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "table": "sys_feld_aenderungshistorie",
+      "active_rows": 7,
+      "non_reserved_rows": 7,
+      "reserved_presence": {
+        "000": false,
+        "555": false,
+        "666": false
+      },
+      "root_keys_555": [],
+      "root_keys_666": [],
+      "templates_keys_555": [],
+      "groups_666": [],
+      "groups_666_invalid_extra": [],
+      "table_info": {
+        "exists_in_666": false,
+        "path_in_666": "",
+        "keys_666": [],
+        "invalid_direct_path_666_table_info": false
+      },
+      "conformance": {
+        "non_reserved_rows_with_missing_root_keys_vs_666": 0,
+        "examples": []
+      }
+    },
+    {
+      "table": "sys_framedaten",
+      "active_rows": 21,
+      "non_reserved_rows": 18,
+      "reserved_presence": {
+        "000": true,
+        "555": true,
+        "666": true
+      },
+      "root_keys_555": [
+        "DIALOG_GUID",
+        "EDIT_TYPE",
+        "FRAME_TYPE",
+        "GO_NEW_SET",
+        "ROOT_TABLE",
+        "SELF_CREATED_AT",
+        "SELF_GILT_BIS",
+        "SELF_GUID",
+        "SELF_LINK_UID",
+        "SELF_MODIFIED_AT",
+        "SELF_NAME",
+        "TABLE",
+        "TABS",
+        "TABS_DEF",
+        "TAB_ELEMENTS"
+      ],
+      "root_keys_666": [
+        "DIALOG_GUID",
+        "EDIT_TYPE",
+        "FRAME_TYPE",
+        "GO_NEW_SET",
+        "ROOT_TABLE",
+        "SELF_CREATED_AT",
+        "SELF_GILT_BIS",
+        "SELF_GUID",
+        "SELF_LINK_UID",
+        "SELF_MODIFIED_AT",
+        "SELF_NAME",
+        "TABLE",
+        "TABS",
+        "TABS_DEF",
+        "TAB_ELEMENTS"
+      ],
+      "templates_keys_555": [],
+      "groups_666": [
+        "TEMPLATES"
+      ],
+      "groups_666_invalid_extra": [],
+      "table_info": {
+        "exists_in_666": true,
+        "path_in_666": "666.TEMPLATES.TABLE_INFO",
+        "keys_666": [
+          "created_at",
+          "created_by",
+          "description",
+          "schema_migrated",
+          "version"
+        ],
+        "invalid_direct_path_666_table_info": false
+      },
+      "conformance": {
+        "non_reserved_rows_with_missing_root_keys_vs_666": 18,
+        "examples": [
+          {
+            "uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+            "name": "sys_control_dict Frame",
+            "missing": [
+              "FRAME_TYPE",
+              "ROOT_TABLE"
+            ]
+          },
+          {
+            "uid": "20de7493-d648-41e2-87a0-7894de95af35",
+            "name": "Für Dialog Aufbau",
+            "missing": [
+              "FRAME_TYPE",
+              "TABS_DEF"
+            ]
+          },
+          {
+            "uid": "72d54053-8c4f-5a60-8abc-ed9bc0bf6c43",
+            "name": "WORKFLOW_DRAFT_BUILD_FRAME_TEMPLATE",
+            "missing": [
+              "DIALOG_GUID",
+              "FRAME_TYPE",
+              "GO_NEW_SET",
+              "ROOT_TABLE",
+              "TABLE",
+              "TABS",
+              "TABS_DEF"
+            ]
+          },
+          {
+            "uid": "3a6e8cca-0f6f-5bd0-ba72-61c2c99942ac",
+            "name": "WORKFLOW_DICTIONARY_FRAME_TEMPLATE",
+            "missing": [
+              "DIALOG_GUID",
+              "FRAME_TYPE",
+              "GO_NEW_SET",
+              "ROOT_TABLE",
+              "TABLE",
+              "TABS",
+              "TABS_DEF"
+            ]
+          },
+          {
+            "uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
+            "name": "sys_dialogdaten Frame (Linear)",
+            "missing": [
+              "FRAME_TYPE",
+              "ROOT_TABLE"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "table": "sys_layout",
+      "active_rows": 6,
+      "non_reserved_rows": 3,
+      "reserved_presence": {
+        "000": true,
+        "555": true,
+        "666": true
+      },
+      "root_keys_555": [
+        "SELF_CREATED_AT",
+        "SELF_GILT_BIS",
+        "SELF_GUID",
+        "SELF_LINK_UID",
+        "SELF_MODIFIED_AT",
+        "SELF_NAME",
+        "TABLE"
+      ],
+      "root_keys_666": [
+        "SELF_CREATED_AT",
+        "SELF_GILT_BIS",
+        "SELF_GUID",
+        "SELF_LINK_UID",
+        "SELF_MODIFIED_AT",
+        "SELF_NAME",
+        "TABLE"
+      ],
+      "templates_keys_555": [],
+      "groups_666": [
+        "TEMPLATES"
+      ],
+      "groups_666_invalid_extra": [],
+      "table_info": {
+        "exists_in_666": true,
+        "path_in_666": "666.TEMPLATES.TABLE_INFO",
+        "keys_666": [
+          "created_at",
+          "created_by",
+          "description",
+          "schema_migrated",
+          "version"
+        ],
+        "invalid_direct_path_666_table_info": false
+      },
+      "conformance": {
+        "non_reserved_rows_with_missing_root_keys_vs_666": 3,
+        "examples": [
+          {
+            "uid": "a2d5d833-fa4b-4658-89f0-80cfb6a25f8e",
+            "name": "Orange Theme",
+            "missing": [
+              "SELF_NAME",
+              "TABLE"
+            ]
+          },
+          {
+            "uid": "b9af23da-3db5-4786-82d5-4bda8d5ded5d",
+            "name": "Blue Theme",
+            "missing": [
+              "SELF_NAME",
+              "TABLE"
+            ]
+          },
+          {
+            "uid": "6b87474b-daa7-4634-b348-06dc47390d9d",
+            "name": "Green Theme",
+            "missing": [
+              "SELF_NAME",
+              "TABLE"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "table": "sys_menudaten",
+      "active_rows": 14,
+      "non_reserved_rows": 11,
+      "reserved_presence": {
+        "000": true,
+        "555": true,
+        "666": true
+      },
+      "root_keys_555": [
+        "DIALOG_GUID",
+        "DISPLAY_ST",
+        "DISPLAY_TIME_SHORT",
+        "EDIT_TABS",
+        "EDIT_TAB_LABEL_01",
+        "EDIT_TYPE",
+        "GRUND",
+        "HEADER_TEXT",
+        "MIGRATED_FROM",
+        "NAME",
+        "SELF_CREATED_AT",
+        "SELF_GILT_BIS",
+        "SELF_GUID",
+        "SELF_LINK_UID",
+        "SELF_MODIFIED_AT",
+        "SELF_NAME",
+        "TABLE",
+        "VERSION",
+        "VERTIKAL",
+        "VIEW_GUID",
+        "ZUSATZ",
+        "is_template"
+      ],
+      "root_keys_666": [
+        "DIALOG_GUID",
+        "DISPLAY_ST",
+        "DISPLAY_TIME_SHORT",
+        "EDIT_TABS",
+        "EDIT_TAB_LABEL_01",
+        "EDIT_TYPE",
+        "GRUND",
+        "HEADER_TEXT",
+        "MIGRATED_FROM",
+        "NAME",
+        "SELF_CREATED_AT",
+        "SELF_GILT_BIS",
+        "SELF_GUID",
+        "SELF_LINK_UID",
+        "SELF_MODIFIED_AT",
+        "SELF_NAME",
+        "TABLE",
+        "VERSION",
+        "VERTIKAL",
+        "VIEW_GUID",
+        "ZUSATZ",
+        "is_template"
+      ],
+      "templates_keys_555": [],
+      "groups_666": [
+        "TEMPLATES"
+      ],
+      "groups_666_invalid_extra": [],
+      "table_info": {
+        "exists_in_666": false,
+        "path_in_666": "",
+        "keys_666": [],
+        "invalid_direct_path_666_table_info": false
+      },
+      "conformance": {
+        "non_reserved_rows_with_missing_root_keys_vs_666": 11,
+        "examples": [
+          {
+            "uid": "113c6a2c-af9a-4022-929b-6544799e8954",
+            "name": "Admin-Testmenü",
+            "missing": [
+              "DIALOG_GUID",
+              "DISPLAY_ST",
+              "DISPLAY_TIME_SHORT",
+              "EDIT_TABS",
+              "EDIT_TAB_LABEL_01",
+              "EDIT_TYPE",
+              "HEADER_TEXT",
+              "MIGRATED_FROM",
+              "SELF_NAME",
+              "TABLE",
+              "VERSION",
+              "VIEW_GUID",
+              "ZUSATZ",
+              "is_template"
+            ]
+          },
+          {
+            "uid": "1a653694-3132-48d9-bc3e-a512962ae8e6",
+            "name": "Basis-Menü",
+            "missing": [
+              "DIALOG_GUID",
+              "DISPLAY_ST",
+              "DISPLAY_TIME_SHORT",
+              "EDIT_TABS",
+              "EDIT_TAB_LABEL_01",
+              "EDIT_TYPE",
+              "GRUND",
+              "HEADER_TEXT",
+              "MIGRATED_FROM",
+              "NAME",
+              "SELF_NAME",
+              "TABLE",
+              "VERSION",
+              "VERTIKAL",
+              "VIEW_GUID",
+              "ZUSATZ"
+            ]
+          },
+          {
+            "uid": "b6de1679-9cb7-48b5-ad1c-72e8cdc8dc91",
+            "name": "Dialog Zusatz",
+            "missing": [
+              "DIALOG_GUID",
+              "DISPLAY_ST",
+              "DISPLAY_TIME_SHORT",
+              "EDIT_TABS",
+              "EDIT_TAB_LABEL_01",
+              "EDIT_TYPE",
+              "GRUND",
+              "HEADER_TEXT",
+              "MIGRATED_FROM",
+              "NAME",
+              "SELF_NAME",
+              "TABLE",
+              "VERSION",
+              "VERTIKAL",
+              "VIEW_GUID",
+              "ZUSATZ"
+            ]
+          },
+          {
+            "uid": "5ca6674e-b9ce-4581-9756-64e742883f80",
+            "name": "Admin-Startmenü",
+            "missing": [
+              "DIALOG_GUID",
+              "DISPLAY_ST",
+              "DISPLAY_TIME_SHORT",
+              "EDIT_TABS",
+              "EDIT_TAB_LABEL_01",
+              "EDIT_TYPE",
+              "HEADER_TEXT",
+              "NAME",
+              "SELF_NAME",
+              "TABLE",
+              "VIEW_GUID",
+              "ZUSATZ",
+              "is_template"
+            ]
+          },
+          {
+            "uid": "6b4ad4db-3e48-4e97-9d84-482d30f43504",
+            "name": "Menu Test Neuanlage",
+            "missing": [
+              "DIALOG_GUID",
+              "DISPLAY_ST",
+              "DISPLAY_TIME_SHORT",
+              "EDIT_TABS",
+              "EDIT_TAB_LABEL_01",
+              "EDIT_TYPE",
+              "GRUND",
+              "HEADER_TEXT",
+              "MIGRATED_FROM",
+              "NAME",
+              "TABLE",
+              "VERSION",
+              "VERTIKAL",
+              "VIEW_GUID",
+              "ZUSATZ",
+              "is_template"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "table": "sys_systemdaten",
+      "active_rows": 30,
+      "non_reserved_rows": 27,
+      "reserved_presence": {
+        "000": true,
+        "555": true,
+        "666": true
+      },
+      "root_keys_555": [
+        "APP_KEY",
+        "BESCHREIBUNG_NAME",
+        "CONTROL_DICT_TABLE",
+        "DEFAULT_LANGUAGE",
+        "DICT_AUDIT_TABLE",
+        "DOMAIN",
+        "IS_ACTIVE",
+        "PREFIX",
+        "SELF_CREATED_AT",
+        "SELF_GILT_BIS",
+        "SELF_GUID",
+        "SELF_LINK_UID",
+        "SELF_MODIFIED_AT",
+        "SELF_NAME",
+        "SOURCE_DB",
+        "TABLE"
+      ],
+      "root_keys_666": [
+        "APP_KEY",
+        "BESCHREIBUNG_NAME",
+        "CONTROL_DICT_TABLE",
+        "DEFAULT_LANGUAGE",
+        "DICT_AUDIT_TABLE",
+        "DOMAIN",
+        "IS_ACTIVE",
+        "PREFIX",
+        "SELF_CREATED_AT",
+        "SELF_GILT_BIS",
+        "SELF_GUID",
+        "SELF_LINK_UID",
+        "SELF_MODIFIED_AT",
+        "SELF_NAME",
+        "SOURCE_DB",
+        "TABLE"
+      ],
+      "templates_keys_555": [],
+      "groups_666": [
+        "TEMPLATES"
+      ],
+      "groups_666_invalid_extra": [],
+      "table_info": {
+        "exists_in_666": false,
+        "path_in_666": "",
+        "keys_666": [],
+        "invalid_direct_path_666_table_info": false
+      },
+      "conformance": {
+        "non_reserved_rows_with_missing_root_keys_vs_666": 27,
+        "examples": [
+          {
+            "uid": "c7647c13-f33d-5652-8718-a8712ba67677",
+            "name": "dev_workflow_draft",
+            "missing": [
+              "BESCHREIBUNG_NAME",
+              "DEFAULT_LANGUAGE",
+              "SELF_NAME"
+            ]
+          },
+          {
+            "uid": "17c22062-8aab-5e31-9efa-11af12f51e4e",
+            "name": "dev_workflow_draft_item",
+            "missing": [
+              "BESCHREIBUNG_NAME",
+              "DEFAULT_LANGUAGE",
+              "SELF_NAME"
+            ]
+          },
+          {
+            "uid": "c88078fa-3461-5d2d-9887-3ed25489be30",
+            "name": "sys_beschreibungen",
+            "missing": [
+              "BESCHREIBUNG_NAME",
+              "DEFAULT_LANGUAGE",
+              "SELF_NAME"
+            ]
+          },
+          {
+            "uid": "2c09e946-4745-5340-8149-e80aa542ca1b",
+            "name": "sys_control_dict",
+            "missing": [
+              "BESCHREIBUNG_NAME",
+              "DEFAULT_LANGUAGE",
+              "SELF_NAME"
+            ]
+          },
+          {
+            "uid": "3bb396d8-20ca-5268-9d98-40ad8ad49423",
+            "name": "sys_control_dict_audit",
+            "missing": [
+              "BESCHREIBUNG_NAME",
+              "DEFAULT_LANGUAGE",
+              "SELF_NAME"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "table": "sys_viewdaten",
+      "active_rows": 12,
+      "non_reserved_rows": 9,
+      "reserved_presence": {
+        "000": true,
+        "555": true,
+        "666": true
+      },
+      "root_keys_555": [
+        "ALLOW_FILTER",
+        "ALLOW_SORT",
+        "DEFAULT_SORT_COLUMN",
+        "DEFAULT_SORT_REVERSE",
+        "EDIT_TYPE",
+        "FILTER",
+        "HEADER_TEXT",
+        "NO_DATA",
+        "PROJECTION",
+        "PROJECTION_MODE",
+        "SELF_CREATED_AT",
+        "SELF_GILT_BIS",
+        "SELF_GUID",
+        "SELF_LINK_UID",
+        "SELF_MODIFIED_AT",
+        "SELF_NAME",
+        "SORT",
+        "TABLE",
+        "VIEW_GUID",
+        "VIEW_NAME"
+      ],
+      "root_keys_666": [
+        "ALLOW_FILTER",
+        "ALLOW_SORT",
+        "DEFAULT_SORT_COLUMN",
+        "DEFAULT_SORT_REVERSE",
+        "EDIT_TYPE",
+        "FILTER",
+        "HEADER_TEXT",
+        "NO_DATA",
+        "PROJECTION",
+        "PROJECTION_MODE",
+        "SELF_CREATED_AT",
+        "SELF_GILT_BIS",
+        "SELF_GUID",
+        "SELF_LINK_UID",
+        "SELF_MODIFIED_AT",
+        "SELF_NAME",
+        "SORT",
+        "TABLE",
+        "VIEW_GUID",
+        "VIEW_NAME"
+      ],
+      "templates_keys_555": [],
+      "groups_666": [
+        "TEMPLATES"
+      ],
+      "groups_666_invalid_extra": [],
+      "table_info": {
+        "exists_in_666": true,
+        "path_in_666": "666.TEMPLATES.TABLE_INFO",
+        "keys_666": [
+          "created_at",
+          "created_by",
+          "description",
+          "schema_migrated",
+          "version"
+        ],
+        "invalid_direct_path_666_table_info": false
+      },
+      "conformance": {
+        "non_reserved_rows_with_missing_root_keys_vs_666": 9,
+        "examples": [
+          {
+            "uid": "46ac9e21-e14a-5d08-86e5-70f95e786ece",
+            "name": "WORKFLOW_DRAFT_ITEMS_VIEW_TEMPLATE",
+            "missing": [
+              "ALLOW_FILTER",
+              "ALLOW_SORT",
+              "DEFAULT_SORT_COLUMN",
+              "DEFAULT_SORT_REVERSE",
+              "HEADER_TEXT",
+              "NO_DATA",
+              "PROJECTION_MODE",
+              "VIEW_GUID",
+              "VIEW_NAME"
+            ]
+          },
+          {
+            "uid": "9dc98052-4bc7-4b29-9eeb-107ab3d7811a",
+            "name": "Menüdaten",
+            "missing": [
+              "EDIT_TYPE",
+              "FILTER",
+              "PROJECTION",
+              "SORT",
+              "VIEW_GUID",
+              "VIEW_NAME"
+            ]
+          },
+          {
+            "uid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f102",
+            "name": "sys_control_dict View",
+            "missing": [
+              "EDIT_TYPE",
+              "FILTER",
+              "PROJECTION",
+              "SORT"
+            ]
+          },
+          {
+            "uid": "5e59f511-2063-40ac-ace7-86f1b1ea4bd6",
+            "name": "Edit Frame View 1",
+            "missing": [
+              "EDIT_TYPE",
+              "FILTER",
+              "PROJECTION",
+              "SORT"
+            ]
+          },
+          {
+            "uid": "eeeb3edb-0a42-54cc-9a67-a0e3e50959c5",
+            "name": "WORKFLOW_DRAFT_OVERVIEW_VIEW_TEMPLATE",
+            "missing": [
+              "EDIT_TYPE",
+              "FILTER",
+              "PROJECTION",
+              "SORT",
+              "VIEW_GUID",
+              "VIEW_NAME"
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "questions_guidance": {
+    "table_info_as_second_group": "Ja: TABLE_INFO als feste zweite Gruppe in 666 definieren. In Fachdaten optional, in 666 verpflichtend.",
+    "root_to_table_info_split": "ROOT fuer Datensatzidentitaet/Laufzeitsteuerung; TABLE_INFO fuer Tabellenmetadaten und statische Konfiguration."
+  }
+}

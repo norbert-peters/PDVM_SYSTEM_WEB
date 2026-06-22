@@ -21,6 +21,21 @@ def _parse_uuid_optional(value: Any) -> Optional[uuid.UUID]:
         return None
 
 
+def _normalize_storage_scope(storage_scope: Optional[str]) -> str:
+    scope = str(storage_scope or "live").strip().lower() or "live"
+    if scope not in {"live", "draft"}:
+        raise ValueError("storage_scope muss 'live' oder 'draft' sein")
+    return scope
+
+
+def _validate_scope_contract(*, storage_scope: Optional[str], draft_guid: Optional[Any]) -> Tuple[str, Optional[uuid.UUID]]:
+    scope = _normalize_storage_scope(storage_scope)
+    draft_guid_uuid = _parse_uuid_optional(draft_guid)
+    if scope == "draft" and draft_guid_uuid is None:
+        raise ValueError("Bei storage_scope='draft' ist draft_guid verpflichtend")
+    return scope, draft_guid_uuid
+
+
 def resolve_actor_context(
     *,
     gcs=None,
@@ -57,11 +72,17 @@ async def update_record_central(
     mandant_pool=None,
     actor_user_uid: Optional[Any] = None,
     actor_ip: Optional[str] = None,
+    storage_scope: Optional[str] = "live",
+    draft_guid: Optional[Any] = None,
 ) -> Optional[Dict[str, Any]]:
     """Unified update path for PDVM writes.
 
     Uses PdvmDatabase.update and attaches actor metadata from GCS by default.
     """
+    scope, _ = _validate_scope_contract(storage_scope=storage_scope, draft_guid=draft_guid)
+    if scope != "live":
+        raise ValueError("update_record_central unterstützt aktuell nur storage_scope='live'")
+
     resolved_system_pool = system_pool if system_pool is not None else getattr(gcs, "_system_pool", None)
     resolved_mandant_pool = mandant_pool if mandant_pool is not None else getattr(gcs, "_mandant_pool", None)
 
@@ -103,8 +124,14 @@ async def create_record_central(
     mandant_pool=None,
     actor_user_uid: Optional[Any] = None,
     actor_ip: Optional[str] = None,
+    storage_scope: Optional[str] = "live",
+    draft_guid: Optional[Any] = None,
 ) -> Dict[str, Any]:
     """Unified create path for PDVM writes."""
+    scope, _ = _validate_scope_contract(storage_scope=storage_scope, draft_guid=draft_guid)
+    if scope != "live":
+        raise ValueError("create_record_central unterstützt aktuell nur storage_scope='live'")
+
     resolved_system_pool = system_pool if system_pool is not None else getattr(gcs, "_system_pool", None)
     resolved_mandant_pool = mandant_pool if mandant_pool is not None else getattr(gcs, "_mandant_pool", None)
 
@@ -139,8 +166,14 @@ async def delete_record_central(
     gcs=None,
     system_pool=None,
     mandant_pool=None,
+    storage_scope: Optional[str] = "live",
+    draft_guid: Optional[Any] = None,
 ) -> bool:
     """Unified delete path for PDVM writes."""
+    scope, _ = _validate_scope_contract(storage_scope=storage_scope, draft_guid=draft_guid)
+    if scope != "live":
+        raise ValueError("delete_record_central unterstützt aktuell nur storage_scope='live'")
+
     resolved_system_pool = system_pool if system_pool is not None else getattr(gcs, "_system_pool", None)
     resolved_mandant_pool = mandant_pool if mandant_pool is not None else getattr(gcs, "_mandant_pool", None)
 

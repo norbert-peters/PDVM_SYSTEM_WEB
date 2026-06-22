@@ -394,10 +394,13 @@ async def _normalize_control_data_for_storage(system_pool, *, control_data: Dict
         if isinstance(control_in, dict):
             merged_control.update(control_in)
 
-        return {
+        normalized = {
             "ROOT": merged_root,
             "CONTROL": merged_control,
         }
+        await _validate_element_list_definition_source_for_control(system_pool, control_data=normalized)
+
+        return normalized
 
     modul_type = str(control_data.get("modul_type") or "").strip().lower()
     if not modul_type:
@@ -770,6 +773,178 @@ def _as_text(value: Any) -> str:
     return str(value).strip()
 
 
+def _get_case_insensitive(obj: Dict[str, Any], key: str) -> Any:
+    if not isinstance(obj, dict):
+        return None
+    if key in obj:
+        return obj[key]
+    key_norm = str(key or "").strip().lower()
+    if not key_norm:
+        return None
+    for k, v in obj.items():
+        if str(k or "").strip().lower() == key_norm:
+            return v
+    return None
+
+
+def _extract_control_payload_for_validation(control_data: Dict[str, Any]) -> Dict[str, Any]:
+    data = _as_object(control_data)
+
+    wrapped = _as_object(data.get("CONTROL"))
+    if wrapped:
+        return wrapped
+
+    templates = _as_object(data.get("TEMPLATES"))
+    template_wrapped = _as_object(templates.get("CONTROL"))
+    if template_wrapped:
+        return template_wrapped
+
+    flat = dict(data)
+    flat.pop("ROOT", None)
+    flat.pop("CONTROL", None)
+    flat.pop("TEMPLATES", None)
+    return _as_object(flat)
+
+
+def _extract_element_definition_rows_from_frame(frame_daten: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    out: Dict[str, Dict[str, Any]] = {}
+
+    def _push(uid_raw: Any, row_raw: Any) -> None:
+        uid = _as_text(uid_raw)
+        if not uid:
+            return
+        row = _as_object(row_raw)
+        if not row:
+            return
+        out[uid] = row
+
+    fd = _as_object(frame_daten)
+    root = _as_object(fd.get("ROOT"))
+
+    raw = _get_case_insensitive(root, "ELEMENTS")
+    if isinstance(raw, list):
+        for entry in raw:
+            obj = _as_object(entry)
+            uid = _as_text(
+                _get_case_insensitive(obj, "uid")
+                or _get_case_insensitive(obj, "guid")
+                or _get_case_insensitive(obj, "key")
+            )
+            if not uid:
+                continue
+            _push(uid, obj)
+    elif isinstance(raw, dict):
+        for uid, value in raw.items():
+            _push(uid, value)
+
+    if out:
+        return out
+
+    fields = _as_object(fd.get("FIELDS"))
+    root_field = _as_text(_get_case_insensitive(root, "FIELD") or _get_case_insensitive(root, "FELD"))
+
+    def _push_from_collection(collection_raw: Any) -> None:
+        collection = _as_object(collection_raw)
+        for uid, value in collection.items():
+            _push(uid, value)
+
+    if root_field:
+        _push_from_collection(_get_case_insensitive(fields, root_field))
+
+    if not out:
+        for value in fields.values():
+            candidate = _as_object(value)
+            if not candidate:
+                continue
+            if all(isinstance(v, dict) and bool(v) for v in candidate.values()):
+                _push_from_collection(candidate)
+                if out:
+                    break
+
+    return out
+
+
+async def _validate_element_list_definition_source_for_control(system_pool, *, control_data: Dict[str, Any]) -> None:
+    data = _as_object(control_data)
+    control = _extract_control_payload_for_validation(data)
+    control_type = _as_text(_get_case_insensitive(control, "TYPE")).lower()
+    if control_type not in {"element_list", "elemente_list"}:
+        return
+
+    configs = _as_object(_get_case_insensitive(control, "CONFIGS"))
+    element_ref = _as_object(_get_case_insensitive(configs, "element"))
+    ref_key = _as_text(_get_case_insensitive(element_ref, "key"))
+    ref_table = _as_text(_get_case_insensitive(element_ref, "table") or "sys_framedaten").lower()
+
+    if not ref_key:
+        raise ValueError("Guardrail: CONTROL.TYPE=element_list erfordert CONFIGS.element.key (Frame-GUID).")
+    if not _is_guid(ref_key):
+        raise ValueError(f"Guardrail: CONFIGS.element.key ist keine gueltige GUID: '{ref_key}'")
+    if ref_table and ref_table != "sys_framedaten":
+        raise ValueError("Guardrail: CONTROL.TYPE=element_list erwartet CONFIGS.element.table='sys_framedaten'.")
+
+    frame_db = PdvmDatabase("sys_framedaten", system_pool=system_pool, mandant_pool=None)
+    frame_row = await frame_db.get_by_uid(uuid.UUID(ref_key))
+    if not frame_row:
+        raise ValueError(f"Guardrail: Referenziertes Element-Template-Frame nicht gefunden: {ref_key}")
+
+    frame_daten = _as_object(frame_row.get("daten"))
+    frame_root = _as_object(frame_daten.get("ROOT"))
+    frame_type = _as_text(_get_case_insensitive(frame_root, "FRAME_TYPE")).lower()
+    if frame_type not in {"element_list", "element"}:
+        raise ValueError(
+            "Guardrail: Referenziertes Element-Template-Frame muss ROOT.FRAME_TYPE='element_list' oder 'element' haben."
+        )
+
+    definition_rows = _extract_element_definition_rows_from_frame(frame_daten)
+    if not definition_rows:
+        raise ValueError(
+            "Guardrail: FRAME_TYPE=element_list, aber im referenzierten Template-Frame wurden keine ELEMENTS-Definitionen gefunden."
+        )
+
+    child_frame_cache: Dict[str, Dict[str, Any]] = {}
+    for definition_uid, definition_row in definition_rows.items():
+        row = _as_object(definition_row)
+        no_fields = bool(
+            _get_case_insensitive(row, "no_fields")
+            or _get_case_insensitive(row, "NO_FIELDS")
+        )
+
+        frame_guid = _as_text(
+            _get_case_insensitive(row, "frame")
+            or _get_case_insensitive(row, "frame_guid")
+        )
+
+        if no_fields:
+            continue
+
+        if not frame_guid:
+            raise ValueError(
+                f"Guardrail: Element-Definition '{definition_uid}' benötigt 'frame'/'frame_guid' oder no_fields=true."
+            )
+        if not _is_guid(frame_guid):
+            raise ValueError(
+                f"Guardrail: Element-Definition '{definition_uid}' hat keine gültige frame GUID: '{frame_guid}'"
+            )
+
+        child = child_frame_cache.get(frame_guid)
+        if child is None:
+            child_row = await frame_db.get_by_uid(uuid.UUID(frame_guid))
+            if not child_row:
+                raise ValueError(
+                    f"Guardrail: Element-Definition '{definition_uid}' referenziert unbekanntes Frame: {frame_guid}"
+                )
+            child = _as_object(child_row.get("daten"))
+            child_frame_cache[frame_guid] = child
+
+        child_root = _as_object(child.get("ROOT"))
+        child_frame_type = _as_text(_get_case_insensitive(child_root, "FRAME_TYPE")).lower()
+        if child_frame_type != "element":
+            raise ValueError(
+                f"Guardrail: Element-Definition '{definition_uid}' muss auf ein Frame mit ROOT.FRAME_TYPE='element' zeigen."
+            )
+
+
 def _tooltip_ref_from_item(item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     tooltip_raw = item.get("tooltip")
     if isinstance(tooltip_raw, dict):
@@ -1059,6 +1234,14 @@ async def update_dialog_record_json(
     if daten is None or not isinstance(daten, dict):
         raise ValueError("daten muss ein JSON-Objekt (dict) sein")
 
+    table_norm = str(root_table).strip().lower()
+    daten_to_store = dict(daten)
+    if table_norm == "sys_control_dict":
+        await _validate_element_list_definition_source_for_control(
+            gcs._system_pool,
+            control_data=_as_object(daten_to_store),
+        )
+
     db = PdvmDatabase(root_table, system_pool=gcs._system_pool, mandant_pool=gcs._mandant_pool)
     existing = await db.get_by_uid(record_uuid)
     if not existing:
@@ -1118,6 +1301,28 @@ async def update_dialog_record_central(
 
     if daten is None or not isinstance(daten, dict):
         raise ValueError("daten muss ein JSON-Objekt (dict) sein")
+
+    table_norm = str(root_table).strip().lower()
+    daten_to_store = dict(daten)
+
+    if table_norm == "sys_control_dict":
+        await _validate_element_list_definition_source_for_control(
+            gcs._system_pool,
+            control_data=_as_object(daten_to_store),
+        )
+        daten_to_store = await _normalize_control_data_for_storage(
+            gcs._system_pool,
+            control_data=_as_object(daten_to_store),
+        )
+    elif table_norm == "sys_framedaten":
+        daten_to_store = await _normalize_frame_fields_for_storage(
+            gcs,
+            daten=_as_object(daten_to_store),
+        )
+    elif table_norm == "sys_dialogdaten":
+        daten_to_store = _normalize_sys_dialog_tab_elements_for_storage(
+            daten=_as_object(daten_to_store),
+        )
 
     def _parse_pdvm_timestamp(value: Any) -> Optional[float]:
         if value is None:
@@ -1179,7 +1384,7 @@ async def update_dialog_record_central(
 
     system_updates: Dict[str, Any] = {}
 
-    for gruppe, gruppe_data in daten.items():
+    for gruppe, gruppe_data in daten_to_store.items():
         if not isinstance(gruppe_data, dict):
             continue
 
@@ -1199,7 +1404,7 @@ async def update_dialog_record_central(
     await central.save_all_values()
 
     # asy_benutzer: Spalten-Sync (email/benutzer)
-    if str(root_table).strip().lower() == "asy_benutzer":
+    if table_norm == "asy_benutzer":
         benutzer_mgr = PdvmCentralBenutzer(record_uuid)
         benutzer_value = system_updates.get("BENUTZER")
         if benutzer_value is not None:

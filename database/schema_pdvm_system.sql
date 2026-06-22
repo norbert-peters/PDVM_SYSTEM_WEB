@@ -47,6 +47,7 @@ SELECT create_pdvm_table('sys_viewdaten');
 SELECT create_pdvm_table('sys_menudaten');
 SELECT create_pdvm_table('sys_layout');
 SELECT create_pdvm_table('sys_dropdowndaten');
+SELECT create_pdvm_table('sys_tooltipdaten');
 SELECT create_pdvm_table('sys_systemdaten');
 SELECT create_pdvm_table('sys_control_dict');
 

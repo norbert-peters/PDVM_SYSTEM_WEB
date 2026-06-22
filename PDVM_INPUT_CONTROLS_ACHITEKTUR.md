@@ -182,6 +182,14 @@ Inline-Editor im selben Scroll-Bereich ist unpraktisch (ständiges Scrollen).
 - Help-Text via `systemdaten/text` (Key = `menu_command_{param}` möglich).
 - Param-Konfiguration via `MENU_CONFIGS` (z. B. `go_select_view`, `go_dropdown`).
 
+Verbindlich (Regression-Fix 06/2026):
+
+- Das Inputcontrol `type=menu_command` bezieht Handler/Parameter aus `sys_systemdaten` mit UID `00000000-0000-0000-0000-000000000000`, Gruppen `MENU_COMMANDS` und `MENU_CONFIGS`.
+- Service-Auflösung läuft mit Tabellen-Priorität:
+    1. `sys_systemdaten` (kanonisch)
+    2. `asy_systemdaten` (Legacy-Fallback)
+- Wenn `MENU_COMMANDS` leer ist, darf im Menüeditor keine Param-Aktivierung erfolgen; dies gilt als Daten-/Konfigurationsproblem und nicht als UI-Logikfehler.
+
 ### C) Templates (ROOT.is_template)
 - Menü ist **entweder** `GRUND+VERTIKAL` **oder** `TEMPLATE`.
 - Steuerung über `ROOT.is_template` (true = Template-Menü).
@@ -260,6 +268,72 @@ Inline-Editor im selben Scroll-Bereich ist unpraktisch (ständiges Scrollen).
 ## 8) Entscheidung
 
 **Vorschlag**: Implementierung in **PdvmInputModal (Popover)** + **PIC-Renderer** aus `sys_framedaten`, beginnend mit MenüItems (ohne Historie). Die PIC-Architektur bleibt dadurch **tab-unabhängig** und kann später auch im Dialog-Modul genutzt werden.
+
+---
+
+## 9) Element-List Linear (ab 2026)
+
+### Verbindliche Quelle
+- `type=element_list` und `type=group_list` werden linear aus einem Element-Frame aufgeloest.
+- Felddefinitionen kommen aus `sys_framedaten.daten.FIELDS` des referenzierten Frames.
+- Der Add-Katalog kommt aus `sys_framedaten.daten.ROOT.ELEMENTS` des referenzierten Frames.
+
+### ROOT.ELEMENTS Format
+`ROOT.ELEMENTS` darf als Objekt-Map oder Array geliefert werden.
+
+Objekt-Map Beispiel:
+```json
+{
+    "ROOT": {
+        "ELEMENTS": {
+            "ELEMENT_A": {
+                "label": "Element A",
+                "template": {
+                    "FIELD": "",
+                    "TAB": 1
+                }
+            },
+            "ELEMENT_B": {
+                "label": "Element B",
+                "template": {
+                    "FIELD": "",
+                    "TAB": 2
+                }
+            }
+        }
+    }
+}
+```
+
+Array Beispiel:
+```json
+{
+    "ROOT": {
+        "ELEMENTS": [
+            {
+                "uid": "ELEMENT_A",
+                "label": "Element A",
+                "template": { "FIELD": "", "TAB": 1 }
+            },
+            {
+                "uid": "ELEMENT_B",
+                "label": "Element B",
+                "template": { "FIELD": "", "TAB": 2 }
+            }
+        ]
+    }
+}
+```
+
+### Laufzeitregeln
+- Beim Hinzufuegen wird zuerst ein Element aus dem Katalog ausgewaehlt.
+- Jede definierte Element-UID ist im Zielwert nur einmal erlaubt.
+- Bereits genutzte UIDs werden nicht mehr als Add-Option angeboten.
+- Ohne `ROOT.ELEMENTS` bleibt der Legacy-Add-Fall aktiv (freie GUID-Erzeugung).
+
+### Migration-Hinweis
+- Die fruehere implizite Element-Ableitung ohne klaren Katalog soll nicht mehr als Standard betrachtet werden.
+- Fuer stabile, wiederverwendbare Elementlisten muss `ROOT.ELEMENTS` im Element-Frame gepflegt werden.
 
 ---
 

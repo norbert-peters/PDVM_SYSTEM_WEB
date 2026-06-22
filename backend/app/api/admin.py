@@ -136,9 +136,9 @@ async def create_mandant_database(
                 await mandant_conn.execute(sql)
                 await mandant_conn.close()
         
-        # Register in sys_mandanten table
+        # Register in asy_mandanten table
         await create_record_central(
-            table_name="sys_mandanten",
+            table_name="asy_mandanten",
             daten={
                 "database_name": db_name,
                 "description": mandant.description or mandant.name,

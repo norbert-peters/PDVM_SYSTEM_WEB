@@ -115,3 +115,34 @@ def test_prefix_dropdown_timeout_is_handled(monkeypatch):
                 language="de-de",
             )
         )
+
+
+def test_static_dropdown_allows_uppercase_legacy_config_keys(monkeypatch):
+    gcs = _fake_gcs()
+
+    async def _fake_get_mapping(*args, **kwargs):
+        return {
+            "map": {"m": "Herr"},
+            "options": [{"key": "m", "value": "Herr"}],
+            "language": "DE-DE",
+            "default_language": "DE-DE",
+        }
+
+    monkeypatch.setattr(dropdown_service, "get_dropdown_mapping_for_field", _fake_get_mapping)
+
+    result = asyncio.run(
+        dropdown_service.resolve_dropdown_by_config(
+            gcs,
+            dropdown_config={
+                "SOURCE": "static",
+                "TABLE": "sys_dropdowndaten",
+                "KEY": "2a60c785-0829-46db-a16b-9369596fab63",
+                "FELD": "anrede",
+                "GROUP": "",
+            },
+            language="de-de",
+        )
+    )
+
+    assert isinstance(result.get("map"), dict)
+    assert result["map"].get("m") == "Herr"

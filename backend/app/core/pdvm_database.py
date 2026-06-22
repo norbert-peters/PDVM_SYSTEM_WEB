@@ -1,9 +1,9 @@
-"""
+﻿"""
 PDVM Database Service
-Generischer CRUD-Service für alle PDVM-Standard-Tabellen
+Generischer CRUD-Service fÃ¼r alle PDVM-Standard-Tabellen
 
 Nach Desktop-Vorbild: PdvmDatenbank
-Unterstützt die Standard-Tabellenstruktur mit uid, daten (JSONB), name, etc.
+UnterstÃ¼tzt die Standard-Tabellenstruktur mit uid, daten (JSONB), name, etc.
 """
 import asyncpg
 import json
@@ -20,16 +20,16 @@ logger = logging.getLogger(__name__)
 
 class PdvmDatabaseService:
     """
-    Generischer Database Service für PDVM-Tabellen
+    Generischer Database Service fÃ¼r PDVM-Tabellen
     
     Standard-Spalten:
     - uid: UUID (Primary Key)
     - daten: JSONB (Hauptdaten, verschachtelt)
     - name: TEXT (Anzeigename)
     - historisch: INTEGER (0=aktiv, 1+=historisch)
-    - source_hash: TEXT (Änderungsverfolgung)
-    - sec_id: UUID (Security/Verknüpfung)
-    - gilt_bis: TEXT (Gültigkeitsdatum)
+    - source_hash: TEXT (Ã„nderungsverfolgung)
+    - sec_id: UUID (Security/VerknÃ¼pfung)
+    - gilt_bis: TEXT (GÃ¼ltigkeitsdatum)
     - created_at: TIMESTAMP
     - modified_at: TIMESTAMP
     - backup_daten: JSONB
@@ -37,12 +37,12 @@ class PdvmDatabaseService:
     
     def __init__(self, database: str, table: str, password: Optional[str] = None):
         """
-        Initialisiert Database Service für spezifische Tabelle
+        Initialisiert Database Service fÃ¼r spezifische Tabelle
         
         Args:
             database: Datenbank-Name (z.B. "auth", "mandant")
-            table: Tabellen-Name (z.B. "sys_mandanten", "persondaten")
-            password: Optionales PostgreSQL Passwort (überschreibt .env)
+            table: Tabellen-Name (z.B. "asy_mandanten", "persondaten")
+            password: Optionales PostgreSQL Passwort (Ã¼berschreibt .env)
         """
         self.database = database
         self.table = table
@@ -70,15 +70,15 @@ class PdvmDatabaseService:
         offset: int = 0
     ) -> List[Dict[str, Any]]:
         """
-        Liste aller Datensätze
+        Liste aller DatensÃ¤tze
         
         Args:
             historisch: Filter (0=nur aktive, None=alle)
             limit: Max Anzahl
-            offset: Offset für Pagination
+            offset: Offset fÃ¼r Pagination
             
         Returns:
-            Liste von Datensätzen
+            Liste von DatensÃ¤tzen
         """
         conn = await self._get_connection()
         
@@ -122,7 +122,7 @@ class PdvmDatabaseService:
     
     async def get_by_uid(self, uid: str | UUID) -> Optional[Dict[str, Any]]:
         """
-        Lädt Datensatz per UID
+        LÃ¤dt Datensatz per UID
         
         Args:
             uid: UUID des Datensatzes
@@ -210,7 +210,7 @@ class PdvmDatabaseService:
             if record.get('daten') and isinstance(record['daten'], str):
                 record['daten'] = json.loads(record['daten'])
             
-            logger.info(f"✅ Datensatz erstellt in {self.database}.{self.table}: {uid}")
+            logger.info(f"âœ… Datensatz erstellt in {self.database}.{self.table}: {uid}")
             return record
             
         finally:
@@ -242,7 +242,7 @@ class PdvmDatabaseService:
         try:
             uid = UUID(str(uid))
             
-            # Lade alte Daten für Backup
+            # Lade alte Daten fÃ¼r Backup
             if backup_old and daten is not None:
                 old_record = await conn.fetchrow(
                     f"SELECT daten FROM {self.table} WHERE uid = $1",
@@ -282,7 +282,7 @@ class PdvmDatabaseService:
             if record.get('daten') and isinstance(record['daten'], str):
                 record['daten'] = json.loads(record['daten'])
             
-            logger.info(f"✅ Datensatz aktualisiert in {self.database}.{self.table}: {uid}")
+            logger.info(f"âœ… Datensatz aktualisiert in {self.database}.{self.table}: {uid}")
             return record
             
         finally:
@@ -290,11 +290,11 @@ class PdvmDatabaseService:
     
     async def delete(self, uid: str | UUID, soft: bool = True) -> bool:
         """
-        Löscht Datensatz
+        LÃ¶scht Datensatz
         
         Args:
             uid: UUID des Datensatzes
-            soft: True=historisch setzen, False=wirklich löschen
+            soft: True=historisch setzen, False=wirklich lÃ¶schen
             
         Returns:
             True wenn erfolgreich
@@ -310,14 +310,14 @@ class PdvmDatabaseService:
                     f"UPDATE {self.table} SET historisch = 1, modified_at = $1 WHERE uid = $2",
                     datetime.now(), uid
                 )
-                logger.info(f"🗑️  Datensatz markiert als historisch: {uid}")
+                logger.info(f"ðŸ—‘ï¸  Datensatz markiert als historisch: {uid}")
             else:
                 # Hard Delete
                 await conn.execute(
                     f"DELETE FROM {self.table} WHERE uid = $1",
                     uid
                 )
-                logger.info(f"🗑️  Datensatz gelöscht: {uid}")
+                logger.info(f"ðŸ—‘ï¸  Datensatz gelÃ¶scht: {uid}")
             
             return True
             
@@ -331,7 +331,7 @@ class PdvmDatabaseService:
         historisch: Optional[int] = 0
     ) -> List[Dict[str, Any]]:
         """
-        Suche in Datensätzen
+        Suche in DatensÃ¤tzen
         
         Args:
             search_term: Suchbegriff
@@ -339,7 +339,7 @@ class PdvmDatabaseService:
             historisch: Filter
             
         Returns:
-            Gefundene Datensätze
+            Gefundene DatensÃ¤tze
         """
         conn = await self._get_connection()
         
@@ -374,7 +374,7 @@ class PdvmDatabaseService:
     
     async def count(self, historisch: Optional[int] = 0) -> int:
         """
-        Zählt Datensätze
+        ZÃ¤hlt DatensÃ¤tze
         
         Args:
             historisch: Filter
@@ -397,3 +397,4 @@ class PdvmDatabaseService:
             
         finally:
             await conn.close()
+

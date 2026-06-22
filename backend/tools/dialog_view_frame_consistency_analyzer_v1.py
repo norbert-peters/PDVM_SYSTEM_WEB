@@ -75,6 +75,17 @@ def _as_dict(value: Any) -> Dict[str, Any]:
     return {}
 
 
+def _dropdown_option_lang_values(option_item: Dict[str, Any]) -> Dict[str, Any]:
+    item = _as_dict(option_item)
+    out: Dict[str, Any] = {}
+    for k, v in item.items():
+        ku = str(k or "").strip().upper()
+        if ku in {"KEY", "VALUE", "VALUES", "LABEL", "NAME"}:
+            continue
+        out[str(k)] = v
+    return out
+
+
 def _as_list(value: Any) -> List[Any]:
     if isinstance(value, list):
         return value
@@ -698,7 +709,7 @@ async def build_report(policy_path: Optional[Path] = None) -> Dict[str, Any]:
             data = _as_dict(row.get("daten"))
             options = _as_dict(data.get("OPTIONS"))
             for _, opt in options.items():
-                values = _as_dict(_as_dict(opt).get("values"))
+                values = _dropdown_option_lang_values(_as_dict(opt))
                 for lang in values.keys():
                     key = str(lang or "").strip().upper()
                     if key:
@@ -740,7 +751,7 @@ async def build_report(policy_path: Optional[Path] = None) -> Dict[str, Any]:
                     "details": {"work_dialogs": report["inventory"].get("work_dialogs", 0)},
                 },
                 {
-                    "name": "tab_guid_references_valid",
+                    "name": "guid_references_valid",
                     "ok": not any(v for v in report["violations"] if v["code"] in {"view_guid_missing_or_not_found", "frame_guid_missing_or_not_found"}),
                     "details": {
                         "dialogs": report["inventory"].get("dialog_count", 0),

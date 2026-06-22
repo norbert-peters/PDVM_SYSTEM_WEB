@@ -3,59 +3,214 @@
   "title": "Control Dict Migrationsvorschlaege",
   "input_report_title": "Control Dict Konsistenzreport",
   "summary": {
-    "duplicate_ref_groups": 7,
-    "duplicate_actions": 7,
-    "missing_name_references": 0,
+    "duplicate_ref_groups": 30,
+    "duplicate_actions": 30,
+    "missing_name_references": 160,
     "map_actions": 0,
-    "create_actions": 0,
+    "create_actions": 85,
     "ignored_references": 0
   },
   "duplicate_resolution": [
     {
+      "ref_name": "sys_table",
+      "count": 5,
+      "keep_uid": "c47b969a-466d-4494-ab7b-56a78a379fe9",
+      "retire_uids": [
+        "c5caa42c-ae8c-4e11-bd71-c21f5082c8ae",
+        "69a110dc-4aae-5151-83c6-61b6389e0c26",
+        "2e80a941-4444-5e08-97ed-5f544343b227",
+        "9537bdcc-0164-4ef3-a7e6-9ddb672762c6"
+      ],
+      "priority": "high"
+    },
+    {
       "ref_name": "sys_type",
-      "count": 4,
-      "keep_uid": "a4ae1328-40d9-4512-9dd3-b047896f58c9",
+      "count": 5,
+      "keep_uid": "4763a9e7-d54b-4cc3-b1c0-170a84455b88",
       "retire_uids": [
         "04d17765-de05-41d8-bbbf-1b2c34d543ba",
         "0f83e550-6998-4e12-b452-a38b2aa70621",
-        "8cdad050-d285-46a0-8bf1-ae59c8cc620c"
+        "8cdad050-d285-46a0-8bf1-ae59c8cc620c",
+        "a4ae1328-40d9-4512-9dd3-b047896f58c9"
       ],
       "priority": "high"
     },
     {
       "ref_name": "sys_name",
-      "count": 3,
-      "keep_uid": "c75d12c6-b96f-4779-a728-d45a9ccf4a0e",
+      "count": 4,
+      "keep_uid": "3098c0df-3f77-43bb-916c-8052cab22e4a",
       "retire_uids": [
         "e2d76b0d-2413-4af6-a65c-f28e7741e786",
+        "c75d12c6-b96f-4779-a728-d45a9ccf4a0e",
         "d9e5f1b5-3c4f-4b92-93ce-0d6a01215555"
       ],
       "priority": "high"
     },
     {
-      "ref_name": "sys_666",
-      "count": 2,
-      "keep_uid": "71a0cde1-f005-4596-84cd-f68549da83b3",
-      "retire_uids": [
-        "66666666-6666-6666-6666-666666666666"
-      ],
-      "priority": "medium"
-    },
-    {
       "ref_name": "sys_default",
-      "count": 2,
+      "count": 3,
       "keep_uid": "e3b3a161-2025-42bf-a0ab-e6fd1584f4cf",
       "retire_uids": [
-        "c611bdff-4608-49d0-9a8c-0d6a01220005"
+        "c611bdff-4608-49d0-9a8c-0d6a01220005",
+        "44cc077a-747d-4907-91cd-441b49275a14"
       ],
-      "priority": "medium"
+      "priority": "high"
     },
     {
       "ref_name": "sys_guid",
-      "count": 2,
-      "keep_uid": "99ded5c7-a0c7-4ba8-81ae-321bf4a120b8",
+      "count": 3,
+      "keep_uid": "f22f8dbe-1f1d-4af5-b9f8-c295818384c8",
       "retire_uids": [
-        "6437c5a9-f267-476b-adf8-f08ad0d2104f"
+        "6437c5a9-f267-476b-adf8-f08ad0d2104f",
+        "99ded5c7-a0c7-4ba8-81ae-321bf4a120b8"
+      ],
+      "priority": "high"
+    },
+    {
+      "ref_name": "sys_open_edit",
+      "count": 3,
+      "keep_uid": "0dea478a-82ba-56c0-bb46-65c615dddef9",
+      "retire_uids": [
+        "33961223-fcd1-436b-910c-268fa3faba58",
+        "29917658-3a8a-5f0d-82bd-a3e7f6b7e744"
+      ],
+      "priority": "high"
+    },
+    {
+      "ref_name": "sys_selection_mode",
+      "count": 3,
+      "keep_uid": "f37a8509-02df-4d0f-85f8-15370da5c225",
+      "retire_uids": [
+        "50a06bc5-f864-5917-a7dd-b2854756a99d",
+        "a00407b9-1a77-51fe-9130-66d9f72c432b"
+      ],
+      "priority": "high"
+    },
+    {
+      "ref_name": "sys_self_name",
+      "count": 3,
+      "keep_uid": "1fe73111-4ba9-4322-b02a-ff3b6f97ede8",
+      "retire_uids": [
+        "4085e91b-556f-53ed-b332-7425778613dc",
+        "adf542b7-dc63-5cfd-bf57-ed37dc4cdf4e"
+      ],
+      "priority": "high"
+    },
+    {
+      "ref_name": "sys_tabs",
+      "count": 3,
+      "keep_uid": "06b11821-ab3e-4db9-8e77-cb4e30ea637d",
+      "retire_uids": [
+        "99ac1993-cc1b-599b-8e42-b5bccdf98d82",
+        "b78b41ec-5372-49e3-b34a-8ddb2fc25c98"
+      ],
+      "priority": "high"
+    },
+    {
+      "ref_name": "sys_abdatum",
+      "count": 2,
+      "keep_uid": "d132802f-d831-449b-bd9c-71083d11bc7b",
+      "retire_uids": [
+        "13957e4f-fc39-5ac8-81ce-cc5692f24bce"
+      ],
+      "priority": "medium"
+    },
+    {
+      "ref_name": "sys_anrede",
+      "count": 2,
+      "keep_uid": "43978be6-4788-44d1-b6d5-fb68680d2a97",
+      "retire_uids": [
+        "d6f90f6c-9b44-4b63-9b91-0d6a01213333"
+      ],
+      "priority": "medium"
+    },
+    {
+      "ref_name": "sys_control",
+      "count": 2,
+      "keep_uid": "59d38038-052a-48bc-85e8-3623ba4f9298",
+      "retire_uids": [
+        "52e197f1-4a3f-4ffd-be9d-b532d261e24d"
+      ],
+      "priority": "medium"
+    },
+    {
+      "ref_name": "sys_control_dict dialog",
+      "count": 2,
+      "keep_uid": "11eaf5bb-545f-4ef5-9816-74e33fbc4c71",
+      "retire_uids": [
+        "4f2c4b90-827e-457a-91da-6eeb7f2025e0"
+      ],
+      "priority": "medium"
+    },
+    {
+      "ref_name": "sys_description",
+      "count": 2,
+      "keep_uid": "3397104b-70a6-467e-a98b-0ace7f4bd988",
+      "retire_uids": [
+        "7de52ee9-bc6f-5fbc-93f2-f6efa89b6d4c"
+      ],
+      "priority": "medium"
+    },
+    {
+      "ref_name": "sys_dialog_type",
+      "count": 2,
+      "keep_uid": "3b9d3133-463e-43d9-a2af-a76136132034",
+      "retire_uids": [
+        "ed8c3c8c-8f66-5fbf-bec4-e39862f2f606"
+      ],
+      "priority": "medium"
+    },
+    {
+      "ref_name": "sys_email",
+      "count": 2,
+      "keep_uid": "d570a56d-1547-4e1a-b6f8-e0ed9bc821b4",
+      "retire_uids": [
+        "c6b4fae2-1c71-4b3e-8e9b-0d6a01212222"
+      ],
+      "priority": "medium"
+    },
+    {
+      "ref_name": "sys_expert_mode",
+      "count": 2,
+      "keep_uid": "cf607ce1-9764-419f-bfa7-cfe839b76447",
+      "retire_uids": [
+        "6f5422c1-8609-4415-b58d-090cd928885d"
+      ],
+      "priority": "medium"
+    },
+    {
+      "ref_name": "sys_gruppe",
+      "count": 2,
+      "keep_uid": "1439ad2b-2a15-4748-bcc9-d17aa10b3e2d",
+      "retire_uids": [
+        "a611fe31-1bdb-401c-aa2e-3c2179a06bc9"
+      ],
+      "priority": "medium"
+    },
+    {
+      "ref_name": "sys_header",
+      "count": 2,
+      "keep_uid": "120e8c44-5e65-5dd9-9b65-38ec47615ee3",
+      "retire_uids": [
+        "6ad34262-9b64-56b5-9774-165adc0e0e5f"
+      ],
+      "priority": "medium"
+    },
+    {
+      "ref_name": "sys_historical",
+      "count": 2,
+      "keep_uid": "813cdf23-5d23-482d-aa37-79f897f0786b",
+      "retire_uids": [
+        "c12502ca-0edb-4e65-a968-590b590c60e9"
+      ],
+      "priority": "medium"
+    },
+    {
+      "ref_name": "sys_label",
+      "count": 2,
+      "keep_uid": "a8c7eab3-9790-48d9-a9c9-0f0c810ed50a",
+      "retire_uids": [
+        "a78bc486-819c-4ff8-8722-7699312a8b09"
       ],
       "priority": "medium"
     },
@@ -69,18 +224,507 @@
       "priority": "medium"
     },
     {
-      "ref_name": "sys_table",
+      "ref_name": "sys_module",
       "count": 2,
-      "keep_uid": "9537bdcc-0164-4ef3-a7e6-9ddb672762c6",
+      "keep_uid": "a622ab5c-edf9-40b9-9af4-8b0a6e1fd3f3",
       "retire_uids": [
-        "c47b969a-466d-4494-ab7b-56a78a379fe9"
+        "5016a6bd-7dc3-4da1-8c75-e2719a541fb0"
+      ],
+      "priority": "medium"
+    },
+    {
+      "ref_name": "sys_searchable",
+      "count": 2,
+      "keep_uid": "56ee704c-30f0-4119-8829-93e7aab73a80",
+      "retire_uids": [
+        "c804a737-364c-4f39-a973-3c5a2fd1fbab"
+      ],
+      "priority": "medium"
+    },
+    {
+      "ref_name": "sys_self_guid",
+      "count": 2,
+      "keep_uid": "88a008ce-f8cd-46e4-8600-91cb949d9c12",
+      "retire_uids": [
+        "05072893-ff90-5404-bfb7-3d6892efad20"
+      ],
+      "priority": "medium"
+    },
+    {
+      "ref_name": "sys_sortable",
+      "count": 2,
+      "keep_uid": "77f34896-0054-4cc4-b38f-db307275bad3",
+      "retire_uids": [
+        "060e9ddb-e3a6-4a36-86ad-e53d07fadebc"
+      ],
+      "priority": "medium"
+    },
+    {
+      "ref_name": "sys_tab",
+      "count": 2,
+      "keep_uid": "91290a07-8130-4b52-bc62-f4334e6cb2cf",
+      "retire_uids": [
+        "0fcfa8fb-6b53-4ac5-8b0c-2f372aa91fd3"
+      ],
+      "priority": "medium"
+    },
+    {
+      "ref_name": "sys_tab_elements",
+      "count": 2,
+      "keep_uid": "7d979dd0-d569-41ed-ab01-b2ec8ff5ff5d",
+      "retire_uids": [
+        "331da616-81c2-5f70-9229-7cc49f199297"
+      ],
+      "priority": "medium"
+    },
+    {
+      "ref_name": "sys_uid",
+      "count": 2,
+      "keep_uid": "3af6e754-ea1d-4d15-a549-f102b8a78276",
+      "retire_uids": [
+        "7a9483d9-db89-423a-8ec0-c06f02c6334a"
+      ],
+      "priority": "medium"
+    },
+    {
+      "ref_name": "sys_vorname",
+      "count": 2,
+      "keep_uid": "8dee8d50-217c-474b-b346-c2bdcf0a8efa",
+      "retire_uids": [
+        "7a0d9b2f-23cb-48f0-9a3e-0d6a01214444"
       ],
       "priority": "medium"
     }
   ],
   "missing_name_resolution": {
     "map_actions": [],
-    "create_actions": [],
+    "create_actions": [
+      {
+        "control_name": "TAB_ELEMENTS",
+        "references": 11,
+        "priority": "high"
+      },
+      {
+        "control_name": "TABLE",
+        "references": 10,
+        "priority": "high"
+      },
+      {
+        "control_name": "SELF_NAME",
+        "references": 7,
+        "priority": "high"
+      },
+      {
+        "control_name": "TYPE",
+        "references": 7,
+        "priority": "high"
+      },
+      {
+        "control_name": "DIALOG_TYPE",
+        "references": 6,
+        "priority": "high"
+      },
+      {
+        "control_name": "SELF_GUID",
+        "references": 6,
+        "priority": "high"
+      },
+      {
+        "control_name": "name",
+        "references": 6,
+        "priority": "high"
+      },
+      {
+        "control_name": "EDIT_TYPE",
+        "references": 5,
+        "priority": "high"
+      },
+      {
+        "control_name": "TABS",
+        "references": 5,
+        "priority": "high"
+      },
+      {
+        "control_name": "uid",
+        "references": 5,
+        "priority": "high"
+      },
+      {
+        "control_name": "GUID",
+        "references": 3,
+        "priority": "high"
+      },
+      {
+        "control_name": "NAME",
+        "references": 3,
+        "priority": "high"
+      },
+      {
+        "control_name": "OPEN_EDIT",
+        "references": 3,
+        "priority": "high"
+      },
+      {
+        "control_name": "SELECTION_MODE",
+        "references": 3,
+        "priority": "high"
+      },
+      {
+        "control_name": "table",
+        "references": 3,
+        "priority": "high"
+      },
+      {
+        "control_name": "CONTROL",
+        "references": 2,
+        "priority": "medium"
+      },
+      {
+        "control_name": "CONTROL_FIELD",
+        "references": 2,
+        "priority": "medium"
+      },
+      {
+        "control_name": "DICTIONARY_SEARCH",
+        "references": 2,
+        "priority": "medium"
+      },
+      {
+        "control_name": "GRUPPE",
+        "references": 2,
+        "priority": "medium"
+      },
+      {
+        "control_name": "gruppe",
+        "references": 2,
+        "priority": "medium"
+      },
+      {
+        "control_name": "label",
+        "references": 2,
+        "priority": "medium"
+      },
+      {
+        "control_name": "type",
+        "references": 2,
+        "priority": "medium"
+      },
+      {
+        "control_name": "ABDATUM",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "ABORT_ACTION",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "ANREDE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "APPLY_ACTION",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "BUILD_ACTION",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "CONFIGS_ELEMENTS",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "CREATE_CONTROL_ACTION",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "CREATE_PROPERTY_ACTION",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "DEFAULT",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "DISPLAY_ORDER",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "DISPLAY_SHOW",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "DRY_RUN_ACTION",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "EMAIL",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "EXPERT_MODE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "EXPERT_ORDER",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "FIELDS_ELEMENTS",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "FRAME_GUID",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "HEAD",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "HEADER",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "HISTORICAL",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "KEY",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "LABEL",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "MODULE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "PACKAGE_HASH",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "POLICY_MODE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "READ_ONLY",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "SAVE_CONTENT_ACTION",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "SAVE_VIEW_ACTION",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "SEARCHABLE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "SORTABLE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "SORT_BY_ORIGINAL",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "SORT_DIRECTION",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "SOURCE_COMMIT",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "SOURCE_DB_ROLE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "SOURCE_PATH",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TAB",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TABLE_PREFIX_FILTER",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TAB_REF",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TARGET_DB_ROLE",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TARGET_ENV",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "TEMPLATES.CONFIGS_ELEMENTS.FIELD",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "VALIDATE_ACTION",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "VIEW_GUID",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "VIEW_PROJECTION",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "VORNAME",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "WORKFLOW_NAME",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "anrede",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "command",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "default",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "edit_type",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "enable",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "feld",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "historical",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "icon",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "menu_command",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "open_edit",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "read_only",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "searchable",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "selection_mode",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "sortable",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "template_guid",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "tooltip",
+        "references": 1,
+        "priority": "medium"
+      },
+      {
+        "control_name": "visible",
+        "references": 1,
+        "priority": "medium"
+      }
+    ],
     "ignored_references": []
   }
 }

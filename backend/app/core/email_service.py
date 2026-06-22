@@ -1,7 +1,7 @@
-"""
+﻿"""
 Email Service (SMTP)
 
-Verwendet SEND_EMAIL Konfiguration aus sys_mandanten.
+Verwendet SEND_EMAIL Konfiguration aus asy_mandanten.
 """
 from __future__ import annotations
 
@@ -85,7 +85,8 @@ def send_email(config: Dict[str, Any], to_email: str, subject: str, body: str) -
                 if cfg["smtp_user"]:
                     server.login(cfg["smtp_user"], cfg["smtp_pass"])
                 server.send_message(msg)
-        logger.info("✅ E-Mail gesendet an %s", to_email)
+        logger.info("âœ… E-Mail gesendet an %s", to_email)
     except Exception as e:
-        logger.error("❌ E-Mail-Versand fehlgeschlagen: %s", e)
+        logger.error("âŒ E-Mail-Versand fehlgeschlagen: %s", e)
         raise
+

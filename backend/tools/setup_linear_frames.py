@@ -287,7 +287,7 @@ def _build_sys_control_dict_frame(template_555: Dict[str, Any]) -> Dict[str, Any
 def _build_sys_dialogdaten_frame(template_555_dialog: Dict[str, Any]) -> Dict[str, Any]:
     templates = _as_dict(template_555_dialog.get("TEMPLATES"))
     tab_elements = _as_dict(templates.get("TAB_ELEMENTS"))
-    tab_guid_template = _as_dict(tab_elements.get("TAB_GUID"))
+    tab_guid_template = _as_dict(tab_elements.get("GUID"))
 
     element_template = dict(tab_guid_template)
     element_fields = _element_fields_from_template(element_template)
@@ -327,7 +327,7 @@ def _build_sys_dialogdaten_frame(template_555_dialog: Dict[str, Any]) -> Dict[st
         field_type = "true_false" if isinstance(value, bool) else "string"
         fields[str(uuid.uuid5(uuid.UUID("ef89641d-08fa-4ff5-af22-d86f4a7f5efd"), f"tab-guid-template:{key_u}"))] = {
             "tab": 3,
-            "feld": f"TEMPLATES.TAB_ELEMENTS.TAB_GUID.{key_u}",
+            "feld": f"TEMPLATES.TAB_ELEMENTS.GUID.{key_u}",
             "name": f"tpl_tab_guid_{key_u.lower()}",
             "type": field_type,
             "label": f"TPL TAB {key_u}",
