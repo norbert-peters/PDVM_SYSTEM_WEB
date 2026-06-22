@@ -31,6 +31,29 @@ export type PdvmElementField = {
   display_order?: number
 }
 
+function asObject(value: any): Record<string, any> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, any>) : {}
+}
+
+function readCfgValue(cfg: any, keys: string[]): any {
+  const obj = asObject(cfg)
+  for (const key of keys) {
+    if (!key) continue
+    if (Object.prototype.hasOwnProperty.call(obj, key)) return (obj as any)[key]
+    const upper = key.toUpperCase()
+    if (Object.prototype.hasOwnProperty.call(obj, upper)) return (obj as any)[upper]
+    const lower = key.toLowerCase()
+    if (Object.prototype.hasOwnProperty.call(obj, lower)) return (obj as any)[lower]
+  }
+  return undefined
+}
+
+function resolveGoSelectTableFromResolvedConfigs(resolvedConfigs: any): string {
+  const cfg = asObject(resolvedConfigs)
+  const goSelect = asObject(readCfgValue(cfg, ['go_select_view']))
+  return String(readCfgValue(goSelect, ['table']) || '').trim()
+}
+
 function getValueByKeyCaseInsensitive(source: Record<string, any> | null | undefined, key: string): any {
   const obj = source && typeof source === 'object' ? source : {}
   const k = String(key || '').trim()
@@ -359,6 +382,7 @@ export function PdvmInputControl(props: {
   disabled?: boolean
   placeholder?: string
   options?: PdvmDropdownOption[]
+  resolvedConfigs?: Record<string, any>
   lookupTable?: string
   helpText?: string | null
   helpEnabled?: boolean
@@ -374,6 +398,7 @@ export function PdvmInputControl(props: {
   elementValidationError?: string | null
   elementDraftHydrator?: (draft: Record<string, any>, uid?: string | null) => Record<string, any>
   elementDraftNormalizer?: (draft: Record<string, any>, uid?: string | null) => Record<string, any>
+  resolutionWarning?: string | null
 }) {
   const [helpOpen, setHelpOpen] = useState(false)
   const [controlOpen, setControlOpen] = useState(false)
@@ -412,6 +437,11 @@ export function PdvmInputControl(props: {
 
   const effectiveType = normalizeInputType((props as any).type)
   const disabled = !!props.disabled || !!props.readOnly
+  const resolvedGoSelectTable = useMemo(
+    () => resolveGoSelectTableFromResolvedConfigs(props.resolvedConfigs),
+    [props.resolvedConfigs],
+  )
+  const effectiveLookupTable = String(resolvedGoSelectTable || props.lookupTable || '').trim()
   const helpEnabled = props.helpEnabled ?? true
   const isElementList = effectiveType === 'element_list' || effectiveType === 'elemente_list' || effectiveType === 'group_list'
   const elementFrameType = useMemo(() => String(props.elementFrameType || '').trim().toLowerCase(), [props.elementFrameType])
@@ -937,6 +967,15 @@ export function PdvmInputControl(props: {
         <label className="pdvm-pic__label" htmlFor={props.id}>
           {props.label}
         </label>
+        {String(props.resolutionWarning || '').trim() ? (
+          <span
+            title={String(props.resolutionWarning || '').trim()}
+            aria-label="Control-Warnung"
+            style={{ color: '#b42318', fontWeight: 700, marginLeft: 6 }}
+          >
+            !
+          </span>
+        ) : null}
         {showHelpButton ? (
           <>
             <button
@@ -1104,7 +1143,7 @@ export function PdvmInputControl(props: {
 
         {effectiveType === 'go_select_view' ? (
           <PdvmLookupSelect
-            table={String(props.lookupTable || '').trim()}
+            table={effectiveLookupTable}
             value={props.value ? String(props.value) : null}
             onChange={(v) => props.onChange(v)}
             disabled={disabled}
@@ -1320,6 +1359,7 @@ export function PdvmInputControl(props: {
                     type={fieldType}
                     value={nestedValue}
                     options={field.options || []}
+                    resolvedConfigs={asObject((field as any).configs)}
                     lookupTable={
                       fieldType === 'go_select_view'
                         ? String(
@@ -1333,6 +1373,7 @@ export function PdvmInputControl(props: {
                     placeholder={field.placeholder}
                     helpEnabled={true}
                     helpText={field.help_text || field.tooltip || null}
+                    resolutionWarning={String((field as any).resolution_warning || (field as any)?.control_debug?.RESOLUTION_WARNING || '').trim() || undefined}
                     controlDebug={nestedControlDebug}
                     onChange={(value) => {
                       setElementModalDraft((prev) => {

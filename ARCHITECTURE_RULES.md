@@ -191,6 +191,28 @@ Nicht zulaessig:
 - Kontextabhaengige Speziallogik, bei der einzelne InputControls im selben Expert-Mode keine Rohansicht erhalten.
 - Datenzugriffslogik, die alternativ Parent-/Dialogpfade nutzt, obwohl `SOURCE_PATH` + `GRUPPE` + `FELD` fuer das Control vorliegen.
 
+### 1.10d Lineare Frame-Control-Pipeline (verbindlich)
+**Regel:** Frame-basierte Controls folgen einem strikt linearen End-to-End-Pfad ohne Kontext-Sonderlogik.
+
+Pflichten:
+- Es gibt genau ein Runtime-Control-Modell pro Feld (Single Runtime Model).
+- Lesen erfolgt ausschliesslich ueber `SOURCE_PATH + GRUPPE + FELD`.
+- Schreiben erfolgt ausschliesslich ueber `SOURCE_PATH + SAVE_PATH`.
+- Config-Aufloesung erfolgt genau einmal zentral vor dem Rendering.
+- `FRAME_TYPE` steuert nur den Hostkontext, nicht den Datenzugriff.
+
+Nicht zulaessig:
+- Doppelte Resolver-Logik je Renderkontext (z. B. Haupteditor vs. Element-Modal).
+- Stilles Leerlaufen bei fehlender Pflichtkonfiguration.
+- Mehrere parallele Config-Quellen im Renderer (Legacy nur einmal am Eingang mappen).
+
+Pflicht fuer `go_select_view`:
+- Die `lookup_table` wird zentral aus `resolved_configs.go_select_view.table` bestimmt.
+- Fehlt die Tabelle, muss ein qualifizierter Fehler angezeigt werden.
+
+Verweis:
+- `docs/specs/PDVM_LINEAR_FRAME_CONTROL_PIPELINE_SPEC_V1.md`
+
 ### 1.11 Schutz von Basis-/Template-GUIDs (maschinenfest)
 **Regel:** Reservierte Basis-/Template-Datensaetze duerfen durch Migrationen nicht geaendert werden.
 

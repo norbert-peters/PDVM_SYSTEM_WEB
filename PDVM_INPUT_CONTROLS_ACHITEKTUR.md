@@ -273,6 +273,12 @@ Verbindlich (Regression-Fix 06/2026):
 
 ## 9) Element-List Linear (ab 2026)
 
+Hinweis (verbindlich):
+- Fuer die technische Umsetzung gilt zusaetzlich die Spezifikation
+    `docs/specs/PDVM_LINEAR_FRAME_CONTROL_PIPELINE_SPEC_V1.md`.
+- Diese definiert den einheitlichen Runtime-Control-Vertrag fuer
+    Haupteditor, Element-Modal und Child-Frame-Rendering.
+
 ### Verbindliche Quelle
 - `type=element_list` und `type=group_list` werden linear aus einem Element-Frame aufgeloest.
 - Felddefinitionen kommen aus `sys_framedaten.daten.FIELDS` des referenzierten Frames.

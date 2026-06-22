@@ -22,6 +22,7 @@ import {
 import { PdvmViewPageContent } from '../views/PdvmViewPage'
 import { PdvmMenuEditor } from './PdvmMenuEditor'
 import { PdvmImportDataEditor, PdvmImportDataSteps } from './PdvmImportDataEditor'
+import { resolveElementFieldRuntimeContract } from './elementFieldRuntimeContract'
 import { PdvmJsonEditor, type PdvmJsonEditorHandle, type PdvmJsonEditorMode } from '../common/PdvmJsonEditor'
 import { PdvmDialogModal, type PdvmDialogModalField } from '../common/PdvmDialogModal'
 import { PdvmInputControl, type PdvmDropdownOption, type PdvmElementDefinition, type PdvmElementField } from '../common/PdvmInputControl'
@@ -284,13 +285,14 @@ function buildElementFieldsFromCollectionValue(value: any): Array<{ name: string
     .map((k) => ({ name: k, label: k, type: 'string' as const }))
 }
 
-function mapPicTypeToElementFieldType(value: any): 'string' | 'text' | 'textarea' | 'number' | 'dropdown' | 'multi_dropdown' | 'true_false' {
+function mapPicTypeToElementFieldType(value: any): 'string' | 'text' | 'textarea' | 'number' | 'dropdown' | 'multi_dropdown' | 'true_false' | 'go_select_view' {
   const t = normalizePicType(value)
   if (t === 'number') return 'number'
   if (t === 'text') return 'textarea'
   if (t === 'dropdown') return 'dropdown'
   if (t === 'multi_dropdown') return 'multi_dropdown'
   if (t === 'true_false') return 'true_false'
+  if (t === 'go_select_view') return 'go_select_view'
   return 'string'
 }
 
@@ -3376,26 +3378,81 @@ export default function PdvmDialogPage() {
 
   const resolveElementFieldControl = (fieldDefRaw: any): {
     data: Record<string, any>
-    source: 'inline' | 'uid' | 'none'
+    source: 'inline' | 'uid' | 'uid_inline_override' | 'none'
+    warning?: string
   } => {
     const fieldDef = asObject(fieldDefRaw)
     const inlineControl = asObject((fieldDef as any).CONTROL)
-    if (Object.keys(inlineControl).length) {
+    const controlUid = String((fieldDef as any).CONTROL_UID || '').trim()
+
+    // Verbindliche Reihenfolge: zuerst CONTROL_UID, danach inline CONTROL als Override.
+    if (isUuidString(controlUid)) {
+      const byUid = normalizeElementFieldControlData(elementFieldControlByUid[controlUid])
+      const baseControl = asObject(byUid.CONTROL)
+      if (Object.keys(baseControl).length) {
+        if (Object.keys(inlineControl).length) {
+          const merged = normalizeElementFieldControlData({
+            ...byUid,
+            CONTROL: {
+              ...baseControl,
+              ...inlineControl,
+              CONFIGS: {
+                ...asObject((baseControl as any).CONFIGS),
+                ...asObject((inlineControl as any).CONFIGS),
+              },
+              CONFIGS_ELEMENTS: {
+                ...asObject((baseControl as any).CONFIGS_ELEMENTS),
+                ...asObject((inlineControl as any).CONFIGS_ELEMENTS),
+              },
+            },
+          })
+          return { data: merged, source: 'uid_inline_override' }
+        }
+        return { data: byUid, source: 'uid' }
+      }
+
+      if (Object.keys(inlineControl).length) {
+        return {
+          data: normalizeElementFieldControlData({ CONTROL: inlineControl }),
+          source: 'inline',
+          warning: `CONTROL_UID='${controlUid}' konnte nicht aufgeloest werden. Inline CONTROL als Uebergang verwendet.`,
+        }
+      }
+
       return {
-        data: normalizeElementFieldControlData({ CONTROL: inlineControl }),
-        source: 'inline',
+        data: {},
+        source: 'none',
+        warning: `CONTROL_UID='${controlUid}' konnte nicht aufgeloest werden und es ist kein inline CONTROL vorhanden.`,
       }
     }
 
-    const controlUid = String((fieldDef as any).CONTROL_UID || '').trim()
-    if (isUuidString(controlUid)) {
-      const byUid = normalizeElementFieldControlData(elementFieldControlByUid[controlUid])
-      if (Object.keys(asObject(byUid.CONTROL)).length) {
-        return { data: byUid, source: 'uid' }
+    if (controlUid && Object.keys(inlineControl).length) {
+      return {
+        data: normalizeElementFieldControlData({ CONTROL: inlineControl }),
+        source: 'inline',
+        warning: `CONTROL_UID ist ungueltig ('${controlUid}'). Inline CONTROL als Uebergang verwendet.`,
+      }
+    }
+
+    if (!controlUid && Object.keys(inlineControl).length) {
+      return {
+        data: normalizeElementFieldControlData({ CONTROL: inlineControl }),
+        source: 'inline',
+        warning: 'CONTROL_UID fehlt. Inline CONTROL als Uebergang verwendet.',
       }
     }
 
     return { data: {}, source: 'none' }
+  }
+
+  const resolveElementFieldRuntime = (fieldRaw: any, parentFieldKey: string) => {
+    return resolveElementFieldRuntimeContract({
+      fieldRaw,
+      parentFieldKey,
+      resolveElementFieldControl,
+      mapPicTypeToElementFieldType,
+      resolveGoSelectViewTable,
+    })
   }
 
   const elementDropdownFieldConfigs = useMemo(() => {
@@ -3432,27 +3489,21 @@ export default function PdvmDialogPage() {
       const source = [...sourceBase, ...sourceByDefinition]
 
       source.forEach((field: any) => {
-        const name = String(field?.name || '').trim()
-        if (!name) return
-        const resolvedControl = resolveElementFieldControl(field)
-        const controlData = asObject(resolvedControl.data)
-        const controlPayload = asObject(controlData.CONTROL)
-        if (!Object.keys(controlPayload).length) return
-        const controlConfigs = asObject((controlPayload as any).CONFIGS ?? (controlPayload as any).configs)
-        const cfgElements = asObject((controlPayload as any).CONFIGS_ELEMENTS ?? (controlPayload as any).configs_elements)
-        const fieldType = mapPicTypeToElementFieldType(controlPayload.TYPE)
-        const selectType = fieldType === 'multi_dropdown' ? 'multi_dropdown' : 'dropdown'
+        const runtime = resolveElementFieldRuntime(field, parentFieldKey)
+        if (!runtime.hasName || !runtime.hasControl) return
+
+        const selectType = runtime.mappedType === 'multi_dropdown' ? 'multi_dropdown' : 'dropdown'
         const cfg = resolveSelectConfigByType({
           type: selectType,
-          cfgElements,
-          cfgControlConfigs: controlConfigs,
-          cfgLegacy: asObject(field),
+          cfgElements: runtime.controlConfigsElements,
+          cfgControlConfigs: runtime.controlConfigs,
+          cfgLegacy: runtime.fieldDef,
         })
         if (!Object.keys(cfg).length) return
 
         const keyRaw = String(readCfgValue(cfg, ['key', 'dataset_uid', 'view_guid']) || '').trim()
         const fieldRaw = String(readCfgValue(cfg, ['field', 'feld']) || '').trim()
-        const fieldName = fieldRaw || String(controlPayload.FIELD || controlPayload.FELD || name || '').trim()
+        const fieldName = fieldRaw || String(runtime.controlPayload.FIELD || runtime.controlPayload.FELD || runtime.name || '').trim()
         const tableToken = String(readCfgValue(cfg, ['table']) || '').trim()
         const table = resolveDropdownTableToken({
           tableToken,
@@ -3462,8 +3513,8 @@ export default function PdvmDialogPage() {
         })
         const group = String(readCfgValue(cfg, ['group', 'gruppe']) || '').trim()
         const source = String(readCfgValue(cfg, ['source', 'source_type']) || '').trim().toLowerCase()
-        const fieldCompositeKey = `${parentFieldKey}::${name}`
-        const selectedValue = String(firstElementContext?.[name] || '').trim().toLowerCase()
+        const fieldCompositeKey = runtime.fieldCompositeKey
+        const selectedValue = String(firstElementContext?.[runtime.name] || '').trim().toLowerCase()
         const hasSystemConfig = !!keyRaw && !!fieldName && !!table
 
         if (source === 'view' && keyRaw) {
@@ -3570,27 +3621,20 @@ export default function PdvmDialogPage() {
   const enrichElementFields = (fieldsRaw: any, parentFieldKey: string): PdvmElementField[] => {
     const fields = Array.isArray(fieldsRaw) ? fieldsRaw : []
     return fields.map((field: any) => {
-      const fieldDef = asObject(field)
-      const name = String(fieldDef.name || '').trim()
-      if (!name) return fieldDef as PdvmElementField
+      const runtime = resolveElementFieldRuntime(field, parentFieldKey)
+      if (!runtime.hasName) return runtime.fieldDef as PdvmElementField
 
-      const resolvedControl = resolveElementFieldControl(fieldDef)
-      const controlData = asObject(resolvedControl.data)
-      const controlPayload = asObject(controlData.CONTROL)
-      if (!Object.keys(controlPayload).length) {
-        const controlUid = String((fieldDef as any).CONTROL_UID || '').trim()
-        const unresolvedMsg = isUuidString(controlUid)
-          ? `Control-Auflösung fehlgeschlagen für Element-Feld '${name}' (CONTROL_UID='${controlUid}' konnte nicht geladen werden).`
-          : `Control-Auflösung fehlt für Element-Feld '${name}' (im Frame ist weder CONTROL noch CONTROL_UID gesetzt).`
+      if (!runtime.hasControl) {
+        const unresolvedMsg = runtime.unresolvedMsg || `Control-Auflösung fehlt für Element-Feld '${runtime.name}'.`
         return {
-          ...fieldDef,
-          name,
-          label: String((fieldDef as any).label || name).trim() || name,
-          tooltip: String(fieldDef.tooltip || unresolvedMsg).trim(),
-          help_text: String(fieldDef.help_text || unresolvedMsg).trim(),
+          ...runtime.fieldDef,
+          name: runtime.name,
+          label: String((runtime.fieldDef as any).label || runtime.name).trim() || runtime.name,
+          tooltip: String(runtime.fieldDef.tooltip || unresolvedMsg).trim(),
+          help_text: String(runtime.fieldDef.help_text || unresolvedMsg).trim(),
           control_debug: {
-            ...asObject((fieldDef as any).control_debug),
-            FIELD_KEY: `${parentFieldKey}.${name}`,
+            ...asObject((runtime.fieldDef as any).control_debug),
+            FIELD_KEY: `${parentFieldKey}.${runtime.name}`,
             EXPERT_MODE: globalExpertMode,
             RESOLUTION_STATUS: 'missing_control',
             RESOLUTION_WARNING: unresolvedMsg,
@@ -3599,17 +3643,8 @@ export default function PdvmDialogPage() {
         } as PdvmElementField
       }
 
-      const explicitType = String((fieldDef as any).type || '').trim().toLowerCase()
-      const mappedType = explicitType === 'go_select_view' ? 'go_select_view' : mapPicTypeToElementFieldType(controlPayload.TYPE)
-      const goSelectLookupTable =
-        mappedType === 'go_select_view'
-          ? resolveGoSelectViewTable(asObject(controlPayload.CONFIGS), controlPayload)
-          : ''
-      const readOnly = toBoolean(controlPayload.READ_ONLY)
       const expertMode = globalExpertMode
-      const tooltip = String(controlPayload.TOOLTIP ?? fieldDef.tooltip ?? fieldDef.help_text ?? '').trim()
-      const fieldCompositeKey = `${parentFieldKey}::${name}`
-      const resolvedOptions = elementDropdownOptionsByCompositeKey[fieldCompositeKey] || []
+      const resolvedOptions = elementDropdownOptionsByCompositeKey[runtime.fieldCompositeKey] || []
       const currentRecord = (picDraft ? picDraft : currentDaten || {}) as Record<string, any>
 
       const parentParts = String(parentFieldKey || '').split('.').filter(Boolean)
@@ -3617,7 +3652,7 @@ export default function PdvmDialogPage() {
       const parentFeld = parentParts.slice(1).join('.')
       const parentCollection = parentGruppe && parentFeld ? getFieldValue(currentRecord, parentGruppe, parentFeld) : null
       const firstElementContext = getFirstCollectionRow(parentCollection)
-      const tableToken = String(asObject(asObject(controlPayload.CONFIGS_ELEMENTS).dropdown).table || '').trim()
+      const tableToken = String(asObject(asObject(runtime.controlPayload.CONFIGS_ELEMENTS).dropdown).table || '').trim()
       const resolvedTable = resolveDropdownTableToken({
         tableToken,
         currentDaten: currentRecord,
@@ -3630,42 +3665,232 @@ export default function PdvmDialogPage() {
           : ''
 
       const controlDebug = buildFlatPicControl({
-        controlData,
-        fieldKey: `${parentFieldKey}.${name}`,
+        controlData: runtime.controlData,
+        fieldKey: `${parentFieldKey}.${runtime.name}`,
         value: null,
         valueTimeKey: 'ORIGINAL',
-        sourcePath: String(controlPayload.SOURCE_PATH ?? controlPayload.source_path ?? `root.${parentFieldKey}`).trim() || `root.${parentFieldKey}`,
+        sourcePath: runtime.sourcePath,
       })
 
       const controlDebugWithDiag = {
         ...controlDebug,
         EXPERT_MODE: globalExpertMode,
-        RESOLUTION_SOURCE: resolvedControl.source,
+        RESOLUTION_SOURCE: runtime.resolvedControl.source,
+        RESOLUTION_WARNING: runtime.runtimeWarning || undefined,
         DROPDOWN_TABLE_TOKEN: tableToken || undefined,
         DROPDOWN_TABLE_RESOLVED: resolvedTable || undefined,
         DROPDOWN_TABLE_WARNING: tableWarning || undefined,
       }
 
       return {
-        ...fieldDef,
-        type: mappedType,
-        CONTROL: controlPayload,
-        configs: asObject(controlPayload.CONFIGS),
-        label: String(controlPayload.LABEL ?? fieldDef.label ?? name).trim() || name,
-        required: toBoolean(fieldDef.required ?? false),
-        placeholder: String(fieldDef.placeholder ?? '').trim() || undefined,
-        tooltip: tooltip || undefined,
-        help_text: tooltip || undefined,
-        SAVE_PATH: String(fieldDef.SAVE_PATH || name).trim(),
-        lookupTable: goSelectLookupTable || undefined,
+        ...runtime.fieldDef,
+        type: runtime.mappedType,
+        CONTROL: runtime.controlPayload,
+        configs: asObject(runtime.controlPayload.CONFIGS),
+        label: String(runtime.controlPayload.LABEL ?? runtime.fieldDef.label ?? runtime.name).trim() || runtime.name,
+        required: toBoolean(runtime.fieldDef.required ?? false),
+        placeholder: String(runtime.fieldDef.placeholder ?? '').trim() || undefined,
+        tooltip: runtime.tooltip || undefined,
+        help_text: runtime.runtimeWarning
+          ? `${runtime.runtimeWarning}${runtime.tooltip ? ` · ${runtime.tooltip}` : ''}`
+          : (runtime.tooltip || undefined),
+        SAVE_PATH: String(runtime.fieldDef.SAVE_PATH || runtime.name).trim(),
+        lookupTable: runtime.goSelectLookupTable,
         options: resolvedOptions.length
           ? resolvedOptions
           : undefined,
+        resolution_warning: runtime.runtimeWarning || undefined,
         control_debug: controlDebugWithDiag,
         EXPERT_MODE: expertMode,
-        ...(readOnly ? { READ_ONLY: true } : {}),
+        ...(runtime.readOnly ? { READ_ONLY: true } : {}),
       } as any
     }) as PdvmElementField[]
+  }
+
+  const buildElementRuntimeProps = (
+    d: any,
+    fieldKey: string,
+    gruppe: string,
+    feld: string,
+    type: string,
+    current: Record<string, any>,
+  ): {
+    elementTemplate: Record<string, any> | null
+    elementFields: PdvmElementField[]
+    elementFieldsByUid: Record<string, PdvmElementField[]>
+    elementDefinitions: Array<{ uid: string; label: string; template?: Record<string, any>; frameGuid?: string }>
+    elementFrameType: string
+    combinedElementValidationError: string | null
+    elementLabelKeys?: string[]
+    elementDraftHydrator?: (draft: Record<string, any>, draftUid?: string | null) => Record<string, any>
+    elementDraftNormalizer?: (draft: Record<string, any>, draftUid?: string | null) => Record<string, any>
+  } => {
+    const elementFrameConfig = elementFrameConfigResolvedByFieldKey[fieldKey]
+    const elementValidationError =
+      (type === 'element_list' || type === 'group_list')
+        ? [
+            validateCollectionSourcePath(current as Record<string, any>, d.source_path),
+            String(elementFrameConfig?.validationError || '').trim() || null,
+          ].filter(Boolean).join(' · ') || null
+        : null
+
+    const isFrameFieldsList =
+      String(effectiveDialogTable || '').trim().toLowerCase() === 'sys_framedaten' &&
+      (type === 'element_list' || type === 'group_list') &&
+      gruppe.toUpperCase() === 'FIELDS' &&
+      feld.toUpperCase() === 'FIELDS'
+
+    const fallbackElementTemplate = isFrameFieldsList
+      ? {
+          FIELD: '',
+          TAB: 1,
+          DISPLAY_ORDER: 10,
+          TABLE: 'sys_control_dict',
+          GRUPPE: '',
+        }
+      : null
+
+    const fallbackElementFields = isFrameFieldsList
+      ? [
+          {
+            name: 'FIELD',
+            label: 'Feld (sys_control_dict)',
+            type: 'go_select_view',
+            lookupTable: 'sys_control_dict',
+            SAVE_PATH: 'FIELD',
+            required: true,
+            display_order: 10,
+          },
+          {
+            name: 'TAB',
+            label: 'Tab',
+            type: 'number',
+            SAVE_PATH: 'TAB',
+            required: true,
+            display_order: 20,
+          },
+          {
+            name: 'DISPLAY_ORDER',
+            label: 'Display Order',
+            type: 'number',
+            SAVE_PATH: 'DISPLAY_ORDER',
+            required: true,
+            display_order: 30,
+          },
+        ]
+      : null
+
+    const elementTemplate = elementFrameConfig?.template || fallbackElementTemplate || null
+    const elementFieldsRaw = elementFrameConfig?.fields || fallbackElementFields || null
+    const elementDefinitions = elementFrameConfig?.definitions || []
+    const elementFrameType = String(elementFrameConfig?.frameType || '').trim().toLowerCase()
+    const frameFieldsEditorRaw = isFrameFieldsList
+      ? buildFrameFieldsElementEditorFields(elementFieldsRaw, controlTemplatePayload)
+      : elementFieldsRaw
+    const elementFields = enrichElementFields(frameFieldsEditorRaw, fieldKey)
+    const elementFieldsByUid = Object.fromEntries(
+      Object.entries(elementFrameConfig?.fieldsByDefinitionUid || {}).map(([uid, fields]) => [
+        uid,
+        enrichElementFields(fields, fieldKey),
+      ]),
+    ) as Record<string, PdvmElementField[]>
+
+    const elementResolutionSourceFields = elementFrameType === 'element_list'
+      ? Object.values(elementFieldsByUid).flat()
+      : elementFields
+    const nonBlockingResolutionWarnings = new Set([
+      'CONTROL_UID fehlt. Inline CONTROL als Uebergang verwendet.',
+    ])
+    const elementControlResolutionWarnings = Array.from(new Set(
+      elementResolutionSourceFields
+        .map((f) => String((f as any)?.control_debug?.RESOLUTION_WARNING || '').trim())
+        .filter(Boolean),
+    ))
+    const elementControlResolutionError = elementControlResolutionWarnings
+      .filter((msg) => !nonBlockingResolutionWarnings.has(msg))
+      .join(' · ') || null
+    const combinedElementValidationError = [elementValidationError, elementControlResolutionError]
+      .filter(Boolean)
+      .join(' · ') || null
+
+    const elementDraftHydrator = isFrameFieldsList
+      ? (draft: Record<string, any>, draftUid?: string | null) => {
+          const row = asObject(draft)
+          const uidToken = String(draftUid || '').trim()
+          const fieldRaw = String(readCfgValue(row, ['FIELD', 'FELD']) || '').trim()
+          const fieldUid =
+            resolveControlUidToken(uidToken, controlUidByToken) ||
+            resolveControlUidToken(fieldRaw, controlUidByToken)
+          if (!isUuidString(fieldUid)) return row
+          const base = asObject(frameFieldsControlPayloadByUid[fieldUid])
+          if (!Object.keys(base).length) {
+            return {
+              ...row,
+              FIELD: fieldUid,
+            }
+          }
+          return {
+            ...base,
+            ...row,
+            FIELD: fieldUid,
+          }
+        }
+      : undefined
+
+    const elementDraftNormalizer = isFrameFieldsList
+      ? (draft: Record<string, any>, draftUid?: string | null) => {
+          const row = asObject(draft)
+          const uidToken = String(draftUid || '').trim()
+          const fieldRaw = String(readCfgValue(row, ['FIELD', 'FELD']) || '').trim()
+          const uidCandidate = resolveControlUidToken(uidToken, controlUidByToken)
+          const fieldCandidate = resolveControlUidToken(fieldRaw, controlUidByToken)
+          const fieldUid = uidCandidate || fieldCandidate
+          if ((uidToken || fieldRaw) && !isUuidString(fieldUid)) {
+            const sourceToken = uidToken || fieldRaw
+            throw new Error(`FIELD/Element-UID '${sourceToken}' konnte nicht auf eine Control-UID aufgeloest werden.`)
+          }
+          const base = isUuidString(fieldUid) ? asObject(frameFieldsControlPayloadByUid[fieldUid]) : {}
+
+          const out: Record<string, any> = {}
+          if (fieldUid) out.__ELEMENT_UID = fieldUid
+
+          const tabRaw = row.TAB
+          if (tabRaw !== undefined && tabRaw !== null && String(tabRaw).trim() !== '') {
+            out.TAB = Number(tabRaw)
+          }
+
+          const orderRaw = row.DISPLAY_ORDER
+          if (orderRaw !== undefined && orderRaw !== null && String(orderRaw).trim() !== '') {
+            out.DISPLAY_ORDER = Number(orderRaw)
+          }
+
+          Object.entries(row).forEach(([k, v]) => {
+            const key = String(k || '').trim().toUpperCase()
+            if (!key) return
+            if (key === 'FIELD' || key === 'FELD' || key === 'TAB' || key === 'DISPLAY_ORDER') return
+            if (v === undefined || v === null) return
+            if (typeof v === 'string' && !v.trim()) return
+
+            const baseVal = (base as any)[key]
+            if (valuesEqual(v, baseVal)) return
+            out[key] = v
+          })
+
+          return out
+        }
+      : undefined
+
+    return {
+      elementTemplate,
+      elementFields,
+      elementFieldsByUid,
+      elementDefinitions,
+      elementFrameType,
+      combinedElementValidationError,
+      elementLabelKeys: isFrameFieldsList ? ['LABEL', 'NAME', 'FIELD'] : undefined,
+      elementDraftHydrator,
+      elementDraftNormalizer,
+    }
   }
 
   // Menu editor tabs come from frame definition (sys_framedaten)
@@ -5454,148 +5679,7 @@ export default function PdvmDialogPage() {
                           const validationMessage = draftErrorByField[validationKey]
                           const options = dropdownOptionsByFieldKey[fieldKey] || []
                           const resolvedControl = resolvedControlByGroupField[`${gruppe.toUpperCase()}::${feld.toUpperCase()}`] || null
-                          const elementFrameConfig = elementFrameConfigResolvedByFieldKey[fieldKey]
-                          const elementValidationError =
-                            (type === 'element_list' || type === 'group_list')
-                              ? [
-                                  validateCollectionSourcePath(current as Record<string, any>, d.source_path),
-                                  String(elementFrameConfig?.validationError || '').trim() || null,
-                                ].filter(Boolean).join(' · ') || null
-                              : null
-                          const isFrameFieldsList =
-                            String(effectiveDialogTable || '').trim().toLowerCase() === 'sys_framedaten' &&
-                            (type === 'element_list' || type === 'group_list') &&
-                            gruppe.toUpperCase() === 'FIELDS' &&
-                            feld.toUpperCase() === 'FIELDS'
-                          const fallbackElementTemplate = isFrameFieldsList
-                            ? {
-                                FIELD: '',
-                                TAB: 1,
-                                DISPLAY_ORDER: 10,
-                                TABLE: 'sys_control_dict',
-                                GRUPPE: '',
-                              }
-                            : null
-                          const fallbackElementFields = isFrameFieldsList
-                            ? [
-                                {
-                                  name: 'FIELD',
-                                  label: 'Feld (sys_control_dict)',
-                                  type: 'go_select_view',
-                                  lookupTable: 'sys_control_dict',
-                                  SAVE_PATH: 'FIELD',
-                                  required: true,
-                                  display_order: 10,
-                                },
-                                {
-                                  name: 'TAB',
-                                  label: 'Tab',
-                                  type: 'number',
-                                  SAVE_PATH: 'TAB',
-                                  required: true,
-                                  display_order: 20,
-                                },
-                                {
-                                  name: 'DISPLAY_ORDER',
-                                  label: 'Display Order',
-                                  type: 'number',
-                                  SAVE_PATH: 'DISPLAY_ORDER',
-                                  required: true,
-                                  display_order: 30,
-                                },
-                              ]
-                            : null
-                          const elementTemplate = elementFrameConfig?.template || fallbackElementTemplate || null
-                          const elementFieldsRaw = elementFrameConfig?.fields || fallbackElementFields || null
-                          const elementDefinitions = elementFrameConfig?.definitions || []
-                          const elementFrameType = String(elementFrameConfig?.frameType || '').trim().toLowerCase()
-                          const frameFieldsEditorRaw = isFrameFieldsList
-                            ? buildFrameFieldsElementEditorFields(elementFieldsRaw, controlTemplatePayload)
-                            : elementFieldsRaw
-                          const elementFields = enrichElementFields(frameFieldsEditorRaw, fieldKey)
-                          const enrichedFieldsByDefinitionUid = Object.fromEntries(
-                            Object.entries(elementFrameConfig?.fieldsByDefinitionUid || {}).map(([uid, fields]) => [
-                              uid,
-                              enrichElementFields(fields, fieldKey),
-                            ]),
-                          ) as Record<string, PdvmElementField[]>
-                          const elementResolutionSourceFields = elementFrameType === 'element_list'
-                            ? Object.values(enrichedFieldsByDefinitionUid).flat()
-                            : elementFields
-                          const elementControlResolutionError = elementResolutionSourceFields
-                            .map((f) => String((f as any)?.control_debug?.RESOLUTION_WARNING || '').trim())
-                            .filter(Boolean)
-                            .join(' · ') || null
-                          const combinedElementValidationError = [elementValidationError, elementControlResolutionError]
-                            .filter(Boolean)
-                            .join(' · ') || null
-
-                          const hydrateFrameFieldElementDraft = isFrameFieldsList
-                            ? (draft: Record<string, any>, draftUid?: string | null) => {
-                                const row = asObject(draft)
-                                const uidToken = String(draftUid || '').trim()
-                                const fieldRaw = String(readCfgValue(row, ['FIELD', 'FELD']) || '').trim()
-                                const fieldUid =
-                                  resolveControlUidToken(uidToken, controlUidByToken) ||
-                                  resolveControlUidToken(fieldRaw, controlUidByToken)
-                                if (!isUuidString(fieldUid)) return row
-                                const base = asObject(frameFieldsControlPayloadByUid[fieldUid])
-                                if (!Object.keys(base).length) {
-                                  return {
-                                    ...row,
-                                    FIELD: fieldUid,
-                                  }
-                                }
-                                return {
-                                  ...base,
-                                  ...row,
-                                  FIELD: fieldUid,
-                                }
-                              }
-                            : undefined
-
-                          const normalizeFrameFieldElementDraft = isFrameFieldsList
-                            ? (draft: Record<string, any>, draftUid?: string | null) => {
-                                const row = asObject(draft)
-                                const uidToken = String(draftUid || '').trim()
-                                const fieldRaw = String(readCfgValue(row, ['FIELD', 'FELD']) || '').trim()
-                                const uidCandidate = resolveControlUidToken(uidToken, controlUidByToken)
-                                const fieldCandidate = resolveControlUidToken(fieldRaw, controlUidByToken)
-                                const fieldUid = uidCandidate || fieldCandidate
-                                if ((uidToken || fieldRaw) && !isUuidString(fieldUid)) {
-                                  const sourceToken = uidToken || fieldRaw
-                                  throw new Error(`FIELD/Element-UID '${sourceToken}' konnte nicht auf eine Control-UID aufgeloest werden.`)
-                                }
-                                const base = isUuidString(fieldUid) ? asObject(frameFieldsControlPayloadByUid[fieldUid]) : {}
-
-                                const out: Record<string, any> = {}
-                                if (fieldUid) out.__ELEMENT_UID = fieldUid
-
-                                const tabRaw = row.TAB
-                                if (tabRaw !== undefined && tabRaw !== null && String(tabRaw).trim() !== '') {
-                                  out.TAB = Number(tabRaw)
-                                }
-
-                                const orderRaw = row.DISPLAY_ORDER
-                                if (orderRaw !== undefined && orderRaw !== null && String(orderRaw).trim() !== '') {
-                                  out.DISPLAY_ORDER = Number(orderRaw)
-                                }
-
-                                Object.entries(row).forEach(([k, v]) => {
-                                  const key = String(k || '').trim().toUpperCase()
-                                  if (!key) return
-                                  if (key === 'FIELD' || key === 'FELD' || key === 'TAB' || key === 'DISPLAY_ORDER') return
-                                  if (v === undefined || v === null) return
-                                  if (typeof v === 'string' && !v.trim()) return
-
-                                  const baseVal = (base as any)[key]
-                                  if (valuesEqual(v, baseVal)) return
-                                  out[key] = v
-                                })
-
-                                return out
-                              }
-                            : undefined
+                          const elementRuntime = buildElementRuntimeProps(d, fieldKey, gruppe, feld, type, current as Record<string, any>)
 
                           const onChange = (value: any) => {
                             setPicDraft((prev) => {
@@ -5646,23 +5730,25 @@ export default function PdvmDialogPage() {
                               onChange={onChange}
                               readOnly={!!d.read_only || !!dropdownFieldReadOnlyByFieldKey[fieldKey]}
                               options={options}
+                              resolvedConfigs={asObject((d as any).configs)}
                               lookupTable={
                                 type === 'go_select_view'
                                   ? String((d as any).lookupTable || '').trim() || resolveGoSelectViewTable(d.configs, (d as any).CONTROL)
                                   : undefined
                               }
                               helpText={validationMessage ? `${validationMessage}${d.tooltip ? ` · ${d.tooltip}` : ''}` : (d.tooltip || '')}
-                              elementTemplate={elementTemplate}
-                              elementFields={elementFields}
-                              elementFieldsByUid={enrichedFieldsByDefinitionUid}
-                              elementDefinitions={elementDefinitions}
-                              elementFrameType={elementFrameType}
-                              elementValidationError={combinedElementValidationError}
-                              elementLabelKeys={isFrameFieldsList ? ['LABEL', 'NAME', 'FIELD'] : undefined}
+                              resolutionWarning={String((d as any).resolution_warning || '').trim() || undefined}
+                              elementTemplate={elementRuntime.elementTemplate}
+                              elementFields={elementRuntime.elementFields}
+                              elementFieldsByUid={elementRuntime.elementFieldsByUid}
+                              elementDefinitions={elementRuntime.elementDefinitions}
+                              elementFrameType={elementRuntime.elementFrameType}
+                              elementValidationError={elementRuntime.combinedElementValidationError}
+                              elementLabelKeys={elementRuntime.elementLabelKeys}
                               elementUidLabels={elementUidLabels}
                               onElementListCommit={(nextValue) => commitElementListChange(gruppe, feld, d.type, nextValue, String(d.table || ''), d.source_path)}
-                              elementDraftHydrator={hydrateFrameFieldElementDraft}
-                              elementDraftNormalizer={normalizeFrameFieldElementDraft}
+                              elementDraftHydrator={elementRuntime.elementDraftHydrator}
+                              elementDraftNormalizer={elementRuntime.elementDraftNormalizer}
                               controlDebug={buildControlDebugForField(d, fieldKey, rawValue, resolvedControl)}
                             />
                           )
@@ -6068,148 +6154,7 @@ export default function PdvmDialogPage() {
                                   const validationMessage = draftErrorByField[validationKey]
                                   const options = dropdownOptionsByFieldKey[fieldKey] || []
                                   const resolvedControl = resolvedControlByGroupField[`${gruppe.toUpperCase()}::${feld.toUpperCase()}`] || null
-                                  const elementFrameConfig = elementFrameConfigResolvedByFieldKey[fieldKey]
-                                  const elementValidationError =
-                                    (type === 'element_list' || type === 'group_list')
-                                      ? [
-                                          validateCollectionSourcePath(current as Record<string, any>, d.source_path),
-                                          String(elementFrameConfig?.validationError || '').trim() || null,
-                                        ].filter(Boolean).join(' · ') || null
-                                      : null
-                                  const isFrameFieldsList =
-                                    String(effectiveDialogTable || '').trim().toLowerCase() === 'sys_framedaten' &&
-                                    (type === 'element_list' || type === 'group_list') &&
-                                    gruppe.toUpperCase() === 'FIELDS' &&
-                                    feld.toUpperCase() === 'FIELDS'
-                                  const fallbackElementTemplate = isFrameFieldsList
-                                    ? {
-                                        FIELD: '',
-                                        TAB: 1,
-                                        DISPLAY_ORDER: 10,
-                                        TABLE: 'sys_control_dict',
-                                        GRUPPE: '',
-                                      }
-                                    : null
-                                  const fallbackElementFields = isFrameFieldsList
-                                    ? [
-                                        {
-                                          name: 'FIELD',
-                                          label: 'Feld (sys_control_dict)',
-                                          type: 'go_select_view',
-                                          lookupTable: 'sys_control_dict',
-                                          SAVE_PATH: 'FIELD',
-                                          required: true,
-                                          display_order: 10,
-                                        },
-                                        {
-                                          name: 'TAB',
-                                          label: 'Tab',
-                                          type: 'number',
-                                          SAVE_PATH: 'TAB',
-                                          required: true,
-                                          display_order: 20,
-                                        },
-                                        {
-                                          name: 'DISPLAY_ORDER',
-                                          label: 'Display Order',
-                                          type: 'number',
-                                          SAVE_PATH: 'DISPLAY_ORDER',
-                                          required: true,
-                                          display_order: 30,
-                                        },
-                                      ]
-                                    : null
-                                  const elementTemplate = elementFrameConfig?.template || fallbackElementTemplate || null
-                                  const elementFieldsRaw = elementFrameConfig?.fields || fallbackElementFields || null
-                                  const elementDefinitions = elementFrameConfig?.definitions || []
-                                  const elementFrameType = String(elementFrameConfig?.frameType || '').trim().toLowerCase()
-                                  const frameFieldsEditorRaw = isFrameFieldsList
-                                    ? buildFrameFieldsElementEditorFields(elementFieldsRaw, controlTemplatePayload)
-                                    : elementFieldsRaw
-                                  const elementFields = enrichElementFields(frameFieldsEditorRaw, fieldKey)
-                                  const enrichedFieldsByDefinitionUid = Object.fromEntries(
-                                    Object.entries(elementFrameConfig?.fieldsByDefinitionUid || {}).map(([uid, fields]) => [
-                                      uid,
-                                      enrichElementFields(fields, fieldKey),
-                                    ]),
-                                  ) as Record<string, PdvmElementField[]>
-                                  const elementResolutionSourceFields = elementFrameType === 'element_list'
-                                    ? Object.values(enrichedFieldsByDefinitionUid).flat()
-                                    : elementFields
-                                  const elementControlResolutionError = elementResolutionSourceFields
-                                    .map((f) => String((f as any)?.control_debug?.RESOLUTION_WARNING || '').trim())
-                                    .filter(Boolean)
-                                    .join(' · ') || null
-                                  const combinedElementValidationError = [elementValidationError, elementControlResolutionError]
-                                    .filter(Boolean)
-                                    .join(' · ') || null
-
-                                  const hydrateFrameFieldElementDraft = isFrameFieldsList
-                                    ? (draft: Record<string, any>, draftUid?: string | null) => {
-                                        const row = asObject(draft)
-                                        const uidToken = String(draftUid || '').trim()
-                                        const fieldRaw = String(readCfgValue(row, ['FIELD', 'FELD']) || '').trim()
-                                        const fieldUid =
-                                          resolveControlUidToken(uidToken, controlUidByToken) ||
-                                          resolveControlUidToken(fieldRaw, controlUidByToken)
-                                        if (!isUuidString(fieldUid)) return row
-                                        const base = asObject(frameFieldsControlPayloadByUid[fieldUid])
-                                        if (!Object.keys(base).length) {
-                                          return {
-                                            ...row,
-                                            FIELD: fieldUid,
-                                          }
-                                        }
-                                        return {
-                                          ...base,
-                                          ...row,
-                                          FIELD: fieldUid,
-                                        }
-                                      }
-                                    : undefined
-
-                                  const normalizeFrameFieldElementDraft = isFrameFieldsList
-                                    ? (draft: Record<string, any>, draftUid?: string | null) => {
-                                        const row = asObject(draft)
-                                        const uidToken = String(draftUid || '').trim()
-                                        const fieldRaw = String(readCfgValue(row, ['FIELD', 'FELD']) || '').trim()
-                                        const uidCandidate = resolveControlUidToken(uidToken, controlUidByToken)
-                                        const fieldCandidate = resolveControlUidToken(fieldRaw, controlUidByToken)
-                                        const fieldUid = uidCandidate || fieldCandidate
-                                        if ((uidToken || fieldRaw) && !isUuidString(fieldUid)) {
-                                          const sourceToken = uidToken || fieldRaw
-                                          throw new Error(`FIELD/Element-UID '${sourceToken}' konnte nicht auf eine Control-UID aufgeloest werden.`)
-                                        }
-                                        const base = isUuidString(fieldUid) ? asObject(frameFieldsControlPayloadByUid[fieldUid]) : {}
-
-                                        const out: Record<string, any> = {}
-                                        if (fieldUid) out.__ELEMENT_UID = fieldUid
-
-                                        const tabRaw = row.TAB
-                                        if (tabRaw !== undefined && tabRaw !== null && String(tabRaw).trim() !== '') {
-                                          out.TAB = Number(tabRaw)
-                                        }
-
-                                        const orderRaw = row.DISPLAY_ORDER
-                                        if (orderRaw !== undefined && orderRaw !== null && String(orderRaw).trim() !== '') {
-                                          out.DISPLAY_ORDER = Number(orderRaw)
-                                        }
-
-                                        Object.entries(row).forEach(([k, v]) => {
-                                          const key = String(k || '').trim().toUpperCase()
-                                          if (!key) return
-                                          if (key === 'FIELD' || key === 'FELD' || key === 'TAB' || key === 'DISPLAY_ORDER') return
-                                          if (v === undefined || v === null) return
-                                          if (typeof v === 'string' && !v.trim()) return
-
-                                          const baseVal = (base as any)[key]
-                                          if (valuesEqual(v, baseVal)) return
-                                          out[key] = v
-                                        })
-
-                                        return out
-                                      }
-                                    : undefined
+                                  const elementRuntime = buildElementRuntimeProps(d, fieldKey, gruppe, feld, type, current as Record<string, any>)
 
                                   const onChange = (value: any) => {
                                     setPicDraft((prev) => {
@@ -6260,23 +6205,25 @@ export default function PdvmDialogPage() {
                                       onChange={onChange}
                                       readOnly={!!d.read_only || !!dropdownFieldReadOnlyByFieldKey[fieldKey]}
                                       options={options}
+                                      resolvedConfigs={asObject((d as any).configs)}
                                       lookupTable={
                                         type === 'go_select_view'
                                           ? String((d as any).lookupTable || '').trim() || resolveGoSelectViewTable(d.configs, (d as any).CONTROL)
                                           : undefined
                                       }
                                       helpText={validationMessage ? `${validationMessage}${d.tooltip ? ` · ${d.tooltip}` : ''}` : (d.tooltip || '')}
-                                      elementTemplate={elementTemplate}
-                                      elementFields={elementFields}
-                                      elementFieldsByUid={enrichedFieldsByDefinitionUid}
-                                      elementDefinitions={elementDefinitions}
-                                      elementFrameType={elementFrameType}
-                                      elementValidationError={combinedElementValidationError}
-                                      elementLabelKeys={isFrameFieldsList ? ['LABEL', 'NAME', 'FIELD'] : undefined}
+                                      resolutionWarning={String((d as any).resolution_warning || '').trim() || undefined}
+                                      elementTemplate={elementRuntime.elementTemplate}
+                                      elementFields={elementRuntime.elementFields}
+                                      elementFieldsByUid={elementRuntime.elementFieldsByUid}
+                                      elementDefinitions={elementRuntime.elementDefinitions}
+                                      elementFrameType={elementRuntime.elementFrameType}
+                                      elementValidationError={elementRuntime.combinedElementValidationError}
+                                      elementLabelKeys={elementRuntime.elementLabelKeys}
                                       elementUidLabels={elementUidLabels}
                                       onElementListCommit={(nextValue) => commitElementListChange(gruppe, feld, d.type, nextValue, String(d.table || ''), d.source_path)}
-                                      elementDraftHydrator={hydrateFrameFieldElementDraft}
-                                      elementDraftNormalizer={normalizeFrameFieldElementDraft}
+                                      elementDraftHydrator={elementRuntime.elementDraftHydrator}
+                                      elementDraftNormalizer={elementRuntime.elementDraftNormalizer}
                                       controlDebug={buildControlDebugForField(d, fieldKey, rawValue, resolvedControl)}
                                     />
                                   )
