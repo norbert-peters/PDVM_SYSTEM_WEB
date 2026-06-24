@@ -48,10 +48,106 @@ function readCfgValue(cfg: any, keys: string[]): any {
   return undefined
 }
 
-function resolveGoSelectTableFromResolvedConfigs(resolvedConfigs: any): string {
-  const cfg = asObject(resolvedConfigs)
+function normalizeSourcePath(raw: any): string {
+  const path = String(raw || '').trim()
+  return path || 'root'
+}
+
+function isRootSourcePath(pathRaw: any): boolean {
+  const path = String(pathRaw || '').trim().toLowerCase()
+  return !path || path === 'root' || path === '__root__' || path === '__top__'
+}
+
+function resolveGoSelectTableV11(params: {
+  resolvedConfigs: any
+  legacyLookupTable?: string
+  sourceContext?: Record<string, any> | null
+  sourcePath?: string
+}): string {
+  const cfg = asObject(params.resolvedConfigs)
   const goSelect = asObject(readCfgValue(cfg, ['go_select_view']))
-  return String(readCfgValue(goSelect, ['table']) || '').trim()
+
+  const modeRaw = String(readCfgValue(goSelect, ['table_mode']) || '').trim().toLowerCase()
+  const staticTable = String(readCfgValue(goSelect, ['table']) || '').trim()
+  const tablePath = String(readCfgValue(goSelect, ['table_path']) || '').trim()
+  const mode = modeRaw === 'static' || modeRaw === 'from_path'
+    ? modeRaw
+    : (staticTable ? 'static' : (tablePath ? 'from_path' : ''))
+
+  if (mode === 'static') {
+    return staticTable || String(params.legacyLookupTable || '').trim()
+  }
+
+  if (mode === 'from_path') {
+    const context = asObject(params.sourceContext)
+    const sourcePath = normalizeSourcePath(params.sourcePath)
+
+    const resolveSourceRoot = (): Record<string, any> => {
+      if (isRootSourcePath(sourcePath)) return context
+
+      const direct = getValueByPathCaseInsensitive(context, sourcePath)
+      if (direct && typeof direct === 'object' && !Array.isArray(direct)) return asObject(direct)
+
+      // Falls der Context bereits auf SOURCE_PATH zeigt, pruefen wir den abgeschnittenen Root-Pfad.
+      const stripped = sourcePath.replace(/^root\.?/i, '')
+      if (stripped) {
+        const nested = getValueByPathCaseInsensitive(context, stripped)
+        if (nested && typeof nested === 'object' && !Array.isArray(nested)) return asObject(nested)
+      }
+
+      return context
+    }
+
+    const sourceRoot = resolveSourceRoot()
+    const tableRaw = tablePath
+      ? getValueByPathCaseInsensitive(sourceRoot, tablePath)
+      : undefined
+    const table = String(tableRaw || '').trim()
+    if (table) return table
+
+    // Relative/absolute Fallback fuer TABLE_PATH.
+    if (tablePath) {
+      const absoluteTry = String(getValueByPathCaseInsensitive(context, tablePath) || '').trim()
+      if (absoluteTry) return absoluteTry
+    }
+
+    return String(params.legacyLookupTable || '').trim()
+  }
+
+  return String(params.legacyLookupTable || '').trim()
+}
+
+function resolveElementAddSelectorConfig(resolvedConfigs: any): { goSelectConfig: Record<string, any>; sourcePath?: string } {
+  const cfg = asObject(resolvedConfigs)
+
+  const directAdd = asObject(readCfgValue(cfg, ['element_add', 'ELEMENT_ADD']))
+  const directAddGoSelect = asObject(readCfgValue(directAdd, ['go_select_view']))
+  if (Object.keys(directAddGoSelect).length) {
+    return {
+      goSelectConfig: directAddGoSelect,
+      sourcePath: String(readCfgValue(directAdd, ['source_path', 'SOURCE_PATH']) || '').trim() || undefined,
+    }
+  }
+
+  const elementCfg = asObject(readCfgValue(cfg, ['element']))
+  const elementAdd = asObject(readCfgValue(elementCfg, ['add_select', 'add_selector', 'element_add']))
+  const elementAddGoSelect = asObject(readCfgValue(elementAdd, ['go_select_view']))
+  if (Object.keys(elementAddGoSelect).length) {
+    return {
+      goSelectConfig: elementAddGoSelect,
+      sourcePath: String(readCfgValue(elementAdd, ['source_path', 'SOURCE_PATH']) || '').trim() || undefined,
+    }
+  }
+
+  const legacyElementGoSelect = asObject(readCfgValue(elementCfg, ['go_select_view']))
+  if (Object.keys(legacyElementGoSelect).length) {
+    return {
+      goSelectConfig: legacyElementGoSelect,
+      sourcePath: String(readCfgValue(elementCfg, ['source_path', 'SOURCE_PATH']) || '').trim() || undefined,
+    }
+  }
+
+  return { goSelectConfig: {} }
 }
 
 function getValueByKeyCaseInsensitive(source: Record<string, any> | null | undefined, key: string): any {
@@ -383,6 +479,8 @@ export function PdvmInputControl(props: {
   placeholder?: string
   options?: PdvmDropdownOption[]
   resolvedConfigs?: Record<string, any>
+  goSelectSourceContext?: Record<string, any> | null
+  goSelectSourcePath?: string
   lookupTable?: string
   helpText?: string | null
   helpEnabled?: boolean
@@ -411,6 +509,7 @@ export function PdvmInputControl(props: {
   const [elementModalBase, setElementModalBase] = useState<Record<string, any> | null>(null)
   const [elementListGuardrailError, setElementListGuardrailError] = useState<string | null>(null)
   const [elementAddDefinitionUid, setElementAddDefinitionUid] = useState<string>('')
+  const [elementAddLookupUid, setElementAddLookupUid] = useState<string>('')
   const [multiAddValue, setMultiAddValue] = useState<string>('')
 
   const controlDebugRaw = props.controlDebug && typeof props.controlDebug === 'object' ? (props.controlDebug as Record<string, any>) : null
@@ -437,16 +536,33 @@ export function PdvmInputControl(props: {
 
   const effectiveType = normalizeInputType((props as any).type)
   const disabled = !!props.disabled || !!props.readOnly
-  const resolvedGoSelectTable = useMemo(
-    () => resolveGoSelectTableFromResolvedConfigs(props.resolvedConfigs),
-    [props.resolvedConfigs],
-  )
-  const effectiveLookupTable = String(resolvedGoSelectTable || props.lookupTable || '').trim()
+  const effectiveLookupTable = useMemo(() => {
+    return resolveGoSelectTableV11({
+      resolvedConfigs: props.resolvedConfigs,
+      legacyLookupTable: props.lookupTable,
+      sourceContext: props.goSelectSourceContext,
+      sourcePath: props.goSelectSourcePath,
+    })
+  }, [props.resolvedConfigs, props.lookupTable, props.goSelectSourceContext, props.goSelectSourcePath])
+  const elementAddSelector = useMemo(() => {
+    return resolveElementAddSelectorConfig(props.resolvedConfigs)
+  }, [props.resolvedConfigs])
+  const elementAddLookupTable = useMemo(() => {
+    if (!Object.keys(elementAddSelector.goSelectConfig).length) return ''
+    return resolveGoSelectTableV11({
+      resolvedConfigs: { go_select_view: elementAddSelector.goSelectConfig },
+      sourceContext: props.goSelectSourceContext,
+      sourcePath: elementAddSelector.sourcePath || props.goSelectSourcePath,
+    })
+  }, [elementAddSelector, props.goSelectSourceContext, props.goSelectSourcePath])
   const helpEnabled = props.helpEnabled ?? true
   const isElementList = effectiveType === 'element_list' || effectiveType === 'elemente_list' || effectiveType === 'group_list'
   const elementFrameType = useMemo(() => String(props.elementFrameType || '').trim().toLowerCase(), [props.elementFrameType])
   const isElementFrameTypeList = elementFrameType === 'element_list'
   const isElementFrameTypeSingle = elementFrameType === 'element'
+  const useElementAddLookupSelector = useMemo(() => {
+    return isElementList && !isElementFrameTypeSingle && !!String(elementAddLookupTable || '').trim()
+  }, [isElementList, isElementFrameTypeSingle, elementAddLookupTable])
   const elementFields = useMemo(() => {
     return Array.isArray(props.elementFields) ? props.elementFields : null
   }, [props.elementFields])
@@ -689,6 +805,19 @@ export function PdvmInputControl(props: {
     if (fallback !== elementAddDefinitionUid) setElementAddDefinitionUid(fallback)
   }, [elementDefinitions, availableElementDefinitions, elementAddDefinitionUid])
 
+  useEffect(() => {
+    if (!useElementAddLookupSelector) {
+      if (elementAddLookupUid) setElementAddLookupUid('')
+      return
+    }
+
+    const selected = String(elementAddLookupUid || '').trim()
+    if (!selected) return
+    if (isElementFrameTypeSingle) return
+    if (!usedElementUids.has(selected)) return
+    setElementAddLookupUid('')
+  }, [useElementAddLookupSelector, elementAddLookupUid, isElementFrameTypeSingle, usedElementUids])
+
   const elementEntries = useMemo(() => {
     const out = Object.entries(elementMap).map(([uid, cfg]) => ({ uid, cfg }))
     out.sort((a, b) => {
@@ -828,6 +957,26 @@ export function PdvmInputControl(props: {
       return
     }
     setElementListGuardrailError(null)
+
+    if (useElementAddLookupSelector) {
+      const selectedUid = String(elementAddLookupUid || '').trim()
+      if (!selectedUid) {
+        setElementListGuardrailError('Element-Auswahl fehlt: Bitte zuerst ein Element aus der konfigurierten Tabelle auswaehlen.')
+        return
+      }
+
+      if (!isElementFrameTypeSingle && usedElementUids.has(selectedUid)) {
+        setElementListGuardrailError(`Element '${selectedUid}' ist bereits vorhanden.`)
+        return
+      }
+
+      const selectedDef = elementDefinitions.find((d) => String(d.uid || '').trim() === selectedUid)
+      const tplSource = selectedDef?.template || props.elementTemplate || {}
+      const tpl = tplSource && typeof tplSource === 'object' ? JSON.parse(JSON.stringify(tplSource)) : {}
+      const label = selectedDef?.label || selectedUid
+      openElementModal(selectedUid, tpl, `Element hinzufuegen: ${label}`)
+      return
+    }
 
     if (isElementFrameTypeSingle) {
       const firstDef = elementDefinitions[0]
@@ -1027,21 +1176,32 @@ export function PdvmInputControl(props: {
                     </div>
                   </div>
                 ))}
-                {elementDefinitions.length && !isElementFrameTypeSingle ? (
+                {(useElementAddLookupSelector || (elementDefinitions.length && !isElementFrameTypeSingle)) ? (
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <select
-                      className="pdvm-pic__select"
-                      value={elementAddDefinitionUid}
-                      disabled={disabled || availableElementDefinitions.length === 0}
-                      onChange={(e) => setElementAddDefinitionUid(String(e.target.value || '').trim())}
-                    >
-                      <option value="">(Element auswählen)</option>
-                      {availableElementDefinitions.map((def) => (
-                        <option key={def.uid} value={def.uid}>
-                          {def.label}
-                        </option>
-                      ))}
-                    </select>
+                    {useElementAddLookupSelector ? (
+                      <div style={{ width: '100%' }}>
+                        <PdvmLookupSelect
+                          table={elementAddLookupTable}
+                          value={elementAddLookupUid ? String(elementAddLookupUid) : null}
+                          onChange={(v) => setElementAddLookupUid(String(v || '').trim())}
+                          disabled={disabled}
+                        />
+                      </div>
+                    ) : (
+                      <select
+                        className="pdvm-pic__select"
+                        value={elementAddDefinitionUid}
+                        disabled={disabled || availableElementDefinitions.length === 0}
+                        onChange={(e) => setElementAddDefinitionUid(String(e.target.value || '').trim())}
+                      >
+                        <option value="">(Element auswählen)</option>
+                        {availableElementDefinitions.map((def) => (
+                          <option key={def.uid} value={def.uid}>
+                            {def.label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </div>
                 ) : null}
                 <button
@@ -1050,9 +1210,10 @@ export function PdvmInputControl(props: {
                   onClick={addElement}
                   disabled={
                     disabled ||
-                    (isElementFrameTypeSingle && elementDefinitions.length === 0) ||
-                    (isElementFrameTypeList && availableElementDefinitions.length === 0) ||
-                    (elementDefinitions.length > 0 && !isElementFrameTypeSingle && availableElementDefinitions.length === 0)
+                    (useElementAddLookupSelector && !String(elementAddLookupUid || '').trim()) ||
+                    (!useElementAddLookupSelector && isElementFrameTypeSingle && elementDefinitions.length === 0) ||
+                    (!useElementAddLookupSelector && isElementFrameTypeList && availableElementDefinitions.length === 0) ||
+                    (!useElementAddLookupSelector && elementDefinitions.length > 0 && !isElementFrameTypeSingle && availableElementDefinitions.length === 0)
                   }
                 >
                   + Element hinzufuegen
@@ -1360,6 +1521,8 @@ export function PdvmInputControl(props: {
                     value={nestedValue}
                     options={field.options || []}
                     resolvedConfigs={asObject((field as any).configs)}
+                    goSelectSourceContext={asObject(elementModalDraft)}
+                    goSelectSourcePath={String((nestedControlDebug as any).SOURCE_PATH || (nestedControlDebug as any).source_path || 'root').trim() || 'root'}
                     lookupTable={
                       fieldType === 'go_select_view'
                         ? String(

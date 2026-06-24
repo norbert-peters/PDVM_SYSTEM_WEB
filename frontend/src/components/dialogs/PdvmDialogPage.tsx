@@ -129,6 +129,76 @@ function resolveElementEditorConfig(configs: any): { elementRef: Record<string, 
   return { elementRef: null }
 }
 
+function resolveElementFrameGuidFromConfig(params: {
+  configs: any
+  sourceData: Record<string, any>
+  sourcePathRaw?: string
+}): {
+  frameGuid?: string
+  resolutionSource?: 'static' | 'from_path'
+  resolutionError?: string
+} {
+  const cfg = resolveElementEditorConfig(params.configs)
+  const elementRef = asObject(cfg.elementRef)
+  if (!Object.keys(elementRef).length) {
+    return { resolutionError: 'Element-Frame-Konfiguration fehlt: resolved_configs.element ist leer.' }
+  }
+
+  const tableToken = String(readCfgValue(elementRef, ['table']) || '').trim().toLowerCase()
+  if (tableToken && tableToken !== 'sys_framedaten') {
+    return {
+      resolutionError: `Element-Frame-Konfiguration ungueltig: element.table='${tableToken}' ist nicht zulaessig (erwartet: sys_framedaten).`,
+    }
+  }
+
+  const frameModeRaw = String(readCfgValue(elementRef, ['frame_mode']) || '').trim().toLowerCase()
+  const staticGuid = String(
+    readCfgValue(elementRef, ['frame_guid']) ||
+    readCfgValue(elementRef, ['frame']) ||
+    readCfgValue(elementRef, ['key']) ||
+    ''
+  ).trim()
+  const framePath = String(readCfgValue(elementRef, ['frame_path']) || '').trim()
+
+  const frameMode = frameModeRaw === 'static' || frameModeRaw === 'from_path'
+    ? frameModeRaw
+    : (isUuidString(staticGuid) ? 'static' : (framePath ? 'from_path' : ''))
+
+  if (!frameMode) {
+    return { resolutionError: 'Element-Frame-Konfiguration fehlt: frame_mode kann nicht bestimmt werden.' }
+  }
+
+  if (frameMode === 'static') {
+    if (!isUuidString(staticGuid)) {
+      return { resolutionError: 'Element-Frame-Konfiguration ungueltig: frame_mode=static erfordert eine gueltige frame_guid.' }
+    }
+    return {
+      frameGuid: staticGuid,
+      resolutionSource: 'static',
+    }
+  }
+
+  if (!framePath) {
+    return { resolutionError: 'Element-Frame-Konfiguration ungueltig: frame_mode=from_path erfordert frame_path.' }
+  }
+
+  const sourceRoot = getControlSourceRoot(asObject(params.sourceData), params.sourcePathRaw)
+  const fromSourcePath = String(getValueByPath(asObject(sourceRoot), framePath) || '').trim()
+  const fromRoot = String(getValueByPath(asObject(params.sourceData), framePath) || '').trim()
+  const resolvedGuid = fromSourcePath || fromRoot
+
+  if (!isUuidString(resolvedGuid)) {
+    return {
+      resolutionError: `Element-Frame-Konfiguration ungueltig: frame_path='${framePath}' konnte keine gueltige frame_guid aufloesen.`,
+    }
+  }
+
+  return {
+    frameGuid: resolvedGuid,
+    resolutionSource: 'from_path',
+  }
+}
+
 function resolveSelectConfigByType(params: {
   type: 'dropdown' | 'multi_dropdown'
   cfgElements?: any
@@ -3129,9 +3199,16 @@ export default function PdvmDialogPage() {
     return out
   }, [dropdownFieldConfigs, dropdownQueries])
 
-  const elementFrameRefs = useMemo(() => {
-    if (!isFieldEditor) return [] as Array<{ fieldKey: string; frameGuid: string }>
+  const elementFrameRefResolution = useMemo(() => {
+    const out = {
+      refs: [] as Array<{ fieldKey: string; frameGuid: string }>,
+      errors: {} as Record<string, string>,
+    }
+    if (!isFieldEditor) return out
+
     const refs: Array<{ fieldKey: string; frameGuid: string }> = []
+    const errors: Record<string, string> = {}
+    const sourceData = asObject((picDraft ? picDraft : currentDaten) || {})
 
     uiPicDefs.forEach((def) => {
       const type = normalizePicType(def.type)
@@ -3142,14 +3219,19 @@ export default function PdvmDialogPage() {
       if (!feld) return
 
       const fieldKey = String(def.key || `${gruppe}.${feld}`)
-      const elementCfg = resolveElementEditorConfig(def.configs)
-      const elementRef = asObject(elementCfg.elementRef)
-      const elementRefKey = String(readCfgValue(elementRef, ['key']) || '').trim()
-      const elementRefTable = String(readCfgValue(elementRef, ['table']) || '').trim().toLowerCase()
-      if (isUuidString(elementRefKey) && (!elementRefTable || elementRefTable === 'sys_framedaten')) {
-        refs.push({ fieldKey, frameGuid: elementRefKey })
+      const resolved = resolveElementFrameGuidFromConfig({
+        configs: def.configs,
+        sourceData,
+        sourcePathRaw: def.source_path,
+      })
+
+      if (resolved.frameGuid) {
+        refs.push({ fieldKey, frameGuid: resolved.frameGuid })
         return
       }
+
+      const err = String(resolved.resolutionError || '').trim()
+      if (err) errors[fieldKey] = err
     })
 
     const uniqueByField = new Map<string, { fieldKey: string; frameGuid: string }>()
@@ -3157,8 +3239,13 @@ export default function PdvmDialogPage() {
       if (!uniqueByField.has(ref.fieldKey)) uniqueByField.set(ref.fieldKey, ref)
     })
 
-    return Array.from(uniqueByField.values())
-  }, [isFieldEditor, uiPicDefs])
+    out.refs = Array.from(uniqueByField.values())
+    out.errors = errors
+    return out
+  }, [isFieldEditor, uiPicDefs, picDraft, currentDaten])
+
+  const elementFrameRefs = elementFrameRefResolution.refs
+  const elementFrameRefErrorByFieldKey = elementFrameRefResolution.errors
 
   const elementFrameQueries = useQueries({
     queries: elementFrameRefs.map((ref) => ({
@@ -3730,6 +3817,7 @@ export default function PdvmDialogPage() {
       (type === 'element_list' || type === 'group_list')
         ? [
             validateCollectionSourcePath(current as Record<string, any>, d.source_path),
+            String(elementFrameRefErrorByFieldKey[fieldKey] || '').trim() || null,
             String(elementFrameConfig?.validationError || '').trim() || null,
           ].filter(Boolean).join(' · ') || null
         : null
@@ -5731,6 +5819,8 @@ export default function PdvmDialogPage() {
                               readOnly={!!d.read_only || !!dropdownFieldReadOnlyByFieldKey[fieldKey]}
                               options={options}
                               resolvedConfigs={asObject((d as any).configs)}
+                              goSelectSourceContext={current as Record<string, any>}
+                              goSelectSourcePath={String(d.source_path || 'root').trim() || 'root'}
                               lookupTable={
                                 type === 'go_select_view'
                                   ? String((d as any).lookupTable || '').trim() || resolveGoSelectViewTable(d.configs, (d as any).CONTROL)
@@ -6206,6 +6296,8 @@ export default function PdvmDialogPage() {
                                       readOnly={!!d.read_only || !!dropdownFieldReadOnlyByFieldKey[fieldKey]}
                                       options={options}
                                       resolvedConfigs={asObject((d as any).configs)}
+                                      goSelectSourceContext={current as Record<string, any>}
+                                      goSelectSourcePath={String(d.source_path || 'root').trim() || 'root'}
                                       lookupTable={
                                         type === 'go_select_view'
                                           ? String((d as any).lookupTable || '').trim() || resolveGoSelectViewTable(d.configs, (d as any).CONTROL)

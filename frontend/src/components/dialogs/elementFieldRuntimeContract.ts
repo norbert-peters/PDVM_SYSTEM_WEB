@@ -40,6 +40,19 @@ function asObject(value: any): Record<string, any> {
   return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, any>) : {}
 }
 
+function readCfgValue(source: any, keys: string[]): any {
+  const obj = asObject(source)
+  for (const key of keys) {
+    if (!key) continue
+    if (Object.prototype.hasOwnProperty.call(obj, key)) return (obj as any)[key]
+    const up = key.toUpperCase()
+    if (Object.prototype.hasOwnProperty.call(obj, up)) return (obj as any)[up]
+    const low = key.toLowerCase()
+    if (Object.prototype.hasOwnProperty.call(obj, low)) return (obj as any)[low]
+  }
+  return undefined
+}
+
 function toBoolean(value: any): boolean {
   if (typeof value === 'boolean') return value
   if (typeof value === 'number') return value !== 0
@@ -95,9 +108,17 @@ export function resolveElementFieldRuntimeContract(
       ? resolveGoSelectViewTable(asObject(controlPayload.CONFIGS), controlPayload)
       : ''
 
+  const goSelectConfig = asObject(readCfgValue(asObject(controlPayload.CONFIGS), ['go_select_view']))
+  const goSelectModeRaw = String(readCfgValue(goSelectConfig, ['table_mode']) || '').trim().toLowerCase()
+  const goSelectStaticTable = String(readCfgValue(goSelectConfig, ['table']) || '').trim()
+  const goSelectTablePath = String(readCfgValue(goSelectConfig, ['table_path']) || '').trim()
+  const goSelectMode = goSelectModeRaw === 'static' || goSelectModeRaw === 'from_path'
+    ? goSelectModeRaw
+    : (goSelectStaticTable ? 'static' : (goSelectTablePath ? 'from_path' : ''))
+
   const runtimeWarningParts = [
     String(resolvedControl.warning || '').trim(),
-    mappedType === 'go_select_view' && !String(goSelectLookupTable || '').trim()
+    mappedType === 'go_select_view' && goSelectMode !== 'from_path' && !String(goSelectLookupTable || '').trim()
       ? 'go_select_view nicht konfiguriert: resolved_configs.go_select_view.table fehlt.'
       : '',
   ]
