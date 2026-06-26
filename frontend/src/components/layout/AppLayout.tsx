@@ -20,6 +20,32 @@ interface AppLayoutProps {
   children: React.ReactNode;
 }
 
+function toDisplayHeading(rawAppName: string | null): string {
+  const raw = String(rawAppName || '').trim();
+  if (!raw) return 'H O M E';
+
+  const manualMap: Record<string, string> = {
+    ADMINISTRATION: 'Administration',
+    PERSONALWESEN: 'Personalwesen',
+  };
+
+  const upper = raw.toUpperCase();
+  if (manualMap[upper]) return manualMap[upper];
+
+  // Generischer Fallback: technische Trenner auflösen und je Wort kapitalisieren.
+  return raw
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .map((part) => {
+      const p = part.trim();
+      if (!p) return p;
+      return p.charAt(0).toUpperCase() + p.slice(1).toLowerCase();
+    })
+    .join(' ');
+}
+
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -29,6 +55,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const isDialogRoute = location.pathname.startsWith('/dialog/');
   const isViewRoute = location.pathname.startsWith('/view/');
   const menu = useMenu();
+  const appHeading = toDisplayHeading(menu.currentApp);
   
   // Theme loading in background - don't block rendering
   try {
@@ -70,6 +97,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       menu.setError(null);
     }
   }, [location.pathname]);
+
+  useEffect(() => {
+    document.title = `PDVM System - ${appHeading}`;
+  }, [appHeading]);
   
   // Menu Handler Context
   const handleMenuClick = async (item: MenuItem) => {
@@ -100,7 +131,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 
       {/* Stichtagsbar als eigene Layout-Zeile unter dem Header */}
       <div className="stichtags-row">
-        <StichtagsBar />
+        <StichtagsBar heading={appHeading} />
       </div>
       
       {/* Horizontales Menü (GRUND) */}

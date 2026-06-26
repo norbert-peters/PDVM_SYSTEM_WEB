@@ -2,7 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { PdvmDateTimePicker } from '../common/PdvmDateTimePicker';
 import { gcsAPI } from '../../api/client';
 
-export const StichtagsBar: React.FC = () => {
+interface StichtagsBarProps {
+  heading: string;
+}
+
+export const StichtagsBar: React.FC<StichtagsBarProps> = ({ heading }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,6 +64,10 @@ export const StichtagsBar: React.FC = () => {
         <span className="stichtags-bar-value">
           {loading ? 'Lade…' : (appliedDisplay || '—')}
         </span>
+      </div>
+
+      <div className="stichtags-bar-center">
+        <span className="stichtags-bar-heading">{heading}</span>
       </div>
 
       <div className="stichtags-bar-right">

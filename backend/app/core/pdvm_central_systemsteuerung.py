@@ -167,6 +167,19 @@ def get_gcs_session(session_token: str) -> Optional['PdvmCentralSystemsteuerung'
     return gcs
 
 
+def rotate_gcs_session_token(old_token: str, new_token: str) -> bool:
+    """Verschiebt eine bestehende GCS-Session auf einen neuen JWT-Token-Key."""
+    if not old_token or not new_token or old_token == new_token:
+        return False
+
+    gcs = _gcs_sessions.pop(old_token, None)
+    if gcs is None:
+        return False
+
+    _gcs_sessions[new_token] = gcs
+    return True
+
+
 async def close_gcs_session(session_token: str):
     """
     SchlieÃŸt GCS-Session (Logout)

@@ -27,6 +27,7 @@ export interface AuthContextValue {
   currentMandant: Mandant | null;
   isAuthenticated: boolean;
   login: (token: string) => void;
+  updateToken: (token: string) => void;
   logout: () => void;
   selectMandant: (mandant: Mandant) => void;
   mandantId: string | null;
@@ -150,6 +151,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCurrentMandant(null);
   }, []);
 
+  const updateToken = useCallback((newToken: string) => {
+    localStorage.setItem('token', newToken);
+    setToken(newToken);
+  }, []);
+
   const logout = useCallback(() => {
     localStorage.removeItem('token');
     localStorage.removeItem('mandant_id');
@@ -178,6 +184,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       currentMandant,
       isAuthenticated: !!token,
       login,
+      updateToken,
       logout,
       selectMandant,
       mandantId: currentMandant?.uid || null,

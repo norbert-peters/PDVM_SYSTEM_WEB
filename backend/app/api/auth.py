@@ -15,7 +15,7 @@ from app.core.security import (
     create_access_token,
     get_current_user
 )
-from app.core.pdvm_central_systemsteuerung import get_gcs_session
+from app.core.pdvm_central_systemsteuerung import get_gcs_session, rotate_gcs_session_token
 from app.core.config import settings
 from app.core.user_manager import UserManager
 from app.core.password_reset_service import issue_password_reset, _extract_user_email
@@ -280,7 +280,28 @@ async def keep_alive(current_user: dict = Depends(get_current_user)):
 
     try:
         gcs.touch()
-        return {"ok": True, **gcs.get_idle_status()}
+
+        # Sliding Session: solange der User aktiv ist, JWT erneuern.
+        user_id = str(current_user.get("sub") or "").strip()
+        refreshed_token = None
+        if user_id:
+            refreshed_token = create_access_token(
+                data={
+                    "sub": user_id,
+                    "email": current_user.get("email"),
+                    "name": current_user.get("name"),
+                    "user_data": current_user.get("user_data", {}),
+                },
+                expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+            )
+
+            if refreshed_token:
+                rotate_gcs_session_token(token, refreshed_token)
+
+        payload = {"ok": True, **gcs.get_idle_status()}
+        if refreshed_token:
+            payload["access_token"] = refreshed_token
+        return payload
     except Exception:
         return {"ok": True}
 

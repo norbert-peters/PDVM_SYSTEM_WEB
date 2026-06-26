@@ -9,6 +9,10 @@
   flex-shrink: 0;
 }
 
+body.pdvm-vertical-menu-hidden .vertical-menu {
+  display: none;
+}
+
 .vertical-menu-container {
   padding: 1rem 0;
 }

@@ -57,6 +57,11 @@ export interface LastNavigationState {
   updated_at?: string | null
 }
 
+export interface MenuToggleResponse {
+  menu_guid: string
+  toggle: number
+}
+
 /**
  * Lädt das Startmenü des Users
  */
@@ -145,5 +150,27 @@ export async function putLastNavigation(payload: LastNavigationState): Promise<L
   const response = await axios.put<LastNavigationState>(`${API_URL}/menu/last-navigation`, payload, {
     headers: { Authorization: `Bearer ${token}` },
   })
+  return response.data
+}
+
+export async function getMenuToggleState(menuGuid: string): Promise<MenuToggleResponse> {
+  const token = localStorage.getItem('token');
+  if (!token) throw new Error('Nicht angemeldet');
+
+  const response = await axios.get<MenuToggleResponse>(`${API_URL}/gcs/menu/toggle/${encodeURIComponent(menuGuid)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  return response.data
+}
+
+export async function setMenuToggleState(menuGuid: string, toggle: number): Promise<MenuToggleResponse> {
+  const token = localStorage.getItem('token');
+  if (!token) throw new Error('Nicht angemeldet');
+
+  const response = await axios.post<MenuToggleResponse>(
+    `${API_URL}/gcs/menu/toggle/${encodeURIComponent(menuGuid)}?toggle=${encodeURIComponent(String(toggle))}`,
+    null,
+    { headers: { Authorization: `Bearer ${token}` } }
+  )
   return response.data
 }

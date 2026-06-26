@@ -31,6 +31,7 @@ export interface PasswordChangeResponse {
 
 export interface KeepAliveResponse {
   ok: boolean
+  access_token?: string | null
   idle_timeout?: number | null
   idle_warning?: number | null
   idle_remaining?: number | null

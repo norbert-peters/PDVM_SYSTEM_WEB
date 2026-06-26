@@ -12,6 +12,7 @@ Erwartete Struktur in asy_systemdaten.daten (Beispiel):
   "DE-DE": {
     "menü_command": {
       "commands": [
+                {"handler": "toggle_menu", "label": "Menü ein-/ausblenden", "params": []},
         {"handler": "go_view", "label": "View öffnen", "params": [{"name": "view_guid", "type": "guid", "required": true, "lookup_table": "sys_viewdaten"}]},
                 {"handler": "go_dialog", "label": "Dialog öffnen", "params": [{"name": "dialog_guid", "type": "guid", "required": true, "lookup_table": "sys_dialogdaten"}, {"name": "dialog_table", "type": "table", "required": false}]},
                 {"handler": "go_pdvm_dialog", "label": "PDVM Dialog öffnen", "params": [{"name": "dialog_guid", "type": "guid", "required": true, "lookup_table": "sys_dialogdaten"}, {"name": "dialog_table", "type": "table", "required": false}]},
@@ -50,6 +51,17 @@ def _norm_field(value: Any) -> str:
         return ""
     s = _strip_diacritics(s)
     return s
+
+
+def _ensure_builtin_menu_commands(commands: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Ergänzt zwingende Built-in Handler, falls sie im Katalog fehlen."""
+    out = list(commands or [])
+    existing = {str(c.get("handler") or "").strip() for c in out if isinstance(c, dict)}
+
+    if "toggle_menu" not in existing:
+        out.append({"handler": "toggle_menu", "label": "Menü ein-/ausblenden", "params": []})
+
+    return out
 
 
 async def _load_first_systemdaten_row(gcs) -> Optional[Dict[str, Any]]:
@@ -155,7 +167,11 @@ async def load_menu_command_catalog(
                 params = []
             norm.append({"handler": handler, "label": label, "params": params})
 
-        return {"commands": norm, "language": lang, "default_language": DEFAULT_LANGUAGE_FALLBACK}
+        return {
+            "commands": _ensure_builtin_menu_commands(norm),
+            "language": lang,
+            "default_language": DEFAULT_LANGUAGE_FALLBACK,
+        }
 
     root = daten.get("ROOT") if isinstance(daten.get("ROOT"), dict) else {}
     default_lang = _norm_lang((root or {}).get("DEFAULT_LANGUAGE") or DEFAULT_LANGUAGE_FALLBACK)
@@ -195,7 +211,11 @@ async def load_menu_command_catalog(
             params = []
         norm.append({"handler": handler, "label": label, "params": params})
 
-    return {"commands": norm, "language": lang, "default_language": default_lang}
+    return {
+        "commands": _ensure_builtin_menu_commands(norm),
+        "language": lang,
+        "default_language": default_lang,
+    }
 
 
 async def load_systemdaten_text(

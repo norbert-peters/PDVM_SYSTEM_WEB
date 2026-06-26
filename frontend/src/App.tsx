@@ -17,7 +17,7 @@ import { authAPI } from './api/client'
 import { PdvmDialogModal } from './components/common/PdvmDialogModal'
 
 function AppContent() {
-  const { token, mandantId, login, logout, selectMandant } = useAuth()
+  const { token, mandantId, login, updateToken, logout, selectMandant } = useAuth()
   const [showCreateMandant, setShowCreateMandant] = useState(false)
   const [idleWarningOpen, setIdleWarningOpen] = useState(false)
   const [idleRemainingSec, setIdleRemainingSec] = useState<number | null>(null)
@@ -28,6 +28,18 @@ function AppContent() {
   const idleConfigRef = useRef<{ timeout: number; warning: number }>({ timeout: 0, warning: 0 })
 
   // NOTE: state 'token' and 'mandantId' now come from context
+
+  useEffect(() => {
+    if (!token) {
+      document.title = 'PDVM System - Login'
+      return
+    }
+
+    if (!mandantId) {
+      document.title = showCreateMandant ? 'PDVM System - Mandant anlegen' : 'PDVM System - Mandant wählen'
+      return
+    }
+  }, [token, mandantId, showCreateMandant])
   
   const handleLogin = (newToken: string) => {
     login(newToken)
@@ -105,6 +117,9 @@ function AppContent() {
       keepAliveBusyRef.current = true
       try {
         const resp = await authAPI.keepAlive()
+        if (resp?.access_token && typeof resp.access_token === 'string') {
+          updateToken(resp.access_token)
+        }
         if (resp?.idle_timeout && Number.isFinite(resp.idle_timeout)) {
           idleConfigRef.current.timeout = Math.trunc(Number(resp.idle_timeout))
           localStorage.setItem('idle_timeout', String(idleConfigRef.current.timeout))
@@ -129,7 +144,7 @@ function AppContent() {
       window.clearInterval(tickId)
       window.clearInterval(pingId)
     }
-  }, [token, mandantId, logout])
+  }, [token, mandantId, logout, updateToken])
 
   // Kein Token → Login
   if (!token) {

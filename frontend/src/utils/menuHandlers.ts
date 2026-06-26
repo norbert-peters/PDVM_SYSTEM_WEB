@@ -4,11 +4,46 @@
  */
 
 import type { MenuItem } from '../api/menu';
-import { loadAppMenu, loadStartMenu, logout as apiLogout, getLastNavigation, putLastNavigation } from '../api/menu';
+import {
+  loadAppMenu,
+  loadStartMenu,
+  logout as apiLogout,
+  getLastNavigation,
+  putLastNavigation,
+  getMenuToggleState,
+  setMenuToggleState,
+} from '../api/menu';
 
 type LastMenuContext = { menu_type: 'start' | 'app'; app_name?: string | null }
 
 let lastMenuContext: LastMenuContext = { menu_type: 'start', app_name: null }
+let currentMenuGuid: string | null = null
+const VERTICAL_MENU_HIDDEN_CLASS = 'pdvm-vertical-menu-hidden'
+
+function applyVerticalMenuVisibility(show: boolean): void {
+  if (show) {
+    document.body.classList.remove(VERTICAL_MENU_HIDDEN_CLASS)
+    return
+  }
+  document.body.classList.add(VERTICAL_MENU_HIDDEN_CLASS)
+}
+
+async function loadAndApplyMenuToggleState(menuGuid: string | null): Promise<void> {
+  if (!menuGuid) {
+    applyVerticalMenuVisibility(true)
+    return
+  }
+
+  try {
+    const response = await getMenuToggleState(menuGuid)
+    const raw = Number(response?.toggle ?? 1)
+    const showMenu = raw !== 0
+    applyVerticalMenuVisibility(showMenu)
+  } catch {
+    // Fallback: vertikales Menü sichtbar lassen
+    applyVerticalMenuVisibility(true)
+  }
+}
 
 function hasMenuItems(menuData: any): boolean {
   if (!menuData) return false
@@ -70,6 +105,8 @@ async function handleOpenAppMenu(item: MenuItem, context: MenuHandlerContext): P
     
     context.setCurrentMenu(menuResponse.menu_data);
     context.setCurrentApp(appName);
+    currentMenuGuid = menuResponse.uid ? String(menuResponse.uid) : null
+    await loadAndApplyMenuToggleState(currentMenuGuid)
 
     lastMenuContext = { menu_type: 'app', app_name: appName };
 
@@ -109,6 +146,8 @@ async function handleOpenStartMenu(_item: MenuItem, context: MenuHandlerContext)
     
     context.setCurrentMenu(menuResponse.menu_data);
     context.setCurrentApp(null);
+    currentMenuGuid = null
+    applyVerticalMenuVisibility(true)
 
     lastMenuContext = { menu_type: 'start', app_name: null };
 
@@ -117,6 +156,29 @@ async function handleOpenStartMenu(_item: MenuItem, context: MenuHandlerContext)
     
   } catch (error: any) {
     context.showError(error.response?.data?.detail || error.message || 'Fehler beim Laden des Startmenüs');
+  }
+}
+
+/**
+ * Handler: toggle_menu
+ * Blendet das vertikale Menü ein/aus und persistiert den Status in GCS
+ */
+async function handleToggleMenu(_item: MenuItem, context: MenuHandlerContext): Promise<void> {
+  if (!currentMenuGuid) {
+    context.showError('Toggle ist nur in App-Menüs verfügbar.');
+    return;
+  }
+
+  const currentlyHidden = document.body.classList.contains(VERTICAL_MENU_HIDDEN_CLASS)
+  const nextShow = currentlyHidden
+  applyVerticalMenuVisibility(nextShow)
+
+  try {
+    await setMenuToggleState(currentMenuGuid, nextShow ? 1 : 0)
+  } catch (error: any) {
+    // Rollback bei Persistenzfehler
+    applyVerticalMenuVisibility(!nextShow)
+    context.showError(error.response?.data?.detail || error.message || 'Fehler beim Speichern des Menü-Toggle-Status')
   }
 }
 
@@ -172,6 +234,7 @@ const HANDLERS: Record<string, MenuHandler> = {
   'open_app_menu': handleOpenAppMenu,
   'logout': handleLogout,
   'open_start_menu': handleOpenStartMenu,
+  'toggle_menu': handleToggleMenu,
   'show_help': handleShowHelp,
   'go_view': handleGoView,
   'go_dialog': handleGoDialog,
@@ -242,12 +305,16 @@ export async function restoreLastNavigation(context: MenuHandlerContext): Promis
         context.setCurrentMenu(menuResponse.menu_data)
         context.setCurrentApp(appName)
         lastMenuContext = { menu_type: 'app', app_name: appName }
+        currentMenuGuid = menuResponse.uid ? String(menuResponse.uid) : null
+        await loadAndApplyMenuToggleState(currentMenuGuid)
       }
     } else {
       const menuResponse = await loadStartMenu()
       context.setCurrentMenu(menuResponse.menu_data)
       context.setCurrentApp(null)
       lastMenuContext = { menu_type: 'start', app_name: null }
+      currentMenuGuid = null
+      applyVerticalMenuVisibility(true)
     }
 
     // 2) letztes Command wieder ausführen (nur sichere Navigation)
