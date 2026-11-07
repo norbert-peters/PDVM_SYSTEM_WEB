@@ -1,0 +1,489 @@
+[
+ {
+  "table": "msy_anwendungsdaten",
+  "uid": "cc50b52f-5f15-4f12-a5ac-4ef033c509e8",
+  "new_uid": "55555555-5555-5555-5555-555555555555",
+  "existed": true,
+  "link_uid": "55555555-5555-5555-5555-555555555555",
+  "daten_before": {
+   "ROOT": {
+    "TABLE": "msy_anwendungsdaten",
+    "SELF_GUID": "cc50b52f-5f15-4f12-a5ac-4ef033c509e8",
+    "SELF_NAME": "TEMPLATE_555",
+    "SELF_GILT_BIS": "9999365.99999",
+    "SELF_LINK_UID": "55555555-5555-5555-5555-555555555555",
+    "SELF_CREATED_AT": "2026138.70988",
+    "SELF_MODIFIED_AT": "2026138.70988"
+   },
+   "CONFIG": {}
+  },
+  "db": "filale_test_1"
+ },
+ {
+  "table": "msy_anwendungsdaten",
+  "uid": "d95c9134-c7d3-462b-b610-30e96fd203e9",
+  "new_uid": "66666666-6666-6666-6666-666666666666",
+  "existed": true,
+  "link_uid": "66666666-6666-6666-6666-666666666666",
+  "daten_before": {
+   "ROOT": {
+    "TABLE": "msy_anwendungsdaten",
+    "SELF_GUID": "d95c9134-c7d3-462b-b610-30e96fd203e9",
+    "SELF_NAME": "TEMPLATE_666",
+    "SELF_GILT_BIS": "9999365.99999",
+    "SELF_LINK_UID": "66666666-6666-6666-6666-666666666666",
+    "SELF_CREATED_AT": "2026138.70988",
+    "SELF_MODIFIED_AT": "2026138.70988"
+   },
+   "TEMPLATES": {
+    "CONFIG": {
+     "THEME_GUID": ""
+    }
+   }
+  },
+  "db": "filale_test_1"
+ },
+ {
+  "table": "msy_error_acknowledgments",
+  "uid": "66666666-6666-6666-6666-666666666666",
+  "new_uid": null,
+  "existed": true,
+  "link_uid": "66666666-6666-6666-6666-666666666666",
+  "daten_before": {
+   "ROOT": {
+    "TABLE": "msy_error_acknowledgments",
+    "SELF_GUID": "66666666-6666-6666-6666-666666666666",
+    "SELF_NAME": "TEMPLATE_666",
+    "SELF_GILT_BIS": "9999365.99999",
+    "SELF_LINK_UID": "66666666-6666-6666-6666-666666666666",
+    "SELF_CREATED_AT": "2026138.70988",
+    "SELF_MODIFIED_AT": "2026138.70988"
+   },
+   "TEMPLATES": {}
+  },
+  "db": "filale_test_1"
+ },
+ {
+  "table": "msy_error_log",
+  "uid": "66666666-6666-6666-6666-666666666666",
+  "new_uid": null,
+  "existed": true,
+  "link_uid": "66666666-6666-6666-6666-666666666666",
+  "daten_before": {
+   "ROOT": {
+    "TABLE": "msy_error_log",
+    "SELF_GUID": "66666666-6666-6666-6666-666666666666",
+    "SELF_NAME": "TEMPLATE_666",
+    "SELF_GILT_BIS": "9999365.99999",
+    "SELF_LINK_UID": "66666666-6666-6666-6666-666666666666",
+    "SELF_CREATED_AT": "2026138.70988",
+    "SELF_MODIFIED_AT": "2026138.70988"
+   },
+   "TEMPLATES": {}
+  },
+  "db": "filale_test_1"
+ },
+ {
+  "table": "msy_layout",
+  "uid": "66666666-6666-6666-6666-666666666666",
+  "new_uid": null,
+  "existed": true,
+  "link_uid": "66666666-6666-6666-6666-666666666666",
+  "daten_before": {
+   "ROOT": {
+    "TABLE": "msy_layout",
+    "SELF_GUID": "66666666-6666-6666-6666-666666666666",
+    "SELF_NAME": "TEMPLATE_666",
+    "SELF_GILT_BIS": "9999365.99999",
+    "SELF_LINK_UID": "66666666-6666-6666-6666-666666666666",
+    "SELF_CREATED_AT": "2026138.70988",
+    "SELF_MODIFIED_AT": "2026138.70988"
+   },
+   "TEMPLATES": {}
+  },
+  "db": "filale_test_1"
+ },
+ {
+  "table": "msy_security",
+  "uid": "66666666-6666-6666-6666-666666666666",
+  "new_uid": null,
+  "existed": true,
+  "link_uid": "66666666-6666-6666-6666-666666666666",
+  "daten_before": {
+   "ROOT": {
+    "TABLE": "msy_security",
+    "SELF_GUID": "66666666-6666-6666-6666-666666666666",
+    "SELF_NAME": "TEMPLATE_666",
+    "SELF_GILT_BIS": "9999365.99999",
+    "SELF_LINK_UID": "66666666-6666-6666-6666-666666666666",
+    "SELF_CREATED_AT": "2026138.70988",
+    "SELF_MODIFIED_AT": "2026138.70988"
+   },
+   "TEMPLATES": {}
+  },
+  "db": "filale_test_1"
+ },
+ {
+  "table": "msy_systemdaten",
+  "uid": "66666666-6666-6666-6666-666666666666",
+  "new_uid": null,
+  "existed": true,
+  "link_uid": "66666666-6666-6666-6666-666666666666",
+  "daten_before": {
+   "ROOT": {
+    "TABLE": "msy_systemdaten",
+    "DOMAIN": "mandant",
+    "PREFIX": "msy_",
+    "APP_KEY": "msy",
+    "IS_ACTIVE": true,
+    "SELF_GUID": "66666666-6666-6666-6666-666666666666",
+    "SELF_NAME": "TEMPLATE_666",
+    "SOURCE_DB": "filale_test_1",
+    "SELF_GILT_BIS": "9999365.99999",
+    "SELF_LINK_UID": "66666666-6666-6666-6666-666666666666",
+    "SELF_CREATED_AT": "2026138.70988",
+    "DICT_AUDIT_TABLE": "msy_control_dict_audit",
+    "SELF_MODIFIED_AT": "2026138.70988",
+    "CONTROL_DICT_TABLE": "msy_control_dict"
+   },
+   "TEMPLATES": {
+    "gruppe": "TABLE_META",
+    "TEMPLATE_META": {
+     "SOURCE": "phaseB_persist_template_modes_v1",
+     "TARGET_TABLE": "msy_anwendungsdaten",
+     "TEMPLATE_MODE": "voll_templatefaehig",
+     "UPDATED_AT_UTC": "2026-05-18T16:53:08.357442+00:00",
+     "SOURCE_DB_LABEL": "mandant_main",
+     "STRUCT_VERSION_TARGET": 1
+    }
+   }
+  },
+  "db": "filale_test_1"
+ },
+ {
+  "table": "msy_systemsteuerung",
+  "uid": "da9e4628-a2d4-40ea-8f74-4fa5c6881b99",
+  "new_uid": "55555555-5555-5555-5555-555555555555",
+  "existed": true,
+  "link_uid": "55555555-5555-5555-5555-555555555555",
+  "daten_before": {
+   "ROOT": {
+    "TABLE": "msy_systemsteuerung",
+    "SELF_GUID": "da9e4628-a2d4-40ea-8f74-4fa5c6881b99",
+    "SELF_NAME": "TEMPLATE_555",
+    "SELF_GILT_BIS": "9999365.99999",
+    "SELF_LINK_UID": "55555555-5555-5555-5555-555555555555",
+    "SELF_CREATED_AT": "2026138.70988",
+    "SELF_MODIFIED_AT": "2026138.70988",
+    "HISTORY_TEST_MARKER": "049442c1-78d2-4a74-bad6-12424a797ce0"
+   },
+   "stichtag": {},
+   "9f06711e-4ad8-4ea4-9837-2f40f3a6f101": {},
+   "aa24be4a-d95c-401f-8e6d-f0a2a6140a56": {},
+   "1f3a0e00-48bb-4a08-9cb8-7a7d52f23001::sys_dialogdaten::pdvm_edit": {},
+   "9f06711e-4ad8-4ea4-9837-2f40f3a6f101::sys_control_dict::pdvm_edit": {}
+  },
+  "db": "filale_test_1"
+ },
+ {
+  "table": "msy_systemsteuerung",
+  "uid": "de94a344-8cde-447c-b56e-cfa4b337c05d",
+  "new_uid": "66666666-6666-6666-6666-666666666666",
+  "existed": true,
+  "link_uid": "66666666-6666-6666-6666-666666666666",
+  "daten_before": {
+   "ROOT": {
+    "TABLE": "msy_systemsteuerung",
+    "SELF_GUID": "de94a344-8cde-447c-b56e-cfa4b337c05d",
+    "SELF_NAME": "TEMPLATE_666",
+    "SELF_GILT_BIS": "9999365.99999",
+    "SELF_LINK_UID": "66666666-6666-6666-6666-666666666666",
+    "SELF_CREATED_AT": "2026138.70988",
+    "SELF_MODIFIED_AT": "2026138.70988",
+    "HISTORY_TEST_MARKER": "049442c1-78d2-4a74-bad6-12424a797ce0"
+   },
+   "TEMPLATES": {
+    "stichtag": 2025364.723121897,
+    "9f06711e-4ad8-4ea4-9837-2f40f3a6f101": {
+     "SYS_CONTROL_DICT": {
+      "LAST_CALL": null
+     }
+    },
+    "aa24be4a-d95c-401f-8e6d-f0a2a6140a56": {
+     "STICHTAG": 2026013.661544096,
+     "THEME_MODE": "light",
+     "SMOKE_REAL_LOGIN": "ok_2026-05-15T12:46:12.522912+00:00"
+    },
+    "1f3a0e00-48bb-4a08-9cb8-7a7d52f23001::sys_dialogdaten::pdvm_edit": {
+     "DRAFTS": {
+      "3af6f34b-2ce8-46b2-9569-5de151ee2449": {
+       "name": "Dialogdaten Editor",
+       "daten": {
+        "ROOT": {
+         "TABS": 0,
+         "TABLE": "",
+         "SELF_GUID": "66666666-6666-6666-6666-666666666662",
+         "SELF_NAME": "Dialogdaten Editor",
+         "GO_NEW_SET": true,
+         "DIALOG_TYPE": "norm",
+         "TAB_ELEMENTS": {},
+         "SELF_GILT_BIS": "9999365.99999",
+         "SELF_LINK_UID": "66666666-6666-6666-6666-666666666666",
+         "SELF_CREATED_AT": "2026022.77577",
+         "SELF_MODIFIED_AT": "2026053.54979"
+        }
+       },
+       "sec_id": null,
+       "draft_id": "3af6f34b-2ce8-46b2-9569-5de151ee2449",
+       "edit_type": "pdvm_edit",
+       "root_table": "sys_dialogdaten",
+       "template_uid": "66666666-6666-6666-6666-666666666666",
+       "create_context": {}
+      }
+     }
+    },
+    "9f06711e-4ad8-4ea4-9837-2f40f3a6f101::sys_control_dict::pdvm_edit": {
+     "DRAFTS": {
+      "4cba25f3-6b77-4035-90f4-a2ce66607993": {
+       "name": "sys_control_dict Dialog",
+       "daten": {
+        "ROOT": {
+         "NAME": "SYS_SYS_SET_TEMPLATE_666",
+         "FIELD": "SYS_SET_TEMPLATE_666",
+         "TABLE": "sys_control_dict",
+         "SELF_GUID": "66666666-6666-6666-6666-666666666662",
+         "SELF_NAME": "sys_control_dict Dialog",
+         "SELF_GILT_BIS": "9999365.99999",
+         "SELF_LINK_UID": "66666666-6666-6666-6666-666666666666",
+         "SELF_CREATED_AT": "2026045.64943",
+         "SELF_MODIFIED_AT": "2026067.62062"
+        },
+        "CONTROL": {
+         "TAB": 0,
+         "NAME": "",
+         "TYPE": "",
+         "FIELD": "",
+         "LABEL": "",
+         "TABLE": "",
+         "GRUPPE": "",
+         "ABDATUM": false,
+         "DEFAULT": "",
+         "SORTABLE": true,
+         "READ_ONLY": false,
+         "HISTORICAL": false,
+         "SEARCHABLE": true,
+         "UPPER_CASE": false,
+         "EXPERT_MODE": true,
+         "FILTER_TYPE": "contains",
+         "PARENT_GUID": null,
+         "SOURCE_PATH": "root",
+         "DISPLAY_SHOW": true,
+         "EXPERT_ORDER": 0,
+         "DISPLAY_ORDER": 0,
+         "SORT_DIRECTION": "asc",
+         "FIELDS_ELEMENTS": {},
+         "CONFIGS_ELEMENTS": {},
+         "SORT_BY_ORIGINAL": false
+        }
+       },
+       "sec_id": null,
+       "draft_id": "4cba25f3-6b77-4035-90f4-a2ce66607993",
+       "edit_type": "pdvm_edit",
+       "root_table": "sys_control_dict",
+       "template_uid": "66666666-6666-6666-6666-666666666666",
+       "create_context": {}
+      },
+      "9f88b523-9f50-4ebd-93ab-80996643f962": {
+       "name": "sys_control_dict Dialog",
+       "daten": {
+        "ROOT": {
+         "NAME": "SYS_SYS_SET_TEMPLATE_666",
+         "FIELD": "SYS_SET_TEMPLATE_666",
+         "TABLE": "sys_control_dict",
+         "SELF_GUID": "66666666-6666-6666-6666-666666666662",
+         "SELF_NAME": "sys_control_dict Dialog",
+         "SELF_GILT_BIS": "9999365.99999",
+         "SELF_LINK_UID": "66666666-6666-6666-6666-666666666666",
+         "SELF_CREATED_AT": "2026045.64943",
+         "SELF_MODIFIED_AT": "2026067.62062"
+        },
+        "CONTROL": {
+         "TAB": 0,
+         "NAME": "",
+         "TYPE": "",
+         "FIELD": "",
+         "LABEL": "",
+         "TABLE": "",
+         "GRUPPE": "",
+         "ABDATUM": false,
+         "DEFAULT": "",
+         "SORTABLE": true,
+         "READ_ONLY": false,
+         "HISTORICAL": false,
+         "SEARCHABLE": true,
+         "UPPER_CASE": false,
+         "EXPERT_MODE": true,
+         "FILTER_TYPE": "contains",
+         "PARENT_GUID": null,
+         "SOURCE_PATH": "root",
+         "DISPLAY_SHOW": true,
+         "EXPERT_ORDER": 0,
+         "DISPLAY_ORDER": 0,
+         "SORT_DIRECTION": "asc",
+         "FIELDS_ELEMENTS": {},
+         "CONFIGS_ELEMENTS": {},
+         "SORT_BY_ORIGINAL": false
+        }
+       },
+       "sec_id": null,
+       "draft_id": "9f88b523-9f50-4ebd-93ab-80996643f962",
+       "edit_type": "pdvm_edit",
+       "root_table": "sys_control_dict",
+       "template_uid": "66666666-6666-6666-6666-666666666666",
+       "create_context": {}
+      },
+      "d525dfc6-4042-4ecc-8a73-e24051c7c494": {
+       "name": "sys_control_dict Dialog",
+       "daten": {
+        "ROOT": {
+         "NAME": "SYS_SYS_SET_TEMPLATE_666",
+         "FIELD": "SYS_SET_TEMPLATE_666",
+         "TABLE": "sys_control_dict",
+         "SELF_GUID": "66666666-6666-6666-6666-666666666662",
+         "SELF_NAME": "sys_control_dict Dialog",
+         "SELF_GILT_BIS": "9999365.99999",
+         "SELF_LINK_UID": "66666666-6666-6666-6666-666666666666",
+         "SELF_CREATED_AT": "2026045.64943",
+         "SELF_MODIFIED_AT": "2026067.62062"
+        },
+        "CONTROL": {
+         "TAB": 0,
+         "NAME": "",
+         "TYPE": "",
+         "FIELD": "",
+         "LABEL": "",
+         "TABLE": "",
+         "GRUPPE": "",
+         "ABDATUM": false,
+         "DEFAULT": "",
+         "SORTABLE": true,
+         "READ_ONLY": false,
+         "HISTORICAL": false,
+         "SEARCHABLE": true,
+         "UPPER_CASE": false,
+         "EXPERT_MODE": true,
+         "FILTER_TYPE": "contains",
+         "PARENT_GUID": null,
+         "SOURCE_PATH": "root",
+         "DISPLAY_SHOW": true,
+         "EXPERT_ORDER": 0,
+         "DISPLAY_ORDER": 0,
+         "SORT_DIRECTION": "asc",
+         "FIELDS_ELEMENTS": {},
+         "CONFIGS_ELEMENTS": {},
+         "SORT_BY_ORIGINAL": false
+        }
+       },
+       "sec_id": null,
+       "draft_id": "d525dfc6-4042-4ecc-8a73-e24051c7c494",
+       "edit_type": "pdvm_edit",
+       "root_table": "sys_control_dict",
+       "template_uid": "66666666-6666-6666-6666-666666666666",
+       "create_context": {}
+      },
+      "db9f3111-cb03-437d-b476-b3a648be9624": {
+       "name": "sys_control_dict Dialog",
+       "daten": {
+        "ROOT": {
+         "NAME": "SYS_SYS_SET_TEMPLATE_666",
+         "FIELD": "SYS_SET_TEMPLATE_666",
+         "TABLE": "sys_control_dict",
+         "SELF_GUID": "66666666-6666-6666-6666-666666666662",
+         "SELF_NAME": "sys_control_dict Dialog",
+         "SELF_GILT_BIS": "9999365.99999",
+         "SELF_LINK_UID": "66666666-6666-6666-6666-666666666666",
+         "SELF_CREATED_AT": "2026045.64943",
+         "SELF_MODIFIED_AT": "2026067.62062"
+        },
+        "CONTROL": {
+         "TAB": 0,
+         "NAME": "",
+         "TYPE": "",
+         "FIELD": "",
+         "LABEL": "",
+         "TABLE": "",
+         "GRUPPE": "",
+         "ABDATUM": false,
+         "DEFAULT": "",
+         "SORTABLE": true,
+         "READ_ONLY": false,
+         "HISTORICAL": false,
+         "SEARCHABLE": true,
+         "UPPER_CASE": false,
+         "EXPERT_MODE": true,
+         "FILTER_TYPE": "contains",
+         "PARENT_GUID": null,
+         "SOURCE_PATH": "root",
+         "DISPLAY_SHOW": true,
+         "EXPERT_ORDER": 0,
+         "DISPLAY_ORDER": 0,
+         "SORT_DIRECTION": "asc",
+         "FIELDS_ELEMENTS": {},
+         "CONFIGS_ELEMENTS": {},
+         "SORT_BY_ORIGINAL": false
+        }
+       },
+       "sec_id": null,
+       "draft_id": "db9f3111-cb03-437d-b476-b3a648be9624",
+       "edit_type": "pdvm_edit",
+       "root_table": "sys_control_dict",
+       "template_uid": "66666666-6666-6666-6666-666666666666",
+       "create_context": {}
+      }
+     }
+    }
+   }
+  },
+  "db": "filale_test_1"
+ },
+ {
+  "table": "tst_finanzdaten",
+  "uid": "66666666-6666-6666-6666-666666666666",
+  "new_uid": null,
+  "existed": true,
+  "link_uid": "66666666-6666-6666-6666-666666666666",
+  "daten_before": {
+   "ROOT": {
+    "TABLE": "tst_finanzdaten",
+    "SELF_GUID": "66666666-6666-6666-6666-666666666666",
+    "SELF_NAME": "TEMPLATE_666",
+    "SELF_GILT_BIS": "9999365.99999",
+    "SELF_LINK_UID": "66666666-6666-6666-6666-666666666666",
+    "SELF_CREATED_AT": "2026138.70988",
+    "SELF_MODIFIED_AT": "2026138.70988"
+   },
+   "TEMPLATES": {}
+  },
+  "db": "filale_test_1"
+ },
+ {
+  "table": "tst_persondaten",
+  "uid": "66666666-6666-6666-6666-666666666666",
+  "new_uid": null,
+  "existed": true,
+  "link_uid": "66666666-6666-6666-6666-666666666666",
+  "daten_before": {
+   "ROOT": {
+    "TABLE": "tst_persondaten",
+    "SELF_GUID": "66666666-6666-6666-6666-666666666666",
+    "SELF_NAME": "TEMPLATE_666",
+    "SELF_GILT_BIS": "9999365.99999",
+    "SELF_LINK_UID": "66666666-6666-6666-6666-666666666666",
+    "SELF_CREATED_AT": "2026138.70988",
+    "SELF_MODIFIED_AT": "2026138.70988"
+   },
+   "TEMPLATES": {}
+  },
+  "db": "filale_test_1"
+ }
+]

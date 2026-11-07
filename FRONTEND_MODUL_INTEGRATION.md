@@ -1,5 +1,7 @@
 # Frontend Integration: Automatische MODUL-Auswahl
 
+> Hinweis (06.11.2026): `test_modul_error_handling.py` liegt jetzt in `backend/_archive_scripts/`.
+
 ## Problem gelöst
 
 **Vorher:** User bekommt Fehlermeldung "modul_type wurde nicht übergeben"

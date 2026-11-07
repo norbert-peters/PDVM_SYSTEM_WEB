@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import DatabasePool
+from app.core.error_handlers import register_error_handlers
 from app.api import auth, tables, admin, mandanten, menu, gcs, layout, views, dialogs, users, releases, workflow_drafts
 from app.api import systemdaten, lookups, menu_editor, import_data, control_dict
 
@@ -14,6 +15,7 @@ app = FastAPI(
     description="Business Management System API",
     version="1.0.0"
 )
+register_error_handlers(app)
 
 # Startup/Shutdown events
 @app.on_event("startup")
@@ -62,6 +64,11 @@ async def startup():
 @app.on_event("shutdown")
 async def shutdown():
     """Close database pools on shutdown"""
+    from app.core.pool_registry import PoolRegistry
+    from app.core.pdvm_datenbank import PdvmDatabase
+
+    await PoolRegistry.close_all()
+    PdvmDatabase.invalidate_template_cache()
     await DatabasePool.close_pool()
     print("✅ Database pools closed")
 

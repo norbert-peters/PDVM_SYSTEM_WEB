@@ -1,0 +1,157 @@
+# Seeder Basissaetze 000/555/666
+
+Modus: Dry-Run. Erzeugt von `backend/tools/seed_base_records.py`.
+
+## pdvm_system: 28 Aenderungen in 12 Tabellen
+
+- `dev_workflow_draft` 66666666-6666-6666-6666-666666666666 **[reservierter Satz]**
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+- `sys_beschreibungen` 55555555-5555-5555-5555-555555555555 **[reservierter Satz]**
+  - Regel 1.12c: 555: TABLE_INFO entfernt (Neuanlage kopiert die 555 in Fachdatensaetze)
+- `sys_beschreibungen` 442682f2-52cb-48bc-a1ba-d66311810675
+  - Regel 1.12c: TABLE_INFO aus Fachdatensatz entfernt
+- `sys_control_dict` 66666666-6666-6666-6666-666666666666 **[reservierter Satz]**
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+  - Regel 1.10a: Muttercontrol: daten.CONTROL aus daten.TEMPLATES.CONTROL synchronisiert
+- `sys_dialogdaten` 14b932e7-451c-5509-b4b4-aac3199e2936
+  - Regel 1.12c: TABLE_INFO aus Fachdatensatz entfernt
+- `sys_dialogdaten` cd80d2a7-e3f7-46e2-8295-a09bef856cc1
+  - Regel 1.12c: TABLE_INFO aus Fachdatensatz entfernt
+- `sys_dialogdaten` d7e09e1c-dec3-4842-b232-9eb7b719aceb
+  - Regel 1.12c: TABLE_INFO aus Fachdatensatz entfernt
+- `sys_dialogdaten` 55555555-5555-5555-5555-555555555555 **[reservierter Satz]**
+  - Regel 1.12c: 555: TABLE_INFO entfernt (Neuanlage kopiert die 555 in Fachdatensaetze)
+- `sys_dropdowndaten` ca418d95-958b-4121-95cf-bede91f2fba8
+  - Regel 1.12c: TABLE_INFO aus Fachdatensatz entfernt
+- `sys_dropdowndaten` c33e96b0-fa9f-4698-8ac9-0c064bbbd91d
+  - Regel 1.12c: TABLE_INFO aus Fachdatensatz entfernt
+- `sys_dropdowndaten` cff369fc-dd3a-4e8f-89b7-a0d399f43bba
+  - Regel 1.12c: TABLE_INFO aus Fachdatensatz entfernt
+- `sys_dropdowndaten` f9280ea8-035a-466f-b794-d511b3d0e2cb
+  - Regel 1.12c: TABLE_INFO aus Fachdatensatz entfernt
+- `sys_dropdowndaten` 9cd41815-3ce3-4e3b-8a3f-75f9a299bcc9
+  - Regel 1.12c: TABLE_INFO aus Fachdatensatz entfernt
+- `sys_dropdowndaten` 55555555-5555-5555-5555-555555555555 **[reservierter Satz]**
+  - Regel 1.12c: 555: TABLE_INFO entfernt (Neuanlage kopiert die 555 in Fachdatensaetze)
+- `sys_dropdowndaten` 451fa954-8ca6-4c1a-a807-6e8462e2afbf
+  - Regel 1.12c: TABLE_INFO aus Fachdatensatz entfernt
+- `sys_ext_table` 55555555-5555-5555-5555-555555555555 **[reservierter Satz]**
+  - Regel 1.12c: 555: TABLE_INFO entfernt (Neuanlage kopiert die 555 in Fachdatensaetze)
+- `sys_framedaten` b68a5b55-4135-426a-a96a-a6cdb0e702e0
+  - Regel 1.12c: TABLE_INFO aus Fachdatensatz entfernt
+- `sys_framedaten` fc96fa00-1232-4acf-8eab-f25da5df8167
+  - Regel 1.12c: TABLE_INFO aus Fachdatensatz entfernt
+- `sys_framedaten` f46fcf0c-b1e5-4ce3-9360-1843bfd20f97
+  - Regel 1.12c: TABLE_INFO aus Fachdatensatz entfernt
+- `sys_framedaten` 55555555-5555-5555-5555-555555555555 **[reservierter Satz]**
+  - Regel 1.12c: 555: TABLE_INFO entfernt (Neuanlage kopiert die 555 in Fachdatensaetze)
+- `sys_framedaten` 73cec3ac-95f9-4667-89df-f2a5d3c8e910
+  - Regel 1.12c: TABLE_INFO aus Fachdatensatz entfernt
+- `sys_framedaten` 63051d7a-aa15-4a2e-a3f0-442622ff108e
+  - Regel 1.12c: TABLE_INFO aus Fachdatensatz entfernt
+- `sys_framedaten` 3f1fa7aa-bd22-4672-9292-3ccec07b9649
+  - Regel 1.12c: TABLE_INFO aus Fachdatensatz entfernt
+- `sys_layout` 55555555-5555-5555-5555-555555555555 **[reservierter Satz]**
+  - Regel 1.12c: 555: TABLE_INFO entfernt (Neuanlage kopiert die 555 in Fachdatensaetze)
+- `sys_menudaten` 66666666-6666-6666-6666-666666666666 **[reservierter Satz]**
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+- `sys_systemdaten` 66666666-6666-6666-6666-666666666666 **[reservierter Satz]**
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+- `sys_tooltipdaten` 66666666-6666-6666-6666-666666666666 **[reservierter Satz]**
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+  - Regel 1.12a: Gruppe TEMPLATES ergaenzt
+- `sys_viewdaten` 55555555-5555-5555-5555-555555555555 **[reservierter Satz]**
+  - Regel 1.12c: 555: TABLE_INFO entfernt (Neuanlage kopiert die 555 in Fachdatensaetze)
+
+## pdvm_standard: 16 Aenderungen in 10 Tabellen
+
+- `msy_anwendungsdaten` 2a3263a0-b2f1-437c-8362-f8a1ffe159a1
+  - Regel 1.12: UID 2a3263a0 -> 00... (Basissatz mit falscher UID)
+- `msy_anwendungsdaten` dfc7e67c-79fd-47b3-9dc9-e7325c97f167
+  - Regel 1.12: UID dfc7e67c -> 55... (Basissatz mit falscher UID)
+- `msy_anwendungsdaten` 7cf7c7c7-f017-4374-8131-1b344971fde6
+  - Regel 1.12: UID 7cf7c7c7 -> 66... (Basissatz mit falscher UID)
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+  - Regel 1.12a: Gruppe TEMPLATES ergaenzt
+- `msy_error_acknowledgments` 66666666-6666-6666-6666-666666666666 **[reservierter Satz]**
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+  - Regel 1.12a: Gruppe TEMPLATES ergaenzt
+- `msy_error_log` 66666666-6666-6666-6666-666666666666 **[reservierter Satz]**
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+  - Regel 1.12a: Gruppe TEMPLATES ergaenzt
+- `msy_ext_table` 66666666-6666-6666-6666-666666666666 **[reservierter Satz]**
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+  - Regel 1.12a: Gruppe TEMPLATES ergaenzt
+- `msy_layout` 66666666-6666-6666-6666-666666666666 **[reservierter Satz]**
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+  - Regel 1.12a: Gruppe TEMPLATES ergaenzt
+- `msy_security` 66666666-6666-6666-6666-666666666666 **[reservierter Satz]**
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+  - Regel 1.12a: Gruppe TEMPLATES ergaenzt
+- `msy_systemdaten` 00000000-0000-0000-0000-000000000000
+  - Regel 1.12: Basissatz 00... fehlt -> anlegen
+- `msy_systemdaten` 55555555-5555-5555-5555-555555555555
+  - Regel 1.12: Basissatz 55... fehlt -> anlegen
+- `msy_systemdaten` 66666666-6666-6666-6666-666666666666
+  - Regel 1.12: Basissatz 66... fehlt -> anlegen
+- `msy_systemsteuerung` 22df8b9a-d697-41b6-b3bc-b25a20deac67
+  - Regel 1.12: UID 22df8b9a -> 00... (Basissatz mit falscher UID)
+- `msy_systemsteuerung` 378f0ee5-7abe-4837-8d10-e97636abc71b
+  - Regel 1.12: UID 378f0ee5 -> 55... (Basissatz mit falscher UID)
+- `msy_systemsteuerung` 2299ba46-512a-4c3f-a97d-d6d4f893ddd0
+  - Regel 1.12: UID 2299ba46 -> 66... (Basissatz mit falscher UID)
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+  - Regel 1.12a: Gruppe TEMPLATES ergaenzt
+- `tst_finanzdaten` 66666666-6666-6666-6666-666666666666 **[reservierter Satz]**
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+  - Regel 1.12a: Gruppe TEMPLATES ergaenzt
+- `tst_persondaten` 66666666-6666-6666-6666-666666666666 **[reservierter Satz]**
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+  - Regel 1.12a: Gruppe TEMPLATES ergaenzt
+
+## mandant: 16 Aenderungen in 10 Tabellen
+
+- `msy_anwendungsdaten` 393130fc-bdb8-44f4-978c-51829cf190bc
+  - Regel 1.12: UID 393130fc -> 00... (Basissatz mit falscher UID)
+- `msy_anwendungsdaten` 2ca0d0fb-c96a-4b28-a1cb-72bf726ed9f9
+  - Regel 1.12: UID 2ca0d0fb -> 55... (Basissatz mit falscher UID)
+- `msy_anwendungsdaten` 6b442322-ba3f-49b7-9f09-2fa96cdd3fc5
+  - Regel 1.12: UID 6b442322 -> 66... (Basissatz mit falscher UID)
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+  - Regel 1.12a: Gruppe TEMPLATES ergaenzt
+- `msy_error_acknowledgments` 66666666-6666-6666-6666-666666666666 **[reservierter Satz]**
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+  - Regel 1.12a: Gruppe TEMPLATES ergaenzt
+- `msy_error_log` 66666666-6666-6666-6666-666666666666 **[reservierter Satz]**
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+  - Regel 1.12a: Gruppe TEMPLATES ergaenzt
+- `msy_ext_table` 66666666-6666-6666-6666-666666666666 **[reservierter Satz]**
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+  - Regel 1.12a: Gruppe TEMPLATES ergaenzt
+- `msy_layout` 66666666-6666-6666-6666-666666666666 **[reservierter Satz]**
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+  - Regel 1.12a: Gruppe TEMPLATES ergaenzt
+- `msy_security` 66666666-6666-6666-6666-666666666666 **[reservierter Satz]**
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+  - Regel 1.12a: Gruppe TEMPLATES ergaenzt
+- `msy_systemdaten` 00000000-0000-0000-0000-000000000000
+  - Regel 1.12: Basissatz 00... fehlt -> anlegen
+- `msy_systemdaten` 55555555-5555-5555-5555-555555555555
+  - Regel 1.12: Basissatz 55... fehlt -> anlegen
+- `msy_systemdaten` 66666666-6666-6666-6666-666666666666
+  - Regel 1.12: Basissatz 66... fehlt -> anlegen
+- `msy_systemsteuerung` 1a822cd5-926f-4555-8934-dd4ae7bfa1b1
+  - Regel 1.12: UID 1a822cd5 -> 00... (Basissatz mit falscher UID)
+- `msy_systemsteuerung` c4c66eaa-bfc4-4300-8208-7edc052bab6a
+  - Regel 1.12: UID c4c66eaa -> 55... (Basissatz mit falscher UID)
+- `msy_systemsteuerung` b1b8cd56-a7ff-4402-8247-19def0205ea1
+  - Regel 1.12: UID b1b8cd56 -> 66... (Basissatz mit falscher UID)
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+  - Regel 1.12a: Gruppe TEMPLATES ergaenzt
+- `tst_finanzdaten` 66666666-6666-6666-6666-666666666666 **[reservierter Satz]**
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+  - Regel 1.12a: Gruppe TEMPLATES ergaenzt
+- `tst_persondaten` 66666666-6666-6666-6666-666666666666 **[reservierter Satz]**
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+  - Regel 1.12a: Gruppe TEMPLATES ergaenzt
+

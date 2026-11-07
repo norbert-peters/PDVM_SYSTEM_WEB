@@ -33,7 +33,6 @@ from app.core.connection_manager import ConnectionManager
 
 DEFAULT_TABLES = [
 	"sys_control_dict",
-	"sys_contr_dict_man",
 	"sys_dialogdaten",
 	"sys_viewdaten",
 	"sys_framedaten",

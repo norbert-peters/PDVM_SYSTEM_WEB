@@ -6,7 +6,8 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, status, Path, Query
 from typing import List, Optional, Any, Dict
 from app.models.schemas import RecordCreate, RecordUpdate, RecordResponse, RecordListItem
-from app.core.database import PdvmDatabase
+from app.core.pdvm_datenbank import PdvmDatabase
+from app.core.pdvm_datetime import datetime_to_pdvm
 from app.core.central_write_service import create_record_central, delete_record_central, update_record_central
 from app.core.pdvm_central_systemsteuerung import get_gcs_session
 from app.core.security import get_current_user
@@ -62,6 +63,31 @@ def _extract_work_payload_from_loaded_draft(draft_data: Dict[str, Any]) -> Dict[
                 normalized["WORKFLOW"] = {}
             return normalized
     return {"WORKFLOW": {}}
+
+
+def _iso(value: Any) -> Optional[str]:
+    return value.isoformat() if value is not None and hasattr(value, "isoformat") else None
+
+
+def _pdvm_str(value: Any) -> str:
+    if value is None or not hasattr(value, "year"):
+        return "9999365.00000"
+    return f"{datetime_to_pdvm(value):.5f}"
+
+
+def _open_central_db(table_name: str, gcs: Any) -> PdvmDatabase:
+    """Oeffnet die zentrale PdvmDatabase mit den Pools der GCS-Session (Praefix-Routing, Regel 1.7a)."""
+    try:
+        db = PdvmDatabase(
+            table_name,
+            system_pool=getattr(gcs, "_system_pool", None),
+            mandant_pool=getattr(gcs, "_mandant_pool", None),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    if db.db_name != "auth" and gcs is None:
+        raise HTTPException(status_code=401, detail="GCS-Session nicht gefunden")
+    return db
 
 
 def _require_system_pool(gcs: Any):
@@ -121,9 +147,16 @@ async def read_all_records(
             )
         return result
 
-    db = PdvmDatabase(table_name)
-    records = await db.read_all()
-    return records
+    db = _open_central_db(table_name, gcs)
+    rows = await db.get_all(where="sec_id IS NULL", order_by="modified_at DESC")
+    return [
+        {
+            "uid": str(row["uid"]),
+            "name": row.get("name") or "",
+            "modified_at": _iso(row.get("modified_at")),
+        }
+        for row in rows
+    ]
 
 @router.get("/{table_name}/{uid}", response_model=RecordResponse)
 async def read_record(
@@ -138,10 +171,10 @@ async def read_record(
     Returns full record with all fields
     """
     scope = _normalize_storage_scope(storage_scope)
+    token = current_user.get("token")
+    gcs = get_gcs_session(token) if token else None
 
     if scope == "draft":
-        token = current_user.get("token")
-        gcs = get_gcs_session(token) if token else None
         if not gcs:
             raise HTTPException(status_code=401, detail="GCS-Session nicht gefunden")
         resolved_draft_guid = _require_draft_guid_for_scope(scope, draft_guid)
@@ -170,8 +203,12 @@ async def read_record(
             "modified_at": None,
         }
 
-    db = PdvmDatabase(table_name)
-    record = await db.read(uid)
+    db = _open_central_db(table_name, gcs)
+    try:
+        uid_obj = uuid.UUID(str(uid))
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ungueltige UID")
+    record = await db.get_by_uid(uid_obj)
     
     if not record:
         raise HTTPException(
@@ -179,7 +216,16 @@ async def read_record(
             detail=f"Record {uid} not found in {table_name}"
         )
     
-    return record
+    return {
+        "uid": str(record["uid"]),
+        "daten": record.get("daten") or {},
+        "name": record.get("name") or "",
+        "historisch": record.get("historisch") or 0,
+        "sec_id": str(record["sec_id"]) if record.get("sec_id") else None,
+        "gilt_bis": _pdvm_str(record.get("gilt_bis")),
+        "created_at": _iso(record.get("created_at")),
+        "modified_at": _iso(record.get("modified_at")),
+    }
 
 @router.post("/{table_name}", response_model=dict, status_code=status.HTTP_201_CREATED)
 async def create_record(
@@ -224,7 +270,7 @@ async def create_record(
             storage_scope=scope,
             draft_guid=draft_guid,
         )
-    except RuntimeError as exc:
+    except (RuntimeError, ValueError) as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc),
@@ -278,7 +324,7 @@ async def update_record(
             storage_scope=scope,
             draft_guid=draft_guid,
         )
-    except RuntimeError as exc:
+    except (RuntimeError, ValueError) as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc),
@@ -355,7 +401,7 @@ async def delete_record(
             storage_scope=scope,
             draft_guid=draft_guid,
         )
-    except RuntimeError as exc:
+    except (RuntimeError, ValueError) as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc),

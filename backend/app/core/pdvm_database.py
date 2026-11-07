@@ -6,6 +6,7 @@ Nach Desktop-Vorbild: PdvmDatenbank
 UnterstÃ¼tzt die Standard-Tabellenstruktur mit uid, daten (JSONB), name, etc.
 """
 import asyncpg
+import hashlib
 import json
 import logging
 from typing import Dict, List, Optional, Any
@@ -14,6 +15,7 @@ from uuid import UUID, uuid4
 from urllib.parse import urlparse, unquote
 
 from .config import settings
+from .pool_registry import acquire_pooled_connection
 
 logger = logging.getLogger(__name__)
 
@@ -59,9 +61,15 @@ class PdvmDatabaseService:
         if password is not None:
             self._conn_params["password"] = password
         
-    async def _get_connection(self) -> asyncpg.Connection:
-        """Erstellt DB-Connection"""
-        return await asyncpg.connect(**self._conn_params)
+    async def _get_connection(self):
+        """Liefert eine Verbindung aus dem gemeinsamen Pool (close() gibt sie zurueck).
+
+        Ein neuer Verbindungsaufbau kostet ca. 150 ms; der Pool vermeidet ihn bei jedem Aufruf.
+        """
+        params = self._conn_params
+        pw_digest = hashlib.sha256(str(params.get("password") or "").encode("utf-8")).hexdigest()[:12]
+        key = f"svc|{params['host']}|{params['port']}|{params['user']}|{params['database']}|{pw_digest}"
+        return await acquire_pooled_connection(key, min_size=1, max_size=5, **params)
     
     async def list_all(
         self, 

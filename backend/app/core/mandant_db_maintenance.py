@@ -313,6 +313,13 @@ class MandantDatabaseMaintenance:
                     f"CREATE INDEX IF NOT EXISTS {q_idx} ON {q_table}(link_uid)"
                 )
 
+                # View-Filter "gilt_bis <= stichtag" laeuft auf jeder Tabelle (Regel 1.23)
+                if 'gilt_bis' in col_types:
+                    gilt_idx = self._quote_ident(self._build_safe_index_name(table_name, 'gilt_bis'))
+                    await conn.execute(
+                        f"CREATE INDEX IF NOT EXISTS {gilt_idx} ON {q_table}(gilt_bis)"
+                    )
+
             except Exception as e:
                 logger.warning(f"âš ï¸ link_uid-SpaltenprÃ¼fung fehlgeschlagen ({table_name}): {e}")
 
@@ -535,12 +542,18 @@ class MandantDatabaseMaintenance:
                     continue
 
                 q_table = self._quote_ident(table_name)
+                # Reservierte Basissaetze (000/555/666) behalten ihre UID (Regel 1.11/1.12)
                 rows = await conn.fetch(
                     f"""
                     SELECT uid
                     FROM {q_table}
                     WHERE link_uid IS NOT NULL
                       AND uid = link_uid
+                      AND uid::text NOT IN (
+                          '00000000-0000-0000-0000-000000000000',
+                          '55555555-5555-5555-5555-555555555555',
+                          '66666666-6666-6666-6666-666666666666'
+                      )
                     """
                 )
 
@@ -833,8 +846,43 @@ async def run_mandant_maintenance(
     Returns:
         Statistiken Ã¼ber durchgefÃ¼hrte Aktionen
     """
+    import time
+
+    fingerprint = _maintenance_fingerprint(mandant_daten)
+    last = _last_successful_maintenance.get(str(mandant_uid))
+    if last and last["fingerprint"] == fingerprint and time.monotonic() - last["at"] < MAINTENANCE_INTERVAL_SECONDS:
+        logger.info(f"Wartung fuer Mandant {mandant_uid} uebersprungen (zuletzt vor {time.monotonic() - last['at']:.0f}s)")
+        return {**last["stats"], 'tables_created': [], 'tables_updated': [], 'records_updated': 0, 'skipped': True}
+
     maintenance = MandantDatabaseMaintenance(mandant_pool, mandant_uid, mandant_daten)
-    return await maintenance.run_maintenance()
+    stats = await maintenance.run_maintenance()
+    if not stats.get('errors'):
+        _last_successful_maintenance[str(mandant_uid)] = {
+            "fingerprint": fingerprint,
+            "at": time.monotonic(),
+            "stats": stats,
+        }
+    return stats
+
+
+# Die Wartung prueft/korrigiert Tabellen, Spalten und Metadaten und ist bei jedem Mandanten-Login
+# gleich teuer. Innerhalb des Intervalls und bei unveraenderter Mandanten-CONFIG (u. a. FEATURES) wird
+# sie uebersprungen; eine geaenderte CONFIG loest sofort einen neuen Lauf aus.
+MAINTENANCE_INTERVAL_SECONDS = 900.0
+_last_successful_maintenance: Dict[str, Any] = {}
+
+
+def _maintenance_fingerprint(mandant_daten: Dict[str, Any]) -> str:
+    import hashlib
+    import json
+
+    config = mandant_daten.get("CONFIG") if isinstance(mandant_daten, dict) else None
+    payload = json.dumps(config, sort_keys=True, default=str, ensure_ascii=False)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def reset_maintenance_cache() -> None:
+    _last_successful_maintenance.clear()
 
 
 async def run_auth_maintenance(auth_pool: asyncpg.Pool) -> Dict[str, Any]:

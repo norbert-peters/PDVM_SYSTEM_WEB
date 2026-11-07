@@ -123,6 +123,12 @@ def test_login_to_mandanten_select_passes_refreshed_security_to_gcs(monkeypatch)
             return None
 
     class FakeAsyncPgPool:
+        async def acquire(self):
+            return FakeAsyncPgConn()
+
+        async def release(self, conn):
+            return None
+
         async def close(self):
             return None
 
@@ -157,6 +163,11 @@ def test_login_to_mandanten_select_passes_refreshed_security_to_gcs(monkeypatch)
 
     monkeypatch.setattr(asyncpg, "connect", fake_asyncpg_connect)
     monkeypatch.setattr(asyncpg, "create_pool", fake_asyncpg_create_pool)
+
+    from app.core.pool_registry import PoolRegistry
+
+    monkeypatch.setattr(PoolRegistry, "_pools", {})
+    monkeypatch.setattr(PoolRegistry, "_locks", {})
 
     # Patch maintenance + GCS creation points
     import app.core.mandant_db_maintenance as mandant_db_maintenance

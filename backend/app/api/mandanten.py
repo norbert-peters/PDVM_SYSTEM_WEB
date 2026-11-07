@@ -10,6 +10,7 @@ from ..core.data_managers import MandantDataManager
 from ..core.database import get_database_url, DatabasePool
 from ..core.config import settings
 from ..core.connection_manager import ConnectionManager, ConnectionConfig
+from ..core import mandant_db_provisioning_service as provisioning
 import logging
 import asyncio
 from datetime import datetime
@@ -217,21 +218,17 @@ async def select_mandant(
         logger.info(f"ðŸ”§ DEBUG: Starte Datenbank-Existenz-PrÃ¼fung...")
         
         # Verwende direkte Connection statt Pool (Pool-Connections werden manchmal geschlossen)
-        import asyncpg
         from ..core.config import settings
         
         try:
             print(f"ðŸ” Erstelle direkte Connection zu pdvm_system via ConnectionManager...", flush=True)
             # âœ… Verwende system_config vom ConnectionManager (bereits oben geladen)
-            conn = await asyncpg.connect(**system_config.to_dict())
+            conn = await provisioning.connect_pooled(system_db_url)
             try:
                 print(f"âœ… Connection erfolgreich", flush=True)
                 print(f"ðŸ” PrÃ¼fe Datenbank '{mandant_db_name}' in pg_database...", flush=True)
                 
-                db_exists = await conn.fetchval(
-                    "SELECT 1 FROM pg_database WHERE datname = $1",
-                    mandant_db_name
-                )
+                db_exists = await conn.lookup_database(mandant_db_name)
                 print(f"âœ… Query erfolgreich, db_exists={db_exists}", flush=True)
                 
                 if not db_exists:
@@ -247,7 +244,7 @@ async def select_mandant(
                     logger.info(f"ðŸ“¦ Datenbank '{mandant_db_name}' existiert nicht - erstelle sie...")
                     
                     # CREATE DATABASE mit template0 (garantiert keine aktiven Verbindungen)
-                    await conn.execute(f'CREATE DATABASE "{mandant_db_name}" WITH TEMPLATE template0')
+                    await conn.create_database(mandant_db_name, from_template0=True)
                     logger.info(f"âœ… Datenbank '{mandant_db_name}' erfolgreich erstellt")
                     
                     # WICHTIG: Nach CREATE DATABASE warten auf PostgreSQL-Initialisierung
@@ -255,24 +252,14 @@ async def select_mandant(
                     logger.info(f"â³ Warte auf DB-Initialisierung...")
                     
                     # Erste Connection: Extensions installieren und Init-Tabelle anlegen
-                    init_conn = await asyncpg.connect(mandant_db_url, timeout=10)
+                    init_conn = await provisioning.connect(mandant_db_url, timeout=10)
                     try:
-                        # SCHRITT 1: Extensions installieren (uuid-ossp fÃ¼r gen_random_uuid)
-                        await init_conn.execute('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"')
+                        # SCHRITT 1: Extensions installieren (uuid-ossp fÃ¼r gen_random_uuid)
+                        await init_conn.install_uuid_ossp()
                         logger.info(f"âœ… Extension 'uuid-ossp' installiert")
                         
                         # SCHRITT 2: Init-Tabelle anlegen (jetzt mit UUID-Support)
-                        await init_conn.execute("""
-                            CREATE TABLE IF NOT EXISTS _db_init (
-                                id SERIAL PRIMARY KEY,
-                                created_at TIMESTAMP DEFAULT NOW(),
-                                info TEXT DEFAULT 'Database initialization marker'
-                            )
-                        """)
-                        await init_conn.execute(
-                            "INSERT INTO _db_init (info) VALUES ($1)",
-                            f"Database created at {datetime.utcnow().isoformat()}"
-                        )
+                        await init_conn.write_init_marker(provisioning.INIT_MARKER_AUTO_CREATE)
                         logger.info(f"âœ… Init-Tabelle '_db_init' in '{mandant_db_name}' angelegt")
                     finally:
                         await init_conn.close()
@@ -322,7 +309,7 @@ async def select_mandant(
             from ..core.mandant_db_maintenance import run_mandant_maintenance
             
             # Erstelle temporÃ¤ren Connection Pool fÃ¼r Wartung
-            mandant_pool = await asyncpg.create_pool(mandant_db_url, min_size=1, max_size=2)
+            mandant_pool = await provisioning.get_shared_pool(mandant_db_url)
             
             try:
                 # FÃ¼hre Wartung aus - Ã¼bergebe mandant['daten'] mit CONFIG
@@ -337,7 +324,7 @@ async def select_mandant(
                       f"{maintenance_stats['records_updated']} DatensÃ¤tze korrigiert", flush=True)
             finally:
                 # Pool schlieÃŸen
-                await mandant_pool.close()
+                pass  # gemeinsamer Pool (PoolRegistry) bleibt offen
             
         except Exception as maintenance_error:
             # Wartung fehlgeschlagen - logge Warnung aber fahre fort
@@ -636,7 +623,6 @@ async def setup_mandant_database(
     from ..core.pdvm_central_datenbank import PdvmCentralDatabase
     from ..core.pdvm_datetime import PdvmDateTime
     from ..core.database import DatabasePool
-    import asyncpg
     import uuid
     
     try:
@@ -678,22 +664,19 @@ async def setup_mandant_database(
                 port=system_config.port,
                 user=system_config.user,
                 password=system_config.password,
-                database="postgres"  # Template-DB fÃ¼r CREATE DATABASE
+                database="postgres"  # Template-DB fÃ¼r                 Datenbankanlage
             )
-            conn = await asyncpg.connect(**postgres_config.to_dict())
+            conn = await provisioning.connect(**postgres_config.to_dict())
             
             try:
-                logger.info(f"Verwende direkte Connection fÃ¼r CREATE DATABASE")
+                logger.info(f"Verwende direkte Connection fÃ¼r Datenbankanlage")
                 
                 # PrÃ¼fe ob DB existiert
-                exists = await conn.fetchval(
-                    "SELECT 1 FROM pg_database WHERE datname = $1",
-                    db_name
-                )
+                exists = await conn.lookup_database(db_name)
                 
                 if not exists:
                     # CREATE DATABASE mit template0 (keine aktiven Verbindungen)
-                    await conn.execute(f'CREATE DATABASE "{db_name}" WITH TEMPLATE template0')
+                    await conn.create_database(db_name, from_template0=True)
                     logger.info(f"âœ… Datenbank '{db_name}' erstellt")
                     
                     # Warten auf PostgreSQL-Initialisierung
@@ -702,24 +685,14 @@ async def setup_mandant_database(
                     # Extensions und Init-Tabelle sofort anlegen
                     try:
                         # âœ… Verwende mandant_config fÃ¼r neue DB-Connection
-                        init_conn = await asyncpg.connect(**mandant_config.to_dict(), timeout=10)
+                        init_conn = await provisioning.connect(**mandant_config.to_dict(), timeout=10)
                         try:
                             # SCHRITT 1: Extensions installieren
-                            await init_conn.execute('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"')
+                            await init_conn.install_uuid_ossp()
                             logger.info(f"âœ… Extension 'uuid-ossp' installiert")
                             
                             # SCHRITT 2: Init-Tabelle anlegen
-                            await init_conn.execute("""
-                                CREATE TABLE IF NOT EXISTS _db_init (
-                                    id SERIAL PRIMARY KEY,
-                                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                                    description TEXT
-                                )
-                            """)
-                            await init_conn.execute(
-                                "INSERT INTO _db_init (description) VALUES ($1)",
-                                f"Database initialized at {datetime.utcnow().isoformat()}"
-                            )
+                            await init_conn.write_init_marker(provisioning.INIT_MARKER_SETUP)
                             logger.info(f"âœ… Init-Tabelle in '{db_name}' erstellt")
                         finally:
                             await init_conn.close()
@@ -730,10 +703,10 @@ async def setup_mandant_database(
             finally:
                 await conn.close()
             
-        except asyncpg.PostgresConnectionError as e:
+        except provisioning.ProvisioningConnectionError as e:
             logger.error(f"Verbindungsfehler zu PostgreSQL: {e}")
             raise HTTPException(status_code=500, detail=f"Kann nicht mit PostgreSQL verbinden: {str(e)}")
-        except asyncpg.PostgresError as e:
+        except provisioning.ProvisioningDatabaseError as e:
             logger.error(f"Fehler beim Erstellen der Datenbank: {e}")
             raise HTTPException(status_code=500, detail=f"Datenbankfehler: {str(e)}")
         except Exception as e:
@@ -795,7 +768,6 @@ async def create_mandant(
     from ..core.central_write_service import create_record_central
     from ..core.pdvm_datetime import PdvmDateTime
     from ..core.database import DatabasePool
-    import asyncpg
     import os
     import uuid
     
@@ -845,7 +817,7 @@ async def create_mandant(
         
         # 4. DB-Verbindung testen
         try:
-            test_conn = await asyncpg.connect(
+            test_conn = await provisioning.connect(
                 host=template["MANDANT"]["HOST"],
                 port=template["MANDANT"]["PORT"],
                 user=template["MANDANT"]["USER"],
@@ -854,10 +826,7 @@ async def create_mandant(
             )
             
             # PrÃ¼fen ob DB bereits existiert
-            existing = await test_conn.fetchval(
-                "SELECT 1 FROM pg_database WHERE datname = $1",
-                database_name
-            )
+            existing = await test_conn.lookup_database(database_name)
             
             if existing:
                 await test_conn.close()
@@ -867,18 +836,18 @@ async def create_mandant(
                 )
             
             # 5. Datenbank anlegen
-            await test_conn.execute(f'CREATE DATABASE "{database_name}"')
+            await test_conn.create_database(database_name)
             await test_conn.close()
             
             logger.info(f"âœ… Datenbank '{database_name}' angelegt")
             
-        except asyncpg.PostgresError as e:
+        except provisioning.ProvisioningDatabaseError as e:
             logger.error(f"DB-Fehler: {e}")
             raise HTTPException(status_code=500, detail=f"Datenbankfehler: {str(e)}")
         
         # 6. Schema ausfÃ¼hren
         try:
-            mandant_conn = await asyncpg.connect(
+            mandant_conn = await provisioning.connect(
                 host=template["MANDANT"]["HOST"],
                 port=template["MANDANT"]["PORT"],
                 user=template["MANDANT"]["USER"],
@@ -891,7 +860,7 @@ async def create_mandant(
             if os.path.exists(schema_path):
                 with open(schema_path, "r", encoding="utf-8") as f:
                     schema_sql = f.read()
-                    await mandant_conn.execute(schema_sql)
+                    await mandant_conn.execute_script(schema_sql)
                     logger.info(f"âœ… Schema ausgefÃ¼hrt fÃ¼r '{database_name}'")
             else:
                 logger.warning(f"âš ï¸ Schema-Datei nicht gefunden: {schema_path}")
@@ -901,14 +870,14 @@ async def create_mandant(
         except Exception as e:
             logger.error(f"Schema-Fehler: {e}")
             # DB wieder lÃ¶schen bei Fehler
-            cleanup_conn = await asyncpg.connect(
+            cleanup_conn = await provisioning.connect(
                 host=template["MANDANT"]["HOST"],
                 port=template["MANDANT"]["PORT"],
                 user=template["MANDANT"]["USER"],
                 password=template["MANDANT"]["PASSWORD"],
                 database="postgres"
             )
-            await cleanup_conn.execute(f'DROP DATABASE IF EXISTS "{database_name}"')
+            await cleanup_conn.drop_database_if_exists(database_name)
             await cleanup_conn.close()
             raise HTTPException(status_code=500, detail=f"Schema-Fehler: {str(e)}")
         

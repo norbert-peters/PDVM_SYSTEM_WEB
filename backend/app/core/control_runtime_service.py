@@ -27,6 +27,7 @@ RUNTIME_KEY_MAP = {
     "sort_by_original": ("SORT_BY_ORIGINAL", "sort_by_original"),
     "filter_type": ("FILTER_TYPE", "filter_type"),
     "configs": ("CONFIGS", "configs"),
+    "read_only": ("READ_ONLY", "read_only"),
 }
 
 
@@ -160,3 +161,38 @@ async def hydrate_runtime_control_by_uid(
 
     base = _normalize_runtime_control_from_row(control_row)
     return merge_control_runtime_with_override(base, override)
+
+
+def hydrate_runtime_control_from_row(
+    control_row: Optional[Dict[str, Any]],
+    *,
+    override: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Wie hydrate_runtime_control_by_uid, aber mit bereits geladener Control-Zeile (Bulk-Pfad)."""
+    if not isinstance(control_row, dict):
+        return dict(override or {})
+    base = _normalize_runtime_control_from_row(control_row)
+    return merge_control_runtime_with_override(base, override)
+
+
+async def load_control_rows_bulk(
+    control_guids: Any,
+    *,
+    system_pool: Any,
+    mandant_pool: Any,
+) -> Dict[uuid.UUID, Dict[str, Any]]:
+    """Laedt alle Control-Zeilen mit einer Abfrage; ungueltige UIDs werden ignoriert."""
+    uids = []
+    for guid in control_guids:
+        try:
+            uids.append(uuid.UUID(str(guid)))
+        except Exception:
+            continue
+    try:
+        return await PdvmDatabase.load_control_definitions(
+            uids,
+            system_pool=system_pool,
+            mandant_pool=mandant_pool,
+        )
+    except Exception:
+        return {}

@@ -1,5 +1,15 @@
 # PDVM System Web - Development Instructions
 
+## Verbindliche Arbeitsregeln (immer beachten)
+- Arbeitsbereich ist standardmäßig dieses Repository (https://github.com/norbert-peters/PDVM_SYSTEM_WEB), sofern nicht ausdrücklich anders angegeben.
+- Vor jeder Änderung (Backend, Frontend, Datenbank, Doku) die Architekturregeln lesen und einhalten:
+  - [ARCHITECTURE_RULES.md](../ARCHITECTURE_RULES.md) (verbindlich, hat Vorrang)
+  - [FRAME_ARCHITECTURE_V2.md](../FRAME_ARCHITECTURE_V2.md)
+  - [backend/SERVICE_ARCHITECTURE.md](../backend/SERVICE_ARCHITECTURE.md)
+  - [backend/ARCHITECTURE_REDESIGN.md](../backend/ARCHITECTURE_REDESIGN.md)
+- Bei Konflikt zwischen Anforderung und Architekturregel: nicht stillschweigend abweichen, sondern nachfragen.
+- Wird eine Regel durch eine Änderung berührt, die zugehörige Dokumentation mitpflegen.
+
 ## Project Overview
 FastAPI + React TypeScript web application for multi-user business management system with PostgreSQL.
 

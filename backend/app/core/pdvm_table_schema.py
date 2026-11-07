@@ -30,6 +30,7 @@ PDVM_TABLE_INDEXES = [
     'historisch',
     'name',
     'modified_at',
+    'gilt_bis',
     'daten'  # GIN Index
 ]
 

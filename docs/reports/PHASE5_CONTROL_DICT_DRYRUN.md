@@ -1,0 +1,265 @@
+# Phase 5: sys_control_dict bereinigen (Dry-Run)
+
+120 Datensaetze betroffen (5 Loeschungen).
+
+- `ASY_ANREDE` (d6f90f6c)
+  - 1.12b: FELD entfernt
+  - 1.22: ROOT.SELF_NAME synchronisiert
+- `ASY_BENUTZER` (d30a1d6f)
+  - 1.12b: FELD entfernt
+- `ASY_CHANGE_REQUIRED` (c8f92080)
+  - 1.12b: FELD entfernt
+  - 1.22: ROOT.SELF_NAME synchronisiert
+- `ASY_COUNTRY` (d2c9a1f9)
+  - 1.12b: FELD entfernt
+- `ASY_DEFAULT` (e3b3a161)
+  - 1.12b: FELD entfernt
+- `ASY_EMAIL` (c6b4fae2)
+  - 1.12b: FELD entfernt
+  - 1.22: ROOT.SELF_NAME synchronisiert
+- `ASY_EXPERT_MODE` (e2599cda)
+  - 1.12b: FELD entfernt
+- `ASY_LANGUAGE` (f7d7c2f7)
+  - 1.12b: FELD entfernt
+- `ASY_LAST_LOGIN` (a9a9c2d4)
+  - 1.12b: FELD entfernt
+- `ASY_LIST` (d8dd77f6)
+  - 1.12b: FELD entfernt
+- `ASY_LOCK` (f6f6b203)
+  - 1.12b: FELD entfernt
+- `ASY_LOCKED` (d19f3733)
+  - 1.12b: FELD entfernt
+- `ASY_LOGIN_ATTEMPTS` (b4fda8b9)
+  - 1.12b: FELD entfernt
+- `ASY_MENU` (f68afad6)
+  - 1.12b: FELD entfernt
+- `ASY_MODE` (3addcaa2)
+  - 1.12b: FELD entfernt
+- `ASY_MODE_NAME` (155f2e31)
+  - 1.12b: FELD entfernt
+- `ASY_NACHNAME` (11e1b3b3)
+  - 1.12b: FELD entfernt
+- `ASY_PASSWORD` (a2b25f28)
+  - 1.12b: FELD entfernt
+- `ASY_PASSWORD_CHANGE` (be5aa2cd)
+  - 1.12b: FELD entfernt
+  - 1.10: name 'ASY_PASSWORD_CHANGE' -> 'ASY_LAST_PASSWORD_CHANGE'
+- `ASY_ROLES` (e85a7843)
+  - 1.12b: FELD entfernt
+- `ASY_TAB` (a6c0d956)
+  - 1.12b: FELD entfernt
+  - 1.10: Duplikat von 'SYS_TAB' (gleiche Tabelle/FIELD), nirgends referenziert - geloescht
+- `ASY_THEME` (c1a5f6a2)
+  - 1.12b: FELD entfernt
+- `ASY_THEME_DARK` (a2e4f71a)
+  - 1.12b: FELD entfernt
+- `ASY_THEME_LIGHT` (ef6a4b8a)
+  - 1.12b/1.10: FIELD 'LIGHT' -> 'THEME_LIGHT'
+  - 1.12b: FELD entfernt
+- `ASY_VORNAME` (7a0d9b2f)
+  - 1.12b: FELD entfernt
+  - 1.22: ROOT.SELF_NAME synchronisiert
+- `SYS_666` (66666666) **[reserviert]**
+  - 1.12b: FELD aus daten.CONTROL entfernt
+  - 1.10a: FIELDS_ELEMENTS in daten.CONTROL ergaenzt
+  - 1.10a: CONFIGS_ELEMENTS in daten.CONTROL ergaenzt
+  - 1.12b: FELD aus daten.TEMPLATES.CONTROL entfernt
+  - 1.10a: FIELDS_ELEMENTS in daten.TEMPLATES.CONTROL ergaenzt
+  - 1.10a: CONFIGS_ELEMENTS in daten.TEMPLATES.CONTROL ergaenzt
+- `SYS_ABDATUM` (13957e4f)
+  - 1.12b: FELD entfernt
+- `SYS_APPROVED_AT` (7200e99f)
+  - 1.12b: FELD entfernt
+- `SYS_APPROVED_BY` (47cff1c2)
+  - 1.12b: FELD entfernt
+- `SYS_AT` (2ed4959c)
+  - 1.12b: FELD entfernt
+- `SYS_BODY` (1f449923)
+  - 1.12b: FELD entfernt
+- `SYS_BY` (c76495f8)
+  - 1.12b: FELD entfernt
+- `SYS_CASE` (73ac7b03)
+  - 1.12b: FELD entfernt
+- `SYS_COMMAND` (84f26799)
+  - 1.12b: FELD entfernt
+- `SYS_COMMIT` (42bbd135)
+  - 1.12b: FELD entfernt
+- `SYS_CONFIGS` (e498abbe)
+  - 1.12b: FELD entfernt
+- `SYS_CONFIGS_ELEMENT_KEY` (b877a216)
+  - 1.12b: FELD entfernt
+  - 1.10: Duplikat von 'SYS_KEY' (gleiche Tabelle/FIELD), nirgends referenziert - geloescht
+- `SYS_CONTROL` (52e197f1)
+  - 1.12b: FELD entfernt
+- `SYS_CREATED_AT` (903a31f7)
+  - 1.12b: FELD entfernt
+- `SYS_DE-DE` (3ad458b0)
+  - 1.12b: FELD entfernt
+- `SYS_DEFAULT` (933923ae)
+  - 1.12b: FELD entfernt
+- `SYS_DESCRIPTION` (3397104b)
+  - 1.12b: FELD entfernt
+- `SYS_DIRECTION` (4acce156)
+  - 1.12b: FELD entfernt
+- `SYS_DISPLAY_ORDER` (26449805)
+  - 1.12b: FELD entfernt
+- `SYS_DISPLAY_SHOW` (a1fd4423)
+  - 1.12b: FELD entfernt
+- `SYS_EDIT` (0dea478a)
+  - 1.12b: FELD entfernt
+- `SYS_ELEMENTS` (9c74939e)
+  - 1.12b: FELD entfernt
+- `SYS_EN-US` (149840f8)
+  - 1.12b: FELD entfernt
+- `SYS_ENABLE` (1894c322)
+  - 1.12b: FELD entfernt
+- `SYS_ENV` (40473a61)
+  - 1.12b: FELD entfernt
+- `SYS_EXPERT_MODE` (c6b8108f)
+  - 1.12b: FELD entfernt
+- `SYS_EXPERT_ORDER` (bb3e9f05)
+  - 1.12b: FELD entfernt
+- `SYS_FELD` (31941830)
+  - 1.12b: FELD entfernt
+- `SYS_FIELD` (5e39f253)
+  - 1.12b: FELD entfernt
+- `SYS_FIELDS` (83206c27)
+  - 1.12b: FELD entfernt
+- `SYS_FILTER` (f4c536e2)
+  - 1.12b: FELD entfernt
+- `SYS_FILTER_TYPE` (e522e4ae)
+  - 1.12b: FELD entfernt
+- `SYS_GILT_BIS` (66c71d56)
+  - 1.12b: FELD entfernt
+- `SYS_GROUP` (95337a24)
+  - 1.12b: FELD entfernt
+- `SYS_GRUPPE` (a611fe31)
+  - 1.12b: FELD entfernt
+- `SYS_GUID` (6437c5a9)
+  - 1.12b: FELD entfernt
+- `SYS_HASH` (371e62dd)
+  - 1.12b: FELD entfernt
+- `SYS_HEAD` (6bed65d9)
+  - 1.12b: FELD entfernt
+- `SYS_HEADER` (6ad34262)
+  - 1.12b: FELD entfernt
+- `SYS_HISTORICAL` (c12502ca)
+  - 1.12b: FELD entfernt
+- `SYS_ICON` (6a708c6a)
+  - 1.12b: FELD entfernt
+- `SYS_KEY` (ba8fb7a3)
+  - 1.12b: FELD entfernt
+- `SYS_LABEL` (a78bc486)
+  - 1.12b: FELD entfernt
+- `SYS_LINK_UID` (9fd90e6d)
+  - 1.12b: FELD entfernt
+- `SYS_MIGRATED` (3461da80)
+  - 1.12b: FELD entfernt
+- `SYS_MODE` (a00407b9)
+  - 1.12b: FELD entfernt
+- `SYS_MODIFIED_AT` (8580aa6f)
+  - 1.12b: FELD entfernt
+- `SYS_MODULE` (5016a6bd)
+  - 1.12b: FELD entfernt
+- `SYS_MODUL_TYPE` (72e3aa63)
+  - 1.12b: FELD entfernt
+- `SYS_NAME` (c75d12c6)
+  - 1.12b: FELD entfernt
+- `SYS_ONLY` (647a2da6)
+  - 1.12b: FELD entfernt
+- `SYS_ORDER` (dc2ba257)
+  - 1.12b: FELD entfernt
+- `SYS_ORIGINAL` (677df268)
+  - 1.12b: FELD entfernt
+- `SYS_PARENT_GUID` (8e19dd43)
+  - 1.12b: FELD entfernt
+- `SYS_PATH` (9971aba0)
+  - 1.12b: FELD entfernt
+- `SYS_PRENT_GUID` (458b92e5)
+  - 1.12b: FELD entfernt
+  - 1.10: Name 'SYS_PRENT_GUID' != 'SYS_PARENT_GUID', aber 'SYS_PARENT_GUID' ist schon vergeben - unveraendert
+  - 1.22: ROOT.SELF_NAME synchronisiert
+- `SYS_PROFILES` (c06c632c)
+  - 1.12b: FELD entfernt
+  - 1.10: name 'SYS_PROFILES' -> 'ASY_PROFILES'
+- `SYS_PROJECTION` (a8d150d7)
+  - 1.12b: FELD entfernt
+- `SYS_READ_ONLY` (6f36511b)
+  - 1.12b: FELD entfernt
+- `SYS_RECORD_TYPE` (86cb32b5)
+  - 1.12b: FELD entfernt
+- `SYS_REF` (21abe21a)
+  - 1.12b: FELD entfernt
+- `SYS_ROLE` (64ebf200)
+  - 1.12b: FELD entfernt
+- `SYS_ROOT` (8c2468e7)
+  - 1.12b: FELD entfernt
+- `SYS_SEARCH` (24067406)
+  - 1.12b: FELD entfernt
+- `SYS_SEARCHABLE` (c804a737)
+  - 1.12b: FELD entfernt
+- `SYS_SELF_CREATED_AT` (96a2db2b)
+  - 1.12b: FELD entfernt
+- `SYS_SELF_GILT_BIS` (620e5496)
+  - 1.12b: FELD entfernt
+- `SYS_SELF_GUID` (e440d10a)
+  - 1.12b: FELD entfernt
+- `SYS_SELF_LINK_UID` (5c1ce139)
+  - 1.12b: FELD entfernt
+- `SYS_SELF_MODIFIED_AT` (743d430c)
+  - 1.12b: FELD entfernt
+  - 1.22: ROOT.SELF_NAME synchronisiert
+- `SYS_SELF_NAME` (7fa063db)
+  - 1.12b: FELD entfernt
+- `SYS_SET` (1dbce076)
+  - 1.12b: FELD entfernt
+- `SYS_SHOW` (5e630d7e)
+  - 1.12b: FELD entfernt
+- `SYS_SORTABLE` (060e9ddb)
+  - 1.12b: FELD entfernt
+- `SYS_SORT_BY_ORIGINAL` (b4c93039)
+  - 1.12b: FELD entfernt
+  - 1.10a: DISPLAY_ODER -> DISPLAY_ORDER
+- `SYS_SORT_DIRECTION` (e8c6c911)
+  - 1.12b: FELD entfernt
+- `SYS_SOURCE_PATH` (b3aef3f4)
+  - 1.12b: FELD entfernt
+- `SYS_STATUS` (bb876f58)
+  - 1.12b: FELD entfernt
+- `SYS_TAB` (0fcfa8fb)
+  - 1.12b: FELD entfernt
+- `SYS_TABELLEN-METADATEN` (00000000) **[reserviert]**
+  - 1.12b: FELD entfernt
+- `SYS_TABLE` (c47b969a)
+  - 1.12b: FELD entfernt
+- `SYS_TABS` (b78b41ec)
+  - 1.12b: FELD entfernt
+- `SYS_TAB_ELEMENT` (835bc223)
+  - 1.12b: FELD entfernt
+- `SYS_TEST` (3cefa715)
+  - 1.10: Test-Control (FIELD 'eingeben', nirgends referenziert) geloescht
+- `SYS_TEST_1` (00963f4c)
+  - 1.10: Test-Control (FIELD 'eingeben', nirgends referenziert) geloescht
+- `SYS_TEXT_22` (470ced5e)
+  - 1.10: Test-Control (FIELD 'eingeben', nirgends referenziert) geloescht
+- `SYS_TEXT_TYPE` (1c293094)
+  - 1.12b: FELD entfernt
+- `SYS_TEXXT_KEY` (de5429ff)
+  - 1.12b: FELD entfernt
+  - 1.10: name 'SYS_TEXXT_KEY' -> 'SYS_TEXT_KEY'
+- `SYS_TOOLTIP` (4b47ae46)
+  - 1.12b: FELD entfernt
+- `SYS_TYPE` (8cdad050)
+  - 1.12b: FELD entfernt
+- `SYS_UID` (7a9483d9)
+  - 1.12b: FELD entfernt
+- `SYS_UPPER_CASE` (0a37bc7a)
+  - 1.12b: FELD entfernt
+  - 1.22: ROOT.SELF_NAME synchronisiert
+- `SYS_VALUE` (05102810)
+  - 1.12b: FELD entfernt
+  - 1.10: name 'SYS_VALUE' -> 'SYS_VALUES'
+- `SYS_VERSION` (50864163)
+  - 1.12b: FELD entfernt
+- `SYS_VISIBLE` (a93ea8c5)
+  - 1.12b: FELD entfernt

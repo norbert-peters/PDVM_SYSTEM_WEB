@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Tuple, Optional
 import uuid
 
 from app.core.pdvm_datenbank import PdvmDatabase
-from app.core.control_runtime_service import hydrate_runtime_control_by_uid
+from app.core.control_runtime_service import hydrate_runtime_control_from_row, load_control_rows_bulk
 
 
 USER_KEYS = {
@@ -306,17 +306,23 @@ async def resolve_view_control_references(
 
     resolved: Dict[str, Dict[str, Any]] = {}
 
+    # Alle referenzierten Controls mit einer Abfrage laden (statt je Control eine Abfrage).
+    control_rows = await load_control_rows_bulk(
+        list((origin or {}).keys()),
+        system_pool=system_pool,
+        mandant_pool=mandant_pool,
+    )
+
     for guid, cfg in (origin or {}).items():
         current = dict(cfg or {})
 
         # Zentrale Runtime-Hydration: Basis kommt aus sys_control_dict,
         # View-Werte ueberschreiben nur erlaubte/definierte Properties.
-        merged = await hydrate_runtime_control_by_uid(
-            str(guid),
-            override=current,
-            system_pool=system_pool,
-            mandant_pool=mandant_pool,
-        )
+        try:
+            control_row = control_rows.get(uuid.UUID(str(guid)))
+        except ValueError:
+            control_row = None
+        merged = hydrate_runtime_control_from_row(control_row, override=current)
 
         # Legacy-Viewdaten koennen einen generischen Typ (z.B. string/base) enthalten,
         # obwohl die Control-Definition inzwischen dropdown/date/... vorgibt.

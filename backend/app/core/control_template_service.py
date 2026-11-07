@@ -224,7 +224,6 @@ class ControlTemplateService:
         canonical_name = _canonical_control_name(table_name, field_name)
         if field_name:
             control_data['field'] = field_name
-            control_data['feld'] = field_name
         control_data['name'] = canonical_name
         control_data['SELF_NAME'] = canonical_name
         
@@ -328,117 +327,55 @@ class ControlTemplateService:
         
         return result
     
-    async def switch_modul_type(
+    async def build_modul_switch(
         self,
-        control_uid: UUID,
+        old_data: Dict[str, Any],
         new_modul_type: str
-    ) -> Dict[str, Any]:
+    ) -> Dict[str, Dict[str, Any]]:
         """
-        Wechselt MODUL_TYPE eines bestehenden Controls
-        
+        Berechnet die Daten eines Controls nach einem MODUL_TYPE-Wechsel (ohne zu schreiben).
+
         Prozess:
-        1. Lade aktuelles Control
-        2. Mappe Felder (alte → neue)
-        3. Füge neue Template-Defaults hinzu
-        4. Update in DB
-        
-        Args:
-            control_uid: UUID des Controls
-            new_modul_type: edit/view/tabs
-        
+        1. Felder alt -> neu mappen
+        2. Neue Template-Defaults ergaenzen
+        3. Fuer die Speicherung normalisieren
+
+        Das Schreiben erfolgt durch den Aufrufer ueber app.core.central_write_service.
+
         Returns:
-            Aktualisierte Control-Daten
+            {'effective': <vollstaendige Daten>, 'stored': <Daten fuer die Speicherung>}
         """
-        # Aktuelles Control laden
-        result = await self.db.fetchrow(
-            'SELECT daten FROM sys_control_dict WHERE uid = $1',
-            control_uid
-        )
-        
-        if not result:
-            raise ValueError(f"Control {control_uid} nicht gefunden")
-        
-        # Parse JSON wenn String
-        old_data = result['daten']
-        if isinstance(old_data, str):
-            import json
-            old_data = json.loads(old_data)
-        
         old_modul = old_data.get('modul_type', '')
-        
-        # Mapping durchführen
         mapped_data = self.map_fields_on_modul_change(old_data, old_modul, new_modul_type)
-        
-        # Template-Defaults anwenden
         complete_data = await self.apply_modul_template_defaults(mapped_data, new_modul_type)
         stored_data = await self.normalize_control_for_storage(complete_data)
-        
-        # Update in DB
-        import json
-        await self.db.execute("""
-            UPDATE sys_control_dict
-            SET daten = $1,
-                modified_at = NOW()
-            WHERE uid = $2
-        """, json.dumps(stored_data), control_uid)
-        
-        return complete_data
+        return {'effective': complete_data, 'stored': stored_data}
 
 
-# Convenience Functions
-
-async def create_control(
+async def build_new_control(
     db_connection,
     modul_type: str,
     table_name: str,
     field_data: Dict[str, Any]
-) -> UUID:
-    """
-    Erstellt neues Control und speichert in DB
-    
-    Args:
-        db_connection: asyncpg Connection
-        modul_type: edit/view/tabs
-        table_name: Zieltabelle (für Präfix-Generierung)
-        field_data: User-Daten (name, label, type, etc.)
-    
-    Returns:
-        UUID des neuen Controls
-    """
-    service = ControlTemplateService(db_connection)
-    
-    # Tabellepräfix wird intern in create_new_control berechnet
-    table_prefix = table_name.split('_')[0] + '_' if '_' in table_name else table_name[:3] + '_'
-    
-    # Control erstellen
-    control = await service.create_new_control(modul_type, table_prefix, field_data)
-    control_to_store = await service.normalize_control_for_storage(control['daten'])
-    
-    # In DB einfügen
-    import json
-    await db_connection.execute("""
-        INSERT INTO sys_control_dict (uid, name, daten, historisch, created_at, modified_at)
-        VALUES ($1, $2, $3, $4, NOW(), NOW())
-    """, control['uid'], control['name'], json.dumps(control_to_store), control['historisch'])
-    
-    return control['uid']
-
-
-async def switch_control_modul(
-    db_connection,
-    control_uid: UUID,
-    new_modul_type: str
 ) -> Dict[str, Any]:
     """
-    Wechselt MODUL_TYPE eines Controls
-    
+    Baut ein neues Control aus den Templates (ohne zu schreiben).
+
     Args:
-        db_connection: asyncpg Connection
-        control_uid: UUID des Controls
-        new_modul_type: edit/view/tabs
-    
+        db_connection: asyncpg Connection (nur lesend fuer Templates)
+        modul_type: edit/view/tabs
+        table_name: Zieltabelle (fuer Praefix-Generierung)
+        field_data: User-Daten (name, label, type, etc.)
+
     Returns:
-        Aktualisierte Control-Daten
+        {'uid', 'name', 'daten' (fuer die Speicherung normalisiert), 'historisch'}
+        Das Schreiben erfolgt durch den Aufrufer ueber app.core.central_write_service.
     """
     service = ControlTemplateService(db_connection)
-    return await service.switch_modul_type(control_uid, new_modul_type)
+
+    # Tabellepraefix wird intern in create_new_control berechnet
+    table_prefix = table_name.split('_')[0] + '_' if '_' in table_name else table_name[:3] + '_'
+
+    control = await service.create_new_control(modul_type, table_prefix, field_data)
+    control['daten'] = await service.normalize_control_for_storage(control['daten'])
+    return control

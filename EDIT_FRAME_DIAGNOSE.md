@@ -1,5 +1,7 @@
 # Edit Frame Diagnose & Lösungsstrategie
 
+> Hinweis (06.11.2026): Die genannten Diagnose-Skripte (`check_frame_*`, `test_frame_load`, `simulate_api_response`, `full_api_test`, `simplify_frame_for_mvp`) liegen jetzt in `backend/_archive_scripts/`.
+
 **Datum:** 13. Februar 2026  
 **Frame-GUID:** `4413571e-6bf6-4f42-b81a-bc898db4880c`  
 **Dialog-GUID:** `4413571e-6bf6-4f42-b81a-bc898db4880c`

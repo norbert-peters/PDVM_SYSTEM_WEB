@@ -14,6 +14,7 @@ import time
 import copy
 from typing import Optional, Dict, Any
 from app.core.pdvm_central_datenbank import PdvmCentralDatabase
+from app.core.central_write_service import create_record_central
 from app.core.pdvm_datenbank import PdvmDatabase
 
 logger = logging.getLogger(__name__)
@@ -78,12 +79,15 @@ async def create_gcs_session(
     Returns:
         PdvmCentralSystemsteuerung-Instanz
     """
-    import asyncpg
+    # Pools: gemeinsam genutzt (je URL einmal pro Prozess), nicht je Session neu aufgebaut
+    from app.core.pool_registry import PoolRegistry
+    import asyncio
     from app.core.pdvm_datetime import now_pdvm
-    
-    # Pools erstellen
-    system_pool = await asyncpg.create_pool(system_db_url, min_size=2, max_size=10)
-    mandant_pool = await asyncpg.create_pool(mandant_db_url, min_size=2, max_size=10)
+
+    system_pool, mandant_pool = await asyncio.gather(
+        PoolRegistry.get_pool(system_db_url, dsn=system_db_url, min_size=1, max_size=10),
+        PoolRegistry.get_pool(mandant_db_url, dsn=mandant_db_url, min_size=1, max_size=10),
+    )
     
     # Stichtag aus DB oder aktuell
     if stichtag is None:
@@ -189,11 +193,13 @@ async def close_gcs_session(session_token: str):
     """
     gcs = _gcs_sessions.pop(session_token, None)
     if gcs:
-        # Pools schlieÃŸen
-        if gcs._system_pool:
-            await gcs._system_pool.close()
-        if gcs._mandant_pool:
-            await gcs._mandant_pool.close()
+        # Gemeinsam genutzte Pools bleiben offen (Shutdown: PoolRegistry.close_all);
+        # nur nicht registrierte (eigene) Pools werden geschlossen.
+        from app.core.pool_registry import PoolRegistry
+
+        for pool in (gcs._system_pool, gcs._mandant_pool):
+            if pool and not PoolRegistry.is_shared(pool):
+                await pool.close()
         logger.info(f"âœ… GCS-Session geschlossen: {session_token[:8]}...")
 
 
@@ -448,12 +454,15 @@ class PdvmCentralSystemsteuerung:
             self.systemsteuerung.set_guid(new_row_uid)
             self.systemsteuerung.set_data({})
             self.systemsteuerung.set_value(user_guid_str, "THEME_MODE", "light", self.stichtag)
-            await self.systemsteuerung.db.create(
+            await create_record_central(
+                table_name="msy_systemsteuerung",
                 uid=uuid.UUID(new_row_uid),
                 daten=self.systemsteuerung.get_all_values(),
                 name="",
                 historisch=0,
                 link_uid=user_uuid,
+                system_pool=self._system_pool,
+                mandant_pool=self._mandant_pool,
             )
             logger.info(f"âœ… msy_systemsteuerung fÃ¼r User {user_guid_str} erstellt")
 
@@ -492,12 +501,15 @@ class PdvmCentralSystemsteuerung:
             self.anwendungsdaten.set_guid(new_row_uid)
             self.anwendungsdaten.set_data({})
             self.anwendungsdaten.set_value("CONFIG", "THEME_GUID", "", self.stichtag)
-            await self.anwendungsdaten.db.create(
+            await create_record_central(
+                table_name="msy_anwendungsdaten",
                 uid=uuid.UUID(new_row_uid),
                 daten=self.anwendungsdaten.get_all_values(),
                 name="",
                 historisch=0,
                 link_uid=mandant_uuid,
+                system_pool=self._system_pool,
+                mandant_pool=self._mandant_pool,
             )
             logger.info(f"âœ… msy_anwendungsdaten fÃ¼r Mandant {mandant_guid_str} erstellt")
 
@@ -547,11 +559,14 @@ class PdvmCentralSystemsteuerung:
                             # Legacy-Daten sofort fuer diese Session verwenden (auch wenn Persistierung spaeter fehlschlaegt).
                             row = legacy_row
                             try:
-                                await self.layout.db.create(
+                                await create_record_central(
+                                    table_name="msy_layout",
                                     uid=theme_uuid,
                                     daten=legacy_row.get("daten") or {},
                                     name=legacy_row.get("name") or "",
                                     historisch=int(legacy_row.get("historisch") or 0),
+                                    system_pool=self._system_pool,
+                                    mandant_pool=self._mandant_pool,
                                 )
                                 logger.info(f"âœ… Layout-Migration: Theme {theme_guid_str} von sys_layout nach msy_layout uebernommen")
                                 # Nach erfolgreicher Persistierung canonical row erneut laden.

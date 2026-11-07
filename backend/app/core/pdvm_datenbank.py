@@ -12,15 +12,17 @@ import uuid
 import json
 import asyncio
 import re
+import time
 import copy
 import logging
-from app.core.pdvm_datetime import datetime_to_pdvm, pdvm_to_str
+from app.core.pdvm_datetime import SENTINEL_MAX, datetime_to_pdvm, pdvm_to_datetime, pdvm_to_str
 from app.core.feld_aenderungshistorie_service import FieldChangeHistoryService
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 import asyncpg
 from app.core.database import DatabasePool
 from app.core.pdvm_table_schema import PDVM_TABLE_COLUMNS, PDVM_TABLE_INDEXES
+from app.core import pdvm_mandant_provisioning
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +54,8 @@ class PdvmDatabase:
     _SYSTEM_DEV_PREFIX = "dev_"
     _AUTH_PREFIX = "asy_"
     _MANDANT_SYSTEM_PREFIX = "msy_"
+    # Tabellennamen fliessen in SQL-Statements; nur einfache Bezeichner zulassen.
+    _TABLE_IDENTIFIER_RE = re.compile(r"^[a-z_][a-z0-9_]*$")
     
     def __init__(self, table_name: str, system_pool: Optional[asyncpg.Pool] = None, mandant_pool: Optional[asyncpg.Pool] = None):
         """
@@ -85,6 +89,9 @@ class PdvmDatabase:
         if not table:
             raise ValueError("Leerer Tabellenname ist nicht erlaubt")
 
+        if not self._TABLE_IDENTIFIER_RE.match(table):
+            raise ValueError(f"Ungueltiger Tabellenname: {table_name!r}")
+
         if "_" not in table:
             logger.error(f"âŒ Tabellennamen ohne Praefix sind unzulaessig: table={table}")
             raise ValueError(f"Tabellenname ohne Praefix ist unzulaessig: {table}")
@@ -103,6 +110,41 @@ class PdvmDatabase:
         return "mandant"
 
     _AUDIT_TABLE_MAP = {}
+
+    # Kurzlebiger Cache fuer die reservierten Control-Templates (555/666 in sys_control_dict).
+    # Die Templates werden fuer jedes Control gebraucht (vorher 1-2 Abfragen je Control).
+    _TEMPLATE_CACHE_TTL_SECONDS = 30.0
+    _template_cache: Dict[tuple, tuple] = {}
+
+    @staticmethod
+    def _template_cache_get(db: "PdvmDatabase", key: tuple) -> Optional[Dict[str, Any]]:
+        pool = db.get_pool()
+        entry = PdvmDatabase._template_cache.get((id(pool),) + key)
+        if entry is None:
+            return None
+        expires, cached_pool, value = entry
+        if cached_pool is not pool or time.monotonic() > expires:
+            PdvmDatabase._template_cache.pop((id(pool),) + key, None)
+            return None
+        return copy.deepcopy(value)
+
+    @staticmethod
+    def _template_cache_put(db: "PdvmDatabase", key: tuple, value: Dict[str, Any]) -> None:
+        pool = db.get_pool()
+        PdvmDatabase._template_cache[(id(pool),) + key] = (
+            time.monotonic() + PdvmDatabase._TEMPLATE_CACHE_TTL_SECONDS,
+            pool,
+            copy.deepcopy(value),
+        )
+
+    @staticmethod
+    def invalidate_template_cache() -> None:
+        PdvmDatabase._template_cache.clear()
+
+    def _invalidate_caches_after_write(self) -> None:
+        # Vor dem Schreiben leeren: auch bei Fehlern bleibt so kein veralteter Stand im Cache.
+        if str(self.table_name or "").strip().lower() == "sys_control_dict":
+            PdvmDatabase.invalidate_template_cache()
 
     _GUID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
@@ -168,6 +210,84 @@ class PdvmDatabase:
         daten["ROOT"] = root
         row_dict["daten"] = daten
         return row_dict
+
+    @staticmethod
+    async def _persist_synced_root_meta_fields(
+        conn,
+        *,
+        table_name: str,
+        row_dict: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Spiegelt ROOT.SELF_* aus Row-Metadaten und persistiert daten einmalig."""
+        projected = PdvmDatabase._inject_root_meta_fields(dict(row_dict or {}))
+        uid_value = projected.get("uid")
+        if uid_value is None:
+            return projected
+
+        await conn.execute(
+            f"""
+            UPDATE {table_name}
+            SET daten = $2
+            WHERE uid = $1
+            """,
+            uid_value,
+            json.dumps(projected.get("daten") or {}),
+        )
+
+        return projected
+
+    @staticmethod
+    def _extract_self_name_for_name_column(daten: Any) -> Optional[str]:
+        """Liest ROOT.SELF_NAME case-insensitive fuer die name-Spalte."""
+        if not isinstance(daten, dict):
+            return None
+        root = daten.get("ROOT") if isinstance(daten.get("ROOT"), dict) else None
+        if not isinstance(root, dict):
+            return None
+
+        ci_map = {str(k).strip().lower(): k for k in root.keys()}
+        self_name_key = ci_map.get("self_name")
+        if self_name_key is None:
+            return None
+
+        value = root.get(self_name_key)
+        if value is None:
+            return None
+
+        name_norm = str(value).strip()
+        return name_norm or None
+
+    @staticmethod
+    def _extract_self_gilt_bis_for_column(daten: Any) -> Optional[datetime]:
+        """Liest ROOT.SELF_GILT_BIS case-insensitive und konvertiert nach datetime."""
+        if not isinstance(daten, dict):
+            return None
+        root = daten.get("ROOT") if isinstance(daten.get("ROOT"), dict) else None
+        if not isinstance(root, dict):
+            return None
+
+        ci_map = {str(k).strip().lower(): k for k in root.keys()}
+        self_gilt_bis_key = ci_map.get("self_gilt_bis")
+        if self_gilt_bis_key is None:
+            return None
+
+        raw_value = root.get(self_gilt_bis_key)
+        if raw_value is None:
+            return None
+
+        text = str(raw_value).strip()
+        if not text:
+            return None
+
+        try:
+            return pdvm_to_datetime(float(text))
+        except Exception:
+            pass
+
+        try:
+            return datetime.fromisoformat(text)
+        except Exception:
+            return None
 
     @staticmethod
     def _strip_runtime_root_meta_fields(daten: Any) -> Any:
@@ -264,6 +384,10 @@ class PdvmDatabase:
 
         template_uid = uuid.UUID("55555555-5555-5555-5555-555555555555")
         db = PdvmDatabase("sys_control_dict", system_pool=system_pool, mandant_pool=mandant_pool)
+        cache_key = ("defaults", modul_norm)
+        cached = PdvmDatabase._template_cache_get(db, cache_key)
+        if cached is not None:
+            return cached
         template_row = await db.get_by_uid(template_uid)
         if not template_row:
             return {}
@@ -295,6 +419,7 @@ class PdvmDatabase:
                     defaults.update(copy.deepcopy(modul_defaults))
 
         defaults["modul_type"] = modul_norm
+        PdvmDatabase._template_cache_put(db, cache_key, defaults)
         return defaults
 
     @staticmethod
@@ -305,6 +430,10 @@ class PdvmDatabase:
     ) -> Dict[str, Any]:
         template_uid = uuid.UUID("66666666-6666-6666-6666-666666666666")
         db = PdvmDatabase("sys_control_dict", system_pool=system_pool, mandant_pool=mandant_pool)
+        cache_key = ("base",)
+        cached = PdvmDatabase._template_cache_get(db, cache_key)
+        if cached is not None:
+            return cached
         template_row = await db.get_by_uid(template_uid)
         if not template_row:
             return {}
@@ -315,7 +444,10 @@ class PdvmDatabase:
                 template_daten = json.loads(template_daten)
             except Exception:
                 template_daten = {}
-        return template_daten if isinstance(template_daten, dict) else {}
+        if not isinstance(template_daten, dict):
+            return {}
+        PdvmDatabase._template_cache_put(db, cache_key, template_daten)
+        return template_daten
 
     @staticmethod
     async def _resolve_control_data_with_templates(
@@ -373,19 +505,12 @@ class PdvmDatabase:
         return resolved
 
     @staticmethod
-    async def load_control_definition(
-        feld_guid: uuid.UUID,
+    async def _finalize_control_row(
+        row: Dict[str, Any],
         *,
         system_pool: Optional[asyncpg.Pool],
         mandant_pool: Optional[asyncpg.Pool],
-    ) -> Optional[Dict[str, Any]]:
-        """Laedt Control-Definition aus der zentralen sys_control_dict."""
-        system_db = PdvmDatabase("sys_control_dict", system_pool=system_pool, mandant_pool=mandant_pool)
-        row = await system_db.get_by_uid(feld_guid)
-
-        if not row:
-            return None
-
+    ) -> Dict[str, Any]:
         out = dict(row)
         daten = out.get("daten") or {}
         if isinstance(daten, str):
@@ -402,8 +527,73 @@ class PdvmDatabase:
             )
         else:
             out["daten"] = {}
-
         return out
+
+    @staticmethod
+    async def load_control_definition(
+        feld_guid: uuid.UUID,
+        *,
+        system_pool: Optional[asyncpg.Pool],
+        mandant_pool: Optional[asyncpg.Pool],
+    ) -> Optional[Dict[str, Any]]:
+        """Laedt Control-Definition aus der zentralen sys_control_dict."""
+        system_db = PdvmDatabase("sys_control_dict", system_pool=system_pool, mandant_pool=mandant_pool)
+        row = await system_db.get_by_uid(feld_guid)
+
+        if not row:
+            return None
+
+        return await PdvmDatabase._finalize_control_row(
+            row, system_pool=system_pool, mandant_pool=mandant_pool
+        )
+
+    @staticmethod
+    async def load_control_definitions(
+        feld_guids: List[uuid.UUID],
+        *,
+        system_pool: Optional[asyncpg.Pool],
+        mandant_pool: Optional[asyncpg.Pool],
+    ) -> Dict[uuid.UUID, Dict[str, Any]]:
+        """Laedt mehrere Control-Definitionen mit einer Abfrage (statt N Einzelabfragen).
+
+        Liefert je gefundener UID dasselbe Ergebnis wie load_control_definition.
+        """
+        unique = list(dict.fromkeys(feld_guids))
+        if not unique:
+            return {}
+
+        system_db = PdvmDatabase("sys_control_dict", system_pool=system_pool, mandant_pool=mandant_pool)
+        pool = system_db.get_pool()
+        async with pool.acquire() as conn:
+            try:
+                rows = await conn.fetch(
+                    """
+                    SELECT uid, link_uid, daten, name, historisch, sec_id, gilt_bis, created_at, modified_at
+                    FROM sys_control_dict
+                    WHERE uid = ANY($1::uuid[])
+                    """,
+                    unique,
+                )
+            except asyncpg.UndefinedColumnError:
+                rows = await conn.fetch(
+                    """
+                    SELECT uid, daten, name, historisch, sec_id, gilt_bis, created_at, modified_at
+                    FROM sys_control_dict
+                    WHERE uid = ANY($1::uuid[])
+                    """,
+                    unique,
+                )
+
+        result: Dict[uuid.UUID, Dict[str, Any]] = {}
+        for raw in rows:
+            row = dict(raw)
+            if row.get("daten") and isinstance(row["daten"], str):
+                row["daten"] = json.loads(row["daten"])
+            row = system_db._inject_root_meta_fields(row)
+            result[row["uid"]] = await PdvmDatabase._finalize_control_row(
+                row, system_pool=system_pool, mandant_pool=mandant_pool
+            )
+        return result
     
     def get_pool(self) -> asyncpg.Pool:
         """Holt den richtigen Connection Pool fÃ¼r diese Tabelle"""
@@ -450,14 +640,21 @@ class PdvmDatabase:
 
         pool = self.get_pool()
         async with pool.acquire() as conn:
-            # Nur die Spalten lesen die garantiert existieren
-            # backup_daten wird bei Wartung hinzugefÃ¼gt falls fehlend
-            row = await conn.fetchrow(f"""
-                SELECT uid, daten, name, historisch, sec_id, gilt_bis, 
-                       created_at, modified_at
-                FROM {self.table_name}
-                WHERE uid = $1
-            """, uid)
+            # link_uid ist optional (Altstaende ohne Spalte duerfen nicht brechen).
+            try:
+                row = await conn.fetchrow(f"""
+                    SELECT uid, link_uid, daten, name, historisch, sec_id, gilt_bis,
+                           created_at, modified_at
+                    FROM {self.table_name}
+                    WHERE uid = $1
+                """, uid)
+            except Exception:
+                row = await conn.fetchrow(f"""
+                    SELECT uid, daten, name, historisch, sec_id, gilt_bis,
+                           created_at, modified_at
+                    FROM {self.table_name}
+                    WHERE uid = $1
+                """, uid)
             
             if not row:
                 return None
@@ -566,9 +763,9 @@ class PdvmDatabase:
 
         pool = self.get_pool()
         async with pool.acquire() as conn:
+            select_columns = "uid, link_uid, daten, name, historisch, sec_id, gilt_bis, created_at, modified_at"
             query = f"""
-                SELECT uid, daten, name, historisch, sec_id, gilt_bis,
-                       created_at, modified_at
+                SELECT {select_columns}
                 FROM {self.table_name}
             """
             
@@ -598,7 +795,41 @@ class PdvmDatabase:
                     pass
                 query += f" OFFSET {offset_int}"
             
-            rows = await conn.fetch(query, *params)
+            try:
+                rows = await conn.fetch(query, *params)
+            except Exception:
+                select_columns = "uid, daten, name, historisch, sec_id, gilt_bis, created_at, modified_at"
+                query = f"""
+                    SELECT {select_columns}
+                    FROM {self.table_name}
+                """
+
+                if where:
+                    query += f" WHERE {where}"
+
+                query += f" ORDER BY {order_by}"
+
+                if limit is not None:
+                    try:
+                        limit_int = int(limit)
+                    except Exception:
+                        raise ValueError("limit must be an int")
+                    if limit_int <= 0:
+                        raise ValueError("limit must be > 0")
+                    query += f" LIMIT {limit_int}"
+
+                if offset:
+                    try:
+                        offset_int = int(offset)
+                    except Exception:
+                        raise ValueError("offset must be an int")
+                    if offset_int < 0:
+                        raise ValueError("offset must be >= 0")
+                    if limit is None:
+                        pass
+                    query += f" OFFSET {offset_int}"
+
+                rows = await conn.fetch(query, *params)
             
             result = []
             for row in rows:
@@ -639,7 +870,7 @@ class PdvmDatabase:
             full_where = " AND ".join(clauses)
 
             query = f"""
-                SELECT uid, daten, name, historisch, sec_id, gilt_bis,
+                SELECT uid, link_uid, daten, name, historisch, sec_id, gilt_bis,
                        created_at, modified_at
                 FROM {self.table_name}
                 WHERE {full_where}
@@ -655,7 +886,27 @@ class PdvmDatabase:
                     raise ValueError("limit must be > 0")
                 query += f" LIMIT {limit_int}"
 
-            rows = await conn.fetch(query, *(params + (modified_after,)))
+            try:
+                rows = await conn.fetch(query, *(params + (modified_after,)))
+            except Exception:
+                query = f"""
+                    SELECT uid, daten, name, historisch, sec_id, gilt_bis,
+                           created_at, modified_at
+                    FROM {self.table_name}
+                    WHERE {full_where}
+                    ORDER BY {order_by}
+                """
+
+                if limit is not None:
+                    try:
+                        limit_int = int(limit)
+                    except Exception:
+                        raise ValueError("limit must be an int")
+                    if limit_int <= 0:
+                        raise ValueError("limit must be > 0")
+                    query += f" LIMIT {limit_int}"
+
+                rows = await conn.fetch(query, *(params + (modified_after,)))
 
             result: List[Dict[str, Any]] = []
             for row in rows:
@@ -695,14 +946,25 @@ class PdvmDatabase:
         if scope != "live":
             raise ValueError("PdvmDatabase.create unterstÃ¼tzt aktuell nur storage_scope='live'")
 
+        name_from_self = self._extract_self_name_for_name_column(daten)
+        effective_name = name_from_self if name_from_self is not None else name
+        gilt_bis_from_self = self._extract_self_gilt_bis_for_column(daten)
+        effective_gilt_bis = gilt_bis_from_self
+        if effective_gilt_bis is None:
+            try:
+                effective_gilt_bis = pdvm_to_datetime(float(SENTINEL_MAX))
+            except Exception:
+                effective_gilt_bis = datetime(9999, 12, 31, 23, 59, 59)
+
+        self._invalidate_caches_after_write()
         pool = self.get_pool()
         async with pool.acquire() as conn:
             # gilt_bis wird automatisch auf '9999-12-31 23:59:59' gesetzt (DB-Default)
             await conn.execute(f"""
                 INSERT INTO {self.table_name} 
-                (uid, daten, name, historisch, sec_id)
-                VALUES ($1, $2, $3, $4, $5)
-            """, uid, json.dumps(daten), name, historisch, sec_id)
+                (uid, daten, name, historisch, sec_id, gilt_bis)
+                VALUES ($1, $2, $3, $4, $5, $6)
+            """, uid, json.dumps(daten), effective_name, historisch, sec_id, effective_gilt_bis)
 
             # Kompatibel: link_uid nur setzen wenn Spalte bereits vorhanden ist.
             try:
@@ -718,6 +980,38 @@ class PdvmDatabase:
             except Exception:
                 # Tabellen ohne link_uid (vor Migration) dÃ¼rfen nicht brechen.
                 pass
+
+            # Unmittelbar nach Anlegen SELF_* in daten aus DB-Metadaten synchronisieren.
+            try:
+                created_raw = await conn.fetchrow(
+                    f"""
+                    SELECT uid, link_uid, daten, name, historisch, sec_id, gilt_bis,
+                           created_at, modified_at
+                    FROM {self.table_name}
+                    WHERE uid = $1
+                    """,
+                    uid,
+                )
+            except Exception:
+                created_raw = await conn.fetchrow(
+                    f"""
+                    SELECT uid, daten, name, historisch, sec_id, gilt_bis,
+                           created_at, modified_at
+                    FROM {self.table_name}
+                    WHERE uid = $1
+                    """,
+                    uid,
+                )
+
+            if created_raw:
+                created_dict = dict(created_raw)
+                if created_dict.get("daten") and isinstance(created_dict.get("daten"), str):
+                    created_dict["daten"] = json.loads(created_dict["daten"])
+                await self._persist_synced_root_meta_fields(
+                    conn,
+                    table_name=self.table_name,
+                    row_dict=created_dict,
+                )
             
             return await self.get_by_uid(uid)
 
@@ -765,6 +1059,11 @@ class PdvmDatabase:
         if scope != "live":
             raise ValueError("PdvmDatabase.update unterstÃ¼tzt aktuell nur storage_scope='live'")
 
+        name_from_self = self._extract_self_name_for_name_column(daten)
+        effective_name = name_from_self if name_from_self is not None else name
+        effective_gilt_bis = self._extract_self_gilt_bis_for_column(daten)
+
+        self._invalidate_caches_after_write()
         pool = self.get_pool()
 
         def _normalize_for_compare(value: Any) -> str:
@@ -806,35 +1105,33 @@ class PdvmDatabase:
                     if _normalize_for_compare(before_compare) != _normalize_for_compare(expected_compare):
                         raise ValueError(FieldChangeHistoryService.CONFLICT_MESSAGE)
 
-                # gilt_bis wird immer auf hÃ¶chstes Datum gesetzt
-                if name is not None and historisch is not None:
-                    await conn.execute(f"""
+                # Linearer Write-Builder: name/historisch/gilt_bis nur setzen, wenn Werte geliefert sind.
+                set_parts: List[str] = ["daten = $1"]
+                params: List[Any] = [json.dumps(daten)]
+
+                if effective_name is not None:
+                    params.append(effective_name)
+                    set_parts.append(f"name = ${len(params)}")
+
+                if historisch is not None:
+                    params.append(historisch)
+                    set_parts.append(f"historisch = ${len(params)}")
+
+                if effective_gilt_bis is not None:
+                    params.append(effective_gilt_bis)
+                    set_parts.append(f"gilt_bis = ${len(params)}")
+
+                set_parts.append("modified_at = NOW()")
+                params.append(uid_obj)
+
+                await conn.execute(
+                    f"""
                         UPDATE {self.table_name}
-                        SET daten = $1, name = $2, historisch = $3,
-                            gilt_bis = '9999-12-31 23:59:59', modified_at = NOW()
-                        WHERE uid = $4
-                    """, json.dumps(daten), name, historisch, uid_obj)
-                elif name is not None:
-                    await conn.execute(f"""
-                        UPDATE {self.table_name}
-                        SET daten = $1, name = $2,
-                            gilt_bis = '9999-12-31 23:59:59', modified_at = NOW()
-                        WHERE uid = $3
-                    """, json.dumps(daten), name, uid_obj)
-                elif historisch is not None:
-                    await conn.execute(f"""
-                        UPDATE {self.table_name}
-                        SET daten = $1, historisch = $2,
-                            gilt_bis = '9999-12-31 23:59:59', modified_at = NOW()
-                        WHERE uid = $3
-                    """, json.dumps(daten), historisch, uid_obj)
-                else:
-                    await conn.execute(f"""
-                        UPDATE {self.table_name}
-                        SET daten = $1,
-                            gilt_bis = '9999-12-31 23:59:59', modified_at = NOW()
-                        WHERE uid = $2
-                    """, json.dumps(daten), uid_obj)
+                        SET {", ".join(set_parts)}
+                        WHERE uid = ${len(params)}
+                    """,
+                    *params,
+                )
 
                 after_raw = await conn.fetchrow(
                     f"""
@@ -845,8 +1142,33 @@ class PdvmDatabase:
                     """,
                     uid_obj,
                 )
-                updated = _parse_row(after_raw) if after_raw else None
-                updated_plain = _parse_row(after_raw, inject_root_meta=False) if after_raw else None
+
+                # Nach jedem Update ROOT.SELF_* in daten auf DB-Metadaten synchronisieren.
+                if after_raw:
+                    after_sync_source = dict(after_raw)
+                    if after_sync_source.get("daten") and isinstance(after_sync_source.get("daten"), str):
+                        after_sync_source["daten"] = json.loads(after_sync_source["daten"])
+                    synced = await self._persist_synced_root_meta_fields(
+                        conn,
+                        table_name=self.table_name,
+                        row_dict=after_sync_source,
+                    )
+                    synced_raw = {
+                        "uid": synced.get("uid"),
+                        "link_uid": synced.get("link_uid"),
+                        "daten": synced.get("daten"),
+                        "name": synced.get("name"),
+                        "historisch": synced.get("historisch"),
+                        "sec_id": synced.get("sec_id"),
+                        "gilt_bis": synced.get("gilt_bis"),
+                        "created_at": synced.get("created_at"),
+                        "modified_at": synced.get("modified_at"),
+                    }
+                    updated = _parse_row(synced_raw, inject_root_meta=True)
+                    updated_plain = _parse_row(synced_raw, inject_root_meta=False)
+                else:
+                    updated = None
+                    updated_plain = None
 
                 # V1 Ã„nderungsnachweis: insert-only, nur geÃ¤nderte Felder.
                 # Gilt fÃ¼r alle DB-Kontexte (auth/system/mandant) und schreibt
@@ -897,6 +1219,7 @@ class PdvmDatabase:
         if scope != "live":
             raise ValueError("PdvmDatabase.delete unterstÃ¼tzt aktuell nur storage_scope='live'")
 
+        self._invalidate_caches_after_write()
         pool = self.get_pool()
         async with pool.acquire() as conn:
             if soft_delete:
@@ -930,142 +1253,6 @@ class PdvmDatabase:
     
     @staticmethod
     async def ensure_mandant_tables(mandant_id: str, mandant_db_url: str, mandant_record: dict):
-        """
-        PrÃ¼ft und erstellt fehlende Tabellen fÃ¼r einen Mandanten beim Login
-        
-        Verwendet direkte Connection statt DatabasePool.
-        LÃ¤dt CONFIG.FEATURES aus mandant_record
-        und erstellt alle fehlenden Tabellen in der Mandanten-Datenbank.
-        
-        Args:
-            mandant_id: UUID des Mandanten
-            mandant_db_url: Connection-URL zur Mandanten-Datenbank
-            mandant_record: Mandanten-Datensatz aus asy_mandanten (mit daten JSONB)
-        """
-        import logging
-        import asyncpg
-        logger = logging.getLogger(__name__)
-        
-        # 1. Tabellen-Liste aus Mandanten-Config laden
-        daten = mandant_record.get("daten", {})
-        config = daten.get("CONFIG", {})
-        features = config.get("FEATURES", [])
-        
-        if not isinstance(features, list):
-            features = []
-
-        legacy_to_canonical = {
-            "sys_anwendungsdaten": "msy_anwendungsdaten",
-            "sys_systemsteuerung": "msy_systemsteuerung",
-            "sys_layout": "msy_layout",
-            "sys_security": "msy_security",
-            "sys_error_log": "msy_error_log",
-            "sys_error_acknowledgements": "msy_error_acknowledgments",
-            "sys_error_acknowledgments": "msy_error_acknowledgments",
-            "sys_ext_table_man": "msy_ext_table",
-            "sys_feld_aenderungshistorie": "msy_feld_aenderungshistorie",
-        }
-        features = [legacy_to_canonical.get(str(t), str(t)) for t in features]
-        # Entfernte Tabellen aus Features explizit ausfiltern.
-        features = [
-            t
-            for t in features
-            if t not in {"msy_control_dict", "msy_control_dict_audit", "sys_contr_dict_man", "sys_contr_dict_man_audit"}
-        ]
-        
-        mandatory_tables = [
-            "msy_anwendungsdaten",
-            "msy_systemsteuerung",
-            "msy_layout",
-            "msy_security",
-            "msy_error_log",
-            "msy_error_acknowledgments",
-            "msy_systemdaten",
-            "msy_ext_table",
-            "msy_feld_aenderungshistorie",
-        ]
-
-        all_tables = list(dict.fromkeys(mandatory_tables + features))
-        
-        if not all_tables:
-            logger.info(f"Keine Tabellen fÃ¼r Mandant {mandant_id} konfiguriert")
-            return
-        
-        # 2. Direkte Connection zur Mandanten-DB (mit Retry)
-        max_retries = 3
-        retry_delay = 0.5
-        conn = None
-        
-        for attempt in range(max_retries):
-            try:
-                conn = await asyncpg.connect(mandant_db_url, timeout=10)
-                break  # Erfolgreich verbunden
-            except Exception as e:
-                if attempt < max_retries - 1:
-                    logger.warning(f"âš ï¸ Connection-Versuch {attempt + 1} fehlgeschlagen: {e}, retry in {retry_delay}s...")
-                    await asyncio.sleep(retry_delay)
-                    retry_delay *= 2  # Exponential backoff
-                else:
-                    logger.error(f"âŒ Alle {max_retries} Connection-Versuche fehlgeschlagen")
-                    raise
-        
-        if not conn:
-            raise Exception("Konnte keine Connection zur Mandanten-DB herstellen")
-        
-        try:
-            # 3. Existierende Tabellen ermitteln
-            existing_tables = await conn.fetch("""
-                SELECT tablename 
-                FROM pg_tables 
-                WHERE schemaname = 'public'
-            """)
-            existing_table_names = {row['tablename'] for row in existing_tables}
-            
-            # 4. Fehlende Tabellen erstellen
-            created_count = 0
-            for table_name in all_tables:
-                if table_name in existing_table_names:
-                    logger.info(f"âœ“ Tabelle '{table_name}' existiert bereits")
-                    continue
-                
-                try:
-                    # Standard PDVM-Tabellenschema (einheitlich fÃ¼r ALLE Tabellen)
-                    columns = ', '.join([f"{col} {definition}" for col, definition in PDVM_TABLE_COLUMNS.items()])
-                    
-                    create_sql = f"""
-                    CREATE TABLE {table_name} (
-                        {columns}
-                    )
-                    """
-                    
-                    await conn.execute(create_sql)
-                    
-                    # Indizes erstellen
-                    for idx_col in PDVM_TABLE_INDEXES:
-                        if idx_col == 'daten':
-                            # GIN Index fÃ¼r JSONB
-                            await conn.execute(f"""
-                                CREATE INDEX IF NOT EXISTS idx_{table_name}_{idx_col} 
-                                ON {table_name} USING GIN({idx_col})
-                            """)
-                        else:
-                            # Standard B-Tree Index
-                            await conn.execute(f"""
-                                CREATE INDEX IF NOT EXISTS idx_{table_name}_{idx_col} 
-                                ON {table_name}({idx_col})
-                            """)
-                    
-                    created_count += 1
-                    logger.info(f"âœ… Tabelle '{table_name}' mit Standard-Schema erstellt")
-                
-                except Exception as e:
-                    logger.error(f"âŒ Fehler beim Erstellen von '{table_name}': {e}")
-            
-            if created_count > 0:
-                logger.info(f"ðŸŽ‰ {created_count} Tabelle(n) fÃ¼r Mandant '{mandant_record['name']}' erstellt")
-            else:
-                logger.info(f"âœ“ Alle Tabellen fÃ¼r Mandant '{mandant_record['name']}' bereits vorhanden")
-        
-        finally:
-            await conn.close()
+        """Delegiert an app.core.pdvm_mandant_provisioning.ensure_mandant_tables."""
+        await pdvm_mandant_provisioning.ensure_mandant_tables(mandant_id, mandant_db_url, mandant_record)
 

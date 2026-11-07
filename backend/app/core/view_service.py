@@ -19,7 +19,7 @@ from app.core.pdvm_central_systemsteuerung import PdvmCentralSystemsteuerung
 from app.core.pdvm_central_datenbank import PdvmCentralDatabase
 from app.core.pdvm_datenbank import PdvmDatabase
 from app.core.config import settings
-from app.core.pdvm_datetime import now_pdvm, datetime_to_pdvm, get_form_timestamp
+from app.core.pdvm_datetime import datetime_to_pdvm, get_form_timestamp
 
 
 _LEGACY_VIEW_TABLE_ALIASES = {
@@ -295,8 +295,8 @@ async def load_view_base_rows(
     if not include_historisch:
         where = "historisch = 0"
 
-    def _gilt_bis_is_expired(gilt_bis_value: Any, now_pdvm: float) -> bool:
-        """True wenn gilt_bis < aktueller Tag (PDVM-Konzept: Taggenau)."""
+    def _gilt_bis_is_expired(gilt_bis_value: Any, stichtag_pdvm: float) -> bool:
+        """True wenn gilt_bis <= Stichtag (Datensatz in View nicht mehr sichtbar)."""
         if gilt_bis_value is None:
             return False
 
@@ -339,9 +339,9 @@ async def load_view_base_rows(
         except Exception:
             pass
 
-        # Taggenauer Vergleich
+        # Stichtagsvergleich (inklusive): gilt_bis <= stichtag => ausgeschlossen
         try:
-            return int(pdvm_val) < int(now_pdvm)
+            return float(pdvm_val) <= float(stichtag_pdvm)
         except Exception:
             return False
 
@@ -469,14 +469,14 @@ async def load_view_base_rows(
     # Normalisiere minimal für API
     # Spezialfall: gruppe=SYSTEM -> Spaltenwerte kommen aus DB-Spalten (nicht aus JSONB)
     out: List[Dict[str, Any]] = []
-    now_pdvm_val = float(now_pdvm())
+    stichtag_pdvm_val = float(gcs.stichtag)
 
     for r in rows:
         if _is_excluded_uid(r.get("uid")):
             continue
 
-        # gilt_bis: wenn < aktueller Tag → Datensatz gilt als gelöscht
-        if _gilt_bis_is_expired(r.get("gilt_bis"), now_pdvm_val):
+        # gilt_bis: wenn <= Stichtag => Datensatz fuer diese Sicht ausgeschlossen
+        if _gilt_bis_is_expired(r.get("gilt_bis"), stichtag_pdvm_val):
             continue
 
         daten_raw = r.get("daten") or {}

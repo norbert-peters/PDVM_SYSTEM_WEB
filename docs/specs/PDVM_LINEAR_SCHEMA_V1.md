@@ -19,7 +19,7 @@ Diese Spezifikation gilt mindestens für:
 - `sys_viewdaten`
 - `sys_framedaten`
 
-Bestehende `ARCHITECTURE_RULES.md` bleiben voll gültig und werden durch dieses Dokument konkretisiert.
+Bestehende `ARCHITECTURE_RULES.md` bleiben voll gültig und werden durch dieses Dokument konkretisiert. Bei Widerspruch gilt `ARCHITECTURE_RULES.md`; dieses Dokument ist die einzige Schema-Quelle neben den Regeln (Spezialspezifikationen verweisen hierher).
 
 ## 3. Schreibweisen (verbindlich)
 
@@ -68,9 +68,9 @@ Wenn einer fehlt:
 1. Tabelle aus `sys_dialogdaten.ROOT.TABLE` bestimmen.
 2. Prüfen: `ROOT.GO_NEW_SET == true` für den Dialog.
 3. Name erfassen und Präfix-Regel prüfen.
-4. Basis aus `666...` übernehmen.
+4. Basis aus `555...` derselben Tabelle tief kopieren (ARCHITECTURE_RULES 1.13).
 5. `SELF_GUID`/`SELF_NAME` setzen.
-6. Für leere Eigenschaften vom Typ `element_list` passende Template-Struktur aus `555...` (`TEMPLATES`) einfügen.
+6. Leere Gruppen der Basis aus der gleichnamigen Vorlage in `666...` (`TEMPLATES`) befüllen; fehlt die Vorlage: Fehler.
 7. Speichern.
 8. Datensatz direkt im Edit anbieten.
 

@@ -1,5 +1,7 @@
 # Frame-Architektur V2 - Konzeptanalyse & Umsetzungsplan
 
+> Hinweis (06.11.2026): Die hier genannten Einmal-Skripte `backend/*.py` liegen jetzt in `backend/_archive_scripts/` (nur noch historisch, nicht mehr gepflegt).
+
 **Datum:** 14. Februar 2026  
 **Status:** Phase 1, 2, 3 & 4 (Basis) abgeschlossen ✅ | Phase 5 & 6 ausstehend
 

@@ -1,6 +1,18 @@
 import asyncio
 
+import pytest
+
 from app.core import dialog_service
+
+
+@pytest.fixture(autouse=True)
+def _bulk_control_loader_delegates_to_single_loader(monkeypatch):
+    """Der Bulk-Pfad laedt mit einer Abfrage; die Tests faken den Einzel-Lader, daher delegiert der Bulk-Lader hier."""
+
+    async def _bulk(guids, **kwargs):
+        return {g: await dialog_service.PdvmDatabase.load_control_definition(g, **kwargs) for g in guids}
+
+    monkeypatch.setattr(dialog_service.PdvmDatabase, "load_control_definitions", staticmethod(_bulk))
 
 
 class _FakeGcs:

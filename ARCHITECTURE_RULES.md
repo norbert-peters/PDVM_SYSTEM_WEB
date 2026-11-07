@@ -34,6 +34,12 @@ items = row["daten"]["GRUND"]  # Umgeht Historisierung und Logik!
 	explizite Actor-Parameter sind nur als kontrollierter Override für Sonderfälle erlaubt.
 
 Hinweis zur Migration:
+- Stand 06.11.2026 (Phase 3): Router (`app/api`) enthalten kein SQL und keinen direkten asyncpg-Zugriff mehr (Datenbank-/Tabellenverwaltung liegt in `db_admin_service`, Mandanten-Provisionierung in `mandant_db_provisioning_service`, Draft-Container in `WorkflowDraftService`). Die alte CRUD-Klasse `app.core.database.PdvmDatabase` ist entfernt. Lesen im Router erfolgt ueber `app.core.pdvm_datenbank.PdvmDatabase` mit den GCS-Pools.
+- `PdvmCentralDatabase.save_all_values`, die GCS-Initialanlage (`msy_systemsteuerung`, `msy_anwendungsdaten`, `msy_layout`) und der Control-Dictionary-Service schreiben ueber `central_write_service`.
+- Dokumentierte Ausnahmen (Direktzugriff erlaubt): Draft-Container (`workflow_draft_service`, `dev_workflow_draft`), Release-Tabellen (`release_service`), Mandanten-DB-Wartung (`mandant_db_maintenance`), `asy_benutzer`-Sonderpfad (`user_manager`, `pdvm_central_benutzer`, 1.13), Feldaenderungshistorie.
+- Der Test `backend/test_architecture_guard.py` prueft diese Regeln statisch (Router ohne SQL, keine Legacy-Klasse, Schreiben nur ueber den Gateway).
+- Tabellennamen aus Requests muessen einfache Bezeichner sein (`^[a-z_][a-z0-9_]*$`); `PdvmDatabase` lehnt andere Namen ab (400).
+- Datenbankfehler "Tabelle existiert nicht" werden zentral als HTTP 404 ausgegeben (`app/core/error_handlers.py`), nicht als 500.
 - Bestehende Legacy-Router werden schrittweise umgestellt.
 - Bei Änderungen an einem Legacy-Router ist die Umstellung auf den zentralen Write-Gateway Pflicht.
 
@@ -41,7 +47,7 @@ Hinweis zur Migration:
 **Regel:** Es gibt keine hardcodierten Verbindungsdaten für Mandanten- oder System-Datenbanken (`config.py`).
 
 *   Die einzige statisch bekannte Datenbank ist die **AUTH-DB**.
-*   Alle anderen Verbindungen (System, Mandant) **MÜSSEN** dynamisch über den `ConnectionManager` und die Tabelle `sys_mandanten` bezogen werden.
+*   Alle anderen Verbindungen (System, Mandant) **MÜSSEN** dynamisch über den `ConnectionManager` und die Tabelle `asy_mandanten` bezogen werden.
 *   **Warum?** Mandanten können auf verschiedenen Servern liegen. Hardcoded URLs in `config.py` (wie `DATABASE_URL_MANDANT`) sind veraltet und dürfen nicht genutzt werden.
 
 ### 1.3 Factory Pattern für Datensätze
@@ -75,7 +81,7 @@ Begruendung:
 **Regel:** Controls mit `gruppe=SYSTEM` sind **Spaltenfelder** der Tabelle.
 
 - Speicherung erfolgt **direkt über `PdvmDatabase`** (nicht in `daten` JSONB).
-- Für `sys_benutzer` gelten Sonder-Spalten: `benutzer`, `passwort`.
+- Für `asy_benutzer` gelten Sonder-Spalten: `benutzer`, `passwort`.
 - `USER.EMAIL` bleibt **JSONB** (Gruppe USER) und darf **nicht** als SYSTEM-Spalte behandelt werden.
 
 ### 1.6 Dialog LAST_CALL (vereinfachte Pflichtlogik)
@@ -106,7 +112,7 @@ Dann sollen alle Dialoge auf den zuletzt ausgewählten Datensatz springen.
 **Regel:** Datenbank‑Routing erfolgt ausschließlich über `PdvmDatabase` anhand des Tabellennamens.
 
 - Keine manuelle DB‑Auswahl in Callern.
-- Sonderfälle (z.B. `sys_benutzer`) dürfen Zusatzfunktionen haben, müssen aber **primär**
+- Sonderfälle (z.B. `asy_benutzer`) dürfen Zusatzfunktionen haben, müssen aber **primär**
 	`PdvmDatabase` nutzen und nur für Spezialspalten auf Auth‑Queries ausweichen.
 
 ### 1.7a Verbindliche Praefix-Routing-Regeln
@@ -151,8 +157,8 @@ Verbindliche Umwandlung:
 **Regel:** Datensaetze in `sys_control_dict.daten` haben exakt die Gruppen `ROOT` und `CONTROL`.
 
 - Keine flachen Legacy-Top-Level-Properties in `daten`.
-- `CONTROL.FIELD`/`CONTROL.FELD` sind verpflichtend in GROSSBUCHSTABEN.
-- `name`/`SELF_NAME` folgen immer `<TABELLENPREFIX>_<FIELD>` in GROSSBUCHSTABEN (z. B. `SYS_LABEL`).
+- `CONTROL.FIELD` ist verpflichtend in GROSSBUCHSTABEN. `CONTROL.FELD` ist ein Alias und unzulaessig (Alias-Verbot, siehe 1.12b); `FIELD` ist die einzige kanonische Schreibweise.
+- `name`/`SELF_NAME` folgen immer `<TABELLENPREFIX>_<FIELD>` in GROSSBUCHSTABEN (z. B. `SYS_LABEL`). Gibt es dasselbe `FIELD` mit abweichender Semantik (Gruppe, Label, Typ) mehrfach, lautet der Name `<TABELLENPREFIX>_<GRUPPE>_<FIELD>` (Punkte in der Gruppe als `_`), bei weiterer Kollision mit Zaehler `_2`, `_3`.
 - Neuanlage erfolgt ausschliesslich ueber den regulären Neuanlage-Flow (keine Template-Direktkopien als Fachdaten).
 
 ### 1.10a Muttercontrol-Regel fuer `sys_control_dict` (starr)
@@ -164,14 +170,20 @@ Verbindliche Umwandlung:
 - Eigenschaften, die in `sys_framedaten` (`daten.FIELDS.*`) oder `sys_viewdaten` (`daten.SYSTEM.*`) genutzt werden, duerfen nur dann als Control-Eigenschaft gelten, wenn sie im Muttercontrol aufgenommen und freigegeben wurden.
 - Neue Eigenschaften werden zuerst im Muttercontrol dokumentiert und erst danach in Runtime-/Migrationslogik verwendet.
 - Erweiterungen in `CONTROL.CONFIGS` folgen demselben Freigabeprozess (keine stillen Ad-hoc-Keys in Produktionsdaten).
+- Zusammenspiel mit 1.12a/1.13: Der 666-Satz fuehrt dieselbe Struktur zusaetzlich als Neuanlage-Vorlage unter `daten.TEMPLATES.CONTROL`. `daten.CONTROL` (Pruefquelle) und `daten.TEMPLATES.CONTROL` (Vorlage) muessen inhaltlich identisch sein; Seeder und Audit pruefen die Synchronitaet.
 
 ### 1.10b Frame-Layout-Override auf FIELDS (TAB/DISPLAY_ORDER)
 **Regel:** In `sys_framedaten.daten.FIELDS` bleibt `sys_control_dict` die fachliche Quelle fuer Controls; reine Layout-Attribute duerfen pro Frame uebersteuert werden.
 
 - ✅ **PFLICHT:** Control-Semantik (`TYPE`, `LABEL`, `GRUPPE`, `FELD`, `CONFIGS`, usw.) kommt aus `sys_control_dict`.
-- ✅ **PFLICHT:** Frame darf Layout-Parameter je Feld setzen, insbesondere `TAB` und `DISPLAY_ORDER` (sowie `SOURCE_PATH` wenn benoetigt).
+- ✅ **PFLICHT:** Frame darf Layout-Parameter je Feld setzen, insbesondere `TAB` und `DISPLAY_ORDER` (sowie `SOURCE_PATH`/`SAVE_PATH` wenn benoetigt).
+- ✅ **PFLICHT:** Frame darf bei generischen Controls die Kontextbindung `GRUPPE` und `TABLE` (GROSS geschrieben) uebersteuern. Ein Eintrag traegt nur diese Schluessel; eingebettete Control-Kopien (`ROOT`/`CONTROL` im Feld) und Kleinschreib-Eigenschaften sind unzulaessig.
 - ✅ **PFLICHT:** Runtime-Merge muss diese Layout-Parameter erhalten, damit mehrtabbige Frames stabil gerendert werden.
 - ❌ **VERBOTEN:** Unbekannte freie Zusatz-Properties in `FIELDS.*` als fachliche Overrides zu akzeptieren.
+
+Dokumentierte Ausnahmen (nicht als Control zu fuehren):
+- Benannte Struktur-Eintraege in `element_list`-Frames (z. B. `FIELDS.CONTROL.element`, `FIELDS.CONFIGS.*`).
+- Felder mit Kleinschreib-Datenschluessel (`sys_menudaten.MENU`: `label`, `tooltip`, `icon`, `command`, ...), solange das Menuedatenmodell Kleinschreibung nutzt.
 
 Begruendung:
 - Frames brauchen eine eigene visuelle Ordnung, ohne die zentrale Control-Definition zu duplizieren.
@@ -329,8 +341,8 @@ UID-/LINK_UID-Regel (verbindlich):
 - `uid` ist in allen Tabellen eine reine technische Row-ID (keine fachliche Verlinkungsbedeutung).
 - Fachliche Identität und exakte Adressierung laufen über `link_uid`.
 - Für GCS gilt speziell:
-	- `sys_systemsteuerung` wird über `link_uid = user_guid` gelesen/geschrieben.
-	- `sys_anwendungsdaten` wird über `link_uid = mandant_guid` gelesen/geschrieben.
+	- `msy_systemsteuerung` wird über `link_uid = user_guid` gelesen/geschrieben.
+	- `msy_anwendungsdaten` wird über `link_uid = mandant_guid` gelesen/geschrieben.
 - Bei Migrationen dürfen für diese Tabellen neue `uid`-Werte vergeben werden; `link_uid` bleibt stabil.
 
 - Ausnahmen müssen explizit dokumentiert werden und dürfen die obige GCS-Link-UID-Regel nicht verletzen.
@@ -467,6 +479,27 @@ Verbindliche Nicht-Fehlerfaelle:
 - `<ROOT.TABLE in UPPERCASE>` zusammen mit `**SYSTEM`/`SYSTEM` ist zulaessig.
 - Das Fehlen der Tabellen-Gruppe alleine ist kein Fehler, solange eine erlaubte Datengruppe vorhanden ist.
 
+### 1.22 Name/SELF_NAME Schreib-Lese-Vertrag (verbindlich)
+**Regel:** `ROOT.SELF_NAME` ist die fachliche Schreibquelle fuer den Datensatznamen, die Spalte `name` ist die technische Lesebasis.
+
+- **Beim Schreiben (create/update):**
+	- Wenn `ROOT.SELF_NAME` vorhanden und nicht leer ist, wird der Wert in die Spalte `name` uebernommen.
+	- Wenn `ROOT.SELF_NAME` fehlt oder leer ist, bleibt das vorhandene Namensverhalten erhalten.
+- **Beim Lesen:**
+	- `name` wird wie bisher aus der Spalte `name` gelesen.
+	- `ROOT.SELF_NAME` muss mit der Spalte `name` synchron sein.
+
+### 1.23 GILT_BIS / SELF_GILT_BIS Vertrag (verbindlich)
+**Regel:** `ROOT.SELF_GILT_BIS` ist die fachliche Schreibquelle fuer Gueltigkeit, die Spalte `gilt_bis` ist die technische Wahrheit beim Lesen.
+
+- **Beim Schreiben (create/update):**
+	- Wenn `ROOT.SELF_GILT_BIS` vorhanden und nicht leer ist, wird der Wert in die Spalte `gilt_bis` uebernommen.
+	- Bei Neuanlage wird ohne expliziten Wert immer `offen` gesetzt (`9999365.99999` = `31.12.9999 23:59:59`).
+	- Nach dem Write werden `ROOT.SELF_GILT_BIS` und weitere `SELF_*` aus den Spaltenwerten in `daten.ROOT` synchronisiert.
+- **Beim Lesen (View-Sicht):**
+	- Datensaetze mit `gilt_bis <= stichtag` sind in Views ausgeschlossen (nicht sichtbar).
+	- Datensaetze mit offenem Sentinel (`9999365.99999`) bleiben sichtbar.
+
 ---
 
 ## 2. Frontend Architektur (React)
@@ -538,6 +571,16 @@ Siehe Spezifikation: `docs/specs/PDVM_DIALOG_EDIT_FRAME_SPEC.md`.
 ### 2.7 Dialog V2 (egalisiert)
 **Regel:** Dialoge nutzen ein einheitliches Datenmodell in `sys_dialogdaten`.
 
+- `DIALOG_TYPE`: `norm`, `work`, `acti`.
+- Tabs definieren Module (`view`, `edit`, `acti`) mit `GUID` pro Tab.
+- `VIEW_GUID`/`FRAME_GUID` in `ROOT` sind optional (legacy); die GUIs kommen aus den Tab-Definitionen.
+- Aufruf erfolgt immer ueber `go_pdvm_dialog` (dialog_guid + optional dialog_table fuer `show_json`/`edit_json`).
+- `pdvm_edit` ist der Standard-Edit-Typ (Frame-gesteuert). `edit_json`/`show_json` bleiben erhalten.
+- `show_json` ist ein Edit-Typ und benoetigt immer einen Edit-Tab.
+- `dialog_table` ueberschreibt die Tabelle der View-Definition bei `show_json`/`edit_json` (View-State, Matrix, Dialog-CRUD).
+
+Siehe Spezifikation: `docs/specs/PDVM_DIALOG_EDIT_FRAME_SPEC.md`.
+
 ### 2.8 Dialog/View/Frame Refaktoring (Entwicklungsphase)
 **Regel:** Die laufende Refaktorisierung von Dialogen, Views und Frames erfolgt in der Entwicklungsphase ohne zusaetzliche DB-Versionierungsachse fuer diesen Teilbereich.
 
@@ -578,17 +621,7 @@ Pflicht-Guardrails:
 - Caching-Strategie
 - Nachvollziehbares Logging
 
-- `DIALOG_TYPE`: `norm`, `work`, `acti`.
-- Tabs definieren Module (`view`, `edit`, `acti`) mit `GUID` pro Tab.
-- `VIEW_GUID`/`FRAME_GUID` in `ROOT` sind optional (legacy); die GUIs kommen aus den Tab-Definitionen.
-- Aufruf erfolgt immer ueber `go_pdvm_dialog` (dialog_guid + optional dialog_table fuer `show_json`/`edit_json`).
-- `pdvm_edit` ist der Standard-Edit-Typ (Frame-gesteuert). `edit_json`/`show_json` bleiben erhalten.
-- `show_json` ist ein Edit-Typ und benoetigt immer einen Edit-Tab.
-- `dialog_table` ueberschreibt die Tabelle der View-Definition bei `show_json`/`edit_json` (View-State, Matrix, Dialog-CRUD).
-
-Siehe Spezifikation: `docs/specs/PDVM_DIALOG_EDIT_FRAME_SPEC.md`.
-
-### 2.8 Einheitliche Gruppen und Labels
+### 2.13 Einheitliche Gruppen und Labels
 **Regel:** Gruppen- und Feldnamen sind egalisiert.
 
 Gruppen (Ausnahme: sys_layout):
@@ -598,9 +631,9 @@ Gruppen (Ausnahme: sys_layout):
 - `GRUND` (nur sys_menudaten)
 - `VERTIKAL` (nur sys_menudaten)
 - `>SPRACHKENNUNG<` (Grossbuchstaben)
-- `DATAS` (sys_ext_table, sys_ext_table_man)
+- `DATAS` (sys_ext_table, msy_ext_table)
 - `CONFIG`
-- `>GUID<` (sys_systemsteuerung, sys_anwendungsdaten)
+- `>GUID<` (msy_systemsteuerung, msy_anwendungsdaten)
 
 Label-Regel:
 - Bei GUID-keyed Listen/Auswahlen ist `label` Pflicht.
@@ -609,7 +642,7 @@ Label-Regel:
 Templates:
 - `element_list` Templates liegen unter UID `5555...` in Gruppe `ELEMENTS`.
 
-### 2.9 Einheitlicher InputControl-Contract (edit_user + pdvm_edit)
+### 2.14 Einheitlicher InputControl-Contract (edit_user + pdvm_edit)
 **Regel:** `edit_user` und `pdvm_edit` nutzen denselben `PdvmInputControl`-Contract und dieselbe Control-Resolution.
 
 - Control-Metadaten kommen aus `sys_control_dict` (inkl. Template `5555...`) fuer **beide** Edit-Typen.
@@ -662,7 +695,7 @@ Bei der Implementierung von Kern-Funktionalitäten ist die Einhaltung der dedizi
 
 ### 4.4 Passwortverwaltung (`docs/specs/PASSWORD_MANAGEMENT_SPEC.md`)
 **Regel:** Passwort-Reset, OTP und Account-Sperrung folgen der Spezifikation.
-*   `SEND_EMAIL` Konfiguration liegt in `sys_mandanten`.
+*   `SEND_EMAIL` Konfiguration liegt in `asy_mandanten`.
 *   OTP-Logik und `PASSWORD_CHANGE_REQUIRED` werden strikt umgesetzt.
 
 ### 4.5 Lineares SOLL-Schema (`docs/specs/PDVM_LINEAR_SCHEMA_V1.md`)

@@ -1,0 +1,229 @@
+# Seeder Basissaetze 000/555/666
+
+Modus: APPLY (+reservierte Saetze). Erzeugt von `backend/tools/seed_base_records.py`.
+
+## filale_test_1: 29 Aenderungen in 12 Tabellen
+
+- `msy_anwendungsdaten` cc50b52f-5f15-4f12-a5ac-4ef033c509e8
+  - Regel 1.12: UID cc50b52f -> 55... (Basissatz mit falscher UID)
+- `msy_anwendungsdaten` d95c9134-c7d3-462b-b610-30e96fd203e9
+  - Regel 1.12: UID d95c9134 -> 66... (Basissatz mit falscher UID)
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+- `msy_anwendungsdaten` 00000000-0000-0000-0000-000000000000
+  - Regel 1.12: Basissatz 00... fehlt -> anlegen
+- `msy_batch_job_monitoring` 00000000-0000-0000-0000-000000000000
+  - Regel 1.12: Basissatz 00... fehlt -> anlegen
+- `msy_batch_job_monitoring` 55555555-5555-5555-5555-555555555555
+  - Regel 1.12: Basissatz 55... fehlt -> anlegen
+- `msy_batch_job_monitoring` 66666666-6666-6666-6666-666666666666
+  - Regel 1.12: Basissatz 66... fehlt -> anlegen
+- `msy_error_acknowledgments` 66666666-6666-6666-6666-666666666666 **[reservierter Satz]**
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+- `msy_error_acknowledgments` 00000000-0000-0000-0000-000000000000
+  - Regel 1.12: Basissatz 00... fehlt -> anlegen
+- `msy_error_log` 66666666-6666-6666-6666-666666666666 **[reservierter Satz]**
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+- `msy_error_log` 00000000-0000-0000-0000-000000000000
+  - Regel 1.12: Basissatz 00... fehlt -> anlegen
+- `msy_ext_table` 00000000-0000-0000-0000-000000000000
+  - Regel 1.12: Basissatz 00... fehlt -> anlegen
+- `msy_ext_table` 55555555-5555-5555-5555-555555555555
+  - Regel 1.12: Basissatz 55... fehlt -> anlegen
+- `msy_ext_table` 66666666-6666-6666-6666-666666666666
+  - Regel 1.12: Basissatz 66... fehlt -> anlegen
+- `msy_layout` 66666666-6666-6666-6666-666666666666 **[reservierter Satz]**
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+- `msy_layout` 00000000-0000-0000-0000-000000000000
+  - Regel 1.12: Basissatz 00... fehlt -> anlegen
+- `msy_security` 66666666-6666-6666-6666-666666666666 **[reservierter Satz]**
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+- `msy_security` 00000000-0000-0000-0000-000000000000
+  - Regel 1.12: Basissatz 00... fehlt -> anlegen
+- `msy_systemdaten` 66666666-6666-6666-6666-666666666666 **[reservierter Satz]**
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+- `msy_systemdaten` 00000000-0000-0000-0000-000000000000
+  - Regel 1.12: Basissatz 00... fehlt -> anlegen
+- `msy_systemsteuerung` da9e4628-a2d4-40ea-8f74-4fa5c6881b99
+  - Regel 1.12: UID da9e4628 -> 55... (Basissatz mit falscher UID)
+- `msy_systemsteuerung` de94a344-8cde-447c-b56e-cfa4b337c05d
+  - Regel 1.12: UID de94a344 -> 66... (Basissatz mit falscher UID)
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+- `msy_systemsteuerung` 00000000-0000-0000-0000-000000000000
+  - Regel 1.12: Basissatz 00... fehlt -> anlegen
+- `test_1` 00000000-0000-0000-0000-000000000000
+  - Regel 1.12: Basissatz 00... fehlt -> anlegen
+- `test_1` 55555555-5555-5555-5555-555555555555
+  - Regel 1.12: Basissatz 55... fehlt -> anlegen
+- `test_1` 66666666-6666-6666-6666-666666666666
+  - Regel 1.12: Basissatz 66... fehlt -> anlegen
+- `tst_finanzdaten` 66666666-6666-6666-6666-666666666666 **[reservierter Satz]**
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+- `tst_finanzdaten` 00000000-0000-0000-0000-000000000000
+  - Regel 1.12: Basissatz 00... fehlt -> anlegen
+- `tst_persondaten` 66666666-6666-6666-6666-666666666666 **[reservierter Satz]**
+  - Regel 1.12c: TEMPLATES.TABLE_INFO ergaenzt
+- `tst_persondaten` 00000000-0000-0000-0000-000000000000
+  - Regel 1.12: Basissatz 00... fehlt -> anlegen
+
+Snapshot filale_test_1 (Zeilen vor der Aenderung): `C:\Users\norbe\dev\PDVM_SYSTEM_WEB\backend\reports\seed_base_records_snapshot_filale_test_1_20261107_132817.json`
+  - filale_test_1/msy_anwendungsdaten/00000000: angelegt
+  - filale_test_1/msy_anwendungsdaten/55555555: umgeschluesselt
+  - filale_test_1/msy_anwendungsdaten/66666666: umgeschluesselt
+  - filale_test_1/msy_batch_job_monitoring/00000000: angelegt
+  - filale_test_1/msy_batch_job_monitoring/55555555: angelegt
+  - filale_test_1/msy_batch_job_monitoring/66666666: angelegt
+  - filale_test_1/msy_error_acknowledgments/00000000: angelegt
+  - filale_test_1/msy_error_acknowledgments/66666666: aktualisiert
+  - filale_test_1/msy_error_log/00000000: angelegt
+  - filale_test_1/msy_error_log/66666666: aktualisiert
+  - filale_test_1/msy_ext_table/00000000: angelegt
+  - filale_test_1/msy_ext_table/55555555: angelegt
+  - filale_test_1/msy_ext_table/66666666: angelegt
+  - filale_test_1/msy_layout/00000000: angelegt
+  - filale_test_1/msy_layout/66666666: aktualisiert
+  - filale_test_1/msy_security/00000000: angelegt
+  - filale_test_1/msy_security/66666666: aktualisiert
+  - filale_test_1/msy_systemdaten/00000000: angelegt
+  - filale_test_1/msy_systemdaten/66666666: aktualisiert
+  - filale_test_1/msy_systemsteuerung/00000000: angelegt
+  - filale_test_1/msy_systemsteuerung/55555555: umgeschluesselt
+  - filale_test_1/msy_systemsteuerung/66666666: umgeschluesselt
+  - filale_test_1/test_1/00000000: angelegt
+  - filale_test_1/test_1/55555555: angelegt
+  - filale_test_1/test_1/66666666: angelegt
+  - filale_test_1/tst_finanzdaten/00000000: angelegt
+  - filale_test_1/tst_finanzdaten/66666666: aktualisiert
+  - filale_test_1/tst_persondaten/00000000: angelegt
+  - filale_test_1/tst_persondaten/66666666: aktualisiert
+## filiale_test_2: 21 Aenderungen in 7 Tabellen
+
+- `msy_anwendungsdaten` 00000000-0000-0000-0000-000000000000
+  - Regel 1.12: Basissatz 00... fehlt -> anlegen
+- `msy_anwendungsdaten` 55555555-5555-5555-5555-555555555555
+  - Regel 1.12: Basissatz 55... fehlt -> anlegen
+- `msy_anwendungsdaten` 66666666-6666-6666-6666-666666666666
+  - Regel 1.12: Basissatz 66... fehlt -> anlegen
+- `msy_error_acknowledgments` 00000000-0000-0000-0000-000000000000
+  - Regel 1.12: Basissatz 00... fehlt -> anlegen
+- `msy_error_acknowledgments` 55555555-5555-5555-5555-555555555555
+  - Regel 1.12: Basissatz 55... fehlt -> anlegen
+- `msy_error_acknowledgments` 66666666-6666-6666-6666-666666666666
+  - Regel 1.12: Basissatz 66... fehlt -> anlegen
+- `msy_error_log` 00000000-0000-0000-0000-000000000000
+  - Regel 1.12: Basissatz 00... fehlt -> anlegen
+- `msy_error_log` 55555555-5555-5555-5555-555555555555
+  - Regel 1.12: Basissatz 55... fehlt -> anlegen
+- `msy_error_log` 66666666-6666-6666-6666-666666666666
+  - Regel 1.12: Basissatz 66... fehlt -> anlegen
+- `msy_layout` 00000000-0000-0000-0000-000000000000
+  - Regel 1.12: Basissatz 00... fehlt -> anlegen
+- `msy_layout` 55555555-5555-5555-5555-555555555555
+  - Regel 1.12: Basissatz 55... fehlt -> anlegen
+- `msy_layout` 66666666-6666-6666-6666-666666666666
+  - Regel 1.12: Basissatz 66... fehlt -> anlegen
+- `msy_security` 00000000-0000-0000-0000-000000000000
+  - Regel 1.12: Basissatz 00... fehlt -> anlegen
+- `msy_security` 55555555-5555-5555-5555-555555555555
+  - Regel 1.12: Basissatz 55... fehlt -> anlegen
+- `msy_security` 66666666-6666-6666-6666-666666666666
+  - Regel 1.12: Basissatz 66... fehlt -> anlegen
+- `msy_systemdaten` 00000000-0000-0000-0000-000000000000
+  - Regel 1.12: Basissatz 00... fehlt -> anlegen
+- `msy_systemdaten` 55555555-5555-5555-5555-555555555555
+  - Regel 1.12: Basissatz 55... fehlt -> anlegen
+- `msy_systemdaten` 66666666-6666-6666-6666-666666666666
+  - Regel 1.12: Basissatz 66... fehlt -> anlegen
+- `msy_systemsteuerung` 00000000-0000-0000-0000-000000000000
+  - Regel 1.12: Basissatz 00... fehlt -> anlegen
+- `msy_systemsteuerung` 55555555-5555-5555-5555-555555555555
+  - Regel 1.12: Basissatz 55... fehlt -> anlegen
+- `msy_systemsteuerung` 66666666-6666-6666-6666-666666666666
+  - Regel 1.12: Basissatz 66... fehlt -> anlegen
+
+  - filiale_test_2/msy_anwendungsdaten/00000000: angelegt
+  - filiale_test_2/msy_anwendungsdaten/55555555: angelegt
+  - filiale_test_2/msy_anwendungsdaten/66666666: angelegt
+  - filiale_test_2/msy_error_acknowledgments/00000000: angelegt
+  - filiale_test_2/msy_error_acknowledgments/55555555: angelegt
+  - filiale_test_2/msy_error_acknowledgments/66666666: angelegt
+  - filiale_test_2/msy_error_log/00000000: angelegt
+  - filiale_test_2/msy_error_log/55555555: angelegt
+  - filiale_test_2/msy_error_log/66666666: angelegt
+  - filiale_test_2/msy_layout/00000000: angelegt
+  - filiale_test_2/msy_layout/55555555: angelegt
+  - filiale_test_2/msy_layout/66666666: angelegt
+  - filiale_test_2/msy_security/00000000: angelegt
+  - filiale_test_2/msy_security/55555555: angelegt
+  - filiale_test_2/msy_security/66666666: angelegt
+  - filiale_test_2/msy_systemdaten/00000000: angelegt
+  - filiale_test_2/msy_systemdaten/55555555: angelegt
+  - filiale_test_2/msy_systemdaten/66666666: angelegt
+  - filiale_test_2/msy_systemsteuerung/00000000: angelegt
+  - filiale_test_2/msy_systemsteuerung/55555555: angelegt
+  - filiale_test_2/msy_systemsteuerung/66666666: angelegt
+## ganz_neu1: 21 Aenderungen in 7 Tabellen
+
+- `msy_anwendungsdaten` 00000000-0000-0000-0000-000000000000
+  - Regel 1.12: Basissatz 00... fehlt -> anlegen
+- `msy_anwendungsdaten` 55555555-5555-5555-5555-555555555555
+  - Regel 1.12: Basissatz 55... fehlt -> anlegen
+- `msy_anwendungsdaten` 66666666-6666-6666-6666-666666666666
+  - Regel 1.12: Basissatz 66... fehlt -> anlegen
+- `msy_error_acknowledgments` 00000000-0000-0000-0000-000000000000
+  - Regel 1.12: Basissatz 00... fehlt -> anlegen
+- `msy_error_acknowledgments` 55555555-5555-5555-5555-555555555555
+  - Regel 1.12: Basissatz 55... fehlt -> anlegen
+- `msy_error_acknowledgments` 66666666-6666-6666-6666-666666666666
+  - Regel 1.12: Basissatz 66... fehlt -> anlegen
+- `msy_error_log` 00000000-0000-0000-0000-000000000000
+  - Regel 1.12: Basissatz 00... fehlt -> anlegen
+- `msy_error_log` 55555555-5555-5555-5555-555555555555
+  - Regel 1.12: Basissatz 55... fehlt -> anlegen
+- `msy_error_log` 66666666-6666-6666-6666-666666666666
+  - Regel 1.12: Basissatz 66... fehlt -> anlegen
+- `msy_layout` 00000000-0000-0000-0000-000000000000
+  - Regel 1.12: Basissatz 00... fehlt -> anlegen
+- `msy_layout` 55555555-5555-5555-5555-555555555555
+  - Regel 1.12: Basissatz 55... fehlt -> anlegen
+- `msy_layout` 66666666-6666-6666-6666-666666666666
+  - Regel 1.12: Basissatz 66... fehlt -> anlegen
+- `msy_security` 00000000-0000-0000-0000-000000000000
+  - Regel 1.12: Basissatz 00... fehlt -> anlegen
+- `msy_security` 55555555-5555-5555-5555-555555555555
+  - Regel 1.12: Basissatz 55... fehlt -> anlegen
+- `msy_security` 66666666-6666-6666-6666-666666666666
+  - Regel 1.12: Basissatz 66... fehlt -> anlegen
+- `msy_systemdaten` 00000000-0000-0000-0000-000000000000
+  - Regel 1.12: Basissatz 00... fehlt -> anlegen
+- `msy_systemdaten` 55555555-5555-5555-5555-555555555555
+  - Regel 1.12: Basissatz 55... fehlt -> anlegen
+- `msy_systemdaten` 66666666-6666-6666-6666-666666666666
+  - Regel 1.12: Basissatz 66... fehlt -> anlegen
+- `msy_systemsteuerung` 00000000-0000-0000-0000-000000000000
+  - Regel 1.12: Basissatz 00... fehlt -> anlegen
+- `msy_systemsteuerung` 55555555-5555-5555-5555-555555555555
+  - Regel 1.12: Basissatz 55... fehlt -> anlegen
+- `msy_systemsteuerung` 66666666-6666-6666-6666-666666666666
+  - Regel 1.12: Basissatz 66... fehlt -> anlegen
+
+  - ganz_neu1/msy_anwendungsdaten/00000000: angelegt
+  - ganz_neu1/msy_anwendungsdaten/55555555: angelegt
+  - ganz_neu1/msy_anwendungsdaten/66666666: angelegt
+  - ganz_neu1/msy_error_acknowledgments/00000000: angelegt
+  - ganz_neu1/msy_error_acknowledgments/55555555: angelegt
+  - ganz_neu1/msy_error_acknowledgments/66666666: angelegt
+  - ganz_neu1/msy_error_log/00000000: angelegt
+  - ganz_neu1/msy_error_log/55555555: angelegt
+  - ganz_neu1/msy_error_log/66666666: angelegt
+  - ganz_neu1/msy_layout/00000000: angelegt
+  - ganz_neu1/msy_layout/55555555: angelegt
+  - ganz_neu1/msy_layout/66666666: angelegt
+  - ganz_neu1/msy_security/00000000: angelegt
+  - ganz_neu1/msy_security/55555555: angelegt
+  - ganz_neu1/msy_security/66666666: angelegt
+  - ganz_neu1/msy_systemdaten/00000000: angelegt
+  - ganz_neu1/msy_systemdaten/55555555: angelegt
+  - ganz_neu1/msy_systemdaten/66666666: angelegt
+  - ganz_neu1/msy_systemsteuerung/00000000: angelegt
+  - ganz_neu1/msy_systemsteuerung/55555555: angelegt
+  - ganz_neu1/msy_systemsteuerung/66666666: angelegt

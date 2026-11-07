@@ -13,8 +13,8 @@ import logging
 import copy
 from typing import Dict, Optional, Any, List
 from app.core.pdvm_datenbank import PdvmDatabase
+from app.core.central_write_service import create_record_central, update_record_central
 from app.core.pdvm_datetime import PdvmDateTime
-
 logger = logging.getLogger(__name__)
 
 
@@ -431,32 +431,29 @@ class PdvmCentralDatabase:
             existing = await self.db.get_row(guid_uuid)
             
             if existing:
-                # Update (only set name when present)
-                if name_value:
-                    await self.db.update(
-                        guid_uuid,
-                        self.data,
-                        name=name_value,
-                        expected_snapshot_daten=self._loaded_snapshot,
-                        actor_user_uid=effective_actor_user_uid,
-                        actor_ip=effective_actor_ip,
-                    )
-                else:
-                    await self.db.update(
-                        guid_uuid,
-                        self.data,
-                        expected_snapshot_daten=self._loaded_snapshot,
-                        actor_user_uid=effective_actor_user_uid,
-                        actor_ip=effective_actor_ip,
-                    )
+                # Update (only set name when present); Schreibpfad ueber den zentralen Gateway (Regel 1.1)
+                await update_record_central(
+                    table_name=self.table_name,
+                    uid=guid_uuid,
+                    daten=self.data,
+                    name=name_value if name_value else None,
+                    expected_snapshot_daten=self._loaded_snapshot,
+                    system_pool=self.db._system_pool,
+                    mandant_pool=self.db._mandant_pool,
+                    actor_user_uid=effective_actor_user_uid,
+                    actor_ip=effective_actor_ip,
+                )
                 logger.info(f"Daten aktualisiert für GUID {self.guid} mit name={name_value}")
             else:
                 # Create (name optional for non-dialog system saves)
-                await self.db.create(
-                    guid_uuid,
-                    self.data,
+                await create_record_central(
+                    table_name=self.table_name,
+                    uid=guid_uuid,
+                    daten=self.data,
                     name=name_value or "",
-                    historisch=1 if self.historisch else 0
+                    historisch=1 if self.historisch else 0,
+                    system_pool=self.db._system_pool,
+                    mandant_pool=self.db._mandant_pool,
                 )
                 logger.info(f"Neuer Datensatz erstellt mit GUID {self.guid} und name={name_value}")
 

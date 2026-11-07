@@ -1,0 +1,2770 @@
+{
+ "frames": [
+  {
+   "uid": "72d54053-8c4f-5a60-8abc-ed9bc0bf6c43",
+   "name": "WORKFLOW_DRAFT_BUILD_FRAME_TEMPLATE",
+   "daten_before": {
+    "ROOT": {
+     "EDIT_TYPE": "pdvm_edit",
+     "SELF_GUID": "72d54053-8c4f-5a60-8abc-ed9bc0bf6c43",
+     "SELF_NAME": "WORKFLOW_DRAFT_BUILD_FRAME_TEMPLATE",
+     "TAB_ELEMENTS": {
+      "TAB_01": {
+       "TAB": 1,
+       "HEAD": "Build",
+       "GRUPPE": "FIELDS"
+      }
+     },
+     "SELF_GILT_BIS": "9999365.99999",
+     "SELF_LINK_UID": "72d54053-8c4f-5a60-8abc-ed9bc0bf6c43",
+     "SELF_CREATED_AT": "2026129.72743",
+     "SELF_MODIFIED_AT": "2026133.78731",
+     "STRUCT_VERSION_APPLIED": 1
+    },
+    "FIELDS": {
+     "5d53c6ce-78ec-5e02-9904-2ef639874108": {
+      "tab": 1,
+      "feld": "VALIDATE_ACTION",
+      "name": "wf_draft_build_validate_action",
+      "type": "action",
+      "label": "Validate",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 10
+     },
+     "6f965a0d-8cb4-5883-baec-a4bd9d3c7a49": {
+      "tab": 1,
+      "feld": "BUILD_ACTION",
+      "name": "wf_draft_build_build_action",
+      "type": "action",
+      "label": "Build",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 20
+     },
+     "ac1e2692-b97d-5116-9607-0d7222c73c98": {
+      "tab": 1,
+      "feld": "ABORT_ACTION",
+      "name": "wf_draft_build_abort_action",
+      "type": "action",
+      "label": "Abort",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 30
+     }
+    }
+   }
+  },
+  {
+   "uid": "3a6e8cca-0f6f-5bd0-ba72-61c2c99942ac",
+   "name": "WORKFLOW_DICTIONARY_FRAME_TEMPLATE",
+   "daten_before": {
+    "ROOT": {
+     "EDIT_TYPE": "pdvm_edit",
+     "SELF_GUID": "3a6e8cca-0f6f-5bd0-ba72-61c2c99942ac",
+     "SELF_NAME": "WORKFLOW_DICTIONARY_FRAME_TEMPLATE",
+     "TAB_ELEMENTS": {
+      "TAB_01": {
+       "TAB": 1,
+       "HEAD": "Dictionary",
+       "GRUPPE": "FIELDS"
+      }
+     },
+     "SELF_GILT_BIS": "9999365.99999",
+     "SELF_LINK_UID": "3a6e8cca-0f6f-5bd0-ba72-61c2c99942ac",
+     "SELF_CREATED_AT": "2026129.72743",
+     "SELF_MODIFIED_AT": "2026137.73544",
+     "STRUCT_VERSION_APPLIED": 1
+    },
+    "FIELDS": {
+     "6e5c5c95-03dc-52b1-afe1-13c822ec117f": {
+      "tab": 1,
+      "feld": "CREATE_CONTROL_ACTION",
+      "name": "wf_dictionary_create_control_action",
+      "type": "action",
+      "label": "Create Control",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": "",
+        "options": []
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 40
+     },
+     "7f8739fa-9e3b-5642-855f-744b23504899": {
+      "tab": 1,
+      "feld": "DICTIONARY_SEARCH",
+      "name": "wf_dictionary_dictionary_search",
+      "type": "string",
+      "label": "Dictionary Search",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": "",
+        "options": []
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 10
+     },
+     "cb7a1850-06e5-5432-9811-7d8be8524e3c": {
+      "tab": 1,
+      "feld": "TYPE",
+      "name": "wf_dictionary_control_type",
+      "type": "string",
+      "label": "Control Type",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": "",
+        "options": []
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 30
+     },
+     "f12439a3-0b0f-52cc-8215-3d05f0d845f2": {
+      "tab": 1,
+      "feld": "CONTROL_FIELD",
+      "name": "wf_dictionary_control_field",
+      "type": "string",
+      "label": "Control Field",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": "",
+        "options": []
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 20
+     }
+    }
+   }
+  },
+  {
+   "uid": "b68a5b55-4135-426a-a96a-a6cdb0e702e0",
+   "name": "Text bearbeiten",
+   "daten_before": {
+    "ROOT": {
+     "NAME": "Text bearbeiten",
+     "TABS": 0,
+     "TABLE": "sys_framedaten",
+     "TABS_DEF": null,
+     "EDIT_TYPE": "pdvm_edit",
+     "SELF_GUID": "b68a5b55-4135-426a-a96a-a6cdb0e702e0",
+     "SELF_NAME": "Text bearbeiten Frame",
+     "FRAME_TYPE": "standard",
+     "GO_NEW_SET": true,
+     "ROOT_TABLE": null,
+     "DIALOG_GUID": "9f06711e-4ad8-4ea4-9837-2f40f3a6f101",
+     "TAB_ELEMENTS": {},
+     "SELF_GILT_BIS": "9999365.99999",
+     "SELF_LINK_UID": "b68a5b55-4135-426a-a96a-a6cdb0e702e0",
+     "SELF_CREATED_AT": "2026179.53816",
+     "SELF_MODIFIED_AT": "2026311.55830"
+    },
+    "CONTROL": {
+     "TABLE": "sys_dialogdaten"
+    }
+   }
+  },
+  {
+   "uid": "20de7493-d648-41e2-87a0-7894de95af35",
+   "name": "Für Dialog Aufbau",
+   "daten_before": {
+    "ROOT": {
+     "TABS": 2,
+     "TABLE": "",
+     "EDIT_TYPE": "pdvm_edit",
+     "SELF_GUID": "20de7493-d648-41e2-87a0-7894de95af35",
+     "SELF_NAME": "Für Dialog Aufbau",
+     "GO_NEW_SET": true,
+     "ROOT_TABLE": "sys_dialogdaten",
+     "DIALOG_GUID": "9c245a60-7251-43c4-9d7d-d67af02c6144",
+     "TAB_ELEMENTS": {
+      "4bce76b6-1e3e-4f21-975b-175190c3cdee": {
+       "TAB": 1,
+       "GUID": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23002",
+       "HEAD": "Liste",
+       "LABEL": "Liste",
+       "TABLE": "sys_dialogdaten",
+       "MODULE": "view",
+       "EDIT_TAB": 2,
+       "EDIT_TYPE": "pdvm_edit",
+       "OPEN_EDIT": "double_click",
+       "SELECTION_MODE": "single"
+      },
+      "6747f50b-2c53-4fcf-86bf-855444ea912e": {
+       "TAB": 2,
+       "GUID": "20de7493-d648-41e2-87a0-7894de95af35",
+       "HEAD": "Bearbeiten",
+       "LABEL": "Bearbeiten",
+       "TABLE": "sys_dialogdaten",
+       "MODULE": "edit",
+       "EDIT_TAB": 2,
+       "EDIT_TYPE": "pdvm_edit",
+       "OPEN_EDIT": "double_click",
+       "SELECTION_MODE": "double_click"
+      }
+     },
+     "SELF_GILT_BIS": "9999365.99999",
+     "SELF_LINK_UID": "20de7493-d648-41e2-87a0-7894de95af35",
+     "SELF_CREATED_AT": "2026059.71268",
+     "SELF_MODIFIED_AT": "2026156.69528",
+     "STRUCT_VERSION_APPLIED": 1
+    },
+    "FIELDS": {
+     "0f83e550-6998-4e12-b452-a38b2aa70621": {
+      "tab": 1,
+      "ROOT": {
+       "NAME": "SYS_EDIT_TYPE",
+       "FIELD": "8cdad050-d285-46a0-8bf1-ae59c8cc620c",
+       "TABLE": "sys_control_dict",
+       "SELF_GUID": "8cdad050-d285-46a0-8bf1-ae59c8cc620c",
+       "SELF_NAME": "SYS_EDIT_TYPE"
+      },
+      "feld": "EDIT_TYPE",
+      "name": "edit_type",
+      "type": "string",
+      "FIELD": "8cdad050-d285-46a0-8bf1-ae59c8cc620c",
+      "label": "Edit Type",
+      "table": "sys_dialogdaten",
+      "gruppe": "ROOT",
+      "CONTROL": {
+       "FELD": "EDIT_TYPE",
+       "NAME": "SYS_EDIT_TYPE",
+       "TYPE": "dropdown",
+       "FIELD": "8cdad050-d285-46a0-8bf1-ae59c8cc620c",
+       "LABEL": "Edit Modus",
+       "TABLE": "sys_control_dict",
+       "GRUPPE": "ROOT",
+       "ABDATUM": false,
+       "DEFAULT": "",
+       "SORTABLE": true,
+       "READ_ONLY": false,
+       "HISTORICAL": false,
+       "SEARCHABLE": true,
+       "UPPER_CASE": false,
+       "EXPERT_MODE": true,
+       "FILTER_TYPE": "contains",
+       "PARENT_GUID": null,
+       "SOURCE_PATH": "root",
+       "DISPLAY_SHOW": true,
+       "EXPERT_ORDER": 0,
+       "DISPLAY_ORDER": 0,
+       "SORT_DIRECTION": "asc",
+       "FIELDS_ELEMENTS": {},
+       "CONFIGS_ELEMENTS": {
+        "dropdown": {
+         "key": "6d57c6af-293c-56dd-9530-c175fe292070",
+         "field": "55e5928c-4d9e-4f01-8018-8685489cfd06",
+         "group": "",
+         "table": "sys_dropdowndaten"
+        }
+       },
+       "SORT_BY_ORIGINAL": false
+      },
+      "dict_ref": null,
+      "read_only": false,
+      "display_order": 60
+     },
+     "6437c5a9-f267-476b-adf8-f08ad0d2104f": {
+      "tab": 1,
+      "ROOT": {
+       "NAME": "SYS_SELF_GUID",
+       "FIELD": "6437c5a9-f267-476b-adf8-f08ad0d2104f",
+       "TABLE": "sys_control_dict",
+       "SELF_GUID": "6437c5a9-f267-476b-adf8-f08ad0d2104f",
+       "SELF_NAME": "SYS_SELF_GUID"
+      },
+      "feld": "SELF_GUID",
+      "name": "self_guid",
+      "type": "string",
+      "FIELD": "6437c5a9-f267-476b-adf8-f08ad0d2104f",
+      "label": "Self GUID",
+      "table": "sys_dialogdaten",
+      "gruppe": "ROOT",
+      "CONTROL": {
+       "FELD": "SELF_GUID",
+       "NAME": "SYS_SELF_GUID",
+       "TYPE": "string",
+       "FIELD": "6437c5a9-f267-476b-adf8-f08ad0d2104f",
+       "LABEL": "Eigener Schlüssel",
+       "TABLE": "sys_control_dict",
+       "GRUPPE": "",
+       "ABDATUM": false,
+       "DEFAULT": "",
+       "SORTABLE": true,
+       "READ_ONLY": true,
+       "HISTORICAL": false,
+       "SEARCHABLE": true,
+       "UPPER_CASE": true,
+       "EXPERT_MODE": true,
+       "FILTER_TYPE": "contains",
+       "PARENT_GUID": null,
+       "SOURCE_PATH": "root",
+       "DISPLAY_SHOW": true,
+       "EXPERT_ORDER": 0,
+       "DISPLAY_ORDER": 0,
+       "SORT_DIRECTION": "asc",
+       "FIELDS_ELEMENTS": {},
+       "CONFIGS_ELEMENTS": {},
+       "SORT_BY_ORIGINAL": false
+      },
+      "dict_ref": null,
+      "read_only": true,
+      "display_order": 10
+     },
+     "8cdad050-d285-46a0-8bf1-ae59c8cc620c": {
+      "tab": 1,
+      "ROOT": {
+       "NAME": "SYS_DIALOG_TYPE",
+       "FIELD": "8cdad050-d285-46a0-8bf1-ae59c8cc620c",
+       "TABLE": "sys_control_dict",
+       "SELF_GUID": "8cdad050-d285-46a0-8bf1-ae59c8cc620c",
+       "SELF_NAME": "SYS_DIALOG_TYPE"
+      },
+      "feld": "DIALOG_TYPE",
+      "name": "dialog_type",
+      "type": "string",
+      "FIELD": "8cdad050-d285-46a0-8bf1-ae59c8cc620c",
+      "label": "Dialog Type",
+      "table": "sys_dialogdaten",
+      "gruppe": "ROOT",
+      "CONTROL": {
+       "FELD": "DIALOG_TYPE",
+       "NAME": "SYS_DIALOG_TYPE",
+       "TYPE": "dropdown",
+       "FIELD": "8cdad050-d285-46a0-8bf1-ae59c8cc620c",
+       "LABEL": "Dielog Typ",
+       "TABLE": "sys_control_dict",
+       "GRUPPE": "",
+       "ABDATUM": false,
+       "DEFAULT": "",
+       "SORTABLE": true,
+       "READ_ONLY": false,
+       "HISTORICAL": false,
+       "SEARCHABLE": true,
+       "UPPER_CASE": false,
+       "EXPERT_MODE": true,
+       "FILTER_TYPE": "contains",
+       "PARENT_GUID": null,
+       "SOURCE_PATH": "root",
+       "DISPLAY_SHOW": true,
+       "EXPERT_ORDER": 0,
+       "DISPLAY_ORDER": 0,
+       "SORT_DIRECTION": "asc",
+       "FIELDS_ELEMENTS": {},
+       "CONFIGS_ELEMENTS": {
+        "dropdown": {
+         "key": "4f290b6f-1205-494b-8f03-c6446c0df169",
+         "field": "3d0cb56d-c86a-4d72-a9f6-bea0702debda",
+         "group": "",
+         "table": "sys_dropdowndaten"
+        }
+       },
+       "SORT_BY_ORIGINAL": false
+      },
+      "dict_ref": null,
+      "read_only": false,
+      "display_order": 40
+     },
+     "9c74939e-8b9c-4ce5-b1ca-7ba82b75b4c7": {
+      "tab": 2,
+      "ROOT": {
+       "NAME": "SYS_TAB_ELEMENTS",
+       "FIELD": "9c74939e-8b9c-4ce5-b1ca-7ba82b75b4c7",
+       "TABLE": "sys_control_dict",
+       "SELF_GUID": "9c74939e-8b9c-4ce5-b1ca-7ba82b75b4c7",
+       "SELF_NAME": "SYS_TAB_ELEMENTS"
+      },
+      "feld": "TAB_ELEMENTS",
+      "name": "tab_elements",
+      "type": "element_list",
+      "FIELD": "9c74939e-8b9c-4ce5-b1ca-7ba82b75b4c7",
+      "label": "Tabs",
+      "table": "sys_dialogdaten",
+      "gruppe": "ROOT",
+      "CONTROL": {
+       "FELD": "TAB_ELEMENTS",
+       "NAME": "SYS_TAB_ELEMENTS",
+       "TYPE": "element_list",
+       "FIELD": "9c74939e-8b9c-4ce5-b1ca-7ba82b75b4c7",
+       "LABEL": "Tab Elemente",
+       "TABLE": "sys_control_dict",
+       "GRUPPE": "",
+       "ABDATUM": false,
+       "DEFAULT": "",
+       "SORTABLE": true,
+       "READ_ONLY": false,
+       "HISTORICAL": false,
+       "SEARCHABLE": true,
+       "UPPER_CASE": false,
+       "EXPERT_MODE": true,
+       "FILTER_TYPE": "contains",
+       "PARENT_GUID": null,
+       "SOURCE_PATH": "root",
+       "DISPLAY_SHOW": true,
+       "EXPERT_ORDER": 0,
+       "DISPLAY_ORDER": 0,
+       "SORT_DIRECTION": "asc",
+       "FIELDS_ELEMENTS": {},
+       "CONFIGS_ELEMENTS": {},
+       "SORT_BY_ORIGINAL": false
+      },
+      "configs": {
+       "element": {
+        "key": "36fa5117-35da-578f-8d4d-94f2b1f46b8e",
+        "feld": "",
+        "table": "sys_framedaten",
+        "gruppe": ""
+       }
+      },
+      "dict_ref": null,
+      "read_only": false,
+      "display_order": 10
+     },
+     "aa64eead-f953-49a6-bdfb-8d2ef6b8c070": {
+      "TAB": 1,
+      "TABLE": "sys_control_dict",
+      "GRUPPE": "FIELDS",
+      "DISPLAY_ORDER": 10
+     },
+     "b78b41ec-5372-49e3-b34a-8ddb2fc25c98": {
+      "tab": 1,
+      "ROOT": {
+       "NAME": "SYS_TABS",
+       "FIELD": "b78b41ec-5372-49e3-b34a-8ddb2fc25c98",
+       "TABLE": "sys_control_dict",
+       "SELF_GUID": "b78b41ec-5372-49e3-b34a-8ddb2fc25c98",
+       "SELF_NAME": "SYS_TABS"
+      },
+      "feld": "TABS",
+      "name": "tabs",
+      "type": "string",
+      "FIELD": "b78b41ec-5372-49e3-b34a-8ddb2fc25c98",
+      "label": "Tabs",
+      "table": "sys_dialogdaten",
+      "gruppe": "ROOT",
+      "CONTROL": {
+       "FELD": "TABS",
+       "NAME": "SYS_TABS",
+       "TYPE": "number",
+       "FIELD": "b78b41ec-5372-49e3-b34a-8ddb2fc25c98",
+       "LABEL": "Tabs",
+       "TABLE": "sys_control_dict",
+       "GRUPPE": "",
+       "ABDATUM": false,
+       "DEFAULT": "",
+       "SORTABLE": true,
+       "READ_ONLY": false,
+       "HISTORICAL": false,
+       "SEARCHABLE": true,
+       "UPPER_CASE": false,
+       "EXPERT_MODE": true,
+       "FILTER_TYPE": "contains",
+       "PARENT_GUID": null,
+       "SOURCE_PATH": "root",
+       "DISPLAY_SHOW": true,
+       "EXPERT_ORDER": 0,
+       "DISPLAY_ORDER": 0,
+       "SORT_DIRECTION": "asc",
+       "FIELDS_ELEMENTS": {},
+       "CONFIGS_ELEMENTS": {},
+       "SORT_BY_ORIGINAL": false
+      },
+      "dict_ref": null,
+      "read_only": false,
+      "display_order": 50
+     },
+     "c47b969a-466d-4494-ab7b-56a78a379fe9": {
+      "tab": 1,
+      "ROOT": {
+       "NAME": "SYS_TABLE",
+       "FIELD": "c47b969a-466d-4494-ab7b-56a78a379fe9",
+       "TABLE": "sys_control_dict",
+       "SELF_GUID": "c47b969a-466d-4494-ab7b-56a78a379fe9",
+       "SELF_NAME": "SYS_TABLE"
+      },
+      "feld": "TABLE",
+      "name": "table",
+      "type": "string",
+      "FIELD": "c47b969a-466d-4494-ab7b-56a78a379fe9",
+      "label": "Tabelle",
+      "table": "sys_dialogdaten",
+      "gruppe": "ROOT",
+      "CONTROL": {
+       "FELD": "TABLE",
+       "NAME": "SYS_TABLE",
+       "TYPE": "string",
+       "FIELD": "c47b969a-466d-4494-ab7b-56a78a379fe9",
+       "LABEL": "Tabelle",
+       "TABLE": "sys_control_dict",
+       "GRUPPE": "",
+       "ABDATUM": false,
+       "DEFAULT": "",
+       "SORTABLE": true,
+       "READ_ONLY": false,
+       "HISTORICAL": false,
+       "SEARCHABLE": true,
+       "UPPER_CASE": true,
+       "EXPERT_MODE": true,
+       "FILTER_TYPE": "contains",
+       "PARENT_GUID": null,
+       "SOURCE_PATH": "root",
+       "DISPLAY_SHOW": true,
+       "EXPERT_ORDER": 0,
+       "DISPLAY_ORDER": 0,
+       "SORT_DIRECTION": "asc",
+       "FIELDS_ELEMENTS": {},
+       "CONFIGS_ELEMENTS": {},
+       "SORT_BY_ORIGINAL": false
+      },
+      "dict_ref": null,
+      "read_only": false,
+      "display_order": 30
+     },
+     "c75d12c6-b96f-4779-a728-d45a9ccf4a0e": {
+      "tab": 1,
+      "ROOT": {
+       "NAME": "SYS_SELF_NAME",
+       "FIELD": "c75d12c6-b96f-4779-a728-d45a9ccf4a0e",
+       "TABLE": "sys_control_dict",
+       "SELF_GUID": "c75d12c6-b96f-4779-a728-d45a9ccf4a0e",
+       "SELF_NAME": "SYS_SELF_NAME"
+      },
+      "feld": "SELF_NAME",
+      "name": "self_name",
+      "type": "string",
+      "FIELD": "c75d12c6-b96f-4779-a728-d45a9ccf4a0e",
+      "label": "Name",
+      "table": "sys_dialogdaten",
+      "gruppe": "ROOT",
+      "CONTROL": {
+       "FELD": "SELF_NAME",
+       "NAME": "SYS_SELF_NAME",
+       "TYPE": "string",
+       "FIELD": "c75d12c6-b96f-4779-a728-d45a9ccf4a0e",
+       "LABEL": "eigener Name",
+       "TABLE": "sys_control_dict",
+       "GRUPPE": "",
+       "ABDATUM": false,
+       "DEFAULT": "",
+       "SORTABLE": true,
+       "READ_ONLY": false,
+       "HISTORICAL": false,
+       "SEARCHABLE": true,
+       "UPPER_CASE": true,
+       "EXPERT_MODE": true,
+       "FILTER_TYPE": "contains",
+       "PARENT_GUID": null,
+       "SOURCE_PATH": "root",
+       "DISPLAY_SHOW": true,
+       "EXPERT_ORDER": 0,
+       "DISPLAY_ORDER": 0,
+       "SORT_DIRECTION": "asc",
+       "FIELDS_ELEMENTS": {},
+       "CONFIGS_ELEMENTS": {},
+       "SORT_BY_ORIGINAL": false
+      },
+      "dict_ref": null,
+      "read_only": false,
+      "display_order": 20
+     }
+    }
+   }
+  },
+  {
+   "uid": "56842fa2-322a-5cad-843a-d20c53ce1d21",
+   "name": "WORKFLOW_DIALOG_CONFIG_FRAME_TEMPLATE",
+   "daten_before": {
+    "ROOT": {
+     "TABS": 0,
+     "TABLE": "",
+     "EDIT_TYPE": "pdvm_edit",
+     "SELF_GUID": "56842fa2-322a-5cad-843a-d20c53ce1d21",
+     "SELF_NAME": "WORKFLOW_DIALOG_CONFIG_FRAME_TEMPLATE",
+     "GO_NEW_SET": true,
+     "TAB_ELEMENTS": {
+      "TAB_01": {
+       "TAB": 1,
+       "HEAD": "Dialog",
+       "GRUPPE": "ROOT"
+      }
+     },
+     "SELF_GILT_BIS": "9999365.99999",
+     "SELF_LINK_UID": "56842fa2-322a-5cad-843a-d20c53ce1d21",
+     "SELF_CREATED_AT": "2026127.70402",
+     "SELF_MODIFIED_AT": "2026132.75873",
+     "STRUCT_VERSION_APPLIED": 1
+    },
+    "FIELDS": {
+     "0c1f400d-2695-56da-af04-55861b30815e": {
+      "tab": 1,
+      "feld": "WORKFLOW_NAME",
+      "name": "wf_dialog_workflow_name",
+      "type": "string",
+      "label": "Workflow Name",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 10
+     },
+     "4677f477-c4f5-5e8d-a8ff-27b3b0e729ba": {
+      "tab": 1,
+      "feld": "DIALOG_TYPE",
+      "name": "wf_dialog_dialog_type",
+      "type": "dropdown",
+      "label": "Dialog Type",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 20
+     },
+     "75c11f5f-c4b6-548a-9cad-4a6ad8213da7": {
+      "tab": 1,
+      "feld": "OPEN_EDIT",
+      "name": "wf_dialog_open_edit",
+      "type": "dropdown",
+      "label": "Open Edit",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 30
+     },
+     "eef4b4bf-7282-5196-8391-bf0cd226136f": {
+      "tab": 1,
+      "feld": "SELECTION_MODE",
+      "name": "wf_dialog_selection_mode",
+      "type": "dropdown",
+      "label": "Selection Mode",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 40
+     }
+    }
+   }
+  },
+  {
+   "uid": "f46fcf0c-b1e5-4ce3-9360-1843bfd20f97",
+   "name": "Frame ConfigElements allg",
+   "daten_before": {
+    "ROOT": {
+     "TABS": 0,
+     "TABLE": "sys_framedaten",
+     "TABS_DEF": null,
+     "EDIT_TYPE": "pdvm_edit",
+     "SELF_GUID": "f46fcf0c-b1e5-4ce3-9360-1843bfd20f97",
+     "SELF_NAME": "Frame ConfigElements allg",
+     "FRAME_TYPE": "element",
+     "GO_NEW_SET": true,
+     "ROOT_TABLE": null,
+     "TAB_ELEMENTS": {},
+     "SELF_GILT_BIS": "9999365.99999",
+     "SELF_LINK_UID": "f46fcf0c-b1e5-4ce3-9360-1843bfd20f97",
+     "SELF_CREATED_AT": "2026170.79948",
+     "SELF_MODIFIED_AT": "2026311.55830"
+    },
+    "FIELDS": {
+     "31941830-eaed-4cb7-a0d6-40908badc5fe": {
+      "label": "Feld",
+      "gruppe": "ELEMENT",
+      "display_order": 20
+     },
+     "a611fe31-1bdb-401c-aa2e-3c2179a06bc9": {
+      "label": "Gruppe",
+      "gruppe": "ELEMENT",
+      "display_order": 40
+     },
+     "ba8fb7a3-0de7-4fa6-82c2-5788d280a325": {
+      "label": "Datensatz UID",
+      "gruppe": "ELEMENT",
+      "display_order": 10
+     },
+     "c47b969a-466d-4494-ab7b-56a78a379fe9": {
+      "gruppe": "ELEMENT",
+      "display_order": 30
+     }
+    }
+   }
+  },
+  {
+   "uid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
+   "name": "sys_dialogdaten Frame (Linear)",
+   "daten_before": {
+    "ROOT": {
+     "TABS": 3,
+     "TABLE": "persondaten",
+     "TABS_DEF": {
+      "11111111-f002-4001-8001-000000000001": {
+       "HEAD": "Basis",
+       "index": 1,
+       "GRUPPE": "ROOT",
+       "display_order": 10
+      },
+      "22222222-f002-4001-8001-000000000002": {
+       "HEAD": "Tab Elements",
+       "index": 2,
+       "GRUPPE": "ROOT",
+       "display_order": 20
+      },
+      "33333333-f002-4001-8001-000000000003": {
+       "HEAD": "Template",
+       "index": 3,
+       "GRUPPE": "TEMPLATES",
+       "display_order": 30
+      }
+     },
+     "EDIT_TYPE": "pdvm_edit",
+     "SELF_GUID": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
+     "SELF_NAME": "sys_dialogdaten Frame (Linear)",
+     "GO_NEW_SET": true,
+     "DIALOG_GUID": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23001",
+     "TAB_ELEMENTS": {
+      "TAB_01": {
+       "HEAD": "Basis",
+       "GRUPPE": "ROOT"
+      },
+      "TAB_02": {
+       "HEAD": "Tab Elements",
+       "GRUPPE": "ROOT"
+      },
+      "TAB_03": {
+       "HEAD": "Template",
+       "GRUPPE": "TEMPLATES"
+      }
+     },
+     "SELF_GILT_BIS": "9999365.99999",
+     "SELF_LINK_UID": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23003",
+     "SELF_CREATED_AT": "2026050.50493",
+     "SELF_MODIFIED_AT": "2026152.83603",
+     "STRUCT_VERSION_APPLIED": 1
+    },
+    "FIELDS": {
+     "11111111-e002-4001-8001-000000000001": {
+      "tab": 1,
+      "feld": "SELF_GUID",
+      "name": "self_guid",
+      "type": "string",
+      "FIELD": "6437c5a9-f267-476b-adf8-f08ad0d2104f",
+      "label": "Self GUID",
+      "table": "sys_dialogdaten",
+      "gruppe": "ROOT",
+      "read_only": true,
+      "display_order": 10
+     },
+     "11111111-e002-4001-8001-000000000002": {
+      "tab": 1,
+      "feld": "SELF_NAME",
+      "name": "self_name",
+      "type": "string",
+      "FIELD": "c75d12c6-b96f-4779-a728-d45a9ccf4a0e",
+      "label": "Self Name",
+      "table": "sys_dialogdaten",
+      "gruppe": "ROOT",
+      "read_only": false,
+      "display_order": 20
+     },
+     "11111111-e002-4001-8001-000000000003": {
+      "tab": 1,
+      "feld": "TABLE",
+      "name": "table",
+      "type": "string",
+      "FIELD": "c47b969a-466d-4494-ab7b-56a78a379fe9",
+      "label": "Table",
+      "table": "sys_dialogdaten",
+      "gruppe": "ROOT",
+      "read_only": false,
+      "display_order": 30
+     },
+     "11111111-e002-4001-8001-000000000004": {
+      "tab": 1,
+      "feld": "DIALOG_TYPE",
+      "name": "dialog_type",
+      "type": "string",
+      "FIELD": "8cdad050-d285-46a0-8bf1-ae59c8cc620c",
+      "label": "Dialog Type",
+      "table": "sys_dialogdaten",
+      "gruppe": "ROOT",
+      "read_only": false,
+      "display_order": 40
+     },
+     "11111111-e002-4001-8001-000000000005": {
+      "tab": 1,
+      "feld": "TABS",
+      "name": "tabs",
+      "type": "string",
+      "FIELD": "b78b41ec-5372-49e3-b34a-8ddb2fc25c98",
+      "label": "Tabs",
+      "table": "sys_dialogdaten",
+      "gruppe": "ROOT",
+      "read_only": false,
+      "display_order": 50
+     },
+     "1f87d3eb-fabc-594a-94f1-6e5464a31ea9": {
+      "tab": 3,
+      "feld": "MODULE",
+      "name": "tpl_tab_guid_module",
+      "type": "string",
+      "label": "TPL TAB MODULE",
+      "table": "sys_dialogdaten",
+      "gruppe": "__ROOT__",
+      "read_only": false,
+      "display_order": 140
+     },
+     "22222222-e002-4001-8001-000000000001": {
+      "tab": 2,
+      "feld": "TAB_ELEMENTS",
+      "name": "tab_elements",
+      "type": "element_list",
+      "FIELD": "9c74939e-8b9c-4ce5-b1ca-7ba82b75b4c7",
+      "label": "TAB_ELEMENTS",
+      "table": "sys_dialogdaten",
+      "gruppe": "ROOT",
+      "configs": {
+       "element": {
+        "key": "3dccd4cf-58c8-506b-9e30-58b485e20491",
+        "feld": "",
+        "table": "sys_framedaten",
+        "gruppe": ""
+       }
+      },
+      "read_only": false,
+      "display_order": 10
+     },
+     "40b932df-873b-5912-ab4b-7969f01c6cf3": {
+      "tab": 3,
+      "feld": "OPEN_EDIT",
+      "name": "tpl_tab_guid_open_edit",
+      "type": "string",
+      "label": "TPL TAB OPEN_EDIT",
+      "table": "sys_dialogdaten",
+      "gruppe": "__ROOT__",
+      "read_only": false,
+      "display_order": 160
+     },
+     "5c58971a-94f1-56bf-9382-5b990e7678d9": {
+      "tab": 3,
+      "feld": "TABLE",
+      "name": "tpl_tab_guid_table",
+      "type": "string",
+      "label": "TPL TAB TABLE",
+      "table": "sys_dialogdaten",
+      "gruppe": "__ROOT__",
+      "read_only": false,
+      "display_order": 130
+     },
+     "82b20574-d26f-5c31-a5fe-ddf449cf4a9a": {
+      "tab": 3,
+      "feld": "HEAD",
+      "name": "tpl_tab_guid_head",
+      "type": "string",
+      "label": "TPL TAB HEAD",
+      "table": "sys_dialogdaten",
+      "gruppe": "__ROOT__",
+      "read_only": false,
+      "display_order": 120
+     },
+     "958c6e06-d3b2-5c0f-b9ef-0f20947d5506": {
+      "tab": 3,
+      "feld": "TYPE",
+      "name": "tpl_tab_guid_edit_type",
+      "type": "string",
+      "label": "TPL TAB EDIT_TYPE",
+      "table": "sys_dialogdaten",
+      "gruppe": "__ROOT__",
+      "read_only": false,
+      "display_order": 150
+     },
+     "a78992a9-6e6e-5c64-9f1c-402a7b83b883": {
+      "tab": 3,
+      "feld": "SELECTION_MODE",
+      "name": "tpl_tab_guid_selection_mode",
+      "type": "string",
+      "label": "TPL TAB SELECTION_MODE",
+      "table": "sys_dialogdaten",
+      "gruppe": "__ROOT__",
+      "read_only": false,
+      "display_order": 170
+     },
+     "b5cc762e-37ed-5d36-b828-58b0e49fc132": {
+      "tab": 3,
+      "feld": "GUID",
+      "name": "tpl_tab_guid_guid",
+      "type": "string",
+      "label": "TPL TAB GUID",
+      "table": "sys_dialogdaten",
+      "gruppe": "__ROOT__",
+      "read_only": false,
+      "display_order": 110
+     },
+     "facaa457-beae-53aa-adce-b8962cf7007f": {
+      "tab": 3,
+      "feld": "TAB",
+      "name": "tpl_tab_guid_tab",
+      "type": "string",
+      "label": "TPL TAB TAB",
+      "table": "sys_dialogdaten",
+      "gruppe": "__ROOT__",
+      "read_only": false,
+      "display_order": 100
+     }
+    }
+   }
+  },
+  {
+   "uid": "01a520ea-4003-590f-b69d-48fde60e7647",
+   "name": "WORKFLOW_DRAFT_VIEW_FRAME_TEMPLATE",
+   "daten_before": {
+    "ROOT": {
+     "EDIT_TYPE": "pdvm_edit",
+     "SELF_GUID": "01a520ea-4003-590f-b69d-48fde60e7647",
+     "SELF_NAME": "WORKFLOW_DRAFT_VIEW_FRAME_TEMPLATE",
+     "TAB_ELEMENTS": {
+      "TAB_01": {
+       "TAB": 1,
+       "HEAD": "View",
+       "GRUPPE": "FIELDS"
+      }
+     },
+     "SELF_GILT_BIS": "9999365.99999",
+     "SELF_LINK_UID": "01a520ea-4003-590f-b69d-48fde60e7647",
+     "SELF_CREATED_AT": "2026132.81662",
+     "SELF_MODIFIED_AT": "2026137.73544",
+     "STRUCT_VERSION_APPLIED": 1
+    },
+    "FIELDS": {
+     "61b2a091-e10c-51b1-8731-5677c95bf56a": {
+      "tab": 1,
+      "feld": "TABLE",
+      "name": "wf_draft_view_view_table",
+      "type": "string",
+      "label": "View Table",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": "",
+        "options": []
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 20
+     },
+     "75defedf-1c4e-56d7-adbb-8b634800bb21": {
+      "tab": 1,
+      "feld": "SAVE_VIEW_ACTION",
+      "name": "wf_draft_view_save_view_action",
+      "type": "action",
+      "label": "Save View",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": "",
+        "options": []
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 40
+     },
+     "9d1aae3b-3cf2-5ce2-b5d2-a4142f847aab": {
+      "tab": 1,
+      "feld": "NAME",
+      "name": "wf_draft_view_view_name",
+      "type": "string",
+      "label": "View Name",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": "",
+        "options": []
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 10
+     },
+     "f5eea547-feb5-56e7-93bf-4b14e3ec3e0d": {
+      "tab": 1,
+      "feld": "VIEW_PROJECTION",
+      "name": "wf_draft_view_view_projection",
+      "type": "text",
+      "label": "View Projection",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": "",
+        "options": []
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 30
+     }
+    }
+   }
+  },
+  {
+   "uid": "bd919b17-aae6-5b50-8308-670455ab14ed",
+   "name": "WORKFLOW_SETUP_FRAME_TEMPLATE",
+   "daten_before": {
+    "ROOT": {
+     "TABS": 0,
+     "TABLE": "",
+     "EDIT_TYPE": "pdvm_edit",
+     "SELF_GUID": "bd919b17-aae6-5b50-8308-670455ab14ed",
+     "SELF_NAME": "WORKFLOW_SETUP_FRAME_TEMPLATE",
+     "GO_NEW_SET": true,
+     "TAB_ELEMENTS": {
+      "TAB_01": {
+       "TAB": 1,
+       "HEAD": "Setup",
+       "GRUPPE": "ROOT"
+      }
+     },
+     "SELF_GILT_BIS": "9999365.99999",
+     "SELF_LINK_UID": "bd919b17-aae6-5b50-8308-670455ab14ed",
+     "SELF_CREATED_AT": "2026127.70402",
+     "SELF_MODIFIED_AT": "2026137.73544",
+     "STRUCT_VERSION_APPLIED": 1
+    },
+    "FIELDS": {
+     "67a2be22-d5dd-5d2c-92c4-d7d996ae463e": {
+      "tab": 1,
+      "feld": "SOURCE_COMMIT",
+      "name": "wf_setup_frame_template_source_commit",
+      "type": "string",
+      "label": "Source Commit",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 70
+     },
+     "72c58080-1a7a-5ff8-97aa-c8461f262332": {
+      "tab": 1,
+      "feld": "TYPE",
+      "name": "wf_setup_frame_template_release_type",
+      "type": "dropdown",
+      "label": "Release Type",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 10
+     },
+     "776676f6-c03b-5e76-98fd-4cee3b8b4e3e": {
+      "tab": 1,
+      "feld": "TARGET_ENV",
+      "name": "wf_setup_frame_template_target_env",
+      "type": "dropdown",
+      "label": "Target Environment",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 20
+     },
+     "87cc7ac2-3c14-5d51-974d-47909f394193": {
+      "tab": 1,
+      "feld": "SOURCE_DB_ROLE",
+      "name": "wf_setup_frame_template_source_db_role",
+      "type": "dropdown",
+      "label": "Source DB Role",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 30
+     },
+     "93139920-9109-535f-8409-96d5f54c083c": {
+      "tab": 1,
+      "feld": "PACKAGE_HASH",
+      "name": "wf_setup_frame_template_package_hash",
+      "type": "string",
+      "label": "Package Hash",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 60
+     },
+     "98e377f3-ec58-51c6-92a8-43bcab0d8a83": {
+      "tab": 1,
+      "feld": "POLICY_MODE",
+      "name": "wf_setup_frame_template_policy_mode",
+      "type": "dropdown",
+      "label": "Policy Mode",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 50
+     },
+     "d0dfbf3f-744f-5724-a72d-5cc8165dc651": {
+      "tab": 1,
+      "feld": "TARGET_DB_ROLE",
+      "name": "wf_setup_frame_template_target_db_role",
+      "type": "dropdown",
+      "label": "Target DB Role",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 40
+     }
+    }
+   }
+  },
+  {
+   "uid": "75e5262a-6b8a-5d23-bc4f-630d529526e5",
+   "name": "WORKFLOW_DRAFT_SETUP_FRAME_TEMPLATE",
+   "daten_before": {
+    "ROOT": {
+     "EDIT_TYPE": "pdvm_edit",
+     "SELF_GUID": "75e5262a-6b8a-5d23-bc4f-630d529526e5",
+     "SELF_NAME": "WORKFLOW_DRAFT_SETUP_FRAME_TEMPLATE",
+     "TAB_ELEMENTS": {
+      "TAB_01": {
+       "TAB": 1,
+       "HEAD": "Setup",
+       "GRUPPE": "FIELDS"
+      }
+     },
+     "SELF_GILT_BIS": "9999365.99999",
+     "SELF_LINK_UID": "75e5262a-6b8a-5d23-bc4f-630d529526e5",
+     "SELF_CREATED_AT": "2026129.72743",
+     "SELF_MODIFIED_AT": "2026156.69445",
+     "STRUCT_VERSION_APPLIED": 1
+    },
+    "FIELDS": {
+     "4c1e5a97-1151-5441-9fcc-cc7492080c26": {
+      "tab": 1,
+      "feld": "SELF_NAME",
+      "name": "wf_dialog_self_name",
+      "type": "string",
+      "label": "Dialog Name",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": "",
+        "options": []
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "control_uid": "c75d12c6-b96f-4779-a728-d45a9ccf4a0e",
+      "source_path": "fields",
+      "display_order": 10
+     },
+     "4ce4951c-6814-5420-87fb-211bf77341e5": {
+      "tab": 1,
+      "feld": "HEADER",
+      "name": "wf_dialog_header",
+      "type": "string",
+      "label": "Header",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": "",
+        "options": []
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "control_uid": "6ad34262-9b64-56b5-9774-165adc0e0e5f",
+      "source_path": "fields",
+      "display_order": 20
+     },
+     "b0bbfd48-9af3-5867-9346-b7c962b4588b": {
+      "tab": 1,
+      "feld": "TABLE",
+      "name": "wf_dialog_table",
+      "type": "dropdown",
+      "label": "Tabelle",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "limit": 500,
+        "source": "table_catalog",
+        "include_inactive": false
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "control_uid": "c47b969a-466d-4494-ab7b-56a78a379fe9",
+      "source_path": "fields",
+      "display_order": 30
+     },
+     "f9fb58c1-d236-409f-bb3b-6d04164fe9fe": {
+      "tab": 1,
+      "feld": "SELECTION_MODE",
+      "name": "wf_dialog_selection_mode",
+      "type": "dropdown",
+      "label": "Selection Mode",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "b73633dd-4734-48ab-a9f9-63bf2f4c1db7",
+        "feld": "selection_mode",
+        "group": "",
+        "table": "sys_dropdowndaten",
+        "source": "static"
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "control_uid": "a00407b9-1a77-51fe-9130-66d9f72c432b",
+      "source_path": "fields",
+      "display_order": 50
+     },
+     "fd6f6857-af4e-4cf1-9f1b-1152c98f8a6d": {
+      "tab": 1,
+      "feld": "OPEN_EDIT",
+      "name": "wf_dialog_open_edit",
+      "type": "dropdown",
+      "label": "Open Edit",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "8f3f8f45-4f3d-4ea3-9efe-8c4bf1305b12",
+        "feld": "open_edit",
+        "group": "",
+        "table": "sys_dropdowndaten",
+        "source": "static"
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "control_uid": "0dea478a-82ba-56c0-bb46-65c615dddef9",
+      "source_path": "fields",
+      "display_order": 40
+     }
+    }
+   }
+  },
+  {
+   "uid": "a6c4f9b6-7b52-4f4c-8f59-3d9a4bd7a901",
+   "name": "WORKFLOW_TAB_ELEMENTS_EDITOR_FRAME",
+   "daten_before": {
+    "ROOT": {
+     "EDIT_TYPE": "pdvm_edit",
+     "SELF_GUID": "a6c4f9b6-7b52-4f4c-8f59-3d9a4bd7a901",
+     "SELF_NAME": "WORKFLOW_TAB_ELEMENTS_EDITOR_FRAME",
+     "TAB_ELEMENTS": {
+      "TAB_01": {
+       "TAB": 1,
+       "HEAD": "Tabs",
+       "GRUPPE": "FIELDS"
+      }
+     },
+     "SELF_GILT_BIS": "9999365.99999",
+     "SELF_LINK_UID": "a6c4f9b6-7b52-4f4c-8f59-3d9a4bd7a901",
+     "SELF_CREATED_AT": "2026152.83491",
+     "SELF_MODIFIED_AT": "2026152.83623",
+     "STRUCT_VERSION_APPLIED": 1
+    },
+    "FIELDS": {
+     "0dea478a-82ba-56c0-bb46-65c615dddef9": {
+      "DISPLAY_ORDER": 70
+     },
+     "0fcfa8fb-6b53-4ac5-8b0c-2f372aa91fd3": {
+      "DISPLAY_ORDER": 20
+     },
+     "2527428c-bbf6-47a2-b281-44f6b746e959": {
+      "DISPLAY_ORDER": 30
+     },
+     "2e80a941-4444-5e08-97ed-5f544343b227": {
+      "DISPLAY_ORDER": 40
+     },
+     "5016a6bd-7dc3-4da1-8c75-e2719a541fb0": {
+      "DISPLAY_ORDER": 50
+     },
+     "6690c5cc-1575-452d-be09-1ba05f54f0b3": {
+      "DISPLAY_ORDER": 60
+     },
+     "83a22531-5bba-4d52-b890-60f038548989": {
+      "DISPLAY_ORDER": 10
+     }
+    }
+   }
+  },
+  {
+   "uid": "9b534385-212a-51f4-8579-93516c964109",
+   "name": "WORKFLOW_APPLY_FRAME_TEMPLATE",
+   "daten_before": {
+    "ROOT": {
+     "TABS": 0,
+     "TABLE": "",
+     "EDIT_TYPE": "pdvm_edit",
+     "SELF_GUID": "9b534385-212a-51f4-8579-93516c964109",
+     "SELF_NAME": "WORKFLOW_APPLY_FRAME_TEMPLATE",
+     "GO_NEW_SET": true,
+     "TAB_ELEMENTS": {
+      "TAB_01": {
+       "TAB": 1,
+       "HEAD": "Build",
+       "GRUPPE": "ROOT"
+      }
+     },
+     "SELF_GILT_BIS": "9999365.99999",
+     "SELF_LINK_UID": "9b534385-212a-51f4-8579-93516c964109",
+     "SELF_CREATED_AT": "2026127.70402",
+     "SELF_MODIFIED_AT": "2026132.75872",
+     "STRUCT_VERSION_APPLIED": 1
+    },
+    "FIELDS": {
+     "62c736b3-04d6-5d26-9392-78ee017a5182": {
+      "tab": 1,
+      "feld": "APPLY_ACTION",
+      "name": "wf_apply_frame_template_apply_action",
+      "type": "action",
+      "label": "Apply",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 20
+     },
+     "d87d080f-65cd-5526-97df-58d7e848fd7e": {
+      "tab": 1,
+      "feld": "DRY_RUN_ACTION",
+      "name": "wf_apply_frame_template_dry_run_action",
+      "type": "action",
+      "label": "Dry Run",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 10
+     }
+    }
+   }
+  },
+  {
+   "uid": "2ac77a9a-1a22-599a-8fa1-49ed5efb7bd8",
+   "name": "WORKFLOW_DRAFT_CONTENT_FRAME_TEMPLATE",
+   "daten_before": {
+    "ROOT": {
+     "EDIT_TYPE": "pdvm_edit",
+     "SELF_GUID": "2ac77a9a-1a22-599a-8fa1-49ed5efb7bd8",
+     "SELF_NAME": "WORKFLOW_DRAFT_CONTENT_FRAME_TEMPLATE",
+     "TAB_ELEMENTS": {
+      "TAB_01": {
+       "TAB": 1,
+       "HEAD": "Content",
+       "GRUPPE": "FIELDS"
+      }
+     },
+     "SELF_GILT_BIS": "9999365.99999",
+     "SELF_LINK_UID": "2ac77a9a-1a22-599a-8fa1-49ed5efb7bd8",
+     "SELF_CREATED_AT": "2026129.72743",
+     "SELF_MODIFIED_AT": "2026133.78731",
+     "STRUCT_VERSION_APPLIED": 1
+    },
+    "FIELDS": {
+     "11ed9f64-5c09-5fa8-ae97-0b8d8aa854b8": {
+      "tab": 1,
+      "feld": "FRAME_GUID",
+      "name": "wf_draft_content_frame_guid",
+      "type": "string",
+      "label": "Frame GUID",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": "",
+        "options": []
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 30
+     },
+     "179e8c6a-1b2e-58a0-adf5-fdda014c41d7": {
+      "tab": 1,
+      "feld": "TAB_REF",
+      "name": "wf_draft_content_tab_ref",
+      "type": "string",
+      "label": "Tab Ref",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": "",
+        "options": []
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 10
+     },
+     "94dcd843-599c-546f-ab1a-6a0bbc7c2345": {
+      "tab": 1,
+      "feld": "VIEW_GUID",
+      "name": "wf_draft_content_view_guid",
+      "type": "string",
+      "label": "View GUID",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": "",
+        "options": []
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 20
+     },
+     "c6ee99aa-e223-5682-bccc-eb36864da68a": {
+      "tab": 1,
+      "feld": "EDIT_TYPE",
+      "name": "wf_draft_content_edit_type",
+      "type": "string",
+      "label": "Edit Type",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": "",
+        "options": []
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 40
+     },
+     "f7fbc9b9-e537-5ab9-b96f-ddfe3b4a0fef": {
+      "tab": 1,
+      "feld": "SAVE_CONTENT_ACTION",
+      "name": "wf_draft_content_save_content_action",
+      "type": "action",
+      "label": "Save Content",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": "",
+        "options": []
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 50
+     }
+    }
+   }
+  },
+  {
+   "uid": "c3af9a12-377c-5ae0-bab9-9b30cd1e599d",
+   "name": "WORKFLOW_PROPERTY_MAPPING_FRAME_TEMPLATE",
+   "daten_before": {
+    "ROOT": {
+     "TABS": 0,
+     "TABLE": "",
+     "EDIT_TYPE": "pdvm_edit",
+     "SELF_GUID": "c3af9a12-377c-5ae0-bab9-9b30cd1e599d",
+     "SELF_NAME": "WORKFLOW_PROPERTY_MAPPING_FRAME_TEMPLATE",
+     "GO_NEW_SET": true,
+     "TAB_ELEMENTS": {
+      "TAB_01": {
+       "TAB": 1,
+       "HEAD": "Dictionary",
+       "GRUPPE": "ROOT"
+      }
+     },
+     "SELF_GILT_BIS": "9999365.99999",
+     "SELF_LINK_UID": "c3af9a12-377c-5ae0-bab9-9b30cd1e599d",
+     "SELF_CREATED_AT": "2026127.70402",
+     "SELF_MODIFIED_AT": "2026132.75874",
+     "STRUCT_VERSION_APPLIED": 1
+    },
+    "FIELDS": {
+     "9a84d71a-776f-500e-b706-408f160cdf31": {
+      "tab": 1,
+      "feld": "CREATE_PROPERTY_ACTION",
+      "name": "wf_property_mapping_frame_template_create_property_action",
+      "type": "action",
+      "label": "Create Property",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 30
+     },
+     "ccb6cb77-5626-5641-b136-7346cb0c52d5": {
+      "tab": 1,
+      "feld": "TABLE_PREFIX_FILTER",
+      "name": "wf_property_mapping_frame_template_table_prefix_filter",
+      "type": "string",
+      "label": "Table Prefix Filter",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 10
+     },
+     "efd82195-b2ad-5729-b619-808e29495969": {
+      "tab": 1,
+      "feld": "DICTIONARY_SEARCH",
+      "name": "wf_property_mapping_frame_template_dictionary_search",
+      "type": "string",
+      "label": "Dictionary Search",
+      "table": "SYS_CONTROL_DICT",
+      "gruppe": "FIELDS",
+      "abdatum": false,
+      "configs": {
+       "help": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       },
+       "dropdown": {
+        "key": "",
+        "feld": "",
+        "table": "",
+        "gruppe": ""
+       }
+      },
+      "tooltip": "",
+      "read_only": false,
+      "historical": false,
+      "source_path": "fields",
+      "display_order": 20
+     }
+    }
+   }
+  },
+  {
+   "uid": "ebb4a327-6b3c-4fa8-8df8-e38b52072699",
+   "name": "sys_control_dict Frame",
+   "daten_before": {
+    "ROOT": {
+     "TABS": 3,
+     "TABLE": "sys_control_dict",
+     "EDIT_TYPE": "pdvm_edit",
+     "SELF_GUID": "ebb4a327-6b3c-4fa8-8df8-e38b52072699",
+     "SELF_NAME": "sys_control_dict Frame",
+     "GO_NEW_SET": true,
+     "TAB_ELEMENTS": {
+      "TAB_01": {
+       "TAB": 1,
+       "HEAD": "Basis",
+       "GRUPPE": "ROOT"
+      },
+      "TAB_02": {
+       "TAB": 2,
+       "HEAD": "Control",
+       "GRUPPE": "CONTROL"
+      },
+      "TAB_03": {
+       "TAB": 3,
+       "HEAD": "Configs",
+       "GRUPPE": "CONTROL.CONFIGS"
+      }
+     },
+     "SELF_GILT_BIS": "9999365.99999",
+     "SELF_LINK_UID": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+     "SELF_CREATED_AT": "2026050.42826",
+     "SELF_MODIFIED_AT": "2026183.47808",
+     "STRUCT_VERSION_APPLIED": 1
+    },
+    "FIELDS": {
+     "060e9ddb-e3a6-4a36-86ad-e53d07fadebc": {
+      "tab": 2,
+      "display_order": 90
+     },
+     "0a37bc7a-e806-4165-b114-549b19245963": {
+      "tab": 2,
+      "display_order": 140
+     },
+     "13957e4f-fc39-5ac8-81ce-cc5692f24bce": {
+      "tab": 2,
+      "display_order": 60
+     },
+     "26449805-f073-4d52-8e16-9a5311fdc670": {
+      "tab": 2,
+      "display_order": 200
+     },
+     "31941830-eaed-4cb7-a0d6-40908badc5fe": {
+      "tab": 2,
+      "display_order": 20
+     },
+     "458b92e5-f8c1-49e4-84d7-70703942f2e3": {
+      "tab": 2,
+      "display_order": 170
+     },
+     "5c1ce139-7979-4ef2-aabc-e4a20ddebe54": {
+      "tab": 1,
+      "display_order": 46
+     },
+     "5e39f253-9136-4253-9c11-0fe473628c6f": {
+      "tab": 2,
+      "display_order": 35
+     },
+     "620e5496-edb7-4971-9e31-942218e5722e": {
+      "tab": 1,
+      "display_order": 40
+     },
+     "6f36511b-acaf-4f11-849b-89dda880fdc0": {
+      "tab": 2,
+      "display_order": 100
+     },
+     "72e3aa63-4d0b-40fd-883f-9ece20b3e6e4": {
+      "tab": 2,
+      "display_order": 120
+     },
+     "743d430c-130a-466f-a70c-35d2e4ccf2d3": {
+      "tab": 1,
+      "display_order": 50
+     },
+     "7fa063db-d9a3-4530-bf7c-cc99c1100289": {
+      "tab": 1,
+      "display_order": 51
+     },
+     "8cdad050-d285-46a0-8bf1-ae59c8cc620c": {
+      "tab": 2,
+      "display_order": 30
+     },
+     "933923ae-88bf-48c5-82d2-26fef46b8a70": {
+      "tab": 2,
+      "display_order": 80
+     },
+     "96a2db2b-0e70-449b-beb8-0ee2d3bc38f2": {
+      "tab": 1,
+      "display_order": 52
+     },
+     "a1fd4423-f7bd-4120-b770-ebb1421f59a2": {
+      "tab": 2,
+      "display_order": 190
+     },
+     "a611fe31-1bdb-401c-aa2e-3c2179a06bc9": {
+      "tab": 2,
+      "display_order": 60
+     },
+     "a78bc486-819c-4ff8-8722-7699312a8b09": {
+      "tab": 2,
+      "display_order": 40
+     },
+     "b3aef3f4-12f7-4bfa-b660-16b7ccbcd7ad": {
+      "tab": 2,
+      "display_order": 180
+     },
+     "b4c93039-57b7-4820-8944-987cb5049410": {
+      "tab": 2,
+      "display_order": 230
+     },
+     "bb3e9f05-027f-47b1-aa9b-89f1db03ec94": {
+      "tab": 2,
+      "display_order": 210
+     },
+     "c12502ca-0edb-4e65-a968-590b590c60e9": {
+      "tab": 2,
+      "display_order": 110
+     },
+     "c47b969a-466d-4494-ab7b-56a78a379fe9": {
+      "tab": 2,
+      "display_order": 50
+     },
+     "c6b8108f-25b6-4e0e-9823-1d252195a684": {
+      "tab": 2,
+      "display_order": 150
+     },
+     "c75d12c6-b96f-4779-a728-d45a9ccf4a0e": {
+      "tab": 2,
+      "display_order": 25
+     },
+     "c804a737-364c-4f39-a973-3c5a2fd1fbab": {
+      "tab": 2,
+      "display_order": 130
+     },
+     "e440d10a-6acc-4c6b-8bc2-f2595c3e7c32": {
+      "tab": 1,
+      "display_order": 40
+     },
+     "e498abbe-2a26-42b8-8f4b-f26a12f38f82": {
+      "tab": 3,
+      "label": "Einstellungen",
+      "display_order": 10
+     },
+     "e522e4ae-c3c9-48c9-9a48-2061e70336aa": {
+      "tab": 2,
+      "display_order": 160
+     },
+     "e8c6c911-cc8d-41a9-9d87-a7e926f2fa8b": {
+      "tab": 2,
+      "display_order": 220
+     }
+    }
+   }
+  },
+  {
+   "uid": "36fa5117-35da-578f-8d4d-94f2b1f46b8e",
+   "name": "Für Dialog Aufbau_ELEMENT_EDITOR",
+   "daten_before": {
+    "ROOT": {
+     "TABS": 2,
+     "TABLE": "",
+     "EDIT_TYPE": "pdvm_edit",
+     "SELF_GUID": "36fa5117-35da-578f-8d4d-94f2b1f46b8e",
+     "SELF_NAME": "Für Dialog Aufbau_ELEMENT_EDITOR_TAB_ELEMENTS",
+     "GO_NEW_SET": true,
+     "ROOT_TABLE": "sys_dialogdaten",
+     "DIALOG_GUID": "9c245a60-7251-43c4-9d7d-d67af02c6144",
+     "TAB_ELEMENTS": {
+      "4bce76b6-1e3e-4f21-975b-175190c3cdee": {
+       "TAB": 1,
+       "GUID": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23002",
+       "HEAD": "Liste",
+       "LABEL": "Liste",
+       "TABLE": "sys_dialogdaten",
+       "MODULE": "view",
+       "EDIT_TAB": 2,
+       "EDIT_TYPE": "pdvm_edit",
+       "OPEN_EDIT": "double_click",
+       "SELECTION_MODE": "single"
+      },
+      "6747f50b-2c53-4fcf-86bf-855444ea912e": {
+       "TAB": 2,
+       "GUID": "20de7493-d648-41e2-87a0-7894de95af35",
+       "HEAD": "Bearbeiten",
+       "LABEL": "Bearbeiten",
+       "TABLE": "sys_dialogdaten",
+       "MODULE": "edit",
+       "EDIT_TAB": 2,
+       "EDIT_TYPE": "pdvm_edit",
+       "OPEN_EDIT": "double_click",
+       "SELECTION_MODE": "double_click"
+      }
+     },
+     "SELF_GILT_BIS": "9999365.99999",
+     "SELF_LINK_UID": "36fa5117-35da-578f-8d4d-94f2b1f46b8e",
+     "SELF_CREATED_AT": "2026152.83603",
+     "SELF_MODIFIED_AT": "2026156.69445",
+     "STRUCT_VERSION_APPLIED": 1
+    },
+    "FIELDS": {
+     "9c74939e-8b9c-4ce5-b1ca-7ba82b75b4c7": {
+      "tab": 2,
+      "ROOT": {
+       "NAME": "SYS_TAB_ELEMENTS",
+       "FIELD": "9c74939e-8b9c-4ce5-b1ca-7ba82b75b4c7",
+       "TABLE": "sys_control_dict",
+       "SELF_GUID": "9c74939e-8b9c-4ce5-b1ca-7ba82b75b4c7",
+       "SELF_NAME": "SYS_TAB_ELEMENTS"
+      },
+      "feld": "TAB_ELEMENTS",
+      "name": "tab_elements",
+      "type": "element_list",
+      "FIELD": "9c74939e-8b9c-4ce5-b1ca-7ba82b75b4c7",
+      "label": "Tabs",
+      "table": "sys_dialogdaten",
+      "gruppe": "ROOT",
+      "CONTROL": {
+       "FELD": "TAB_ELEMENTS",
+       "NAME": "SYS_TAB_ELEMENTS",
+       "TYPE": "element_list",
+       "FIELD": "9c74939e-8b9c-4ce5-b1ca-7ba82b75b4c7",
+       "LABEL": "Tab Elemente",
+       "TABLE": "sys_control_dict",
+       "GRUPPE": "",
+       "ABDATUM": false,
+       "DEFAULT": "",
+       "SORTABLE": true,
+       "READ_ONLY": false,
+       "HISTORICAL": false,
+       "SEARCHABLE": true,
+       "UPPER_CASE": false,
+       "EXPERT_MODE": true,
+       "FILTER_TYPE": "contains",
+       "PARENT_GUID": null,
+       "SOURCE_PATH": "root",
+       "DISPLAY_SHOW": true,
+       "EXPERT_ORDER": 0,
+       "DISPLAY_ORDER": 0,
+       "SORT_DIRECTION": "asc",
+       "FIELDS_ELEMENTS": {},
+       "CONFIGS_ELEMENTS": {},
+       "SORT_BY_ORIGINAL": false
+      },
+      "configs": {},
+      "dict_ref": null,
+      "read_only": false,
+      "display_order": 10
+     }
+    }
+   }
+  },
+  {
+   "uid": "0d024e06-e750-480d-b439-7241fbfc8886",
+   "name": "Benutzer Edit",
+   "daten_before": {
+    "ROOT": {
+     "TABS": 4,
+     "TABLE": "",
+     "EDIT_TYPE": "edit_user",
+     "SELF_GUID": "0d024e06-e750-480d-b439-7241fbfc8886",
+     "SELF_NAME": "Benutzer Edit",
+     "GO_NEW_SET": true,
+     "ROOT_TABLE": "sys_benutzer",
+     "TAB_ELEMENTS": {
+      "3368306f-adf9-4057-b7f9-b033da5730bb": {
+       "TAB": 3,
+       "HEAD": "Sicherheit & Rechte",
+       "GRUPPE": "SECURITY/PERMISSIONS/MANDANTEN"
+      },
+      "6ae7a3f7-4b2b-4962-bf01-4319cc76ffad": {
+       "TAB": 2,
+       "HEAD": "Einstellungen",
+       "GRUPPE": "CONFIG/SETTINGS"
+      },
+      "a45bc787-fbba-4d4f-bd4d-b986a0d57baa": {
+       "TAB": 1,
+       "HEAD": "Person",
+       "GRUPPE": "USER"
+      },
+      "c432df57-933e-44a9-ae1b-b4f975d4344e": {
+       "TAB": 4,
+       "HEAD": "Start & Apps",
+       "GRUPPE": "MEINEAPPS"
+      }
+     },
+     "SELF_GILT_BIS": "9999365.99999",
+     "SELF_LINK_UID": "0d024e06-e750-480d-b439-7241fbfc8886",
+     "SELF_CREATED_AT": "2026025.74106",
+     "SELF_MODIFIED_AT": "2026163.72111",
+     "STRUCT_VERSION_APPLIED": 1
+    },
+    "FIELDS": {
+     "11e1b3b3-3993-4856-afe8-6df6e925fcab": {
+      "tab": 1,
+      "display_order": 50
+     },
+     "155f2e31-1fa9-4315-8e27-c7bca987559f": {
+      "tab": 2,
+      "display_order": 40
+     },
+     "3addcaa2-e289-4cbc-9228-84ec87b01f42": {
+      "tab": 2,
+      "display_order": 30
+     },
+     "7a0d9b2f-23cb-48f0-9a3e-0d6a01214444": {
+      "tab": 1,
+      "source_path": "root",
+      "display_order": 40
+     },
+     "a12c4a2e-52a6-4bda-9f6c-0d6a01220006": {
+      "TAB": 4,
+      "SOURCE_PATH": "root",
+      "DISPLAY_ORDER": 10
+     },
+     "a2b25f28-88a3-4d13-8a0f-0d6a01220012": {
+      "tab": 5,
+      "display_order": 10
+     },
+     "a2e4f71a-4c2b-45bf-8b1d-0d6a01216666": {
+      "tab": 2,
+      "display_order": 10
+     },
+     "a7a8de14-0102-4e59-8c8c-0d6a01220011": {
+      "TAB": 4,
+      "DISPLAY_ORDER": 60
+     },
+     "a9a9c2d4-690f-4b6f-9cd6-0d6a0121dddd": {
+      "tab": 3,
+      "display_order": 10
+     },
+     "b4fda8b9-1af0-4b95-90b5-0d6a0121eeee": {
+      "tab": 3,
+      "display_order": 20
+     },
+     "bdf1b157-4c01-4ea6-8c2b-0d6a01220008": {
+      "TAB": 4,
+      "DISPLAY_ORDER": 30
+     },
+     "be5aa2cd-2ed8-4fd4-9c02-0d6a0121ffff": {
+      "tab": 3,
+      "display_order": 30
+     },
+     "c06c632c-3b55-4d92-b48b-0d6a01220003": {
+      "tab": 3,
+      "display_order": 70
+     },
+     "c0bfce8f-8f2d-4f2f-8c8c-0d6a01220007": {
+      "TAB": 4,
+      "DISPLAY_ORDER": 20
+     },
+     "c1a5f6a2-97c8-4cc3-9c1a-0d6a0121aaaa": {
+      "tab": 2,
+      "display_order": 50
+     },
+     "c6b4fae2-1c71-4b3e-8e9b-0d6a01212222": {
+      "tab": 1,
+      "display_order": 20
+     },
+     "c8f92080-78ae-4c7e-8d85-0d6a01220000": {
+      "tab": 3,
+      "display_order": 40
+     },
+     "d19f3733-3bf0-4b9e-9e1a-0d6a01220001": {
+      "tab": 3,
+      "display_order": 50
+     },
+     "d2c9a1f9-8db2-49d9-9e52-0d6a0121bbbb": {
+      "tab": 2,
+      "display_order": 60
+     },
+     "d30a1d6f-6e49-4a37-9f73-0d6a01211111": {
+      "tab": 1,
+      "display_order": 10
+     },
+     "d6f90f6c-9b44-4b63-9b91-0d6a01213333": {
+      "tab": 1,
+      "display_order": 30
+     },
+     "d8dd77f6-9e3f-49f3-909f-0d6a01220004": {
+      "tab": 3,
+      "display_order": 80
+     },
+     "e2599cda-178e-4d66-a294-c9ea12fddc91": {
+      "tab": 2,
+      "display_order": 50
+     },
+     "e3b3a161-2025-42bf-a0ab-e6fd1584f4cf": {
+      "tab": 3,
+      "display_order": 90
+     },
+     "e4c5aa98-3b88-47c3-833a-0d6a01220009": {
+      "TAB": 4,
+      "DISPLAY_ORDER": 40
+     },
+     "e85a7843-4b5f-49a9-8f5d-0d6a01220002": {
+      "tab": 3,
+      "display_order": 60
+     },
+     "ef6a4b8a-9c8d-4ec6-8b0c-0d6a01217777": {
+      "tab": 2,
+      "display_order": 20
+     },
+     "f68afad6-2894-460b-8c8c-0d6a01220010": {
+      "tab": 4,
+      "display_order": 50
+     },
+     "f6f6b203-7cc0-49ff-8a0f-0d6a01220013": {
+      "tab": 5,
+      "display_order": 20
+     },
+     "f7d7c2f7-1ef3-40d4-b8a9-0d6a0121cccc": {
+      "tab": 2,
+      "display_order": 70
+     }
+    }
+   }
+  },
+  {
+   "uid": "8d157d69-544e-5a6f-8350-68f2c9854cef",
+   "name": "sys_control_dict Frame_ELEMENT_EDITOR",
+   "daten_before": {
+    "ROOT": {
+     "TABS": 4,
+     "TABLE": "",
+     "EDIT_TYPE": "pdvm_edit",
+     "SELF_GUID": "8d157d69-544e-5a6f-8350-68f2c9854cef",
+     "SELF_NAME": "sys_control_dict Frame_ELEMENT_EDITOR_CONTROL",
+     "GO_NEW_SET": true,
+     "DIALOG_GUID": "9f06711e-4ad8-4ea4-9837-2f40f3a6f101",
+     "TAB_ELEMENTS": {
+      "TAB_01": {
+       "HEAD": "Basis",
+       "GRUPPE": "ROOT"
+      },
+      "TAB_02": {
+       "HEAD": "Eigenschaften",
+       "GRUPPE": "ROOT"
+      },
+      "TAB_03": {
+       "HEAD": "Control-Liste",
+       "GRUPPE": "CONTROL"
+      },
+      "TAB_04": {
+       "HEAD": "Templates",
+       "GRUPPE": "TEMPLATES"
+      }
+     },
+     "SELF_GILT_BIS": "9999365.99999",
+     "SELF_LINK_UID": "8d157d69-544e-5a6f-8350-68f2c9854cef",
+     "SELF_CREATED_AT": "2026152.83603",
+     "SELF_MODIFIED_AT": "2026152.83623",
+     "STRUCT_VERSION_APPLIED": 1
+    },
+    "FIELDS": {
+     "33333333-e001-4001-8001-000000000001": {
+      "tab": 3,
+      "feld": "CONTROL",
+      "name": "control",
+      "type": "element_list",
+      "FIELD": "52e197f1-4a3f-4ffd-be9d-b532d261e24d",
+      "label": "CONTROL (Elemente)",
+      "table": "sys_control_dict",
+      "gruppe": "ROOT",
+      "configs": {},
+      "read_only": false,
+      "display_order": 10
+     }
+    }
+   }
+  },
+  {
+   "uid": "3dccd4cf-58c8-506b-9e30-58b485e20491",
+   "name": "sys_dialogdaten Frame (Linear)_ELEMENT_EDITOR",
+   "daten_before": {
+    "ROOT": {
+     "TABS": 3,
+     "TABLE": "persondaten",
+     "EDIT_TYPE": "pdvm_edit",
+     "SELF_GUID": "3dccd4cf-58c8-506b-9e30-58b485e20491",
+     "SELF_NAME": "sys_dialogdaten Frame (Linear)_ELEMENT_EDITOR_TAB_ELEMENTS",
+     "GO_NEW_SET": true,
+     "DIALOG_GUID": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23001",
+     "TAB_ELEMENTS": {
+      "TAB_01": {
+       "HEAD": "Basis",
+       "GRUPPE": "ROOT"
+      },
+      "TAB_02": {
+       "HEAD": "Tab Elements",
+       "GRUPPE": "ROOT"
+      },
+      "TAB_03": {
+       "HEAD": "Template",
+       "GRUPPE": "TEMPLATES"
+      }
+     },
+     "SELF_GILT_BIS": "9999365.99999",
+     "SELF_LINK_UID": "3dccd4cf-58c8-506b-9e30-58b485e20491",
+     "SELF_CREATED_AT": "2026152.83603",
+     "SELF_MODIFIED_AT": "2026152.83623",
+     "STRUCT_VERSION_APPLIED": 1
+    },
+    "FIELDS": {
+     "22222222-e002-4001-8001-000000000001": {
+      "tab": 2,
+      "feld": "TAB_ELEMENTS",
+      "name": "tab_elements",
+      "type": "element_list",
+      "FIELD": "9c74939e-8b9c-4ce5-b1ca-7ba82b75b4c7",
+      "label": "TAB_ELEMENTS",
+      "table": "sys_dialogdaten",
+      "gruppe": "ROOT",
+      "configs": {},
+      "read_only": false,
+      "display_order": 10
+     }
+    }
+   }
+  },
+  {
+   "uid": "4413571e-6bf6-4f42-b81a-bc898db4880c",
+   "name": "Edit Frame",
+   "daten_before": {
+    "ROOT": {
+     "TABS": 2,
+     "TABLE": "sys_framedaten",
+     "EDIT_TYPE": "pdvm_edit",
+     "SELF_GUID": "4413571e-6bf6-4f42-b81a-bc898db4880c",
+     "SELF_NAME": "Edit Frame",
+     "GO_NEW_SET": true,
+     "ROOT_TABLE": "sys_framedaten",
+     "TAB_ELEMENTS": {
+      "Tab01": {
+       "HEAD": "Root",
+       "LABEL": "Root",
+       "GRUPPE": "ROOT"
+      },
+      "Tab02": {
+       "HEAD": "Felder",
+       "LABEL": "Felder",
+       "GRUPPE": "FIELDS"
+      }
+     },
+     "SELF_GILT_BIS": "9999365.99999",
+     "SELF_LINK_UID": "4413571e-6bf6-4f42-b81a-bc898db4880c",
+     "SELF_CREATED_AT": "2026040.59870",
+     "SELF_MODIFIED_AT": "2026175.80672",
+     "STRUCT_VERSION_APPLIED": 1
+    },
+    "FIELDS": {
+     "83206c27-0eb9-4690-b4c1-7ce45761f05e": {
+      "tab": 2,
+      "gruppe": "FIELDS",
+      "configs": {
+       "element": {
+        "key": "73cec3ac-95f9-4667-89df-f2a5d3c8e910",
+        "feld": "",
+        "label": "f?r Elemente",
+        "table": "sys_framedaten",
+        "gruppe": "",
+        "add_select": {
+         "go_select_view": {
+          "table": "sys_control_dict",
+          "table_mode": "static"
+         }
+        },
+        "frame_guid": "73cec3ac-95f9-4667-89df-f2a5d3c8e910",
+        "frame_mode": "static"
+       }
+      },
+      "source_path": "root",
+      "display_order": 5
+     },
+     "835bc223-a7ae-4760-aded-4dbd9503767c": {
+      "tab": 1,
+      "display_order": 10
+     },
+     "9c74939e-8b9c-4ce5-b1ca-7ba82b75b4c7": {
+      "tab": 1,
+      "display_order": 20
+     },
+     "b78b41ec-5372-49e3-b34a-8ddb2fc25c98": {
+      "tab": 1,
+      "display_order": 30
+     },
+     "c47b969a-466d-4494-ab7b-56a78a379fe9": {
+      "tab": 1,
+      "display_order": 40
+     },
+     "c75d12c6-b96f-4779-a728-d45a9ccf4a0e": {
+      "tab": 1,
+      "display_order": 50
+     }
+    }
+   }
+  },
+  {
+   "uid": "886842eb-f62b-56d8-80cf-7d071264307b",
+   "name": "WORKFLOW_DRAFT_TABS_FRAME_TEMPLATE",
+   "daten_before": {
+    "ROOT": {
+     "EDIT_TYPE": "pdvm_edit",
+     "SELF_GUID": "886842eb-f62b-56d8-80cf-7d071264307b",
+     "SELF_NAME": "WORKFLOW_DRAFT_TABS_FRAME_TEMPLATE",
+     "TAB_ELEMENTS": {
+      "TAB_01": {
+       "TAB": 1,
+       "HEAD": "Tabs",
+       "GRUPPE": "FIELDS"
+      }
+     },
+     "SELF_GILT_BIS": "9999365.99999",
+     "SELF_LINK_UID": "886842eb-f62b-56d8-80cf-7d071264307b",
+     "SELF_CREATED_AT": "2026129.72743",
+     "SELF_MODIFIED_AT": "2026152.83492",
+     "STRUCT_VERSION_APPLIED": 1
+    },
+    "FIELDS": {
+     "b6bd31d9-30fb-5239-b8dd-a8f8401f96e4": {
+      "tab": 1,
+      "feld": "TAB_ELEMENTS",
+      "name": "wf_draft_tabs_tab_elements",
+      "type": "element_list",
+      "label": "Dialog Tabs",
+      "table": "sys_dialogdaten",
+      "gruppe": "ROOT",
+      "configs": {
+       "element": {
+        "key": "a6c4f9b6-7b52-4f4c-8f59-3d9a4bd7a901",
+        "feld": "",
+        "table": "sys_framedaten",
+        "gruppe": ""
+       },
+       "key_mode": "TAB_XX",
+       "key_prefix": "TAB_",
+       "key_padding": 2
+      },
+      "read_only": false,
+      "display_order": 10
+     }
+    }
+   }
+  }
+ ],
+ "created_controls": [
+  "5d53c6ce-78ec-5e02-9904-2ef639874108",
+  "6f965a0d-8cb4-5883-baec-a4bd9d3c7a49",
+  "ac1e2692-b97d-5116-9607-0d7222c73c98",
+  "6e5c5c95-03dc-52b1-afe1-13c822ec117f",
+  "7f8739fa-9e3b-5642-855f-744b23504899",
+  "cb7a1850-06e5-5432-9811-7d8be8524e3c",
+  "f12439a3-0b0f-52cc-8215-3d05f0d845f2",
+  "0f83e550-6998-4e12-b452-a38b2aa70621",
+  "0c1f400d-2695-56da-af04-55861b30815e",
+  "4677f477-c4f5-5e8d-a8ff-27b3b0e729ba",
+  "75c11f5f-c4b6-548a-9cad-4a6ad8213da7",
+  "eef4b4bf-7282-5196-8391-bf0cd226136f",
+  "11111111-e002-4001-8001-000000000003",
+  "11111111-e002-4001-8001-000000000004",
+  "22222222-e002-4001-8001-000000000001",
+  "40b932df-873b-5912-ab4b-7969f01c6cf3",
+  "5c58971a-94f1-56bf-9382-5b990e7678d9",
+  "a78992a9-6e6e-5c64-9f1c-402a7b83b883",
+  "75defedf-1c4e-56d7-adbb-8b634800bb21",
+  "f5eea547-feb5-56e7-93bf-4b14e3ec3e0d",
+  "67a2be22-d5dd-5d2c-92c4-d7d996ae463e",
+  "776676f6-c03b-5e76-98fd-4cee3b8b4e3e",
+  "87cc7ac2-3c14-5d51-974d-47909f394193",
+  "93139920-9109-535f-8409-96d5f54c083c",
+  "98e377f3-ec58-51c6-92a8-43bcab0d8a83",
+  "d0dfbf3f-744f-5724-a72d-5cc8165dc651",
+  "62c736b3-04d6-5d26-9392-78ee017a5182",
+  "d87d080f-65cd-5526-97df-58d7e848fd7e",
+  "11ed9f64-5c09-5fa8-ae97-0b8d8aa854b8",
+  "179e8c6a-1b2e-58a0-adf5-fdda014c41d7",
+  "94dcd843-599c-546f-ab1a-6a0bbc7c2345",
+  "f7fbc9b9-e537-5ab9-b96f-ddfe3b4a0fef",
+  "9a84d71a-776f-500e-b706-408f160cdf31",
+  "ccb6cb77-5626-5641-b136-7346cb0c52d5",
+  "33333333-e001-4001-8001-000000000001"
+ ]
+}

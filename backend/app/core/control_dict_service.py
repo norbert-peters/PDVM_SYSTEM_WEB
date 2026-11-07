@@ -15,8 +15,8 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from app.core.central_write_service import update_record_central
-from app.core.control_template_service import ControlTemplateService, create_control, switch_control_modul
+from app.core.central_write_service import create_record_central, update_record_central
+from app.core.control_template_service import ControlTemplateService, build_new_control
 from app.core.pdvm_datenbank import PdvmDatabase
 from app.core.pdvm_central_systemsteuerung import PdvmCentralSystemsteuerung
 
@@ -335,7 +335,18 @@ class ControlDictService:
     async def create_control(self, *, modul_type: str, table_name: str, field_data: Dict[str, Any]) -> Dict[str, Any]:
         pool = self.db.get_pool()
         async with pool.acquire() as conn:
-            control_uid = await create_control(conn, modul_type, table_name, field_data)
+            control = await build_new_control(conn, modul_type, table_name, field_data)
+        await create_record_central(
+            table_name="sys_control_dict",
+            uid=control["uid"],
+            daten=control["daten"],
+            name=control["name"],
+            historisch=control["historisch"],
+            gcs=self.gcs,
+            actor_user_uid=self._actor_user_uid(),
+            actor_ip=getattr(self.gcs, "actor_ip", None),
+        )
+        control_uid = control["uid"]
         await self._invalidate_control_cache()
         created = await self.get_control(control_uid)
         if not created:
@@ -343,9 +354,22 @@ class ControlDictService:
         return created
 
     async def switch_modul(self, *, uid: uuid.UUID, new_modul_type: str) -> Dict[str, Any]:
+        row = await self.db.get_by_uid(uid)
+        if not row:
+            raise ValueError(f"Control {uid} nicht gefunden")
+        old_data = self._as_dict(row.get("daten"))
         pool = self.db.get_pool()
         async with pool.acquire() as conn:
-            await switch_control_modul(conn, uid, new_modul_type)
+            service = ControlTemplateService(conn)
+            switched = await service.build_modul_switch(old_data, new_modul_type)
+        await update_record_central(
+            table_name="sys_control_dict",
+            uid=uid,
+            daten=switched["stored"],
+            gcs=self.gcs,
+            actor_user_uid=self._actor_user_uid(),
+            actor_ip=getattr(self.gcs, "actor_ip", None),
+        )
         await self._invalidate_control_cache()
         updated = await self.get_control(uid)
         if not updated:
@@ -376,8 +400,9 @@ class ControlDictService:
         if field_name:
             effective_data["field"] = field_name
             effective_data["FIELD"] = field_name
-            effective_data["feld"] = field_name
-            effective_data["FELD"] = field_name
+            # FELD ist ein Alias und wird nicht mehr geschrieben (Regel 1.12b)
+            effective_data.pop("feld", None)
+            effective_data.pop("FELD", None)
             canonical_name = _canonical_control_name(table_name, field_name)
             effective_data["name"] = canonical_name
             effective_data["SELF_NAME"] = canonical_name

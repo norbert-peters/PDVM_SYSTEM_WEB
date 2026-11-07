@@ -1,0 +1,3357 @@
+[
+ {
+  "table": "sys_menudaten",
+  "uid": "4cfbf1ac-c7db-4a3a-ab37-c5b457b89440",
+  "name": "Admin-Administration",
+  "daten_before": {
+   "ROOT": {
+    "GRUND": "hori_1",
+    "VERSION": "V3",
+    "VERTIKAL": "vert",
+    "SELF_GUID": "4cfbf1ac-c7db-4a3a-ab37-c5b457b89440",
+    "MIGRATED_FROM": "V2",
+    "SELF_GILT_BIS": "9999365.99999",
+    "SELF_LINK_UID": "4cfbf1ac-c7db-4a3a-ab37-c5b457b89440",
+    "SELF_CREATED_AT": "2025357.47259",
+    "SELF_MODIFIED_AT": "2026179.54648",
+    "STRUCT_VERSION_APPLIED": 1
+   },
+   "GRUND": {
+    "10032017-b5c1-4250-b068-21be2b7e3732": {
+     "icon": "BookOpen",
+     "type": "BUTTON",
+     "label": "Eingelesene Tabellen Mandant",
+     "command": {
+      "params": {
+       "table": "sys_ext_table_man",
+       "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hier können eingelesene Tabellen eines Mandanten modifiziert werden.",
+     "visible": true,
+     "sort_order": 30,
+     "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+    },
+    "1024ce59-d494-4f5e-9365-56eff196890b": {
+     "icon": "FileText",
+     "type": "BUTTON",
+     "label": "Sicherheit",
+     "command": {
+      "params": {
+       "table": "sys_security",
+       "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Die Daten für die Sicherheitseinstellungen im Rohformat.",
+     "visible": true,
+     "sort_order": 80,
+     "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+    },
+    "115611b5-46d6-4a41-911a-7ebe5794ba66": {
+     "icon": "Settings",
+     "type": "BUTTON",
+     "label": "Menüs pflegen",
+     "command": {
+      "params": {
+       "table": "",
+       "dialog_guid": "7c1eff9d-79cb-4dea-94bb-601e96a10bdd"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hier können Menüs geändert und auch neu erstellt werden.",
+     "visible": true,
+     "sort_order": 60,
+     "parent_guid": "d50ba1c1-28e1-44b1-aa39-1dd87fd287bc"
+    },
+    "15bbc9e1-3ba5-490d-9f5b-7c34fcaec275": {
+     "icon": "FileText",
+     "type": "BUTTON",
+     "label": "Framedaten",
+     "command": {
+      "params": {
+       "table": "sys_framedaten",
+       "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Framedaten im Rohformat lesen",
+     "visible": true,
+     "sort_order": 120,
+     "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+    },
+    "1ac2f12f-defa-490b-87c4-1bc6eca42721": {
+     "icon": "Settings",
+     "type": "BUTTON",
+     "label": "Dropdowndaten",
+     "command": {
+      "params": {
+       "table": "sys_dropdowndaten",
+       "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hier können die Dropdowndaten (Rohdaten) bearbeitet werden.",
+     "visible": true,
+     "sort_order": 60,
+     "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+    },
+    "1b35b0ee-c6ca-4838-a848-735df40579e6": {
+     "icon": "Settings",
+     "type": "BUTTON",
+     "label": "Sicherheit",
+     "command": {
+      "params": {
+       "table": "sys_security",
+       "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hier können die Rohdaten der Security bearbeitet werden.",
+     "visible": true,
+     "sort_order": 80,
+     "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+    },
+    "1e4104fc-a4b4-45fa-9b22-ddda8087adb2": {
+     "icon": "FileText",
+     "type": "BUTTON",
+     "label": "Dateien einlesen",
+     "command": {
+      "params": {
+       "table": "sys_ext_table",
+       "dialog_guid": "4392bf9a-064d-4080-a0a2-26e70a33642c"
+      },
+      "handler": "go_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hiermit können Dateien eingelesen werden",
+     "visible": true,
+     "sort_order": 50,
+     "parent_guid": "84afd81c-5a56-4af7-9a1d-38dfe2d0ac09"
+    },
+    "26018a9b-10f2-478a-a490-0deb3000e065": {
+     "icon": "Settings",
+     "type": "BUTTON",
+     "label": "Systemsteuerung",
+     "command": {
+      "params": {
+       "table": "sys_systemsteuerung",
+       "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hier können die Rohdaten der Systemsteuerung bearbeitet werden.",
+     "visible": true,
+     "sort_order": 100,
+     "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+    },
+    "2634a9d9-9fcd-4b5c-995d-72d872fa3105": {
+     "icon": "FileText",
+     "type": "BUTTON",
+     "label": "Dictionary pflegen ",
+     "command": {
+      "params": {
+       "table": "",
+       "dialog_guid": "c6a0ab3a-32d1-4e4c-9a7a-46c79e25d0e2"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hier können die einzelenn Controls für die Felder und Spalten gepflegt werden.",
+     "visible": true,
+     "sort_order": 30,
+     "parent_guid": "d50ba1c1-28e1-44b1-aa39-1dd87fd287bc"
+    },
+    "27a98ad7-b363-43b7-99f1-892029871837": {
+     "icon": "Settings",
+     "type": "BUTTON",
+     "label": "Benutzer",
+     "command": {
+      "params": {
+       "table": "sys_benutzer",
+       "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+      },
+      "handler": "go_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hier können die Rohdaten des Benutzers bearbeitet werden.",
+     "visible": true,
+     "sort_order": 170,
+     "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+    },
+    "2a0dfbf7-5720-404f-b622-9ecb1f53086c": {
+     "icon": "Users",
+     "type": "BUTTON",
+     "label": "Benutzer pflegen",
+     "command": {
+      "params": {
+       "table": "",
+       "dialog_guid": "6269bbc6-9d02-49fb-b009-107acca56e08"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hier können die Daten eines Benutzers geändert werden. Ferner erfolgen damit auch die Sicherheitszuweisungen und Passwort Einstellungen.",
+     "visible": true,
+     "sort_order": 50,
+     "parent_guid": "d50ba1c1-28e1-44b1-aa39-1dd87fd287bc"
+    },
+    "36777c54-fda8-4809-8197-95e47c9c25cf": {
+     "icon": "FileText",
+     "type": "BUTTON",
+     "label": "Viewdaten",
+     "command": {
+      "params": {
+       "table": "sys_viewdaten",
+       "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Viewdaten im Rohformat",
+     "visible": true,
+     "sort_order": 130,
+     "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+    },
+    "3713cda8-f7bd-4cd8-a068-50cd0c4d5cb5": {
+     "icon": "BookOpen",
+     "type": "BUTTON",
+     "label": "Eingelesene Tabellen ",
+     "command": {
+      "params": {
+       "table": "sys_ext_table",
+       "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hier sehen Sie die eingelesenen zentralen Tabellen ",
+     "visible": true,
+     "sort_order": 20,
+     "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+    },
+    "43b9b6f9-850e-4c2e-87ff-a834c80f20fb": {
+     "icon": "FileText",
+     "type": "BUTTON",
+     "label": "Fehler Log Datei",
+     "command": {
+      "params": {
+       "table": "sys_error_log",
+       "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hier werden die Fehler geloggt im Rohformat.",
+     "visible": true,
+     "sort_order": 90,
+     "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+    },
+    "43c933b7-2815-4279-acb9-dc53b1ffd038": {
+     "icon": "FileText",
+     "type": "BUTTON",
+     "label": "Beschreibungen",
+     "command": {
+      "params": {
+       "table": "sys_beschreibungen",
+       "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Die Beschreibungen im Rohformat.",
+     "visible": true,
+     "sort_order": 70,
+     "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+    },
+    "44feacf4-f419-4f89-9c60-fae3ea5d7882": {
+     "icon": "FileText",
+     "type": "BUTTON",
+     "label": "Menüs",
+     "command": {
+      "params": {
+       "table": "sys_menudaten",
+       "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Die Daten der Menüs im Rohformat.",
+     "visible": true,
+     "sort_order": 50,
+     "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+    },
+    "45d45ef2-fd3c-42ba-9cd6-81d4530c01e5": {
+     "icon": "FileText",
+     "type": "BUTTON",
+     "label": "Systemdaten",
+     "command": {
+      "params": {
+       "table": "sys_systemdaten",
+       "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Die Systemdaten im Rohformat.",
+     "visible": true,
+     "sort_order": 40,
+     "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+    },
+    "555d891a-c505-4b25-aac9-4e13cd58e853": {
+     "icon": "BookOpen",
+     "type": "BUTTON",
+     "label": "Eingelesene Tabellen",
+     "command": {
+      "params": {
+       "table": "sys_ext_table",
+       "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hier können Sie eingelesene Tabelle modifizieren",
+     "visible": true,
+     "sort_order": 20,
+     "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+    },
+    "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2": {
+     "icon": "Database",
+     "type": "SUBMENU",
+     "label": "Systemtabellen bearbeiten",
+     "enabled": true,
+     "tooltip": "Hier kann direkt in den Systemtabellen gearbeitet werden. Achtung: Bitte Änderungen nur machen, wenn bekannt ist, was passiert, da mit diesen Daten das gesamte System gesteuert wird.",
+     "visible": true,
+     "sort_order": 50,
+     "parent_guid": null
+    },
+    "7b70f380-5980-4bb8-9561-1f132ddd0502": {
+     "icon": "Settings",
+     "type": "BUTTON",
+     "label": "Layout",
+     "command": {
+      "params": {
+       "table": "sys_layout",
+       "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hier können die Daten des Layouts beeinflusst werden.",
+     "visible": true,
+     "sort_order": 120,
+     "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+    },
+    "84afd81c-5a56-4af7-9a1d-38dfe2d0ac09": {
+     "icon": "Wrench",
+     "type": "SUBMENU",
+     "label": "Aktionen",
+     "command": null,
+     "enabled": true,
+     "tooltip": "Hier finden verschieden Verarbeitungen / Aktionen statt.",
+     "visible": true,
+     "sort_order": 30,
+     "parent_guid": null
+    },
+    "84b66c23-73ec-4404-a1fa-5288b8b0aec5": {
+     "icon": "FileText",
+     "type": "BUTTON",
+     "label": "Systemsteuerung",
+     "command": {
+      "params": {
+       "table": "sys_systemsteuerung",
+       "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "User bezogene Daten zur Steuerung des Systems im Rohformat.",
+     "visible": true,
+     "sort_order": 100,
+     "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+    },
+    "84d12d08-eb1a-49a3-bc93-7c292a2a793a": {
+     "icon": "Edit",
+     "type": "BUTTON",
+     "label": "Dialog anlegen",
+     "command": {
+      "params": {
+       "table": "",
+       "dialog_guid": "14b932e7-451c-5509-b4b4-aac3199e2936"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hier kann der grundlegende Dialog angelegt werden",
+     "visible": true,
+     "sort_order": 20,
+     "parent_guid": "84afd81c-5a56-4af7-9a1d-38dfe2d0ac09"
+    },
+    "8b42bf98-0553-42fe-bda4-25d3485a3e61": {
+     "icon": "Settings",
+     "type": "BUTTON",
+     "label": "Anwendungsdaten",
+     "command": {
+      "params": {
+       "table": "sys_anwendungsdaten",
+       "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hier können die Anwendungsdaten (Rohdaten) bearbeitet werden.",
+     "visible": true,
+     "sort_order": 110,
+     "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+    },
+    "918252b1-2a64-4c13-987b-91380fbaafda": {
+     "icon": "BookOpen",
+     "type": "BUTTON",
+     "label": "Eingelesene Mandaten Tabellen",
+     "command": {
+      "params": {
+       "table": "sys_ext_table_man",
+       "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hier sehen Sie die eingelesenen Tabellen im Mandant",
+     "visible": true,
+     "sort_order": 30,
+     "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+    },
+    "94a3e7c6-b121-4186-a00a-c9d8d16bf657": {
+     "icon": "FileText",
+     "type": "BUTTON",
+     "label": "Dropdowndaten",
+     "command": {
+      "params": {
+       "table": "sys_dropdowndaten",
+       "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hier werden die Dropdowndaten im Rohformat gezeigt.",
+     "visible": true,
+     "sort_order": 60,
+     "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+    },
+    "97265e4d-668e-46de-b905-2c40103c65a7": {
+     "icon": "Wrench",
+     "type": "BUTTON",
+     "label": "Testdialoge ändern",
+     "command": {
+      "params": {
+       "table": "",
+       "dialog_guid": "9c245a60-7251-43c4-9d7d-d67af02c6144"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Alles nur zum Testen",
+     "visible": true,
+     "sort_order": 20,
+     "parent_guid": null
+    },
+    "98dfa9e6-9a98-454a-84ae-93bc1fc0fc9f": {
+     "icon": "Database",
+     "type": "BUTTON",
+     "label": "Daten Patch erstellen",
+     "command": {
+      "params": {
+       "table": "",
+       "dialog_guid": "83c99302-91db-58ba-9ac8-a3e4dc202ca3"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hiermit wird ein Patch initalisiert",
+     "visible": true,
+     "sort_order": 40,
+     "parent_guid": "84afd81c-5a56-4af7-9a1d-38dfe2d0ac09"
+    },
+    "99ef0de8-b1ce-4162-a70e-e77a4390312e": {
+     "icon": "Wrench",
+     "type": "BUTTON",
+     "label": "Controls",
+     "command": {
+      "params": {
+       "table": "sys_control_dict",
+       "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hier sehen Sie die Controls in einem Art Dictionary",
+     "visible": true,
+     "sort_order": 10,
+     "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+    },
+    "9b77b4b4-041c-4060-bce2-294a09844f17": {
+     "icon": "Settings",
+     "type": "BUTTON",
+     "label": "Viewdaten",
+     "command": {
+      "params": {
+       "table": "sys_viewdaten",
+       "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hier können die Rohdaten der Views bearbeitet werden.",
+     "visible": true,
+     "sort_order": 140,
+     "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+    },
+    "9e5f7b72-51a2-456a-9715-469a32b0f0bd": {
+     "icon": "Globe",
+     "type": "BUTTON",
+     "label": "Dialogdaten pflegen",
+     "command": {
+      "params": {
+       "table": "",
+       "dialog_guid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23001"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hier werden die Rahmen für den Dialog zusammengestellt.",
+     "visible": true,
+     "sort_order": 20,
+     "parent_guid": "d50ba1c1-28e1-44b1-aa39-1dd87fd287bc"
+    },
+    "a2bc7bed-efdf-4d4e-8aef-b66741122f36": {
+     "icon": "Settings",
+     "type": "BUTTON",
+     "label": "Systemdaten",
+     "command": {
+      "params": {
+       "table": "sys_systemdaten",
+       "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hier können die Roh-Systemdaten bearbeitet werden.",
+     "visible": true,
+     "sort_order": 40,
+     "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+    },
+    "a7f52a95-0bc8-4e7c-81e9-e831780d2844": {
+     "icon": "User",
+     "type": "BUTTON",
+     "label": "Benutzer",
+     "command": {
+      "params": {
+       "table": "sys_benutzer",
+       "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Einstellungen des Benutzers in Rohform",
+     "visible": true,
+     "sort_order": 160,
+     "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+    },
+    "aebe7047-4d41-4125-8e47-cdfb387d8b4c": {
+     "icon": "Settings",
+     "type": "BUTTON",
+     "label": "Menüdaten",
+     "command": {
+      "params": {
+       "table": "sys_menudaten",
+       "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hier können die Rohdaten der Menüs bearbeitet werden.",
+     "visible": true,
+     "sort_order": 50,
+     "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+    },
+    "c867538c-b626-4af8-825d-53d3576e117e": {
+     "icon": "FileText",
+     "type": "BUTTON",
+     "label": "Anwendungsdaten",
+     "command": {
+      "params": {
+       "table": "sys_anwendungsdaten",
+       "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Userbezogene Daten für die Anwendung im Rohformat",
+     "visible": true,
+     "sort_order": 110,
+     "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+    },
+    "c8d16983-027c-4268-908c-8795a190b3eb": {
+     "icon": "Database",
+     "type": "SUBMENU",
+     "label": "Systemtabellen lesen",
+     "enabled": true,
+     "tooltip": "Hier können die Daten der Systemtabellen gelesen werden",
+     "visible": true,
+     "sort_order": 40,
+     "parent_guid": null
+    },
+    "c9a58994-b092-4dc0-af73-e43366dcba97": {
+     "icon": "Database",
+     "type": "BUTTON",
+     "label": "Daten Version erstellen",
+     "command": {
+      "params": {
+       "table": "",
+       "dialog_guid": "5d79b918-e617-55f2-bf5b-28200aca6a75"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hier wird eine Version für die Daten initialisiert",
+     "visible": true,
+     "sort_order": 30,
+     "parent_guid": "84afd81c-5a56-4af7-9a1d-38dfe2d0ac09",
+     "template_guid": null
+    },
+    "cf899d8a-b2df-4270-8502-03f95aea38fd": {
+     "icon": "Settings",
+     "type": "BUTTON",
+     "label": "Fehler Logdatei",
+     "command": {
+      "params": {
+       "table": "sys_error_log",
+       "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hier kann die Fehlerlogdatei bearbeitet werden.",
+     "visible": true,
+     "sort_order": 90,
+     "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+    },
+    "d43a8292-8334-47d8-ab2b-8e8d93a49183": {
+     "icon": "Wrench",
+     "type": "BUTTON",
+     "label": "Controls modifizieren",
+     "command": {
+      "params": {
+       "table": "sys_control_dict",
+       "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hier können die Controls auf der direkten Ebene modifiziert werden.",
+     "visible": true,
+     "sort_order": 10,
+     "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+    },
+    "d4d48456-26cb-4c62-99eb-58a32cc1eb1f": {
+     "icon": "Settings",
+     "type": "BUTTON",
+     "label": "Beschreibungen",
+     "command": {
+      "params": {
+       "table": "sys_beschreibungen",
+       "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hier können die Rohdaten der Beschreibungen bearbeitet werden.",
+     "visible": true,
+     "sort_order": 70,
+     "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+    },
+    "d50ba1c1-28e1-44b1-aa39-1dd87fd287bc": {
+     "icon": "Settings",
+     "type": "SUBMENU",
+     "label": "Einstellungen",
+     "enabled": true,
+     "tooltip": "Hier werden die Dinge formatiert bearbeitet und geprüft.",
+     "visible": true,
+     "sort_order": 60,
+     "parent_guid": null
+    },
+    "dbcb28fb-df89-4c31-8e10-bd0cbec9035b": {
+     "icon": "FileText",
+     "type": "BUTTON",
+     "label": "Dialogdaten",
+     "command": {
+      "params": {
+       "table": "sys_dialogdaten",
+       "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Dialogdaten im Rohformat",
+     "visible": true,
+     "sort_order": 140,
+     "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+    },
+    "dcac143a-20fb-4f06-bf2e-24fa2efa6e4f": {
+     "icon": "Settings",
+     "type": "BUTTON",
+     "label": "Dialogdaten",
+     "command": {
+      "params": {
+       "table": "sys_dialogdaten",
+       "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hier können die Rohdaten in den Dialogdaten bearbeitet werden.",
+     "visible": true,
+     "sort_order": 150,
+     "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+    },
+    "e34c899e-e162-4b32-b6ab-f81649e44eac": {
+     "icon": "FileText",
+     "type": "BUTTON",
+     "label": "Text bearbeiten (Hilfetexte)",
+     "command": {
+      "params": {
+       "table": "",
+       "dialog_guid": "cd80d2a7-e3f7-46e2-8295-a09bef856cc1"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hier können die Hilfetexte bearbeitet werden",
+     "visible": true,
+     "sort_order": 10,
+     "parent_guid": "d50ba1c1-28e1-44b1-aa39-1dd87fd287bc"
+    },
+    "e4d93d76-099e-4dfd-9155-96e4cfb15043": {
+     "icon": "Settings",
+     "type": "BUTTON",
+     "label": "Mandanten",
+     "command": {
+      "params": {
+       "table": "asy_mandanten",
+       "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hier können Rohdaten des Mandanten bearbeitet werden.",
+     "visible": true,
+     "sort_order": 160,
+     "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+    },
+    "e65c46f5-3f37-4143-85b8-0e6e72cdb80f": {
+     "icon": "FileText",
+     "type": "BUTTON",
+     "label": "Mandanten",
+     "command": {
+      "params": {
+       "table": "asy_mandanten",
+       "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Die Daten der Mandanten in Rohform",
+     "visible": true,
+     "sort_order": 150,
+     "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+    },
+    "e7a70dbf-0fe3-4d7c-b103-b9c69e98d72a": {
+     "icon": "Settings",
+     "type": "BUTTON",
+     "label": "Framedaten",
+     "command": {
+      "params": {
+       "table": "sys_framedaten",
+       "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hier können die Rohdaten der Frames angepasst werden.",
+     "visible": true,
+     "sort_order": 130,
+     "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+    },
+    "e9a28f1f-7634-4830-8ca3-182bf2a84886": {
+     "icon": "BookOpen",
+     "type": "BUTTON",
+     "label": "Frames pflegen",
+     "command": {
+      "params": {
+       "table": "sys_framedaten",
+       "dialog_guid": "2faf05e6-007e-4f45-a1d3-a9e83dfd7d8b"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Die Frames enthalten die Daten und Steuerung für die InputControls, die hier gepflegt werden können.",
+     "visible": true,
+     "sort_order": 40,
+     "parent_guid": "d50ba1c1-28e1-44b1-aa39-1dd87fd287bc"
+    },
+    "ead3fe50-0065-485f-a733-991839ecdf09": {
+     "icon": "BookOpen",
+     "type": "BUTTON",
+     "label": "Felder pflegen",
+     "command": {
+      "params": {
+       "table": "",
+       "dialog_guid": "ad9db21a-82dd-5ad8-89a5-6836dbe4812f"
+      },
+      "handler": "go_pdvm_dialog"
+     },
+     "enabled": true,
+     "tooltip": "Hier wird der Dictionary gepflegt",
+     "visible": true,
+     "sort_order": 10,
+     "parent_guid": "84afd81c-5a56-4af7-9a1d-38dfe2d0ac09"
+    },
+    "f0983e2c-e428-4387-932a-3f671890d965": {
+     "icon": null,
+     "type": "SPACER",
+     "label": "@TEMPLATE:1a653694-3132-48d9-bc3e-a512962ae8e6",
+     "command": null,
+     "enabled": true,
+     "tooltip": null,
+     "visible": false,
+     "sort_order": 10,
+     "parent_guid": null,
+     "template_guid": "1a653694-3132-48d9-bc3e-a512962ae8e6"
+    }
+   },
+   "VERTIKAL": {
+    "ceed50e0-396d-4cf1-bf0d-beff9dde41bc": {
+     "icon": "BookOpen",
+     "type": "BUTTON",
+     "label": "Neues MenüItem -Test 1",
+     "command": {
+      "params": {
+       "app_name": "TESTBEREICH"
+      },
+      "handler": "open_app_menu"
+     },
+     "enabled": true,
+     "tooltip": null,
+     "visible": true,
+     "sort_order": 10,
+     "parent_guid": null
+    }
+   }
+  }
+ },
+ {
+  "table": "sys_menudaten",
+  "uid": "66666666-6666-6666-6666-666666666666",
+  "name": "Template neuer Satz",
+  "daten_before": {
+   "ROOT": {
+    "NAME": "Admin-Testmenü",
+    "GRUND": "hori_1",
+    "TABLE": "sys_menudaten",
+    "ZUSATZ": "hori_2",
+    "VERSION": "V3",
+    "VERTIKAL": "vert",
+    "EDIT_TABS": 1,
+    "EDIT_TYPE": "menu_editor",
+    "SELF_GUID": "66666666-6666-6666-6666-666666666666",
+    "SELF_NAME": "TEMPLATE_666",
+    "VIEW_GUID": "",
+    "DISPLAY_ST": "only_date",
+    "DIALOG_GUID": "",
+    "HEADER_TEXT": "",
+    "is_template": true,
+    "MIGRATED_FROM": "V2",
+    "SELF_GILT_BIS": null,
+    "SELF_LINK_UID": "66666666-6666-6666-6666-666666666666",
+    "SELF_CREATED_AT": "2026023.48062",
+    "SELF_MODIFIED_AT": "2026311.55830",
+    "EDIT_TAB_LABEL_01": "Menü",
+    "DISPLAY_TIME_SHORT": true
+   },
+   "TEMPLATES": {
+    "GRUND": {
+     "0104647b-d7dc-420e-9acb-b17bfae9f0e6": {
+      "icon": null,
+      "type": "SEPARATOR",
+      "label": "SEPERATOR",
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 70,
+      "parent_guid": "3d679b28-16af-4fa3-9208-f6498e929faf"
+     },
+     "10032017-b5c1-4250-b068-21be2b7e3732": {
+      "icon": "BookOpen",
+      "type": "BUTTON",
+      "label": "Eingelesene Tabellen Mandant",
+      "command": {
+       "params": {
+        "table": "sys_ext_table_man",
+        "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hier können eingelesene Tabellen eines Mandanten modifiziert werden.",
+      "visible": true,
+      "sort_order": 30,
+      "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+     },
+     "1024ce59-d494-4f5e-9365-56eff196890b": {
+      "icon": "FileText",
+      "type": "BUTTON",
+      "label": "Sicherheit",
+      "command": {
+       "params": {
+        "table": "sys_security",
+        "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Die Daten für die Sicherheitseinstellungen im Rohformat.",
+      "visible": true,
+      "sort_order": 80,
+      "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+     },
+     "115611b5-46d6-4a41-911a-7ebe5794ba66": {
+      "icon": "Settings",
+      "type": "BUTTON",
+      "label": "Menüs pflegen",
+      "command": {
+       "params": {
+        "table": "",
+        "dialog_guid": "7c1eff9d-79cb-4dea-94bb-601e96a10bdd"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hier können Menüs geändert und auch neu erstellt werden.",
+      "visible": true,
+      "sort_order": 50,
+      "parent_guid": "d50ba1c1-28e1-44b1-aa39-1dd87fd287bc"
+     },
+     "15bbc9e1-3ba5-490d-9f5b-7c34fcaec275": {
+      "icon": "FileText",
+      "type": "BUTTON",
+      "label": "Framedaten",
+      "command": {
+       "params": {
+        "table": "sys_framedaten",
+        "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Framedaten im Rohformat lesen",
+      "visible": true,
+      "sort_order": 120,
+      "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+     },
+     "176c689d-e77f-4cff-9489-f3875fa3a2a9": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Abmelden",
+      "command": {
+       "params": {},
+       "handler": "logout"
+      },
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 1,
+      "parent_guid": "24411ebd-0969-41b8-b2aa-6ae171100605",
+      "template_guid": null
+     },
+     "1779b2ff-c403-42cc-aee9-efcdd3266e67": {
+      "icon": "Wrench",
+      "type": "BUTTON",
+      "label": "Neue Datenbanktabelle anlegen",
+      "command": {
+       "params": {},
+       "handler": "create_datatable"
+      },
+      "enabled": true,
+      "tooltip": "Damit kann eine neue Datentabelle in der aktuellen Datenbank angelegt werden",
+      "visible": true,
+      "sort_order": 30,
+      "parent_guid": "bdf31548-8d9b-437a-8d72-6ed0c9fc2fb8",
+      "template_guid": null
+     },
+     "190dded7-706e-4336-96cc-0f72eab587be": {
+      "icon": null,
+      "type": "SUBMENU",
+      "label": "DropDown 121",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 20,
+      "parent_guid": "bdf31548-8d9b-437a-8d72-6ed0c9fc2fb8",
+      "template_guid": null
+     },
+     "1ac2f12f-defa-490b-87c4-1bc6eca42721": {
+      "icon": "Settings",
+      "type": "BUTTON",
+      "label": "Dropdowndaten",
+      "command": {
+       "params": {
+        "table": "sys_dropdowndaten",
+        "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hier können die Dropdowndaten (Rohdaten) bearbeitet werden.",
+      "visible": true,
+      "sort_order": 60,
+      "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+     },
+     "1b35b0ee-c6ca-4838-a848-735df40579e6": {
+      "icon": "Settings",
+      "type": "BUTTON",
+      "label": "Sicherheit",
+      "command": {
+       "params": {
+        "table": "sys_security",
+        "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hier können die Rohdaten der Security bearbeitet werden.",
+      "visible": true,
+      "sort_order": 80,
+      "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+     },
+     "1e4104fc-a4b4-45fa-9b22-ddda8087adb2": {
+      "icon": "FileText",
+      "type": "BUTTON",
+      "label": "Dateien einlesen",
+      "command": {
+       "params": {
+        "table": "sys_ext_table",
+        "dialog_guid": "4392bf9a-064d-4080-a0a2-26e70a33642c"
+       },
+       "handler": "go_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hiermit können Dateien eingelesen werden",
+      "visible": true,
+      "sort_order": 50,
+      "parent_guid": "84afd81c-5a56-4af7-9a1d-38dfe2d0ac09"
+     },
+     "1e98612d-016b-4e6a-a8d6-1156114a9ac3": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "View allein",
+      "command": {
+       "params": {
+        "view_guid": "0d10a0d0-b1a5-4544-b284-e8a09ca979b5"
+       },
+       "handler": "open_view"
+      },
+      "enabled": true,
+      "tooltip": "Nur View zum Testen",
+      "visible": true,
+      "sort_order": 10,
+      "parent_guid": "3d679b28-16af-4fa3-9208-f6498e929faf",
+      "template_guid": null
+     },
+     "207b25bb-34df-48b0-8d30-853804127655": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Meine  App Personalwesen",
+      "enable": true,
+      "command": {
+       "params": {
+        "app_name": "ADMINISTRATION"
+       },
+       "handler": "open_app_menu"
+      },
+      "enabled": true,
+      "tooltip": "Hiermit kann direkt in in die Applikation Personalwesen gewechselt werden. ",
+      "visible": true,
+      "sort_order": 20,
+      "parent_guid": "beb82ac7-2990-46a0-8182-a4af1d39f0c2",
+      "template_guid": null
+     },
+     "24411ebd-0969-41b8-b2aa-6ae171100605": {
+      "icon": null,
+      "type": "SUBMENU",
+      "label": "Basis",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 0,
+      "parent_guid": null,
+      "template_guid": null
+     },
+     "24689306-4656-4bb3-aad9-da4c421d6d4b": {
+      "icon": null,
+      "type": "SEPARATOR",
+      "label": "",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 2,
+      "parent_guid": "24411ebd-0969-41b8-b2aa-6ae171100605",
+      "template_guid": null
+     },
+     "246bc6dd-6f36-4dbc-94f1-a893bd0ffcb3": {
+      "icon": null,
+      "type": "SUBMENU",
+      "label": "Layout",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 0,
+      "parent_guid": "9b7824e8-1c5e-49ee-b63f-dca76958b477",
+      "template_guid": null
+     },
+     "26018a9b-10f2-478a-a490-0deb3000e065": {
+      "icon": "Settings",
+      "type": "BUTTON",
+      "label": "Systemsteuerung",
+      "command": {
+       "params": {
+        "table": "sys_systemsteuerung",
+        "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hier können die Rohdaten der Systemsteuerung bearbeitet werden.",
+      "visible": true,
+      "sort_order": 100,
+      "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+     },
+     "2634a9d9-9fcd-4b5c-995d-72d872fa3105": {
+      "icon": "FileText",
+      "type": "BUTTON",
+      "label": "Dictionary pflegen ",
+      "command": {
+       "params": {
+        "table": "",
+        "dialog_guid": "9f06711e-4ad8-4ea4-9837-2f40f3a6f101"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hier können die einzelenn Controls für die Felder und Spalten gepflegt werden.",
+      "visible": true,
+      "sort_order": 20,
+      "parent_guid": "d50ba1c1-28e1-44b1-aa39-1dd87fd287bc"
+     },
+     "26b78540-3f5d-42f5-9a28-48f81346980b": {
+      "icon": null,
+      "type": "SEPARATOR",
+      "label": "---",
+      "enable": false,
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 30,
+      "parent_guid": "beb82ac7-2990-46a0-8182-a4af1d39f0c2",
+      "template_guid": null
+     },
+     "27a98ad7-b363-43b7-99f1-892029871837": {
+      "icon": "Settings",
+      "type": "BUTTON",
+      "label": "Benutzer",
+      "command": {
+       "params": {
+        "table": "sys_benutzer",
+        "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+       },
+       "handler": "go_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hier können die Rohdaten des Benutzers bearbeitet werden.",
+      "visible": true,
+      "sort_order": 170,
+      "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+     },
+     "2a0dfbf7-5720-404f-b622-9ecb1f53086c": {
+      "icon": "Users",
+      "type": "BUTTON",
+      "label": "Benutzer pflegen",
+      "command": {
+       "params": {
+        "table": "",
+        "dialog_guid": "6269bbc6-9d02-49fb-b009-107acca56e08"
+       },
+       "handler": "go_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hier können die Daten eines Benutzers geändert werden. Ferner erfolgen damit auch die Sicherheitszuweisungen und Passwort Einstellungen.",
+      "visible": true,
+      "sort_order": 40,
+      "parent_guid": "d50ba1c1-28e1-44b1-aa39-1dd87fd287bc"
+     },
+     "30eb9d53-5f6e-4c3e-a52e-e98ea2b628f5": {
+      "icon": null,
+      "type": "SEPARATOR",
+      "label": "",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 3,
+      "parent_guid": "81e7e4c1-317e-4c71-8a22-65a12465a85a",
+      "template_guid": null
+     },
+     "36777c54-fda8-4809-8197-95e47c9c25cf": {
+      "icon": "FileText",
+      "type": "BUTTON",
+      "label": "Viewdaten",
+      "command": {
+       "params": {
+        "table": "sys_viewdaten",
+        "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Viewdaten im Rohformat",
+      "visible": true,
+      "sort_order": 130,
+      "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+     },
+     "3713cda8-f7bd-4cd8-a068-50cd0c4d5cb5": {
+      "icon": "BookOpen",
+      "type": "BUTTON",
+      "label": "Eingelesene Tabellen ",
+      "command": {
+       "params": {
+        "table": "sys_ext_table",
+        "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hier sehen Sie die eingelesenen zentralen Tabellen ",
+      "visible": true,
+      "sort_order": 20,
+      "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+     },
+     "3a1d28bf-cde5-42ea-bcd5-fe47e5732045": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Initalisierung Security",
+      "command": {
+       "params": {},
+       "handler": "init_security"
+      },
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 60,
+      "parent_guid": "bdf31548-8d9b-437a-8d72-6ed0c9fc2fb8",
+      "template_guid": null
+     },
+     "3d679b28-16af-4fa3-9208-f6498e929faf": {
+      "icon": null,
+      "type": "SUBMENU",
+      "label": "Admin",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 40,
+      "parent_guid": null,
+      "template_guid": null
+     },
+     "435035d7-d4bf-4324-b874-afe42c7d478e": {
+      "icon": null,
+      "type": "SPACER",
+      "label": "Template 2",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": false,
+      "sort_order": 80,
+      "parent_guid": "3d679b28-16af-4fa3-9208-f6498e929faf",
+      "template_guid": "b6de1679-9cb7-48b5-ad1c-72e8cdc8dc91"
+     },
+     "43b9b6f9-850e-4c2e-87ff-a834c80f20fb": {
+      "icon": "FileText",
+      "type": "BUTTON",
+      "label": "Fehler Log Datei",
+      "command": {
+       "params": {
+        "table": "sys_error_log",
+        "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hier werden die Fehler geloggt im Rohformat.",
+      "visible": true,
+      "sort_order": 90,
+      "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+     },
+     "43c933b7-2815-4279-acb9-dc53b1ffd038": {
+      "icon": "FileText",
+      "type": "BUTTON",
+      "label": "Beschreibungen",
+      "command": {
+       "params": {
+        "table": "sys_beschreibungen",
+        "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Die Beschreibungen im Rohformat.",
+      "visible": true,
+      "sort_order": 70,
+      "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+     },
+     "44feacf4-f419-4f89-9c60-fae3ea5d7882": {
+      "icon": "FileText",
+      "type": "BUTTON",
+      "label": "Menüs",
+      "command": {
+       "params": {
+        "table": "sys_menudaten",
+        "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Die Daten der Menüs im Rohformat.",
+      "visible": true,
+      "sort_order": 50,
+      "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+     },
+     "45d45ef2-fd3c-42ba-9cd6-81d4530c01e5": {
+      "icon": "FileText",
+      "type": "BUTTON",
+      "label": "Systemdaten",
+      "command": {
+       "params": {
+        "table": "sys_systemdaten",
+        "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Die Systemdaten im Rohformat.",
+      "visible": true,
+      "sort_order": 40,
+      "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+     },
+     "4b1aad6d-5af2-40a5-b44e-7ed065d8fdeb": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "🔄 Current Frame Enhanced",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 2,
+      "parent_guid": "81e7e4c1-317e-4c71-8a22-65a12465a85a",
+      "template_guid": null
+     },
+     "4dabcafc-8298-4e6b-ad49-e2eaa27e3a8c": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "📱 Enhanced Multi-Tab Test",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 0,
+      "parent_guid": "81e7e4c1-317e-4c71-8a22-65a12465a85a",
+      "template_guid": null
+     },
+     "555d891a-c505-4b25-aac9-4e13cd58e853": {
+      "icon": "BookOpen",
+      "type": "BUTTON",
+      "label": "Eingelesene Tabellen",
+      "command": {
+       "params": {
+        "table": "sys_ext_table",
+        "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hier können Sie eingelesene Tabelle modifizieren",
+      "visible": true,
+      "sort_order": 20,
+      "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+     },
+     "578de7f7-e602-4b42-8b95-b1b2a2c4246a": {
+      "icon": "Wrench",
+      "type": "BUTTON",
+      "label": "Test Änderung - nur so",
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 20,
+      "parent_guid": null
+     },
+     "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2": {
+      "icon": "Database",
+      "type": "SUBMENU",
+      "label": "Systemtabellen bearbeiten",
+      "enabled": true,
+      "tooltip": "Hier kann direkt in den Systemtabellen gearbeitet werden. Achtung: Bitte Änderungen nur machen, wenn bekannt ist, was passiert, da mit diesen Daten das gesamte System gesteuert wird.",
+      "visible": true,
+      "sort_order": 50,
+      "parent_guid": null
+     },
+     "5b4b9a2e-7d13-4d8d-9838-4888f4fb095b": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Finanzen",
+      "command": {
+       "params": {
+        "app_name": "FINANZEN"
+       },
+       "handler": "open_app_menu"
+      },
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 10,
+      "parent_guid": "beb82ac7-2990-46a0-8182-a4af1d39f0c2",
+      "template_guid": null
+     },
+     "5b6a5a24-2289-4c13-a096-4acd7a9ea0c1": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Profil bearbeiten",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 0,
+      "parent_guid": "86368285-c3c3-4d42-a4c6-c1ef75d1201a",
+      "template_guid": null
+     },
+     "5c554a02-bdb6-402c-bc43-5fe3a4418e0a": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Layout hinzufügen",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 0,
+      "parent_guid": "246bc6dd-6f36-4dbc-94f1-a893bd0ffcb3",
+      "template_guid": null
+     },
+     "60389b81-a7bb-4839-bbde-cde190ac1d58": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Beschreibungen zum Test",
+      "command": {
+       "params": {
+        "frame_guid": "bb88da46-80e2-42c4-b94a-033852688e40"
+       },
+       "handler": "show_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Das ist der Tooltip für den Button Beschreibungen.",
+      "visible": true,
+      "sort_order": 10,
+      "parent_guid": "bdf31548-8d9b-437a-8d72-6ed0c9fc2fb8",
+      "template_guid": null
+     },
+     "7b70f380-5980-4bb8-9561-1f132ddd0502": {
+      "icon": "Settings",
+      "type": "BUTTON",
+      "label": "Layout",
+      "command": {
+       "params": {
+        "table": "sys_layout",
+        "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hier können die Daten des Layouts beeinflusst werden.",
+      "visible": true,
+      "sort_order": 120,
+      "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+     },
+     "802b542c-3c54-4e75-805f-fb366b7358d0": {
+      "icon": null,
+      "type": "SUBMENU",
+      "label": "System",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 70,
+      "parent_guid": "bdf31548-8d9b-437a-8d72-6ed0c9fc2fb8",
+      "template_guid": null
+     },
+     "81e7e4c1-317e-4c71-8a22-65a12465a85a": {
+      "icon": null,
+      "type": "SUBMENU",
+      "label": "Enhanced Multi-Tab",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 0,
+      "parent_guid": "bd5e08b2-f732-449a-a99b-ca91716fa13e",
+      "template_guid": null
+     },
+     "84013564-e484-445c-9dba-a1b02c68f153": {
+      "icon": null,
+      "type": "SPACER",
+      "label": "@TEMPLATE:1a653694-3132-48d9-bc3e-a512962ae8e6",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": false,
+      "sort_order": 10,
+      "parent_guid": null,
+      "template_guid": "1a653694-3132-48d9-bc3e-a512962ae8e6"
+     },
+     "84afd81c-5a56-4af7-9a1d-38dfe2d0ac09": {
+      "icon": "Wrench",
+      "type": "SUBMENU",
+      "label": "Aktionen",
+      "command": null,
+      "enabled": true,
+      "tooltip": "Hier finden verschieden Verarbeitungen / Aktionen statt.",
+      "visible": true,
+      "sort_order": 30,
+      "parent_guid": null
+     },
+     "84b66c23-73ec-4404-a1fa-5288b8b0aec5": {
+      "icon": "FileText",
+      "type": "BUTTON",
+      "label": "Systemsteuerung",
+      "command": {
+       "params": {
+        "table": "sys_systemsteuerung",
+        "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "User bezogene Daten zur Steuerung des Systems im Rohformat.",
+      "visible": true,
+      "sort_order": 100,
+      "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+     },
+     "84d12d08-eb1a-49a3-bc93-7c292a2a793a": {
+      "icon": "Edit",
+      "type": "BUTTON",
+      "label": "Dialog anlegen",
+      "command": {
+       "params": {
+        "table": "",
+        "dialog_guid": "14b932e7-451c-5509-b4b4-aac3199e2936"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hier kann der grundlegende Dialog angelegt werden",
+      "visible": true,
+      "sort_order": 20,
+      "parent_guid": "84afd81c-5a56-4af7-9a1d-38dfe2d0ac09"
+     },
+     "86368285-c3c3-4d42-a4c6-c1ef75d1201a": {
+      "icon": null,
+      "type": "SUBMENU",
+      "label": "Benutzer",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 1,
+      "parent_guid": null,
+      "template_guid": null
+     },
+     "8892039f-5cf0-46ab-9c71-dad041194ef0": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Einstellungen",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 1,
+      "parent_guid": "86368285-c3c3-4d42-a4c6-c1ef75d1201a",
+      "template_guid": null
+     },
+     "8aeaf601-959c-4310-abca-ef69c14ea094": {
+      "type": "item",
+      "label": "Neues MenüItem",
+      "sort_order": 10,
+      "parent_guid": "802b542c-3c54-4e75-805f-fb366b7358d0"
+     },
+     "8b42bf98-0553-42fe-bda4-25d3485a3e61": {
+      "icon": "Settings",
+      "type": "BUTTON",
+      "label": "Anwendungsdaten",
+      "command": {
+       "params": {
+        "table": "sys_anwendungsdaten",
+        "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hier können die Anwendungsdaten (Rohdaten) bearbeitet werden.",
+      "visible": true,
+      "sort_order": 110,
+      "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+     },
+     "8fb0c8d3-3809-4b9e-a211-a93b63dde70c": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "🚀 Enhanced Multi-Tab SOFORT",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 1,
+      "parent_guid": "81e7e4c1-317e-4c71-8a22-65a12465a85a",
+      "template_guid": null
+     },
+     "9080d2ac-9353-47d1-b946-f442e7500d7e": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Menü Editor",
+      "command": {
+       "params": {
+        "dialog_guid": "7c1eff9d-79cb-4dea-94bb-601e96a10bdd"
+       },
+       "handler": "go_dialog"
+      },
+      "enabled": true,
+      "tooltip": "dialog 'menu_editor'",
+      "visible": true,
+      "sort_order": 40,
+      "parent_guid": "3d679b28-16af-4fa3-9208-f6498e929faf",
+      "template_guid": null
+     },
+     "90e2fbc4-4377-4bdd-8ad2-993fef6b77e0": {
+      "icon": null,
+      "type": "SEPARATOR",
+      "label": "",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 1,
+      "parent_guid": "246bc6dd-6f36-4dbc-94f1-a893bd0ffcb3",
+      "template_guid": null
+     },
+     "918252b1-2a64-4c13-987b-91380fbaafda": {
+      "icon": "BookOpen",
+      "type": "BUTTON",
+      "label": "Eingelesene Mandaten Tabellen",
+      "command": {
+       "params": {
+        "table": "sys_ext_table_man",
+        "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hier sehen Sie die eingelesenen Tabellen im Mandant",
+      "visible": true,
+      "sort_order": 30,
+      "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+     },
+     "94a3e7c6-b121-4186-a00a-c9d8d16bf657": {
+      "icon": "FileText",
+      "type": "BUTTON",
+      "label": "Dropdowndaten",
+      "command": {
+       "params": {
+        "table": "sys_dropdowndaten",
+        "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hier werden die Dropdowndaten im Rohformat gezeigt.",
+      "visible": true,
+      "sort_order": 60,
+      "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+     },
+     "97265e4d-668e-46de-b905-2c40103c65a7": {
+      "icon": "Wrench",
+      "type": "BUTTON",
+      "label": "Testdialoge ändern",
+      "command": {
+       "params": {
+        "table": "",
+        "dialog_guid": "9c245a60-7251-43c4-9d7d-d67af02c6144"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Alles nur zum Testen",
+      "visible": true,
+      "sort_order": 20,
+      "parent_guid": null
+     },
+     "97336928-a2d0-42ad-83cc-a7a3df5d2c3e": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Dialog anzeigen JSON",
+      "command": {
+       "params": {
+        "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546",
+        "dialog_table": "sys_framedaten"
+       },
+       "handler": "go_dialog"
+      },
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 30,
+      "parent_guid": "802b542c-3c54-4e75-805f-fb366b7358d0",
+      "template_guid": null
+     },
+     "98c351d9-88ba-47b7-a914-7ef59a2ec452": {
+      "icon": null,
+      "type": "SEPARATOR",
+      "label": "---",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 40,
+      "parent_guid": "bdf31548-8d9b-437a-8d72-6ed0c9fc2fb8",
+      "template_guid": null
+     },
+     "98dfa9e6-9a98-454a-84ae-93bc1fc0fc9f": {
+      "icon": "Database",
+      "type": "BUTTON",
+      "label": "Daten Patch erstellen",
+      "command": {
+       "params": {
+        "table": "",
+        "dialog_guid": "83c99302-91db-58ba-9ac8-a3e4dc202ca3"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hiermit wird ein Patch initalisiert",
+      "visible": true,
+      "sort_order": 40,
+      "parent_guid": "84afd81c-5a56-4af7-9a1d-38dfe2d0ac09"
+     },
+     "99ef0de8-b1ce-4162-a70e-e77a4390312e": {
+      "icon": "Wrench",
+      "type": "BUTTON",
+      "label": "Controls",
+      "command": {
+       "params": {
+        "table": "sys_control_dict",
+        "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hier sehen Sie die Controls in einem Art Dictionary",
+      "visible": true,
+      "sort_order": 10,
+      "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+     },
+     "9a181a06-a59f-4045-98f8-c2435d78e021": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Hilfe",
+      "command": {
+       "params": {
+        "help_text": "Mein Hilfetext",
+        "help_type": "dialog"
+       },
+       "handler": "show_help"
+      },
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 0,
+      "parent_guid": "24411ebd-0969-41b8-b2aa-6ae171100605",
+      "template_guid": null
+     },
+     "9b77b4b4-041c-4060-bce2-294a09844f17": {
+      "icon": "Settings",
+      "type": "BUTTON",
+      "label": "Viewdaten",
+      "command": {
+       "params": {
+        "table": "sys_viewdaten",
+        "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hier können die Rohdaten der Views bearbeitet werden.",
+      "visible": true,
+      "sort_order": 140,
+      "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+     },
+     "9b7824e8-1c5e-49ee-b63f-dca76958b477": {
+      "icon": null,
+      "type": "SUBMENU",
+      "label": "Einstellungen",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 2,
+      "parent_guid": null,
+      "template_guid": null
+     },
+     "9bd032a4-452b-4444-9b3f-4cccedbfe0c2": {
+      "icon": "Edit",
+      "type": "BUTTON",
+      "label": "Dialog bearbeiten JSON",
+      "command": {
+       "params": {
+        "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1",
+        "dialog_table": "sys_viewdaten"
+       },
+       "handler": "go_dialog"
+      },
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 20,
+      "parent_guid": "190dded7-706e-4336-96cc-0f72eab587be",
+      "template_guid": null
+     },
+     "9e5f7b72-51a2-456a-9715-469a32b0f0bd": {
+      "icon": "Globe",
+      "type": "BUTTON",
+      "label": "Dialogdaten pflegen",
+      "command": {
+       "params": {
+        "table": "",
+        "dialog_guid": "1f3a0e00-48bb-4a08-9cb8-7a7d52f23001"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hier werden die Rahmen für den Dialog zusammengestellt.",
+      "visible": true,
+      "sort_order": 10,
+      "parent_guid": "d50ba1c1-28e1-44b1-aa39-1dd87fd287bc"
+     },
+     "a2bc7bed-efdf-4d4e-8aef-b66741122f36": {
+      "icon": "Settings",
+      "type": "BUTTON",
+      "label": "Systemdaten",
+      "command": {
+       "params": {
+        "table": "sys_systemdaten",
+        "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hier können die Roh-Systemdaten bearbeitet werden.",
+      "visible": true,
+      "sort_order": 40,
+      "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+     },
+     "a7f52a95-0bc8-4e7c-81e9-e831780d2844": {
+      "icon": "User",
+      "type": "BUTTON",
+      "label": "Benutzer",
+      "command": {
+       "params": {
+        "table": "sys_benutzer",
+        "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Einstellungen des Benutzers in Rohform",
+      "visible": true,
+      "sort_order": 160,
+      "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+     },
+     "a8b01e84-ab77-46f9-80b1-452aface1c25": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Neuer Dialog anlegen",
+      "command": {
+       "params": {},
+       "handler": "create_genereller_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hiermit kann ein genereller Dialog erstellt werden",
+      "visible": true,
+      "sort_order": 20,
+      "parent_guid": "802b542c-3c54-4e75-805f-fb366b7358d0",
+      "template_guid": null
+     },
+     "a9746c62-09a1-4af3-bbae-3de445677750": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "View Testen",
+      "command": {
+       "params": {
+        "view_guid": "a7cc4cd1-7d34-46ca-a371-011c9bf608ea"
+       },
+       "handler": "go_view"
+      },
+      "enabled": true,
+      "tooltip": "Erste echter Tooltip für den ViewEditor",
+      "visible": true,
+      "sort_order": 50,
+      "parent_guid": "3d679b28-16af-4fa3-9208-f6498e929faf",
+      "template_guid": null
+     },
+     "ae473e8a-12a9-4dda-97f0-a743d0f96498": {
+      "icon": null,
+      "type": "SEPARATOR",
+      "label": "Separator",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 1,
+      "parent_guid": "fecf6732-8ec4-4b0b-8bfd-eddf0c18af88",
+      "template_guid": null
+     },
+     "aebe7047-4d41-4125-8e47-cdfb387d8b4c": {
+      "icon": "Settings",
+      "type": "BUTTON",
+      "label": "Menüdaten",
+      "command": {
+       "params": {
+        "table": "sys_menudaten",
+        "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hier können die Rohdaten der Menüs bearbeitet werden.",
+      "visible": true,
+      "sort_order": 50,
+      "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+     },
+     "bd5e08b2-f732-449a-a99b-ca91716fa13e": {
+      "icon": null,
+      "type": "SUBMENU",
+      "label": "Testbereich",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 1,
+      "parent_guid": null,
+      "template_guid": null
+     },
+     "bdf31548-8d9b-437a-8d72-6ed0c9fc2fb8": {
+      "icon": null,
+      "type": "SUBMENU",
+      "label": "Testbereich",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 30,
+      "parent_guid": null,
+      "template_guid": null
+     },
+     "beb82ac7-2990-46a0-8182-a4af1d39f0c2": {
+      "icon": null,
+      "type": "SUBMENU",
+      "label": "Apps",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 20,
+      "parent_guid": null,
+      "template_guid": null
+     },
+     "c492c2a7-7b36-4dc1-b68b-ee5116510b09": {
+      "icon": "Users",
+      "type": "BUTTON",
+      "label": "Benutzer verwalten",
+      "command": {
+       "params": {
+        "table": "",
+        "dialog_guid": "6269bbc6-9d02-49fb-b009-107acca56e08"
+       },
+       "handler": "go_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hier werden die Benutzer verwaltet einschließlich Passworte",
+      "visible": true,
+      "sort_order": 20,
+      "parent_guid": "3d679b28-16af-4fa3-9208-f6498e929faf"
+     },
+     "c630649d-fb4f-4e11-9014-669e11740ea2": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Frame Editor",
+      "command": {
+       "params": {
+        "frame_guid": "44d2e239-d429-41ab-b080-e7fcd4b6e8a8"
+       },
+       "handler": "show_dialog"
+      },
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 60,
+      "parent_guid": "3d679b28-16af-4fa3-9208-f6498e929faf",
+      "template_guid": null
+     },
+     "c867538c-b626-4af8-825d-53d3576e117e": {
+      "icon": "FileText",
+      "type": "BUTTON",
+      "label": "Anwendungsdaten",
+      "command": {
+       "params": {
+        "table": "sys_anwendungsdaten",
+        "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Userbezogene Daten für die Anwendung im Rohformat",
+      "visible": true,
+      "sort_order": 110,
+      "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+     },
+     "c8d16983-027c-4268-908c-8795a190b3eb": {
+      "icon": "Database",
+      "type": "SUBMENU",
+      "label": "Systemtabellen lesen",
+      "enabled": true,
+      "tooltip": "Hier können die Daten der Systemtabellen gelesen werden",
+      "visible": true,
+      "sort_order": 40,
+      "parent_guid": null
+     },
+     "c9662797-e446-4f59-a37d-f652c42d15b9": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Hilfe",
+      "command": {
+       "params": {
+        "help_text": "Admin-Startmenü Hilfe",
+        "help_type": "dialog"
+       },
+       "handler": "show_help"
+      },
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 0,
+      "parent_guid": "fecf6732-8ec4-4b0b-8bfd-eddf0c18af88",
+      "template_guid": null
+     },
+     "c9a58994-b092-4dc0-af73-e43366dcba97": {
+      "icon": "Database",
+      "type": "BUTTON",
+      "label": "Daten Version erstellen",
+      "command": {
+       "params": {
+        "table": "",
+        "dialog_guid": "5d79b918-e617-55f2-bf5b-28200aca6a75"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hier wird eine Version für die Daten initialisiert",
+      "visible": true,
+      "sort_order": 30,
+      "parent_guid": "84afd81c-5a56-4af7-9a1d-38dfe2d0ac09",
+      "template_guid": null
+     },
+     "ca8bbdcb-afea-44d6-8b10-f28ebf13d88e": {
+      "guid": "ca8bbdcb-afea-44d6-8b10-f28ebf13d88e",
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Abmelden",
+      "_gruppe": "GRUND",
+      "command": {
+       "params": {},
+       "handler": "logout"
+      },
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 2,
+      "parent_guid": "fecf6732-8ec4-4b0b-8bfd-eddf0c18af88",
+      "template_guid": null
+     },
+     "cf899d8a-b2df-4270-8502-03f95aea38fd": {
+      "icon": "Settings",
+      "type": "BUTTON",
+      "label": "Fehler Logdatei",
+      "command": {
+       "params": {
+        "table": "sys_error_log",
+        "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hier kann die Fehlerlogdatei bearbeitet werden.",
+      "visible": true,
+      "sort_order": 90,
+      "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+     },
+     "d0d9c868-74cc-47c9-a86e-101dd4dc39b6": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Test Dialog",
+      "command": {
+       "params": {},
+       "handler": "test_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hier kann ein Dialog mit der Angabe der Frame GUID getestet werden",
+      "visible": true,
+      "sort_order": 50,
+      "parent_guid": "bdf31548-8d9b-437a-8d72-6ed0c9fc2fb8",
+      "template_guid": null
+     },
+     "d43a8292-8334-47d8-ab2b-8e8d93a49183": {
+      "icon": "Wrench",
+      "type": "BUTTON",
+      "label": "Controls modifizieren",
+      "command": {
+       "params": {
+        "table": "sys_control_dict",
+        "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hier können die Controls auf der direkten Ebene modifiziert werden.",
+      "visible": true,
+      "sort_order": 10,
+      "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+     },
+     "d4d48456-26cb-4c62-99eb-58a32cc1eb1f": {
+      "icon": "Settings",
+      "type": "BUTTON",
+      "label": "Beschreibungen",
+      "command": {
+       "params": {
+        "table": "sys_beschreibungen",
+        "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hier können die Rohdaten der Beschreibungen bearbeitet werden.",
+      "visible": true,
+      "sort_order": 70,
+      "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+     },
+     "d50ba1c1-28e1-44b1-aa39-1dd87fd287bc": {
+      "icon": "Settings",
+      "type": "SUBMENU",
+      "label": "Einstellungen",
+      "enabled": true,
+      "tooltip": "Hier werden die Dinge formatiert bearbeitet und geprüft.",
+      "visible": true,
+      "sort_order": 60,
+      "parent_guid": null
+     },
+     "d9e41d2d-1199-4b70-9409-bf4dfb249cb2": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "speichern",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 0,
+      "parent_guid": null,
+      "template_guid": null
+     },
+     "dbcb28fb-df89-4c31-8e10-bd0cbec9035b": {
+      "icon": "FileText",
+      "type": "BUTTON",
+      "label": "Dialogdaten",
+      "command": {
+       "params": {
+        "table": "sys_dialogdaten",
+        "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Dialogdaten im Rohformat",
+      "visible": true,
+      "sort_order": 140,
+      "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+     },
+     "dcac143a-20fb-4f06-bf2e-24fa2efa6e4f": {
+      "icon": "Settings",
+      "type": "BUTTON",
+      "label": "Dialogdaten",
+      "command": {
+       "params": {
+        "table": "sys_dialogdaten",
+        "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hier können die Rohdaten in den Dialogdaten bearbeitet werden.",
+      "visible": true,
+      "sort_order": 150,
+      "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+     },
+     "ddba21a3-1a65-46cf-8069-8bbe20dcc73d": {
+      "icon": null,
+      "type": "SPACER",
+      "label": "@TEMPLATE:1a653694-3132-48d9-bc3e-a512962ae8e6",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": false,
+      "sort_order": 0,
+      "parent_guid": null,
+      "template_guid": "1a653694-3132-48d9-bc3e-a512962ae8e6"
+     },
+     "dfd6552f-c05a-4e43-a746-a479c637cc5f": {
+      "icon": null,
+      "type": "SEPARATOR",
+      "label": "---",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 80,
+      "parent_guid": "bdf31548-8d9b-437a-8d72-6ed0c9fc2fb8",
+      "template_guid": null
+     },
+     "e4d93d76-099e-4dfd-9155-96e4cfb15043": {
+      "icon": "Settings",
+      "type": "BUTTON",
+      "label": "Mandanten",
+      "command": {
+       "params": {
+        "table": "sys_mandanten",
+        "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hier können Rohdaten des Mandanten bearbeitet werden.",
+      "visible": true,
+      "sort_order": 160,
+      "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+     },
+     "e65c46f5-3f37-4143-85b8-0e6e72cdb80f": {
+      "icon": "FileText",
+      "type": "BUTTON",
+      "label": "Mandanten",
+      "command": {
+       "params": {
+        "table": "sys_mandanten",
+        "dialog_guid": "68d11a99-a0cd-4b10-a0f7-040fc71da546"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Die Daten der Mandanten in Rohform",
+      "visible": true,
+      "sort_order": 150,
+      "parent_guid": "c8d16983-027c-4268-908c-8795a190b3eb"
+     },
+     "e7a70dbf-0fe3-4d7c-b103-b9c69e98d72a": {
+      "icon": "Settings",
+      "type": "BUTTON",
+      "label": "Framedaten",
+      "command": {
+       "params": {
+        "table": "sys_framedaten",
+        "dialog_guid": "36b5afa0-18f7-4f1b-acd9-f21a9278f5f1"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hier können die Rohdaten der Frames angepasst werden.",
+      "visible": true,
+      "sort_order": 130,
+      "parent_guid": "58ebd97e-d2cd-4e36-b933-6ec0a2f9dfc2"
+     },
+     "e9a28f1f-7634-4830-8ca3-182bf2a84886": {
+      "icon": "BookOpen",
+      "type": "BUTTON",
+      "label": "Frames pflegen",
+      "command": {
+       "params": {
+        "table": "sys_framedaten",
+        "dialog_guid": "2faf05e6-007e-4f45-a1d3-a9e83dfd7d8b"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Die Frames enthalten die Daten und Steuerung für die InputControls, die hier gepflegt werden können.",
+      "visible": true,
+      "sort_order": 30,
+      "parent_guid": "d50ba1c1-28e1-44b1-aa39-1dd87fd287bc"
+     },
+     "ead3fe50-0065-485f-a733-991839ecdf09": {
+      "icon": "BookOpen",
+      "type": "BUTTON",
+      "label": "Felder pflegen",
+      "command": {
+       "params": {
+        "table": "",
+        "dialog_guid": "ad9db21a-82dd-5ad8-89a5-6836dbe4812f"
+       },
+       "handler": "go_pdvm_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Hier wird der Dictionary gepflegt",
+      "visible": true,
+      "sort_order": 10,
+      "parent_guid": "84afd81c-5a56-4af7-9a1d-38dfe2d0ac09"
+     },
+     "ec83be52-3a65-433f-b89b-514b197ae93a": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Input Controls",
+      "command": {
+       "params": {
+        "frame_guid": "4078079f-4028-45ed-879c-3c779ecf3d0d"
+       },
+       "handler": "show_dialog"
+      },
+      "enabled": true,
+      "tooltip": "Dialog 'input_controls'",
+      "visible": true,
+      "sort_order": 30,
+      "parent_guid": "3d679b28-16af-4fa3-9208-f6498e929faf",
+      "template_guid": null
+     },
+     "f0983e2c-e428-4387-932a-3f671890d965": {
+      "icon": null,
+      "type": "SPACER",
+      "label": "@TEMPLATE:1a653694-3132-48d9-bc3e-a512962ae8e6",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": false,
+      "sort_order": 10,
+      "parent_guid": null,
+      "template_guid": "1a653694-3132-48d9-bc3e-a512962ae8e6"
+     },
+     "f217752e-e1d4-483e-8b38-7e9fe8a6c65f": {
+      "icon": null,
+      "type": "SPACER",
+      "label": "@TEMPLATE:1a653694-3132-48d9-bc3e-a512962ae8e6",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": false,
+      "sort_order": 0,
+      "parent_guid": null,
+      "template_guid": "1a653694-3132-48d9-bc3e-a512962ae8e6"
+     },
+     "fecf6732-8ec4-4b0b-8bfd-eddf0c18af88": {
+      "icon": null,
+      "type": "SUBMENU",
+      "label": "Basis",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 0,
+      "parent_guid": null,
+      "template_guid": null
+     }
+    },
+    "ZUSATZ": {},
+    "TEMPLATE": {
+     "1080ca02-6ba2-483c-8cff-d696e1db5c42": {
+      "icon": null,
+      "type": "SEPARATOR",
+      "label": "",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 1,
+      "parent_guid": "fe679a1e-b123-4727-a2ce-84a7114e4ae0",
+      "template_guid": null
+     },
+     "1d1cbf58-fd65-49cf-aaae-29fa967edcf8": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Abmelden",
+      "command": {
+       "params": {},
+       "handler": "logout"
+      },
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 6,
+      "parent_guid": "fe679a1e-b123-4727-a2ce-84a7114e4ae0",
+      "template_guid": null
+     },
+     "249e7dbe-1de6-40f0-a2f3-15f3fa8ee164": {
+      "icon": null,
+      "type": "SEPARATOR",
+      "label": "",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 3,
+      "parent_guid": "fe679a1e-b123-4727-a2ce-84a7114e4ae0",
+      "template_guid": null
+     },
+     "2557b3ce-3dcb-4b17-800c-08a3cebb1d20": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "zu den Apps",
+      "command": {
+       "params": {},
+       "handler": "open_start_menu"
+      },
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 4,
+      "parent_guid": "fe679a1e-b123-4727-a2ce-84a7114e4ae0",
+      "template_guid": null
+     },
+     "8206f8da-902c-4554-81c9-69fc49b1e9ca": {
+      "icon": null,
+      "type": "SEPARATOR",
+      "label": "",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 7,
+      "parent_guid": "fe679a1e-b123-4727-a2ce-84a7114e4ae0",
+      "template_guid": null
+     },
+     "8c0d8efd-97c8-470a-9680-1a8346ac7fa7": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Speichern",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 0,
+      "parent_guid": null,
+      "template_guid": null
+     },
+     "9d43d2ef-eae3-45c3-a4a3-71a36a724463": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Einstellungen",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 1,
+      "parent_guid": null,
+      "template_guid": null
+     },
+     "afcb057b-4e50-4b7f-b53c-133eebf05c6d": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Hilfe",
+      "command": {
+       "params": {
+        "help_text": "Admin-Benutzermenü Hilfe",
+        "help_type": "dialog"
+       },
+       "handler": "show_help"
+      },
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 0,
+      "parent_guid": "fe679a1e-b123-4727-a2ce-84a7114e4ae0",
+      "template_guid": null
+     },
+     "b667f38b-b64e-478d-b24b-ed34f61bb486": {
+      "icon": null,
+      "type": "SEPARATOR",
+      "label": "",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 5,
+      "parent_guid": "fe679a1e-b123-4727-a2ce-84a7114e4ae0",
+      "template_guid": null
+     },
+     "ef74d2ed-3b38-4111-aaf7-da6c6d1730e5": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Menü ein/aus",
+      "command": {
+       "params": {},
+       "handler": "toggle_menu"
+      },
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 2,
+      "parent_guid": "fe679a1e-b123-4727-a2ce-84a7114e4ae0",
+      "template_guid": null
+     },
+     "fe679a1e-b123-4727-a2ce-84a7114e4ae0": {
+      "icon": null,
+      "type": "SUBMENU",
+      "label": "Basis",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 0,
+      "parent_guid": null,
+      "template_guid": null
+     }
+    },
+    "VERTIKAL": {
+     "1088a12a-dc0e-4e5d-9464-d1e13e16bd2e": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Neuer Menüpunkt neuer als neu",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 30,
+      "parent_guid": "17ac6504-a80d-4087-a8c2-2cb6235eb3c3"
+     },
+     "17ac6504-a80d-4087-a8c2-2cb6235eb3c3": {
+      "icon": null,
+      "type": "SUBMENU",
+      "label": "Neues Submenu",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 2,
+      "parent_guid": null
+     },
+     "2af0a8e4-4ec4-46e4-8fb9-90e45b9b08a2": {
+      "icon": null,
+      "type": "SEPARATOR",
+      "label": "Separator",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 2,
+      "parent_guid": "e58b7a92-c5c2-4d1e-9ca9-a61e894364e3"
+     },
+     "377c7eca-8c21-4a3a-a88f-d5496ec30605": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Wie schon",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 0,
+      "parent_guid": "e58b7a92-c5c2-4d1e-9ca9-a61e894364e3",
+      "template_guid": null
+     },
+     "37a77e4a-7d27-4349-92ee-4daae15f9a8d": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Administration",
+      "command": {
+       "params": {
+        "app_name": "ADMINISTRATION"
+       },
+       "handler": "open_app_menu"
+      },
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 3,
+      "parent_guid": null,
+      "template_guid": null
+     },
+     "3f9005ad-2507-44a0-a856-146272d5c267": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Benutzerdaten",
+      "command": {
+       "params": {
+        "app_name": "BENUTZERDATEN"
+       },
+       "handler": "open_app_menu"
+      },
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 2,
+      "parent_guid": null,
+      "template_guid": null
+     },
+     "4186a5a9-7ef7-4781-9350-e16ea917fede": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Neues MenüItem",
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 10,
+      "parent_guid": null
+     },
+     "4759b831-c142-4e73-a4d3-2cfece799264": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "schau mal darunter",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 3,
+      "parent_guid": "e58b7a92-c5c2-4d1e-9ca9-a61e894364e3"
+     },
+     "4a08372c-e05f-4ccd-838b-e5a45b7ed500": {
+      "icon": null,
+      "type": "SEPARATOR",
+      "label": "Separator",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 0,
+      "parent_guid": "7a24c88b-6e53-4398-9528-ad57872b63f5"
+     },
+     "5412d2d5-0402-42ce-bff6-f1886858a67e": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Testbereich",
+      "command": {
+       "params": {
+        "app_name": "TESTBEREICH"
+       },
+       "handler": "open_app_menu"
+      },
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 4,
+      "parent_guid": null,
+      "template_guid": null
+     },
+     "58dd2121-b463-4dd3-b16c-1c29e6bab44c": {
+      "icon": null,
+      "type": "SUBMENU",
+      "label": "zweiter Menüpunkt Vertikal",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 1,
+      "parent_guid": null
+     },
+     "5e634c33-023d-47b8-bef7-36a1c6d8a636": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "wo ist der nun",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 1,
+      "parent_guid": "7a24c88b-6e53-4398-9528-ad57872b63f5"
+     },
+     "6353ee28-c72b-4843-9b00-3d5f846a5de9": {
+      "icon": null,
+      "type": "SEPARATOR",
+      "label": "Unbekannt",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 3,
+      "parent_guid": "fecf6732-8ec4-4b0b-8bfd-eddf0c18af88",
+      "template_guid": null
+     },
+     "6b61d628-3607-40d4-8124-8d103a7b49ae": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Neuer Menüpunkt darunter",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 10,
+      "parent_guid": "17ac6504-a80d-4087-a8c2-2cb6235eb3c3"
+     },
+     "6b93cafd-4da7-426a-9e96-f713bcb4f1e6": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Schau mal hier",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 0,
+      "parent_guid": "58dd2121-b463-4dd3-b16c-1c29e6bab44c"
+     },
+     "7a24c88b-6e53-4398-9528-ad57872b63f5": {
+      "icon": null,
+      "type": "SUBMENU",
+      "label": "Mein Vertikaler Versuch",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 0,
+      "parent_guid": null
+     },
+     "802d1afa-67cf-46e1-9ef2-72fc0f0e024a": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Neuer Menüpunkt testen",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 20,
+      "parent_guid": "17ac6504-a80d-4087-a8c2-2cb6235eb3c3"
+     },
+     "96d048d7-65ec-4527-9f5f-3e9f04631b29": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "ein weiterer Versuch",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 4,
+      "parent_guid": "e58b7a92-c5c2-4d1e-9ca9-a61e894364e3"
+     },
+     "b2cf8ebe-8c6b-4a32-9aa9-b890d978bbb8": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "ein Menüpunkt",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 1,
+      "parent_guid": "e58b7a92-c5c2-4d1e-9ca9-a61e894364e3"
+     },
+     "c8bef35f-2cdf-49b6-934b-4cddf5b80303": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Personalwesen",
+      "command": {
+       "params": {
+        "app_name": "PERSONALWESEN"
+       },
+       "handler": "open_app_menu"
+      },
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 0,
+      "parent_guid": null,
+      "template_guid": null
+     },
+     "cea83e84-32ea-4361-8b33-8cea9df12b1c": {
+      "icon": null,
+      "type": "BUTTON",
+      "label": "Finanzwesen",
+      "command": {
+       "params": {
+        "app_name": "FINANZWESEN"
+       },
+       "handler": "open_app_menu"
+      },
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 1,
+      "parent_guid": null,
+      "template_guid": null
+     },
+     "dfd6552f-c05a-4e43-a746-a479c637cc5f": {
+      "icon": null,
+      "type": "SEPARATOR",
+      "label": "---",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 6,
+      "parent_guid": "bdf31548-8d9b-437a-8d72-6ed0c9fc2fb8",
+      "template_guid": null
+     },
+     "e58b7a92-c5c2-4d1e-9ca9-a61e894364e3": {
+      "icon": null,
+      "type": "SUBMENU",
+      "label": "Eine Ebene tiefer",
+      "command": null,
+      "enabled": true,
+      "tooltip": null,
+      "visible": true,
+      "sort_order": 1,
+      "parent_guid": "58dd2121-b463-4dd3-b16c-1c29e6bab44c"
+     }
+    },
+    "TABLE_INFO": {
+     "version": "2.0",
+     "created_at": "2026-11-07T13:23:56",
+     "created_by": "system",
+     "description": "",
+     "schema_migrated": true
+    }
+   }
+  }
+ },
+ {
+  "table": "sys_framedaten",
+  "uid": "0d024e06-e750-480d-b439-7241fbfc8886",
+  "name": "Benutzer Edit",
+  "daten_before": {
+   "ROOT": {
+    "TABS": 4,
+    "TABLE": "",
+    "EDIT_TYPE": "edit_user",
+    "SELF_GUID": "0d024e06-e750-480d-b439-7241fbfc8886",
+    "SELF_NAME": "Benutzer Edit",
+    "GO_NEW_SET": true,
+    "ROOT_TABLE": "sys_benutzer",
+    "TAB_ELEMENTS": {
+     "3368306f-adf9-4057-b7f9-b033da5730bb": {
+      "TAB": 3,
+      "HEAD": "Sicherheit & Rechte",
+      "GRUPPE": "SECURITY/PERMISSIONS/MANDANTEN"
+     },
+     "6ae7a3f7-4b2b-4962-bf01-4319cc76ffad": {
+      "TAB": 2,
+      "HEAD": "Einstellungen",
+      "GRUPPE": "CONFIG/SETTINGS"
+     },
+     "a45bc787-fbba-4d4f-bd4d-b986a0d57baa": {
+      "TAB": 1,
+      "HEAD": "Person",
+      "GRUPPE": "USER"
+     },
+     "c432df57-933e-44a9-ae1b-b4f975d4344e": {
+      "TAB": 4,
+      "HEAD": "Start & Apps",
+      "GRUPPE": "MEINEAPPS"
+     }
+    },
+    "SELF_GILT_BIS": "9999365.99999",
+    "SELF_LINK_UID": "0d024e06-e750-480d-b439-7241fbfc8886",
+    "SELF_CREATED_AT": "2026025.74106",
+    "SELF_MODIFIED_AT": "2026311.66853",
+    "STRUCT_VERSION_APPLIED": 1
+   },
+   "FIELDS": {
+    "11e1b3b3-3993-4856-afe8-6df6e925fcab": {
+     "TAB": 1,
+     "DISPLAY_ORDER": 50
+    },
+    "155f2e31-1fa9-4315-8e27-c7bca987559f": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 40
+    },
+    "3addcaa2-e289-4cbc-9228-84ec87b01f42": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 30
+    },
+    "7a0d9b2f-23cb-48f0-9a3e-0d6a01214444": {
+     "TAB": 1,
+     "SOURCE_PATH": "root",
+     "DISPLAY_ORDER": 40
+    },
+    "a2b25f28-88a3-4d13-8a0f-0d6a01220012": {
+     "TAB": 5,
+     "DISPLAY_ORDER": 10
+    },
+    "a2e4f71a-4c2b-45bf-8b1d-0d6a01216666": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 10
+    },
+    "a9a9c2d4-690f-4b6f-9cd6-0d6a0121dddd": {
+     "TAB": 3,
+     "DISPLAY_ORDER": 10
+    },
+    "b4fda8b9-1af0-4b95-90b5-0d6a0121eeee": {
+     "TAB": 3,
+     "DISPLAY_ORDER": 20
+    },
+    "be5aa2cd-2ed8-4fd4-9c02-0d6a0121ffff": {
+     "TAB": 3,
+     "DISPLAY_ORDER": 30
+    },
+    "c06c632c-3b55-4d92-b48b-0d6a01220003": {
+     "TAB": 3,
+     "DISPLAY_ORDER": 70
+    },
+    "c1a5f6a2-97c8-4cc3-9c1a-0d6a0121aaaa": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 50
+    },
+    "c6b4fae2-1c71-4b3e-8e9b-0d6a01212222": {
+     "TAB": 1,
+     "DISPLAY_ORDER": 20
+    },
+    "c8f92080-78ae-4c7e-8d85-0d6a01220000": {
+     "TAB": 3,
+     "DISPLAY_ORDER": 40
+    },
+    "d19f3733-3bf0-4b9e-9e1a-0d6a01220001": {
+     "TAB": 3,
+     "DISPLAY_ORDER": 50
+    },
+    "d2c9a1f9-8db2-49d9-9e52-0d6a0121bbbb": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 60
+    },
+    "d30a1d6f-6e49-4a37-9f73-0d6a01211111": {
+     "TAB": 1,
+     "DISPLAY_ORDER": 10
+    },
+    "d6f90f6c-9b44-4b63-9b91-0d6a01213333": {
+     "TAB": 1,
+     "DISPLAY_ORDER": 30
+    },
+    "d8dd77f6-9e3f-49f3-909f-0d6a01220004": {
+     "TAB": 3,
+     "DISPLAY_ORDER": 80
+    },
+    "e2599cda-178e-4d66-a294-c9ea12fddc91": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 50
+    },
+    "e3b3a161-2025-42bf-a0ab-e6fd1584f4cf": {
+     "TAB": 3,
+     "DISPLAY_ORDER": 90
+    },
+    "e85a7843-4b5f-49a9-8f5d-0d6a01220002": {
+     "TAB": 3,
+     "DISPLAY_ORDER": 60
+    },
+    "ef6a4b8a-9c8d-4ec6-8b0c-0d6a01217777": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 20
+    },
+    "f68afad6-2894-460b-8c8c-0d6a01220010": {
+     "TAB": 4,
+     "DISPLAY_ORDER": 50
+    },
+    "f6f6b203-7cc0-49ff-8a0f-0d6a01220013": {
+     "TAB": 5,
+     "DISPLAY_ORDER": 20
+    },
+    "f7d7c2f7-1ef3-40d4-b8a9-0d6a0121cccc": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 70
+    }
+   }
+  }
+ },
+ {
+  "table": "sys_framedaten",
+  "uid": "ebb4a327-6b3c-4fa8-8df8-e38b52072699",
+  "name": "sys_control_dict Frame",
+  "daten_before": {
+   "ROOT": {
+    "TABS": 3,
+    "TABLE": "sys_control_dict",
+    "EDIT_TYPE": "pdvm_edit",
+    "SELF_GUID": "ebb4a327-6b3c-4fa8-8df8-e38b52072699",
+    "SELF_NAME": "sys_control_dict Frame",
+    "GO_NEW_SET": true,
+    "TAB_ELEMENTS": {
+     "TAB_01": {
+      "TAB": 1,
+      "HEAD": "Basis",
+      "GRUPPE": "ROOT"
+     },
+     "TAB_02": {
+      "TAB": 2,
+      "HEAD": "Control",
+      "GRUPPE": "CONTROL"
+     },
+     "TAB_03": {
+      "TAB": 3,
+      "HEAD": "Configs",
+      "GRUPPE": "CONTROL.CONFIGS"
+     }
+    },
+    "SELF_GILT_BIS": "9999365.99999",
+    "SELF_LINK_UID": "9f06711e-4ad8-4ea4-9837-2f40f3a6f103",
+    "SELF_CREATED_AT": "2026050.42826",
+    "SELF_MODIFIED_AT": "2026311.66853",
+    "STRUCT_VERSION_APPLIED": 1
+   },
+   "FIELDS": {
+    "060e9ddb-e3a6-4a36-86ad-e53d07fadebc": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 90
+    },
+    "0a37bc7a-e806-4165-b114-549b19245963": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 140
+    },
+    "13957e4f-fc39-5ac8-81ce-cc5692f24bce": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 60
+    },
+    "26449805-f073-4d52-8e16-9a5311fdc670": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 200
+    },
+    "31941830-eaed-4cb7-a0d6-40908badc5fe": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 20
+    },
+    "39642ecf-67e5-59b2-9a27-64aa08574276": {
+     "TAB": 3,
+     "DISPLAY_ORDER": 10
+    },
+    "458b92e5-f8c1-49e4-84d7-70703942f2e3": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 170
+    },
+    "5c1ce139-7979-4ef2-aabc-e4a20ddebe54": {
+     "TAB": 1,
+     "DISPLAY_ORDER": 46
+    },
+    "5e39f253-9136-4253-9c11-0fe473628c6f": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 35
+    },
+    "620e5496-edb7-4971-9e31-942218e5722e": {
+     "TAB": 1,
+     "DISPLAY_ORDER": 40
+    },
+    "6f36511b-acaf-4f11-849b-89dda880fdc0": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 100
+    },
+    "72e3aa63-4d0b-40fd-883f-9ece20b3e6e4": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 120
+    },
+    "743d430c-130a-466f-a70c-35d2e4ccf2d3": {
+     "TAB": 1,
+     "DISPLAY_ORDER": 50
+    },
+    "7fa063db-d9a3-4530-bf7c-cc99c1100289": {
+     "TAB": 1,
+     "DISPLAY_ORDER": 51
+    },
+    "8cdad050-d285-46a0-8bf1-ae59c8cc620c": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 30
+    },
+    "933923ae-88bf-48c5-82d2-26fef46b8a70": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 80
+    },
+    "96a2db2b-0e70-449b-beb8-0ee2d3bc38f2": {
+     "TAB": 1,
+     "DISPLAY_ORDER": 52
+    },
+    "a1fd4423-f7bd-4120-b770-ebb1421f59a2": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 190
+    },
+    "a611fe31-1bdb-401c-aa2e-3c2179a06bc9": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 60
+    },
+    "a78bc486-819c-4ff8-8722-7699312a8b09": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 40
+    },
+    "b3aef3f4-12f7-4bfa-b660-16b7ccbcd7ad": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 180
+    },
+    "b4c93039-57b7-4820-8944-987cb5049410": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 230
+    },
+    "bb3e9f05-027f-47b1-aa9b-89f1db03ec94": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 210
+    },
+    "c12502ca-0edb-4e65-a968-590b590c60e9": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 110
+    },
+    "c47b969a-466d-4494-ab7b-56a78a379fe9": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 50
+    },
+    "c6b8108f-25b6-4e0e-9823-1d252195a684": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 150
+    },
+    "c75d12c6-b96f-4779-a728-d45a9ccf4a0e": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 25
+    },
+    "c804a737-364c-4f39-a973-3c5a2fd1fbab": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 130
+    },
+    "e440d10a-6acc-4c6b-8bc2-f2595c3e7c32": {
+     "TAB": 1,
+     "DISPLAY_ORDER": 40
+    },
+    "e522e4ae-c3c9-48c9-9a48-2061e70336aa": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 160
+    },
+    "e8c6c911-cc8d-41a9-9d87-a7e926f2fa8b": {
+     "TAB": 2,
+     "DISPLAY_ORDER": 220
+    }
+   }
+  }
+ },
+ {
+  "table": "sys_framedaten",
+  "uid": "3f1fa7aa-bd22-4672-9292-3ccec07b9649",
+  "name": "Frame Control Elements",
+  "daten_before": {
+   "ROOT": {
+    "TABS": 0,
+    "TABLE": "sys_framedaten",
+    "TABS_DEF": null,
+    "EDIT_TYPE": "pdvm_edit",
+    "SELF_GUID": "3f1fa7aa-bd22-4672-9292-3ccec07b9649",
+    "SELF_NAME": "Frame Control Elements",
+    "FRAME_TYPE": "element_list",
+    "GO_NEW_SET": true,
+    "ROOT_TABLE": null,
+    "TAB_ELEMENTS": {},
+    "SELF_GILT_BIS": "9999365.99999",
+    "SELF_LINK_UID": "3f1fa7aa-bd22-4672-9292-3ccec07b9649",
+    "SELF_CREATED_AT": "2026175.66725",
+    "SELF_MODIFIED_AT": "2026311.55830"
+   },
+   "FIELDS": {
+    "060e9ddb-e3a6-4a36-86ad-e53d07fadebc": {},
+    "0a37bc7a-e806-4165-b114-549b19245963": {},
+    "13957e4f-fc39-5ac8-81ce-cc5692f24bce": {},
+    "26449805-f073-4d52-8e16-9a5311fdc670": {},
+    "31941830-eaed-4cb7-a0d6-40908badc5fe": {},
+    "458b92e5-f8c1-49e4-84d7-70703942f2e3": {},
+    "5e39f253-9136-4253-9c11-0fe473628c6f": {},
+    "6f36511b-acaf-4f11-849b-89dda880fdc0": {},
+    "8cdad050-d285-46a0-8bf1-ae59c8cc620c": {},
+    "a1fd4423-f7bd-4120-b770-ebb1421f59a2": {},
+    "a611fe31-1bdb-401c-aa2e-3c2179a06bc9": {},
+    "a78bc486-819c-4ff8-8722-7699312a8b09": {},
+    "b3aef3f4-12f7-4bfa-b660-16b7ccbcd7ad": {},
+    "b4c93039-57b7-4820-8944-987cb5049410": {},
+    "bb3e9f05-027f-47b1-aa9b-89f1db03ec94": {},
+    "c12502ca-0edb-4e65-a968-590b590c60e9": {},
+    "c47b969a-466d-4494-ab7b-56a78a379fe9": {},
+    "c75d12c6-b96f-4779-a728-d45a9ccf4a0e": {},
+    "c804a737-364c-4f39-a973-3c5a2fd1fbab": {},
+    "e2599cda-178e-4d66-a294-c9ea12fddc91": {},
+    "e3b3a161-2025-42bf-a0ab-e6fd1584f4cf": {},
+    "e498abbe-2a26-42b8-8f4b-f26a12f38f82": {},
+    "e522e4ae-c3c9-48c9-9a48-2061e70336aa": {},
+    "e8c6c911-cc8d-41a9-9d87-a7e926f2fa8b": {}
+   }
+  }
+ },
+ {
+  "table": "sys_control_dict",
+  "uid": "458b92e5-f8c1-49e4-84d7-70703942f2e3",
+  "name": "SYS_PRENT_GUID",
+  "daten_before": {
+   "ROOT": {
+    "TABLE": "sys_control_dict",
+    "SELF_GUID": "458b92e5-f8c1-49e4-84d7-70703942f2e3",
+    "SELF_NAME": "SYS_PRENT_GUID",
+    "SELF_GILT_BIS": "9999365.99999",
+    "SELF_LINK_UID": "458b92e5-f8c1-49e4-84d7-70703942f2e3",
+    "SELF_CREATED_AT": "2026174.81798",
+    "SELF_MODIFIED_AT": "2026311.63572"
+   },
+   "CONTROL": {
+    "TAB": 0,
+    "NAME": "SYS_EDIT",
+    "TYPE": "string",
+    "FIELD": "PARENT_GUID",
+    "LABEL": "Parent Guid",
+    "TABLE": "sys_control_dict",
+    "GRUPPE": "CONTROL",
+    "ABDATUM": false,
+    "CONFIGS": {},
+    "DEFAULT": "",
+    "SORTABLE": true,
+    "READ_ONLY": false,
+    "HISTORICAL": false,
+    "MODUL_TYPE": "edit",
+    "SEARCHABLE": true,
+    "UPPER_CASE": false,
+    "EXPERT_MODE": true,
+    "FILTER_TYPE": "contains",
+    "PARENT_GUID": null,
+    "SOURCE_PATH": "root",
+    "DISPLAY_SHOW": true,
+    "EXPERT_ORDER": 0,
+    "DISPLAY_ORDER": 0,
+    "SORT_DIRECTION": "asc",
+    "SORT_BY_ORIGINAL": false
+   }
+  },
+  "deleted": true
+ },
+ {
+  "table": "sys_viewdaten",
+  "uid": "46ac9e21-e14a-5d08-86e5-70f95e786ece",
+  "name": "WORKFLOW_DRAFT_ITEMS_VIEW_TEMPLATE",
+  "daten_before": {
+   "ROOT": {
+    "SORT": {
+     "column": "modified_at",
+     "reverse": true
+    },
+    "TABLE": "dev_workflow_draft_item",
+    "FILTER": {},
+    "EDIT_TYPE": "view",
+    "SELF_GUID": "46ac9e21-e14a-5d08-86e5-70f95e786ece",
+    "SELF_NAME": "WORKFLOW_DRAFT_ITEMS_VIEW_TEMPLATE",
+    "PROJECTION": [
+     "name",
+     "modified_at"
+    ],
+    "SELF_GILT_BIS": "9999365.99999",
+    "SELF_LINK_UID": "46ac9e21-e14a-5d08-86e5-70f95e786ece",
+    "SELF_CREATED_AT": "2026132.81662",
+    "SELF_MODIFIED_AT": "2026133.78731",
+    "STRUCT_VERSION_APPLIED": 1
+   }
+  }
+ },
+ {
+  "table": "sys_viewdaten",
+  "uid": "2160ff31-98d7-5ffe-8823-97359bfb3991",
+  "name": "RELEASE_CANDIDATE_VIEW_TEMPLATE",
+  "daten_before": {
+   "ROOT": {
+    "SORT": {
+     "column": "modified_at",
+     "reverse": true
+    },
+    "TABLE": "dev_release",
+    "FILTER": {},
+    "NO_DATA": true,
+    "EDIT_TYPE": "view",
+    "SELF_GUID": "2160ff31-98d7-5ffe-8823-97359bfb3991",
+    "SELF_NAME": "RELEASE_CANDIDATE_VIEW_TEMPLATE",
+    "ALLOW_SORT": true,
+    "PROJECTION": [
+     "name",
+     "modified_at"
+    ],
+    "HEADER_TEXT": "View",
+    "ALLOW_FILTER": true,
+    "SELF_GILT_BIS": "9999365.99999",
+    "SELF_LINK_UID": "2160ff31-98d7-5ffe-8823-97359bfb3991",
+    "PROJECTION_MODE": "standard",
+    "SELF_CREATED_AT": "2026127.70402",
+    "SELF_MODIFIED_AT": "2026132.75856",
+    "DEFAULT_SORT_COLUMN": "",
+    "DEFAULT_SORT_REVERSE": false,
+    "STRUCT_VERSION_APPLIED": 1
+   }
+  }
+ },
+ {
+  "table": "sys_viewdaten",
+  "uid": "78609ea1-6dc5-5d55-a061-b6ad6009baf8",
+  "name": "WORKFLOW_DICTIONARY_VIEW_TEMPLATE",
+  "daten_before": {
+   "ROOT": {
+    "SORT": {
+     "column": "modified_at",
+     "reverse": true
+    },
+    "TABLE": "sys_control_dict",
+    "FILTER": {},
+    "EDIT_TYPE": "view",
+    "SELF_GUID": "78609ea1-6dc5-5d55-a061-b6ad6009baf8",
+    "SELF_NAME": "WORKFLOW_DICTIONARY_VIEW_TEMPLATE",
+    "PROJECTION": [
+     "name",
+     "modified_at"
+    ],
+    "SELF_GILT_BIS": "9999365.99999",
+    "SELF_LINK_UID": "78609ea1-6dc5-5d55-a061-b6ad6009baf8",
+    "SELF_CREATED_AT": "2026129.72743",
+    "SELF_MODIFIED_AT": "2026133.78731",
+    "STRUCT_VERSION_APPLIED": 1
+   }
+  }
+ },
+ {
+  "table": "sys_dropdowndaten",
+  "uid": "ddaa6590-6d08-461b-a061-75faec26f4ba",
+  "name": "",
+  "daten_before": {
+   "ROOT": {
+    "TABLE": "sys_dropdowndaten",
+    "FIELD_KEY": "ddaa6590-6d08-461b-a061-75faec26f4ba",
+    "SELF_GUID": "ddaa6590-6d08-461b-a061-75faec26f4ba",
+    "SELF_NAME": "ddaa6590-6d08-461b-a061-75faec26f4ba",
+    "RECORD_TYPE": "dropdown_definition",
+    "SELF_GILT_BIS": "9999365.99999",
+    "SELF_LINK_UID": "ddaa6590-6d08-461b-a061-75faec26f4ba",
+    "SELF_CREATED_AT": "2025126.65297",
+    "DEFAULT_LANGUAGE": "DE-DE",
+    "SELF_MODIFIED_AT": "2026140.69893",
+    "STRUCT_VERSION_APPLIED": 1
+   }
+  },
+  "deleted": true
+ }
+]

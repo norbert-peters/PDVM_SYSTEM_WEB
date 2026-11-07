@@ -54,6 +54,32 @@
   gap: 8px;
 }
 
+.pdvm-pic__datetimeRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.pdvm-pic__datetimeRow .pdvm-datetime-picker {
+  flex: 1 1 auto;
+}
+
+.pdvm-pic__openBtn {
+  border: 1px solid var(--color-border-medium, rgba(0, 0, 0, 0.24));
+  border-radius: var(--border-radius-md, 8px);
+  background: var(--color-background-primary, white);
+  padding: 6px 10px;
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pdvm-pic__openBtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 .pdvm-pic__control--stack {
   align-items: stretch;
 }

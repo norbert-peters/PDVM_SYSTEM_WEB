@@ -1,5 +1,7 @@
 # GUID-Konventionen im PDVM-System
 
+> Hinweis (06.11.2026): `migrate_fictional_guids.py` und `validate_fictional_guids.py` liegen jetzt in `backend/_archive_scripts/`. Fuer die Pruefung der Basissaetze 000/555/666 gilt `backend/tools/seed_base_records.py` (siehe ARCHITECTURE_RULES 1.12).
+
 **Datum:** 14. Februar 2026  
 **Status:** Standardisierung aktiv
 

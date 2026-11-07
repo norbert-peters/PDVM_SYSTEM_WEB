@@ -11,6 +11,7 @@ from typing import Optional, Dict, Tuple
 import asyncpg
 import json
 from .config import settings
+from .database import DatabasePool
 import logging
 from urllib.parse import urlparse, unquote
 
@@ -98,8 +99,10 @@ class ConnectionManager:
         # Verbinde mit auth DB um Mandanten-Daten zu laden
         auth_config = await ConnectionManager.get_auth_config()
         
-        # Hole Mandanten-Daten aus asy_mandanten (in auth DB)
-        conn = await asyncpg.connect(**auth_config.to_dict())
+        # Hole Mandanten-Daten aus asy_mandanten (in auth DB) - ueber den Auth-Pool statt per Einzelverbindung
+        pool = DatabasePool._pool_auth
+        use_pool = pool is not None
+        conn = await pool.acquire() if use_pool else await asyncpg.connect(**auth_config.to_dict())
         try:
             # Lade Mandanten-Record
             mandant = await conn.fetchrow(
@@ -159,7 +162,10 @@ class ConnectionManager:
             return system_config, mandant_config
             
         finally:
-            await conn.close()
+            if use_pool:
+                await pool.release(conn)
+            else:
+                await conn.close()
     
     @staticmethod
     async def get_system_config(system_db_name: str = "pdvm_system") -> ConnectionConfig:

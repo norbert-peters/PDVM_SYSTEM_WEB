@@ -1,5 +1,7 @@
 # edit_dict - Control Dictionary Editor
 
+> Hinweis (06.11.2026): `test_control_template_service.py` liegt jetzt in `backend/_archive_scripts/`.
+
 ## 📋 Überblick
 
 `edit_dict` ist das zentrale Tool zur Verwaltung von Control Definitions im PDVM System. Es ermöglicht das Erstellen und Bearbeiten von Controls mit einem Template-basierten Ansatz.

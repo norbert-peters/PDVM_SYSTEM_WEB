@@ -468,6 +468,38 @@ class WorkflowDraftService:
         )
 
     @staticmethod
+    async def update_draft_root_fields(
+        system_pool: asyncpg.Pool,
+        *,
+        draft_guid: str,
+        fields: Dict[str, Any],
+        draft_table: str = DRAFT_TABLE,
+    ) -> bool:
+        """Setzt Felder in daten.ROOT des Draft-Containers (Draft-Container-Pfad, kein Fachdatensatz)."""
+        table = WorkflowDraftService._normalize_table_name(draft_table, label="draft_table")
+        async with system_pool.acquire() as conn:
+            row = await WorkflowDraftService._load_draft_row_from_table(
+                conn, draft_guid=draft_guid, draft_table=table
+            )
+            if not row:
+                return False
+            draft_daten = WorkflowDraftService._as_json_dict(row.get("daten"))
+            draft_root = dict(draft_daten.get("ROOT")) if isinstance(draft_daten.get("ROOT"), dict) else {}
+            draft_root.update(fields)
+            draft_daten["ROOT"] = draft_root
+            await conn.execute(
+                f"""
+                UPDATE {table}
+                SET daten = $2::jsonb,
+                    modified_at = NOW()
+                WHERE uid = $1::uuid
+                """,
+                uuid.UUID(str(draft_guid)),
+                json.dumps(draft_daten, ensure_ascii=False),
+            )
+        return True
+
+    @staticmethod
     async def save_draft_item(
         system_pool: asyncpg.Pool,
         *,

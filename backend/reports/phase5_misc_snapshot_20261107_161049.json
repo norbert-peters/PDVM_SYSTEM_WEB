@@ -1,0 +1,197 @@
+[
+ {
+  "table": "sys_dialogdaten",
+  "uid": "2faf05e6-007e-4f45-a1d3-a9e83dfd7d8b",
+  "name": "Edit Frame Dialog",
+  "daten_before": {
+   "ROOT": {
+    "TABS": 2,
+    "TABLE": "",
+    "SELF_GUID": "2faf05e6-007e-4f45-a1d3-a9e83dfd7d8b",
+    "SELF_NAME": "Edit Frame Dialog",
+    "GO_NEW_SET": true,
+    "DIALOG_TYPE": "norm",
+    "TAB_ELEMENTS": {
+     "TAB_01": {
+      "GUID": "5e59f511-2063-40ac-ace7-86f1b1ea4bd6",
+      "HEAD": "Übersicht",
+      "MODULE": "view",
+      "EDIT_TYPE": "",
+      "OPEN_EDIT": "double_click",
+      "SELECTION_MODE": "single"
+     },
+     "TAB_02": {
+      "GUID": "4413571e-6bf6-4f42-b81a-bc898db4880c",
+      "HEAD": "Bearbeiten",
+      "MODULE": "edit",
+      "EDIT_TYPE": "pdvm_edit",
+      "OPEN_EDIT": "double_click",
+      "SELECTION_MODE": "single"
+     }
+    },
+    "SELF_GILT_BIS": "9999365.99999",
+    "SELF_LINK_UID": "2faf05e6-007e-4f45-a1d3-a9e83dfd7d8b",
+    "SELECTION_MODE": "single",
+    "SELF_CREATED_AT": "2026040.59870",
+    "SELF_MODIFIED_AT": "2026132.72236",
+    "STRUCT_VERSION_APPLIED": 1
+   }
+  }
+ },
+ {
+  "table": "sys_dialogdaten",
+  "uid": "cd80d2a7-e3f7-46e2-8295-a09bef856cc1",
+  "name": "Text bearbeiten 2",
+  "daten_before": {
+   "ROOT": {
+    "TABS": 2,
+    "TABLE": "sys_beschreibungen",
+    "HEADER": "Hilfetexte bearbeiten",
+    "OPEN_EDIT": "",
+    "SELF_GUID": "cd80d2a7-e3f7-46e2-8295-a09bef856cc1",
+    "SELF_NAME": "Text bearbeiten 2",
+    "DIALOG_TYPE": "standard",
+    "TAB_ELEMENTS": {
+     "TAB_01": {
+      "TAB": 1,
+      "GUID": "2f2a4d0c-6811-45f0-a21c-e3ea77d45f63",
+      "HEAD": "Übersicht",
+      "TABLE": "sys_beschreibungen",
+      "MODULE": "view",
+      "EDIT_TYPE": "view",
+      "OPEN_EDIT": "double_click",
+      "TAB_ELEMENTS": "TAB_01",
+      "SELECTION_MODE": ""
+     },
+     "TAB_02": {
+      "TAB": 2,
+      "GUID": "b68a5b55-4135-426a-a96a-a6cdb0e702e0",
+      "HEAD": "Bearbeiten",
+      "TABLE": "sys_beschreibungen",
+      "MODULE": "edit",
+      "EDIT_TYPE": "edit",
+      "OPEN_EDIT": "doubleClick",
+      "TAB_ELEMENTS": "TAB_02",
+      "SELECTION_MODE": ""
+     }
+    },
+    "SELF_GILT_BIS": "9999365.99999",
+    "SELF_LINK_UID": "cd80d2a7-e3f7-46e2-8295-a09bef856cc1",
+    "SELECTION_MODE": "",
+    "SELF_CREATED_AT": "2026179.54042",
+    "SELF_MODIFIED_AT": "2026311.55830"
+   }
+  }
+ },
+ {
+  "table": "sys_dialogdaten",
+  "uid": "20782335-128f-4408-8033-c6d7ed0f02e0",
+  "name": "Dialogdaten Editor",
+  "daten_before": {
+   "ROOT": {
+    "TABS": 0,
+    "TABLE": "sys_dialogdaten",
+    "HEADER": "",
+    "OPEN_EDIT": "",
+    "SELF_GUID": "20782335-128f-4408-8033-c6d7ed0f02e0",
+    "SELF_NAME": "Dialogdaten Editor",
+    "DIALOG_TYPE": "norm",
+    "TAB_ELEMENTS": {},
+    "SELF_GILT_BIS": "9999365.99999",
+    "SELF_LINK_UID": "20782335-128f-4408-8033-c6d7ed0f02e0",
+    "SELECTION_MODE": "",
+    "SELF_CREATED_AT": "2026156.42073",
+    "SELF_MODIFIED_AT": "2026156.42073"
+   },
+   "TEMPLATES": {
+    "TABLE_INFO": {
+     "version": "2.0",
+     "created_at": "2026-02-14T16:16:27.347142",
+     "created_by": "system",
+     "description": "",
+     "schema_migrated": true
+    },
+    "TAB_ELEMENTS": {
+     "TAB_01": {
+      "TAB": 0,
+      "GUID": "",
+      "HEAD": "",
+      "TABLE": "",
+      "MODULE": "",
+      "EDIT_TYPE": "",
+      "OPEN_EDIT": "",
+      "SELECTION_MODE": ""
+     }
+    }
+   }
+  },
+  "deleted": true
+ },
+ {
+  "table": "sys_dialogdaten",
+  "uid": "d7e09e1c-dec3-4842-b232-9eb7b719aceb",
+  "name": "Ein Dialog zum Test",
+  "daten_before": {
+   "ROOT": {
+    "TABS": 0,
+    "TABLE": "sys_dialogdaten",
+    "HEADER": "",
+    "OPEN_EDIT": "",
+    "SELF_GUID": "d7e09e1c-dec3-4842-b232-9eb7b719aceb",
+    "SELF_NAME": "Ein Dialog zum Test",
+    "DIALOG_TYPE": "norm",
+    "TAB_ELEMENTS": {},
+    "SELF_GILT_BIS": "9999365.99999",
+    "SELF_LINK_UID": "d7e09e1c-dec3-4842-b232-9eb7b719aceb",
+    "SELECTION_MODE": "",
+    "SELF_CREATED_AT": "2026168.72262",
+    "SELF_MODIFIED_AT": "2026311.55830"
+   }
+  },
+  "deleted": true
+ },
+ {
+  "table": "sys_dialogdaten",
+  "uid": "b844a2d4-8d55-40a4-859f-06966f8b8c57",
+  "name": "Dialogdaten Editor",
+  "daten_before": {
+   "ROOT": {
+    "TABS": 0,
+    "TABLE": "sys_dialogdaten",
+    "HEADER": "",
+    "OPEN_EDIT": "",
+    "SELF_GUID": "b844a2d4-8d55-40a4-859f-06966f8b8c57",
+    "SELF_NAME": "Dialogdaten Editor",
+    "DIALOG_TYPE": "norm",
+    "TAB_ELEMENTS": {},
+    "SELF_GILT_BIS": "9999365.99999",
+    "SELF_LINK_UID": "b844a2d4-8d55-40a4-859f-06966f8b8c57",
+    "SELECTION_MODE": "",
+    "SELF_CREATED_AT": "2026156.43035",
+    "SELF_MODIFIED_AT": "2026156.43035"
+   },
+   "TEMPLATES": {
+    "TABLE_INFO": {
+     "version": "2.0",
+     "created_at": "2026-02-14T16:16:27.347142",
+     "created_by": "system",
+     "description": "",
+     "schema_migrated": true
+    },
+    "TAB_ELEMENTS": {
+     "TAB_01": {
+      "TAB": 0,
+      "GUID": "",
+      "HEAD": "",
+      "TABLE": "",
+      "MODULE": "",
+      "EDIT_TYPE": "",
+      "OPEN_EDIT": "",
+      "SELECTION_MODE": ""
+     }
+    }
+   }
+  },
+  "deleted": true
+ }
+]

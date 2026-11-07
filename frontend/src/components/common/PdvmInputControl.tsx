@@ -31,6 +31,8 @@ export type PdvmElementField = {
   display_order?: number
 }
 
+const PDVM_GILT_BIS_OPEN = 9999365.99999
+
 function asObject(value: any): Record<string, any> {
   return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, any>) : {}
 }
@@ -245,6 +247,18 @@ function normalizeInputType(value: any): PdvmInputType {
   if (t === 'elemente_list') return 'elemente_list'
   if (t === 'group_list') return 'group_list'
   return 'string'
+}
+
+function normalizeFieldToken(value: any): string {
+  return String(value || '')
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '')
+}
+
+function isSelfGiltBisField(value: any): boolean {
+  const token = normalizeFieldToken(value)
+  return token === 'ROOTSELFGILTBIS' || token === 'SELFGILTBIS'
 }
 
 function normalizeMultiDropdownValue(value: any): string[] {
@@ -671,6 +685,18 @@ export function PdvmInputControl(props: {
     if (effectiveType !== 'datetime' && effectiveType !== 'date' && effectiveType !== 'time') return null
     return toPickerIsoValue(props.value, dateTimeMode)
   }, [effectiveType, props.value, dateTimeMode])
+  const showOpenGiltBisButton = useMemo(() => {
+    if (!(effectiveType === 'datetime' || effectiveType === 'date' || effectiveType === 'time')) return false
+
+    const candidates = [
+      controlDebugFieldKey,
+      (controlDebugRaw as any)?.FIELD_KEY,
+      props.id,
+      props.label,
+    ]
+
+    return candidates.some((entry) => isSelfGiltBisField(entry))
+  }, [effectiveType, controlDebugFieldKey, controlDebugRaw, props.id, props.label])
 
   useEffect(() => {
     if (debugFieldRef.current === controlDebugFieldKey) return
@@ -1312,20 +1338,33 @@ export function PdvmInputControl(props: {
         ) : null}
 
         {(effectiveType === 'datetime' || effectiveType === 'date' || effectiveType === 'time') ? (
-          <PdvmDateTimePicker
-            value={pickerIsoValue}
-            onChange={(newIso) => {
-              const pdvmValue = fromPickerIsoToPdvm(newIso, dateTimeMode)
-              props.onChange(pdvmValue)
-            }}
-            onClear={() => props.onChange(null)}
-            allowClear
-            mode={dateTimeMode}
-            showTime={effectiveType !== 'date'}
-            label={props.placeholder || props.label}
-            readOnly={disabled}
-            popoverAlign="auto"
-          />
+          <div className="pdvm-pic__datetimeRow">
+            <PdvmDateTimePicker
+              value={pickerIsoValue}
+              onChange={(newIso) => {
+                const pdvmValue = fromPickerIsoToPdvm(newIso, dateTimeMode)
+                props.onChange(pdvmValue)
+              }}
+              onClear={() => props.onChange(null)}
+              allowClear
+              mode={dateTimeMode}
+              showTime={effectiveType !== 'date'}
+              label={props.placeholder || props.label}
+              readOnly={disabled}
+              popoverAlign="auto"
+            />
+            {showOpenGiltBisButton ? (
+              <button
+                type="button"
+                className="pdvm-pic__openBtn"
+                disabled={disabled}
+                onClick={() => props.onChange(PDVM_GILT_BIS_OPEN)}
+                title="Setzt GILT_BIS auf offen (31.12.9999 23:59)"
+              >
+                offen
+              </button>
+            ) : null}
+          </div>
         ) : null}
 
         {effectiveType === 'multi_dropdown' ? (
