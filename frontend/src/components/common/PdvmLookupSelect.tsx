@@ -176,7 +176,7 @@ export function PdvmLookupSelect(props: {
             width: '100%',
             height: 34,
             borderRadius: 8,
-            border: '1px solid var(--color-border-medium, rgba(0,0,0,0.24))',
+            border: '1px solid var(--color-border-medium)',
             padding: '8px 10px',
             font: 'inherit',
             boxSizing: 'border-box',
@@ -213,10 +213,10 @@ export function PdvmLookupSelect(props: {
             width: '100%',
             minHeight: 34,
             borderRadius: 8,
-            border: '1px solid var(--color-border-medium, rgba(0,0,0,0.24))',
+            border: '1px solid var(--color-border-medium)',
             padding: '8px 10px',
             font: 'inherit',
-            background: 'var(--color-background-primary, white)',
+            background: 'var(--color-background-primary)',
             boxSizing: 'border-box',
             cursor: canInteract ? 'pointer' : 'default',
             opacity: current ? 1 : 0.8,
@@ -228,7 +228,7 @@ export function PdvmLookupSelect(props: {
       ) : null}
 
       {showMissingTableHint ? (
-        <div style={{ color: '#b42318', fontSize: 12 }}>
+        <div style={{ color: 'var(--color-error-text)', fontSize: 12 }}>
           Keine Lookup-Tabelle konfiguriert. Bitte `CONFIGS.go_select_view.table` setzen.
         </div>
       ) : null}
@@ -241,8 +241,8 @@ export function PdvmLookupSelect(props: {
             maxHeight: 240,
             overflowY: 'auto',
             borderRadius: 8,
-            border: '1px solid var(--color-border-medium, rgba(0,0,0,0.24))',
-            background: 'var(--color-background-primary, white)',
+            border: '1px solid var(--color-border-medium)',
+            background: 'var(--color-background-primary)',
             boxSizing: 'border-box',
           }}
         >
@@ -262,8 +262,8 @@ export function PdvmLookupSelect(props: {
                     padding: '8px 10px',
                     cursor: 'pointer',
                     font: 'inherit',
-                    background: active ? 'rgba(34, 116, 71, 0.14)' : 'transparent',
-                    borderTop: idx > 0 ? '1px solid rgba(0,0,0,0.06)' : 'none',
+                    background: active ? 'var(--state-selected)' : 'transparent',
+                                        borderTop: idx > 0 ? '1px solid var(--color-divider)' : 'none',
                     fontWeight: selected ? 700 : 400,
                   }}
                 >
@@ -277,7 +277,7 @@ export function PdvmLookupSelect(props: {
         </div>
       ) : null}
 
-      {query.isError ? <div style={{ color: 'crimson', fontSize: 12 }}>Lookup Fehler</div> : null}
+      {query.isError ? <div style={{ color: 'var(--color-error-text)', fontSize: 12 }}>Lookup Fehler</div> : null}
     </div>
   )
 }

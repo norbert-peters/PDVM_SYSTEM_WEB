@@ -185,6 +185,25 @@ def has_admin_or_develop_rights(current_user: dict) -> bool:
     return has_admin_rights(current_user) or has_develop_rights(current_user)
 
 
+def has_overlay_rights(current_user: dict) -> bool:
+    """Rolle 'overlay' (asy_benutzer.PERMISSIONS.ROLES): darf Mandanten-Overlays/Theme-Einstellungen aendern.
+
+    Bewusst unabhaengig von 'admin': Die Rolle wird ausdruecklich vergeben.
+    """
+    return "overlay" in _normalized_security_roles(current_user)
+
+
+async def require_overlay_user(current_user: dict = Depends(get_current_user)) -> dict:
+    """Dependency: erlaubt nur Benutzer mit der Rolle 'overlay'."""
+    if has_overlay_rights(current_user):
+        return current_user
+
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Rolle 'overlay' erforderlich",
+    )
+
+
 async def require_admin_user(current_user: dict = Depends(get_current_user)) -> dict:
     """Dependency: erlaubt nur Admin-User."""
     if has_admin_rights(current_user):

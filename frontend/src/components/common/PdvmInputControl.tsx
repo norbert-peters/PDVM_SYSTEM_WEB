@@ -2,10 +2,15 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { PdvmDialogModal } from './PdvmDialogModal'
 import { PdvmLookupSelect } from './PdvmLookupSelect'
 import { PdvmDateTimePicker } from './PdvmDateTimePicker'
+import { PdvmBorderInput, PdvmColorInput, PdvmFontInput, PdvmLengthInput } from './PdvmThemeInputs'
+import { PdvmThemePreview } from './PdvmThemePreview'
 import { dateToPdvmFloat, pdvmFloatToDate, pdvmNowFloat } from '../../utils/pdvmDateTime'
+import { readRootCssVar } from '../../utils/themeTokens'
 import './PdvmInputControl.css'
 
 export type PdvmInputType = 'string' | 'number' | 'text' | 'dropdown' | 'multi_dropdown' | 'true_false' | 'datetime' | 'date' | 'time' | 'go_select_view' | 'element_list' | 'elemente_list' | 'group_list'
+  // Theme-Typen (P3): Werte sind CSS-Strings, theme_preview erhaelt {gruppe: {token: wert}}
+  | 'color' | 'css_length' | 'css_border' | 'font_family' | 'theme_preview'
 
 export type PdvmDropdownOption = { value: string; label: string; disabled?: boolean }
 export type PdvmElementDefinition = {
@@ -246,6 +251,7 @@ function normalizeInputType(value: any): PdvmInputType {
   if (t === 'element_list') return 'element_list'
   if (t === 'elemente_list') return 'elemente_list'
   if (t === 'group_list') return 'group_list'
+  if (t === 'color' || t === 'css_length' || t === 'css_border' || t === 'font_family' || t === 'theme_preview') return t
   return 'string'
 }
 
@@ -489,6 +495,8 @@ export function PdvmInputControl(props: {
   onChange: (value: any) => void
   onBlur?: () => void
   readOnly?: boolean
+  /** Nur mit readOnly: Text bleibt markier- und kopierbar (HTML readonly statt disabled), z. B. fuer GUIDs im Info-Fenster. */
+  selectable?: boolean
   disabled?: boolean
   placeholder?: string
   options?: PdvmDropdownOption[]
@@ -550,6 +558,7 @@ export function PdvmInputControl(props: {
 
   const effectiveType = normalizeInputType((props as any).type)
   const disabled = !!props.disabled || !!props.readOnly
+  const copyable = !!props.selectable && !!props.readOnly && !props.disabled
   const effectiveLookupTable = useMemo(() => {
     return resolveGoSelectTableV11({
       resolvedConfigs: props.resolvedConfigs,
@@ -675,6 +684,14 @@ export function PdvmInputControl(props: {
   const trueFalseValue = useMemo(() => normalizeTrueFalseValue(props.value), [props.value])
   const textValue = useMemo(() => normalizeTextValue(props.value), [props.value])
   const stringValue = useMemo(() => normalizeStringValue(props.value), [props.value])
+  // Konfiguration der Theme-Typen: resolved_configs.theme_token = { contrast_against: {value|var, min, label} }
+  const themeTokenConfig = useMemo(() => asObject(readCfgValue(props.resolvedConfigs, ['theme_token'])), [props.resolvedConfigs])
+  const themeContrast = useMemo(() => {
+    const cfg = asObject(themeTokenConfig.contrast_against)
+    const against = String(cfg.value || '').trim() || (cfg.var ? readRootCssVar(String(cfg.var)) : '')
+    if (!against) return null
+    return { against, min: Number(cfg.min) > 0 ? Number(cfg.min) : 4.5, label: String(cfg.label || '').trim() || undefined }
+  }, [themeTokenConfig])
   const numberValue = useMemo(() => normalizeNumberValue(props.value), [props.value])
   const dateTimeMode = useMemo(() => {
     if (effectiveType === 'date') return 'date' as const
@@ -1146,7 +1163,7 @@ export function PdvmInputControl(props: {
           <span
             title={String(props.resolutionWarning || '').trim()}
             aria-label="Control-Warnung"
-            style={{ color: '#b42318', fontWeight: 700, marginLeft: 6 }}
+            style={{ color: 'var(--color-error-text)', fontWeight: 700, marginLeft: 6 }}
           >
             !
           </span>
@@ -1259,9 +1276,41 @@ export function PdvmInputControl(props: {
             type="text"
             value={stringValue}
             placeholder={props.placeholder}
-            disabled={disabled}
+            disabled={disabled && !copyable}
+            readOnly={copyable}
             onChange={(e) => props.onChange(e.target.value)}
             onBlur={props.onBlur}
+          />
+        ) : null}
+
+        {effectiveType === 'color' ? (
+          <PdvmColorInput
+            id={props.id}
+            value={stringValue}
+            placeholder={props.placeholder}
+            disabled={disabled}
+            contrast={themeContrast}
+            onChange={props.onChange}
+            onBlur={props.onBlur}
+          />
+        ) : null}
+
+        {effectiveType === 'css_length' ? (
+          <PdvmLengthInput id={props.id} value={stringValue} placeholder={props.placeholder} disabled={disabled} onChange={props.onChange} onBlur={props.onBlur} />
+        ) : null}
+
+        {effectiveType === 'css_border' ? (
+          <PdvmBorderInput id={props.id} value={stringValue} disabled={disabled} onChange={props.onChange} onBlur={props.onBlur} />
+        ) : null}
+
+        {effectiveType === 'font_family' ? (
+          <PdvmFontInput id={props.id} value={stringValue} options={props.options} disabled={disabled} onChange={props.onChange} onBlur={props.onBlur} />
+        ) : null}
+
+        {effectiveType === 'theme_preview' ? (
+          <PdvmThemePreview
+            tokens={asObject(props.value) as Record<string, Record<string, string>>}
+            mode={themeTokenConfig.mode === 'dark' ? 'dark' : themeTokenConfig.mode === 'light' ? 'light' : undefined}
           />
         ) : null}
 
@@ -1293,7 +1342,7 @@ export function PdvmInputControl(props: {
                 props.onChange(digitsOnly)
               }}
             />
-            {numberInputError ? <div style={{ marginTop: 6, fontSize: 12, color: '#b42318' }}>{numberInputError}</div> : null}
+            {numberInputError ? <div style={{ marginTop: 6, fontSize: 12, color: 'var(--color-error-text)' }}>{numberInputError}</div> : null}
           </>
         ) : null}
 
@@ -1303,7 +1352,8 @@ export function PdvmInputControl(props: {
             className="pdvm-pic__textarea"
             value={textValue}
             placeholder={props.placeholder}
-            disabled={disabled}
+            disabled={disabled && !copyable}
+            readOnly={copyable}
             rows={3}
             onBlur={props.onBlur}
             onChange={(e) => props.onChange(e.target.value)}
@@ -1503,9 +1553,9 @@ export function PdvmInputControl(props: {
               <div
                 style={{
                   fontSize: 12,
-                  color: '#b42318',
-                  border: '1px solid rgba(180,35,24,0.35)',
-                  background: 'rgba(180,35,24,0.08)',
+                  color: 'var(--color-error-text)',
+                  border: '1px solid var(--color-error-border)',
+                  background: 'var(--color-error-bg)',
                   borderRadius: 6,
                   padding: '6px 8px',
                 }}

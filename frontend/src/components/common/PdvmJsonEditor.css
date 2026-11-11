@@ -21,7 +21,7 @@
   top: 0;
   bottom: 0;
   width: 3px;
-  background: rgba(0, 0, 0, 0.14);
+  background: var(--color-border-dark);
   pointer-events: none;
   z-index: 2;
 }
@@ -53,34 +53,34 @@
 }
 
 .pdvm-jsoneditor__frame .jsoneditor-search {
-  background: var(--block-view-input-std-bg-color, #ffffff);
+  background: var(--block-view-input-std-bg-color, var(--color-background-primary));
   border: var(--block-view-input-std-border, 1px solid var(--color-border-medium));
-  color: var(--block-view-input-std-text-color, #111111);
+  color: var(--block-view-input-std-text-color, var(--color-text-primary));
 }
 
 .pdvm-jsoneditor__frame .jsoneditor-field,
 .pdvm-jsoneditor__frame .jsoneditor-value,
 .pdvm-jsoneditor__frame .jsoneditor-readonly {
-  color: var(--color-neutral-900);
+  color: var(--color-text-primary);
 }
 
 /* Ace editor (text mode) */
 .pdvm-jsoneditor__frame .ace_editor {
   background: var(--block-view-table-bg-color, var(--color-background-primary));
-  color: var(--color-neutral-900);
+  color: var(--color-text-primary);
 }
 
 .pdvm-jsoneditor__frame .ace_gutter {
   background: var(--color-background-secondary);
-  color: rgba(0, 0, 0, 0.55);
+  color: var(--color-text-secondary);
 }
 
 .pdvm-jsoneditor__frame .ace_active-line {
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--state-hover);
 }
 
 .pdvm-jsoneditor__frame .ace_cursor {
-  color: #000000;
+  color: var(--color-text-primary);
 }
 
 /* Ace search highlighting (text mode)
@@ -90,12 +90,12 @@
 .pdvm-jsoneditor__frame .ace_marker-layer .ace_find_highlight,
 .pdvm-jsoneditor__frame .ace_marker-layer .ace_highlight-marker,
 .pdvm-jsoneditor__frame .ace_marker-layer .ace_search_highlight {
-  background: rgba(255, 235, 59, 0.70);
-  border: 1px solid rgba(255, 193, 7, 0.85);
+  background: var(--color-highlight);
+  border: 1px solid var(--color-highlight-border);
   border-radius: 3px;
 }
 
 /* Selection should remain clearly visible too */
 .pdvm-jsoneditor__frame .ace_marker-layer .ace_selection {
-  background: rgba(33, 150, 243, 0.25);
+  background: var(--state-selected);
 }

@@ -1,9 +1,9 @@
 /* HorizontalMenu Styles */
 
 .horizontal-menu {
-  background: var(--color-background-primary);
-  border-bottom: 1px solid var(--color-border-medium);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: var(--block-menu-horizontal-bg-color, var(--color-background-primary));
+  border-bottom: var(--block-menu-horizontal-border-bottom, 1px solid var(--color-border-medium));
+  box-shadow: var(--block-menu-horizontal-shadow, var(--shadow-sm));
   position: sticky;
   top: calc(var(--header-height) + var(--stichtagsbar-height));
   z-index: calc(var(--z-sticky) - 2);
@@ -29,7 +29,7 @@
   padding: 0.5rem 1rem;
   background: transparent;
   border: none;
-  color: var(--color-text-primary);
+  color: var(--block-menu-button-text-color, var(--color-text-primary));
   font-size: 0.9rem;
   cursor: pointer;
   border-radius: 4px;
@@ -38,7 +38,7 @@
 }
 
 .horizontal-menu-button:hover:not(:disabled) {
-  background: var(--color-background-secondary);
+  background: var(--block-menu-button-hover-bg, var(--color-background-secondary));
 }
 
 .horizontal-menu-button:disabled {
@@ -47,11 +47,11 @@
 }
 
 .horizontal-menu-button.open {
-  background: var(--color-background-secondary);
+  background: var(--block-menu-button-active-bg, var(--color-background-secondary));
 }
 
 .horizontal-menu-button.active {
-  background: var(--color-background-secondary);
+  background: var(--block-menu-button-active-bg, var(--color-background-secondary));
   box-shadow: inset 0 -2px 0 var(--color-primary-500);
 }
 
@@ -74,10 +74,10 @@
   top: 100%;
   left: 0;
   min-width: 200px;
-  background: var(--color-background-primary);
-  border: 1px solid var(--color-border-medium);
+  background: var(--block-menu-dropdown-bg-color, var(--color-background-primary));
+  border: var(--block-menu-dropdown-border, 1px solid var(--color-border-medium));
   border-radius: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--block-menu-dropdown-shadow, var(--shadow-md));
   z-index: 1000;
   margin-top: 0.25rem;
   /* overflow: hidden;  <-- REMOVED to allow nested dropdowns */
@@ -114,7 +114,7 @@
 }
 
 .horizontal-menu-dropdown .horizontal-menu-button:hover {
-  background: var(--color-background-secondary);
+  background: var(--block-menu-button-hover-bg, var(--color-background-secondary));
 }
 
 /* Separator im Dropdown: Horizontale Linie */

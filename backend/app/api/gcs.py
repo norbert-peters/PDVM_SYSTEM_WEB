@@ -233,31 +233,3 @@ async def save_all_gcs_values(gcs = Depends(get_gcs_instance)):
         "message": "GCS-Werte gespeichert"
     }
 
-
-@router.get("/theme")
-async def get_theme_colors(gcs = Depends(get_gcs_instance)):
-    """
-    Liefert Theme-Farben aus msy_layout
-    
-    Liest THEME_GUID aus Mandant-CONFIG und holt Farbschema aus msy_layout.
-    Falls der Datensatz dort fehlt, erfolgt in der GCS-Initialisierung ein
-    Legacy-Fallback auf sys_layout mit Self-Heal nach msy_layout.
-    Liefert alle COLOR-Gruppen (PRIMARY, BACKGROUND, TEXT, etc.)
-    
-    Returns:
-        Dict mit allen Farbwerten des aktuellen Themes
-    """
-    if not gcs.layout:
-        raise HTTPException(
-            status_code=404,
-            detail="Kein Theme konfiguriert für diesen Mandanten"
-        )
-    
-    # Alle Farb-Gruppen aus Theme-Instanz holen
-    # Typische Gruppen: PRIMARY, SECONDARY, BACKGROUND, TEXT, BORDER, etc.
-    theme_data = gcs.layout.data
-    
-    return {
-        "theme_guid": str(gcs.layout.guid),
-        "colors": theme_data
-    }

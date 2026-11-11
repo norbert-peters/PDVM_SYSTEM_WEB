@@ -3,8 +3,8 @@
 .vertical-menu {
   width: 240px;
   height: 100%;
-  background: var(--surface-primary);
-  border-right: 1px solid var(--border-color);
+  background: var(--block-menu-vertical-bg-color, var(--color-background-primary));
+  border-right: var(--block-menu-vertical-border-right, 1px solid var(--color-border-medium));
   overflow-y: auto;
   flex-shrink: 0;
 }
@@ -25,7 +25,7 @@ body.pdvm-vertical-menu-hidden .vertical-menu {
   padding: 0.75rem 1.5rem;
   background: transparent;
   border: none;
-  color: var(--text-primary);
+  color: var(--block-menu-button-text-color, var(--color-text-primary));
   font-size: 0.95rem;
   cursor: pointer;
   transition: background-color 0.2s;
@@ -34,8 +34,8 @@ body.pdvm-vertical-menu-hidden .vertical-menu {
 }
 
 .vertical-menu-button:hover:not(:disabled) {
-  background: var(--surface-hover);
-  border-left-color: var(--primary-color);
+  background: var(--block-menu-button-hover-bg, var(--state-hover));
+  border-left-color: var(--color-primary-500);
 }
 
 .vertical-menu-button:disabled {
@@ -81,13 +81,13 @@ body.pdvm-vertical-menu-hidden .vertical-menu {
 }
 
 .vertical-menu-button.open {
-  background: var(--surface-hover);
-  border-left-color: var(--primary-color);
+  background: var(--block-menu-button-active-bg, var(--state-hover));
+  border-left-color: var(--color-primary-500);
 }
 
 .vertical-menu-button.active {
-  background: var(--surface-hover);
-  border-left-color: var(--primary-color);
+  background: var(--block-menu-button-active-bg, var(--state-hover));
+  border-left-color: var(--color-primary-500);
   font-weight: 700;
 }
 
@@ -101,7 +101,7 @@ body.pdvm-vertical-menu-hidden .vertical-menu {
   left: 0;
   top: 0;
   width: 100%;
-  background: var(--surface-secondary, rgba(0, 0, 0, 0.03));
+  background: var(--block-menu-dropdown-bg-color, var(--state-subtle));
   border: none;
   box-shadow: none;
   padding-left: 1rem; /* Indentation for nested levels */
@@ -125,7 +125,7 @@ body.pdvm-vertical-menu-hidden .vertical-menu {
 }
 
 .vertical-menu-dropdown .vertical-menu-button:hover:not(:disabled) {
-  background: var(--surface-hover);
+  background: var(--block-menu-button-hover-bg, var(--state-hover));
   border-left-color: transparent;
 }
 
@@ -149,13 +149,6 @@ body.pdvm-vertical-menu-hidden .vertical-menu {
   padding-left: 3.5rem;
 }
 
-/* Dark Mode Dropdown */
-.dark .vertical-menu-dropdown {
-  background: var(--surface-primary);
-  border-color: var(--border-color);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-}
-
 /* Scrollbar Styling */
 .vertical-menu::-webkit-scrollbar {
   width: 6px;
@@ -166,24 +159,10 @@ body.pdvm-vertical-menu-hidden .vertical-menu {
 }
 
 .vertical-menu::-webkit-scrollbar-thumb {
-  background: var(--border-color);
+  background: var(--color-border-medium);
   border-radius: 3px;
 }
 
 .vertical-menu::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary);
-}
-
-/* Dark Mode */
-.dark .vertical-menu {
-  background: var(--surface-primary);
-  border-right-color: var(--border-color);
-}
-
-.dark .vertical-menu-button {
-  color: var(--text-primary);
-}
-
-.dark .vertical-menu-button:hover:not(:disabled) {
-  background: var(--surface-hover);
+  background: var(--color-text-secondary);
 }

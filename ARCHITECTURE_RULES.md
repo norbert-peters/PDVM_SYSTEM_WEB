@@ -686,6 +686,11 @@ Bei der Implementierung von Kern-Funktionalitäten ist die Einhaltung der dedizi
 *   Styling erfolgt ausschließlich über **Style Blocks** (z.B. `block_header_std`, `block_input_std`).
 *   Verwendung von `--block-*` CSS-Variablen ist Pflicht für konfigurierbare Komponenten.
 *   Die Fallback-Kette (Block -> Variable -> Default) muss eingehalten werden.
+*   Das aktive Theme wird serverseitig aus Paket, Mandanten- und Benutzer-Overlay aufgelöst (`GET /api/layout/resolved`, Details in `THEMING_SYSTEM.md` Abschnitt 6); das Token-Schema liegt in `backend/app/core/theme_schema.py`.
+*   Farbliterale (`#hex`, `rgb()`, `hsl()`, benannte Farben) stehen nur in `frontend/src/styles/base/variables.css`; `backend/test_frontend_theme_guard.py` erzwingt das (Ausnahme nur mit Zeilenmarker `guard-allow-color`).
+*   Neue `--block-*`-Variablen müssen im Token-Schema existieren; neue Strukturvarianten brauchen Katalogeintrag (`layout_schema.py`) und CSS (`styles/layouts/variants.css`).
+*   Schreibzugriffe auf Overlays und Theme-Einstellungen laufen über `central_write_service` (Rolle `overlay`, Router ohne SQL, Regel 1.1); Overlays und Einstellungen werden strikt validiert.
+*   Kontrast: Pflichtpaare unter WCAG AA (4,5:1) dürfen nicht gespeichert werden (`theme_service.contrast_errors`); neue Pakete mit `backend/tools/fix_theme_contrast_v1.py` prüfen (siehe `THEMING_SYSTEM.md` Abschnitt 9).
 
 ### 4.3 Menu System (`docs/specs/MENU_SYSTEM.md`)
 **Regel:** Menü-Struktur folgt strikter Hierarchie und Berechtigung.

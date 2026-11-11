@@ -5,7 +5,7 @@
   inset: 0;
   z-index: 1000;
 
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--block-dialog-modal-overlay-color, var(--color-overlay));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -18,10 +18,11 @@
   width: min(620px, 96vw);
   max-height: min(80vh, 780px);
 
-  background: var(--color-background-primary, #fff);
-  border: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.12));
-  border-radius: var(--border-radius-md, 10px);
-  box-shadow: var(--shadow-lg, 0 18px 45px rgba(0, 0, 0, 0.22));
+  background: var(--block-dialog-modal-bg-color, var(--color-background-primary));
+  color: var(--block-dialog-modal-text-color, var(--color-text-primary));
+  border: var(--block-dialog-modal-border, 1px solid var(--color-border-light));
+  border-radius: var(--block-dialog-modal-radius, var(--border-radius-md));
+  box-shadow: var(--block-dialog-modal-shadow, var(--shadow-lg));
 
   display: flex;
   flex-direction: column;
@@ -34,7 +35,7 @@
   gap: 12px;
 
   padding: 12px 14px;
-  border-bottom: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.10));
+  border-bottom: 1px solid var(--block-dialog-modal-divider-color, var(--color-divider));
 }
 
 .pdvm-modal__title {
@@ -49,8 +50,9 @@
   line-height: 30px;
   border-radius: 10px;
 
-  border: 1px solid var(--color-border-medium, rgba(0, 0, 0, 0.18));
-  background: var(--color-background-primary, #fff);
+  border: 1px solid var(--color-border-medium);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
   cursor: pointer;
   user-select: none;
 }
@@ -89,16 +91,16 @@
 }
 
 .pdvm-modal__required {
-  color: crimson;
+  color: var(--color-error-text);
   margin-left: 4px;
 }
 
 .pdvm-modal__input,
 .pdvm-modal__textarea {
-  border-radius: var(--border-radius-md, 10px);
-  border: 1px solid var(--color-border-medium, rgba(0, 0, 0, 0.18));
-  background: var(--color-background-primary, #fff);
-  color: var(--color-neutral-900, #111);
+  border-radius: var(--block-input-std-radius, var(--border-radius-md));
+  border: var(--block-input-std-border, 1px solid var(--color-border-medium));
+  background: var(--block-input-std-bg-color, var(--color-background-primary));
+  color: var(--block-input-std-text-color, var(--color-text-primary));
 
   padding: 8px 10px;
   font-size: 13px;
@@ -140,17 +142,17 @@
 .pdvm-modal__input:focus,
 .pdvm-modal__textarea:focus {
   outline: none;
-  border-color: rgba(80, 160, 255, 0.8);
-  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.18);
+  border-color: var(--state-focus-border);
+  box-shadow: 0 0 0 3px var(--state-focus-ring);
 }
 
 .pdvm-modal__error {
   margin-top: 10px;
   padding: 8px 10px;
-  border-radius: var(--border-radius-md, 10px);
-  border: 1px solid rgba(220, 20, 60, 0.28);
-  background: rgba(220, 20, 60, 0.08);
-  color: #7a0b20;
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--color-error-border);
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
   font-size: 12px;
 }
 
@@ -160,16 +162,17 @@
   gap: 10px;
 
   padding: 12px 14px;
-  border-top: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.10));
+  border-top: 1px solid var(--block-dialog-modal-divider-color, var(--color-divider));
 }
 
 .pdvm-modal__btn {
   height: 32px;
   padding: 0 12px;
-  border-radius: var(--border-radius-md, 10px);
+  border-radius: var(--border-radius-md);
 
-  border: 1px solid var(--color-border-medium, rgba(0, 0, 0, 0.18));
-  background: var(--color-background-primary, #fff);
+  border: 1px solid var(--color-border-medium);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
   cursor: pointer;
   user-select: none;
 }
@@ -180,11 +183,11 @@
 }
 
 .pdvm-modal__btn--primary {
-  border: 1px solid var(--color-primary-600, #1d63c6);
-  background: var(--color-primary-500, #2f7de1);
-  color: var(--color-text-inverse, #fff);
+  border: 1px solid var(--block-btn-primary-bg-color, var(--color-primary-600));
+  background: var(--block-btn-primary-bg-color, var(--color-primary-500));
+  color: var(--block-btn-primary-text-color, var(--color-text-inverse));
 }
 
 .pdvm-modal__btn--primary:hover {
-  background: var(--color-primary-600, #1d63c6);
+  background: var(--block-btn-primary-hover-bg, var(--color-primary-600));
 }

@@ -1,0 +1,106 @@
+/*
+ * PDVM System - Layout-Varianten (Strukturkatalog, P5)
+ *
+ * Die Varianten werden pro Benutzer vom Server aufgeloest (Mandanten-Vorgabe + Benutzerwahl) und vom
+ * ThemeProvider als Attribute auf <html> gesetzt: data-layout-header, data-layout-shell, data-layout-dichte,
+ * data-layout-form, data-layout-tabelle. Der Katalog liegt in backend/app/core/layout_schema.py; jede dort
+ * eingetragene Option MUSS hier eine Entsprechung haben (backend/test_frontend_theme_guard.py prueft das).
+ * Die Standardvariante ("standard") braucht keine Regeln, sie entspricht den Basis-Styles.
+ */
+
+/* ===== Kopfzeile: kompakt ===== */
+:root[data-layout-header="kompakt"] {
+  --header-height: 48px;
+  --stichtagsbar-height: 36px;
+}
+
+:root[data-layout-header="kompakt"] .app-header {
+  padding: 0 var(--spacing-md);
+  gap: var(--spacing-md);
+}
+
+:root[data-layout-header="kompakt"] .header-logo img {
+  height: 28px;
+}
+
+:root[data-layout-header="kompakt"] .header-app-title {
+  font-size: var(--font-size-md);
+}
+
+:root[data-layout-header="kompakt"] .header-mandant-address,
+:root[data-layout-header="kompakt"] .user-role {
+  display: none;
+}
+
+/* ===== Navigation (Menüleisten): schmal / breit ===== */
+:root[data-layout-shell="schmal"] {
+  --sidebar-width: 200px;
+  --sidebar-collapsed-width: 52px;
+  --horizontal-menu-height: 40px;
+}
+
+:root[data-layout-shell="breit"] {
+  --sidebar-width: 280px;
+  --horizontal-menu-height: 52px;
+}
+
+/* ===== Dichte: kompakt / luftig (Abstandsskala, Formularfelder, Tabellenzellen) ===== */
+:root[data-layout-dichte="kompakt"] {
+  --spacing-xs: 2px;
+  --spacing-sm: 6px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-2xl: 32px;
+  --density-pic-pad: 5px 8px;
+  --density-pic-gap: 3px;
+  --density-control-pad: 5px 8px;
+  --density-cell-pad: 5px 8px;
+}
+
+:root[data-layout-dichte="luftig"] {
+  --spacing-xs: 6px;
+  --spacing-sm: 12px;
+  --spacing-md: 20px;
+  --spacing-lg: 32px;
+  --spacing-xl: 40px;
+  --spacing-2xl: 56px;
+  --density-pic-pad: 12px 14px;
+  --density-pic-gap: 8px;
+  --density-control-pad: 11px 12px;
+  --density-cell-pad: 14px 16px;
+}
+
+/* ===== Formular: flach / Beschriftung links ===== */
+:root[data-layout-form="flach"] .pdvm-pic {
+  border-color: transparent;
+  background: transparent;
+  padding-inline: 0;
+}
+
+:root[data-layout-form="label-links"] .pdvm-pic {
+  display: grid;
+  grid-template-columns: minmax(120px, 30%) minmax(0, 1fr);
+  column-gap: 12px;
+  align-items: start;
+}
+
+:root[data-layout-form="label-links"] .pdvm-pic > * {
+  grid-column: 2;
+}
+
+:root[data-layout-form="label-links"] .pdvm-pic > .pdvm-pic__labelRow {
+  grid-column: 1;
+  grid-row: 1;
+  padding-top: 8px;
+}
+
+/* ===== Tabellen: zebra / linien ===== */
+:root[data-layout-tabelle="zebra"] .pdvm-view__table tbody tr:nth-child(even) {
+  background: var(--state-subtle);
+}
+
+:root[data-layout-tabelle="linien"] .pdvm-view__table th,
+:root[data-layout-tabelle="linien"] .pdvm-view__table td {
+  border: 1px solid var(--color-divider);
+}

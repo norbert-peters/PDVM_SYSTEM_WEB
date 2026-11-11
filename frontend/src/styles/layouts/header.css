@@ -48,11 +48,11 @@
   gap: var(--spacing-sm);
   font-weight: var(--font-weight-semibold);
   font-size: var(--font-size-lg);
-  color: var(--color-primary-700);
+  color: var(--color-text-primary);
   cursor: pointer;
   flex-shrink: 0;
   padding: var(--spacing-xs) var(--spacing-md);
-  background: linear-gradient(135deg, var(--color-primary-50), transparent);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-primary-500) 14%, transparent), transparent);
   border-radius: var(--border-radius-md);
 }
 
@@ -87,10 +87,9 @@
   
   /* Text Color: Block override or fallback to fixed inverse */
   color: var(--block-stichtag-std-text-color, var(--color-text-inverse));
-  
-  /* Update local semantic variables so children inherit correctly */
-  --color-text-primary: var(--block-stichtag-std-text-color, var(--color-text-inverse));
-  --color-text-secondary: var(--block-stichtag-std-text-color, var(--color-text-inverse));
+
+  /* Die globalen --color-text-* werden hier bewusst NICHT ueberschrieben: Das Eingabefeld und das Popover des
+     DateTimePickers liegen in der Leiste und haengen an eigenen Flaechenfarben (siehe Feld-/Popover-Tokens). */
   
   border: var(--block-stichtag-std-border, 1px solid var(--color-primary-600));
   border-radius: var(--block-stichtag-std-radius, 0);
@@ -118,7 +117,7 @@
 }
 
 .stichtags-bar-heading {
-  color: var(--color-text-primary);
+  color: inherit;
   font-weight: var(--font-weight-bold);
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -136,13 +135,13 @@
 }
 
 .stichtags-bar-label {
-  color: var(--color-text-secondary); /* Will use the local override */
+  color: inherit;
   font-weight: var(--font-weight-medium);
   opacity: 0.9;
 }
 
 .stichtags-bar-value {
-  color: var(--color-text-primary); /* Will use the local override */
+  color: inherit;
   font-weight: var(--font-weight-semibold);
   white-space: nowrap;
   overflow: hidden;
@@ -150,10 +149,47 @@
 }
 
 .stichtags-bar-error {
-  color: var(--color-text-inverse);
+  color: inherit;
   opacity: 0.9;
   font-size: var(--font-size-xs);
   margin-left: var(--spacing-md);
+}
+
+/* Eingabefeld der Leiste: eigene Feldfarben (Fallback: Formularfelder block_pic_std) */
+.stichtags-bar .pdvm-datetime-input-wrapper,
+.stichtags-bar .pdvm-datetime-input-wrapper:hover {
+  background-color: var(--block-stichtag-std-field-bg-color, var(--block-pic-std-bg-color, var(--color-background-primary)));
+}
+
+.stichtags-bar .pdvm-datetime-text {
+  color: var(--block-stichtag-std-field-text-color, var(--block-pic-std-text-color, var(--color-text-primary)));
+}
+
+/* "Jetzt": setzt den Stichtag sofort auf aktuelles Datum und aktuelle Uhrzeit */
+.stichtags-bar-now {
+  padding: 4px 10px;
+  font: inherit;
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  white-space: nowrap;
+  color: var(--block-stichtag-std-field-text-color, var(--block-pic-std-text-color, var(--color-text-primary)));
+  background-color: var(--block-stichtag-std-field-bg-color, var(--block-pic-std-bg-color, var(--color-background-primary)));
+  border: var(--block-pic-std-border, 1px solid var(--color-border-medium));
+  border-radius: var(--block-pic-std-radius, 4px);
+}
+
+.stichtags-bar-now:hover:not(:disabled) {
+  border-color: var(--color-primary-500);
+}
+
+.stichtags-bar-now:focus-visible {
+  outline: 2px solid var(--state-focus-border);
+  outline-offset: 1px;
+}
+
+.stichtags-bar-now:disabled {
+  cursor: default;
+  opacity: 0.6;
 }
 
 /* ===== Spacer ===== */
@@ -213,7 +249,7 @@
   height: 32px;
   border-radius: var(--border-radius-full);
   background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-700));
-  color: white;
+  color: var(--color-text-inverse);
   display: flex;
   align-items: center;
   justify-content: center;

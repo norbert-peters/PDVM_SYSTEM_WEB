@@ -1,13 +1,13 @@
 /* Dashboard Container */
 .dashboard-container {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: var(--color-background-secondary);
 }
 
 /* Header Wrapper */
 .dashboard-header-wrapper {
-  background-color: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background-color: var(--block-header-std-bg-color, var(--color-background-primary));
+  box-shadow: var(--block-header-std-shadow, var(--shadow-sm));
 }
 
 /* Header Top - Kopfzeile mit Titel und Basis-Button */
@@ -16,14 +16,14 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem 2rem;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: var(--block-header-std-border-bottom, 1px solid var(--color-border-light));
 }
 
 /* Titel */
 .dashboard-title {
   font-size: 1.5rem;
   font-weight: bold;
-  color: #333;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
@@ -35,8 +35,8 @@
 /* Basis Menu Button */
 .dashboard-menu-button {
   padding: 0.5rem 1rem;
-  background-color: #007bff;
-  color: white;
+  background-color: var(--block-btn-primary-bg-color, var(--color-primary-500));
+  color: var(--block-btn-primary-text-color, var(--color-text-inverse));
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -45,7 +45,7 @@
 }
 
 .dashboard-menu-button:hover {
-  background-color: #0056b3;
+  background-color: var(--block-btn-primary-hover-bg, var(--color-primary-600));
 }
 
 /* Dropdown Menu */
@@ -54,10 +54,10 @@
   top: 100%;
   right: 0;
   margin-top: 0.5rem;
-  background-color: white;
-  border: 1px solid #ddd;
+  background-color: var(--block-menu-dropdown-bg-color, var(--color-background-primary));
+  border: var(--block-menu-dropdown-border, 1px solid var(--color-border-light));
   border-radius: 4px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--block-menu-dropdown-shadow, var(--shadow-md));
   min-width: 150px;
   z-index: 1000;
 }
@@ -71,11 +71,11 @@
   text-align: left;
   cursor: pointer;
   font-size: 0.95rem;
-  color: #333;
+  color: var(--block-menu-button-text-color, var(--color-text-primary));
 }
 
 .dashboard-dropdown-item:hover {
-  background-color: #f0f0f0;
+  background-color: var(--block-menu-button-hover-bg, var(--state-hover));
 }
 
 /* Horizontale Navigation (Vertikales Menü) */
@@ -83,7 +83,7 @@
   display: flex;
   gap: 0.5rem;
   padding: 0 2rem;
-  background-color: #f8f9fa;
+  background-color: var(--block-menu-vertical-bg-color, var(--color-background-secondary));
   overflow-x: auto;
 }
 
@@ -93,7 +93,7 @@
   gap: 0.5rem;
   padding: 0.75rem 1.25rem;
   text-decoration: none;
-  color: #333;
+  color: var(--block-menu-button-text-color, var(--color-text-primary));
   font-size: 0.95rem;
   font-weight: 500;
   white-space: nowrap;
@@ -102,8 +102,8 @@
 }
 
 .dashboard-nav-link:hover {
-  background-color: #e9ecef;
-  border-bottom-color: #007bff;
+  background-color: var(--block-menu-button-hover-bg, var(--state-hover-strong));
+  border-bottom-color: var(--color-primary-500);
 }
 
 .dashboard-nav-icon {
@@ -118,10 +118,10 @@
 }
 
 .dashboard-content {
-  background-color: white;
+  background-color: var(--block-card-std-bg-color, var(--color-background-primary));
   padding: 3rem;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--block-card-std-shadow, var(--shadow-sm));
   text-align: center;
 }
 
@@ -129,26 +129,26 @@
   font-size: 2rem;
   font-weight: 600;
   margin-bottom: 1rem;
-  color: #333;
+  color: var(--block-card-std-text-color, var(--color-text-primary));
 }
 
 .dashboard-welcome-text {
   font-size: 1.1rem;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 /* Loading and Error States */
 .dashboard-loading-text {
   text-align: center;
-  color: #666;
+  color: var(--color-text-secondary);
   font-size: 1rem;
 }
 
 .dashboard-error-text {
   text-align: center;
-  color: #dc3545;
+  color: var(--color-error-text);
   font-size: 1rem;
   padding: 1rem;
-  background-color: #f8d7da;
+  background-color: var(--color-error-bg);
   border-radius: 4px;
 }

@@ -8,7 +8,6 @@ import { Header } from './Header';
 import { StichtagsBar } from './StichtagsBar';
 import { Sidebar } from './Sidebar';
 import { HorizontalNav } from './HorizontalNav';
-import { useTheme } from '../../hooks/useTheme';
 import { useMenu } from '../../contexts/MenuContext';
 import { HorizontalMenu } from '../menu/HorizontalMenu';
 import { VerticalMenu } from '../menu/VerticalMenu';
@@ -56,13 +55,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const isViewRoute = location.pathname.startsWith('/view/');
   const menu = useMenu();
   const appHeading = toDisplayHeading(menu.currentApp);
-  
-  // Theme loading in background - don't block rendering
-  try {
-    useTheme();
-  } catch (error) {
-    console.error('Theme loading error:', error);
-  }
   
   // Lade Startmenü nach Mount
   useEffect(() => {

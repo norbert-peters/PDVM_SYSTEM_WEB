@@ -144,20 +144,20 @@ export default function Dashboard({ onLogout, mandantId, token }: DashboardProps
         <div className="dashboard-header-top">
           <h1 className="dashboard-title">PDVM System</h1>
           <div className="dashboard-mandant-info">
-            <span style={{color: '#666', fontSize: '0.9rem'}}>Mandant: {mandantId.substring(0, 8)}...</span>
+            <span style={{color: 'var(--color-text-secondary)', fontSize: '0.9rem'}}>Mandant: {mandantId.substring(0, 8)}...</span>
           </div>
           <div className="dashboard-header-actions">
             <button
               onClick={() => setShowMandantCreate(true)}
               className="dashboard-menu-button"
-              style={{ marginRight: '0.5rem', backgroundColor: '#28a745' }}
+              style={{ marginRight: '0.5rem', backgroundColor: 'var(--color-success)' }}
             >
               Neuer Mandant
             </button>
             <button
               onClick={() => setShowMandantSetup(true)}
               className="dashboard-menu-button"
-              style={{ marginRight: '1rem', backgroundColor: '#007bff' }}
+              style={{ marginRight: '1rem', backgroundColor: 'var(--color-primary-500)' }}
             >
               Mandant aufbauen
             </button>

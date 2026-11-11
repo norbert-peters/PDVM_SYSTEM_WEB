@@ -209,7 +209,7 @@ export default function MandantCreate({ token, onSuccess, onCancel }: MandantCre
         <h1 style={styles.title}>Neuen Mandanten anlegen</h1>
         
         {error && <div style={styles.error}>{error}</div>}
-        {validated && !error && <div style={{...styles.error, backgroundColor: '#d4edda', color: '#155724', border: '1px solid #c3e6cb'}}>Daten validiert. Klicken Sie auf "Speichern" um die Daten zu sichern.</div>}
+        {validated && !error && <div style={{...styles.error, backgroundColor: 'var(--color-success-bg)', color: 'var(--color-success-text)', border: '1px solid var(--color-success-border)'}}>Daten validiert. Klicken Sie auf "Speichern" um die Daten zu sichern.</div>}
         
         <form onSubmit={handleValidate}>
           {renderGroup('ROOT')}
@@ -237,7 +237,7 @@ export default function MandantCreate({ token, onSuccess, onCancel }: MandantCre
             <button
               type="button"
               onClick={handleCreate}
-              style={{...styles.submitButton, backgroundColor: validated ? '#28a745' : '#6c757d'}}
+              style={{...styles.submitButton, backgroundColor: validated ? 'var(--color-success)' : 'var(--color-text-secondary)'}}
               disabled={!validated || saving}
             >
               {saving ? 'Wird gespeichert...' : 'Speichern'}
@@ -255,15 +255,15 @@ const styles = {
     justifyContent: 'center',
     alignItems: 'flex-start',
     minHeight: '100vh',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: 'var(--color-background-secondary)',
     padding: '2rem',
     overflowY: 'auto' as const,
   },
   card: {
-    backgroundColor: 'white',
+    backgroundColor: 'var(--color-background-primary)',
     padding: '2rem',
     borderRadius: '8px',
-    boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+    boxShadow: 'var(--shadow-md)',
     width: '100%',
     maxWidth: '900px',
   },
@@ -271,15 +271,15 @@ const styles = {
     fontSize: '1.8rem',
     fontWeight: 'bold',
     marginBottom: '1.5rem',
-    color: '#333',
+    color: 'var(--color-text-primary)',
   },
   loading: {
     textAlign: 'center' as const,
-    color: '#666',
+    color: 'var(--color-text-secondary)',
   },
   error: {
-    backgroundColor: '#ffebee',
-    color: '#c62828',
+    backgroundColor: 'var(--color-error-bg)',
+    color: 'var(--color-error-text)',
     padding: '0.75rem',
     borderRadius: '4px',
     marginBottom: '1rem',
@@ -287,16 +287,16 @@ const styles = {
   group: {
     marginBottom: '2rem',
     padding: '1rem',
-    backgroundColor: '#f9f9f9',
+    backgroundColor: 'var(--color-background-secondary)',
     borderRadius: '6px',
-    border: '1px solid #e0e0e0',
+    border: '1px solid var(--color-border-light)',
   },
   groupTitle: {
     fontSize: '1.2rem',
     fontWeight: 'bold',
     marginBottom: '1rem',
-    color: '#555',
-    borderBottom: '2px solid #007bff',
+    color: 'var(--color-text-secondary)',
+    borderBottom: '2px solid var(--color-primary-500)',
     paddingBottom: '0.5rem',
   },
   groupFields: {
@@ -311,7 +311,7 @@ const styles = {
     display: 'block',
     marginBottom: '0.5rem',
     fontWeight: '500',
-    color: '#333',
+    color: 'var(--color-text-primary)',
   },
   checkboxLabel: {
     display: 'flex',
@@ -322,7 +322,7 @@ const styles = {
   input: {
     width: '100%',
     padding: '0.5rem',
-    border: '1px solid #ddd',
+    border: '1px solid var(--color-border-medium)',
     borderRadius: '4px',
     fontSize: '1rem',
   },
@@ -334,8 +334,8 @@ const styles = {
   },
   cancelButton: {
     padding: '0.75rem 1.5rem',
-    backgroundColor: '#666',
-    color: 'white',
+    backgroundColor: 'var(--color-text-secondary)',
+    color: 'var(--color-text-inverse)',
     border: 'none',
     borderRadius: '4px',
     fontSize: '1rem',
@@ -343,8 +343,8 @@ const styles = {
   },
   submitButton: {
     padding: '0.75rem 1.5rem',
-    backgroundColor: '#007bff',
-    color: 'white',
+    backgroundColor: 'var(--color-primary-500)',
+    color: 'var(--color-text-inverse)',
     border: 'none',
     borderRadius: '4px',
     fontSize: '1rem',

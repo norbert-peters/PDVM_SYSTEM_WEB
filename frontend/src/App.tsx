@@ -8,9 +8,11 @@ import Welcome from './components/Welcome'
 import TableView from './components/TableView'
 import PdvmViewPage from './components/views/PdvmViewPage'
 import PdvmDialogPage from './components/dialogs/PdvmDialogPage'
+import ThemeEditorPage from './components/design/ThemeEditorPage'
 import MenuHome from './components/menu/MenuHome'
 import { AppLayout } from './components/layout'
 import { MenuProvider } from './contexts/MenuContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import type { Mandant } from './contexts/AuthContext'
 import { authAPI } from './api/client'
@@ -176,6 +178,7 @@ function AppContent() {
   // Token + Mandant → Dashboard mit neuem Layout
   return (
     <BrowserRouter>
+      <ThemeProvider>
       <MenuProvider>
         <AppLayout>
           <PdvmDialogModal
@@ -209,10 +212,12 @@ function AppContent() {
             <Route path="/table/:tableName" element={<TableView token={token} />} />
             <Route path="/view/:viewGuid" element={<PdvmViewPage />} />
             <Route path="/dialog/:dialogGuid" element={<PdvmDialogPage />} />
+            <Route path="/design" element={<ThemeEditorPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </AppLayout>
       </MenuProvider>
+      </ThemeProvider>
     </BrowserRouter>
   )
 }

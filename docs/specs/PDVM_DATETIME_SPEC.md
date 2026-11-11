@@ -72,7 +72,7 @@ Optional:
 *   `showTime?: boolean` – Legacy/Kompatibilität (intern wird daraus `mode` abgeleitet)
 *   `showSeconds?: boolean` – Sekunden in der Zeit-Eingabe
 *   `showMilliseconds?: boolean` – Millisekunden (impliziert Sekunden)
-*   `showNowButton?: boolean` – "Jetzt" Button (Default: `true` bei `mode='time'`, sonst `false`)
+*   `showNowButton?: boolean` – "Jetzt" Button im Popover (Default: `true` in allen Modi; `date` setzt nur das Datum, `time` nur die Zeit, `datetime` beides)
 *   `allowClear?: boolean` – aktiviert "Leeren" (explizite Aktion wie "Übernehmen")
 *   `onClear?: () => void` – Parent setzt dann `value` auf null/undefined
 *   `clearPlacement?: 'inside' | 'popover' | 'both' | 'none'` – steuert, wo "Leeren" angezeigt wird (Default: `both` wenn `allowClear=true`)
@@ -84,7 +84,8 @@ Optional:
 #### 3.2.3 UX-Verhalten (verbindlich)
 *   Änderungen passieren im Draft-State und werden erst bei "Übernehmen" committed.
 *   "Abbrechen" oder Click-outside verwirft den Draft.
-*   "Jetzt" setzt nur den Draft (bis "Übernehmen").
+*   "Jetzt" setzt nur den Draft (bis "Übernehmen"), sowohl Datum als auch Uhrzeit in einem Schritt.
+*   Eingabefehler (kein Datum, ungültiger Wert) erscheinen als Hinweis im Popover (`role="alert"`), kein `alert()`.
 *   "Leeren" ist eine explizite Aktion:
         *   `allowClear=true` und `onClear` gesetzt → Button erscheint → `onClear()` wird aufgerufen und Popover schließt.
     *   Anzeigeort ist per `clearPlacement` steuerbar (✕ im Feld, "Leeren" im Popover, beides oder keines).
@@ -122,6 +123,13 @@ Datetime rechts am Rand (Popover soll nach links öffnen):
 />
 ```
 
+#### 3.2.5 Einbindung als Input-Control und Darstellung (Theme)
+
+*   Der Picker ist das gemeinsame Widget für alle Datums-/Zeitfelder: `PdvmInputControl` nutzt ihn für die Typen `datetime`, `date` und `time` (Wert wird dort in das PDVM-Format umgerechnet). Die Stichtagsleiste nutzt ihn direkt, weil der Stichtag kein Datensatzfeld ist, sondern über `/api/gcs/stichtag` gesetzt wird.
+*   Farben kommen aus dem Theme (Details: `THEMING_SYSTEM.md`, 5.4, 5.9, 9): Feld = `block_pic_std`, in der Stichtagsleiste `block_stichtag_std.field_*`; Auswahlfenster = `block_pic_popover` (`bg_color`, `text_color`, `border`, `radius`, `shadow`, `field_bg_color`, `field_text_color`). Alle diese Paare unterliegen der Kontrastprüfung. Im Editor `/design` sind die Blöcke unter „Stichtagsleiste“ und „Datum/Zeit-Auswahl (Popover)“ einstellbar, die Vorschau zeigt beide.
+*   Der Picker setzt keine Farbwerte inline; native Felder folgen dem Modus über `color-scheme` (`variables.css`).
+*   `nowLocalIso()` (exportiert) liefert die aktuelle lokale Zeit als naiven ISO-String, z. B. für die „Jetzt“-Schaltfläche der Stichtagsleiste.
+
 ---
 
 ## 4. Integration: Stichtagsbar
@@ -146,8 +154,10 @@ Die Stichtagsbar ist die **einzige** Stelle, an der der systemweite Referenz-Zei
 
 ### 4.3 Frontend-Integration
 *   **Layout:** Stichtagsbar ist eine eigene Zeile **direkt unter dem Header** (nicht im Header selbst).
-*   **UI:** Read-only Anzeige des angewendeten Stichtags + `PdvmDateTimePicker` zum Ändern.
-*   **Flow:** `Übernehmen` im Picker → `POST /api/gcs/stichtag` → Anzeige wird aktualisiert.
+*   **UI:** Read-only Anzeige des angewendeten Stichtags + Button "Jetzt" (setzt den Stichtag sofort auf aktuelles Datum und aktuelle Uhrzeit) + `PdvmDateTimePicker` zum Ändern (Popover mit eigenem "Jetzt" für den Draft).
+*   **Farben:** Die Leiste überschreibt die globalen `--color-text-*` nicht; Beschriftung/Wert nutzen `block_stichtag_std.text_color`, Feld und Button `block_stichtag_std.field_*`.
+*   **Flow:** `Übernehmen` im Picker (oder "Jetzt" in der Leiste) → `POST /api/gcs/stichtag` → Anzeige wird aktualisiert, Event `pdvm:stichtag-changed`.
+*   **Schmale Fenster:** Unter 1024 px Breite wird die Leiste ausgeblendet (Responsive-Regel in `header.css`).
 
 ---
 

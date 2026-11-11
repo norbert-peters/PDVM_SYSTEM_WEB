@@ -169,3 +169,25 @@ Ziel:
 - Wenn ein Control-Type fehlt, leer ist oder unbekannt ist, gilt im Frontend immer der Fallback auf `string`.
 - Diese Regel ist global und wird direkt im `PdvmInputControl` durchgesetzt (nicht nur im jeweiligen Editor).
 - Es gibt keine Ausschlusslogik fuer unbekannte Types; das Feld bleibt editierbar als Textfeld.
+
+### 7.9 Markierbare Anzeigefelder (`selectable`)
+- `readOnly` rendert das Feld `disabled` (nicht markierbar). Mit der Opt-in-Eigenschaft `selectable` (nur zusammen mit `readOnly`) wird stattdessen das HTML-Attribut `readonly` gesetzt: Text bleibt markier- und kopierbar (CSS: `.pdvm-pic__input[readonly]`, `.pdvm-pic__textarea[readonly]`).
+- Verwendung: Info-Fenster der Dialoge (`PdvmDialogInfoModal`, siehe `PDVM_DIALOG_SPEC.md` Abschnitt 7a).
+
+## 8. Theme-Typen (P3, Design-System)
+
+`PdvmInputControl` kennt zusaetzlich fuenf Typen fuer das Theming-System (Details: `docs/specs/THEMING_SYSTEM.md`, Abschnitt 5.10). Sie werden im Typ-Mapper (`normalizeInputType`, `normalizePicType` in `PdvmDialogPage`) durchgereicht und fallen nicht auf `string` zurueck:
+
+| Typ | Wert | Darstellung |
+| :--- | :--- | :--- |
+| `color` | CSS-Farbe (`#hex`, `rgb()`, `hsl()`, `var(--...)`, `transparent`) oder leer | Farbfeld + Textfeld, Kontrast-Badge und Button „Vorschlag übernehmen“ (nächste konforme Farbe) |
+| `css_length` | 1-4 Laengen (`8px`, `0.5rem`, `4px 8px`) oder leer | Textfeld mit Pruefung |
+| `css_border` | `<n>px <solid\|dashed\|dotted\|double> <Farbe>` oder `none` oder leer | Breite + Stil + Farbe |
+| `font_family` | Schriftfamilie (Komma-Liste) oder leer | Auswahl + eigene Eingabe |
+| `theme_preview` | `{gruppe: {token: wert}}` (nur Anzeige) | Live-Vorschau, Variablen nur im Container |
+
+Regeln:
+- Leerer Wert bedeutet "nicht ueberschrieben" (Overlay-Prinzip); die Controls rufen `onChange('')`.
+- Gueltige Werte (und leer) gehen sofort an `onChange`, ungueltige zeigen eine Meldung und aendern den Wert nicht. Die Serverpruefung (`theme_service.validate_token_value`) bleibt massgeblich (7.1/7.3).
+- Konfiguration ueber `resolved_configs.theme_token`: `contrast_against` = `{ value | var, min, label }` (Gegenfarbe als Wert oder CSS-Variable), `mode` = `light|dark` (nur `theme_preview`). Optionen (`font_family`, `dropdown`) kommen ueber die ueblichen `options`.
+- Kontrast (P6): Bei `contrast_against` zeigt `color` unter dem Mindestwert den naechsten konformen Wert an (`utils/themeColor.ts`, nur Helligkeit wird veraendert) und uebernimmt ihn auf Klick. Der Control sperrt die Eingabe nicht; verbindlich ist die Serverpruefung (Speichern wird mit 422 abgelehnt, `THEMING_SYSTEM.md` Abschnitt 9).

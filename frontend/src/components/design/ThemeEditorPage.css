@@ -1,0 +1,201 @@
+.pdvm-theme-editor {
+  display: grid;
+  gap: 16px;
+  max-width: 1100px;
+  padding: 16px;
+}
+
+.pdvm-theme-editor__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pdvm-theme-editor__head h2,
+.pdvm-theme-editor__panel h3 {
+  margin: 0;
+}
+
+.pdvm-theme-editor__tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-md);
+  background: var(--color-background-secondary);
+}
+
+.pdvm-theme-editor__tabs button {
+  padding: 6px 14px;
+  border: 0;
+  border-radius: var(--border-radius-sm);
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.pdvm-theme-editor__tabs button:hover {
+  background: var(--state-hover);
+}
+
+.pdvm-theme-editor__tabs button.is-active {
+  background: var(--color-primary-500);
+  color: var(--color-text-inverse);
+  font-weight: 700;
+}
+
+.pdvm-theme-editor__panel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: var(--block-card-std-border, 1px solid var(--color-border-light));
+  border-radius: var(--block-card-std-radius, var(--border-radius-md));
+  background: var(--block-card-std-bg-color, var(--color-background-primary));
+  color: var(--block-card-std-text-color, var(--color-text-primary));
+}
+
+.pdvm-theme-editor__settings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.pdvm-theme-editor__bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pdvm-theme-editor__filter {
+  flex: 1 1 200px;
+  min-width: 160px;
+  width: auto;
+}
+
+.pdvm-theme-editor__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.pdvm-theme-editor__btn {
+  padding: 7px 14px;
+  border: 1px solid var(--color-border-medium);
+  border-radius: var(--border-radius-md);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.pdvm-theme-editor__btn:hover:not(:disabled) {
+  background: var(--state-hover);
+}
+
+.pdvm-theme-editor__btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.pdvm-theme-editor__btn--primary {
+  background: var(--block-btn-primary-bg-color, var(--color-primary-500));
+  color: var(--block-btn-primary-text-color, var(--color-text-inverse));
+  border: var(--block-btn-primary-border, 1px solid var(--color-primary-600));
+}
+
+.pdvm-theme-editor__btn--primary:hover:not(:disabled) {
+  background: var(--block-btn-primary-hover-bg, var(--color-primary-600));
+}
+
+.pdvm-theme-editor__alert {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: var(--border-radius-md);
+  font-size: 14px;
+}
+
+.pdvm-theme-editor__alert--error {
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
+  color: var(--color-error-text);
+}
+
+.pdvm-theme-editor__alert--ok {
+  background: var(--color-success-bg);
+  border: 1px solid var(--color-success-border);
+  color: var(--color-success-text);
+}
+
+.pdvm-theme-editor__alert--warn {
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning-border);
+  color: var(--color-warning-text);
+}
+
+.pdvm-theme-editor__issue {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pdvm-theme-editor__hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.pdvm-theme-editor__layoutArea {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+
+.pdvm-theme-editor__layoutArea .pdvm-theme-editor__hint {
+  min-height: 1.2em;
+}
+
+.pdvm-theme-editor__group {
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--border-radius-md);
+}
+
+.pdvm-theme-editor__group > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pdvm-theme-editor__count {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-text-secondary);
+}
+
+.pdvm-theme-editor__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 10px;
+  padding: 0 12px 12px;
+}
+
+.pdvm-theme-editor__token {
+  display: grid;
+  gap: 2px;
+}
+
+.pdvm-theme-editor__token--overridden .pdvm-pic {
+  border-color: var(--state-selected-border);
+  background: var(--state-selected);
+}

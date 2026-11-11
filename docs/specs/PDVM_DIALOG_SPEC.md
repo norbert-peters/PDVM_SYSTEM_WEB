@@ -359,6 +359,15 @@ Regel:
 - Der Dialog hat einen konstanten Header (über allen Tabs).
 - Der Titel kommt aus `sys_dialogdaten.ROOT.HEADER`.
 - Wenn `SHOW_TABLE=true`, wird hinter dem Titel der Name der `effective_table` angezeigt.
+- Hinter dem Titel sitzt ein kleiner Info-Button (Tooltip „Dialog-Informationen“). Er öffnet das Info-Fenster mit den Debug-Angaben; im Dialog selbst werden keine Debug-Zeilen mehr angezeigt.
+
+### 7a) Info-Fenster (Debug-Angaben)
+- Aufbau und Beschriftung kommen aus einem **Standard-Info-Frame** in `sys_framedaten` (ein Frame für alle Dialoge). Die Felder verweisen über `FIELDS` auf Controls in `sys_control_dict`; Tabs stehen in `ROOT.TAB_ELEMENTS` (ein einzelner Tab bekommt keine Tab-Leiste).
+- Das Backend liefert nur die GUID: `GET /api/dialogs/{dialog_guid}` -> `meta.info_frame_guid` (Konstanten in `backend/app/core/dialog_info.py`, UIDs deterministisch per `uuid5`).
+- Die Laufzeitwerte stellt das Frontend (`PdvmDialogPage`) in der Gruppe `INFO` bereit, z. B. `DIALOG_NAME`, `DIALOG_GUID`, `DIALOG_TABLE`, `DIALOG_VIEW_GUID`, `DIALOG_FRAME_GUID`, `RECORD_UID`, `RECORD_STORAGE`, `LAST_CALL`, `LAST_CALL_KEY`, `LAST_CALL_SCOPE`. Ein neues Feld braucht einen Eintrag im Frame/Control-Dict und einen Wert in `INFO`.
+- Darstellung: `PdvmDialogInfoModal` mit schreibgeschützten `PdvmInputControl`s (`readOnly` + `selectable`: Werte wie GUIDs lassen sich markieren und kopieren).
+- Anlage des Frames: `..\.venv\Scripts\python.exe tools\seed_dialog_info_frame_v1.py --apply --confirm-backup` (aus `backend/`; Dry-Run ist Standard, `--force-update` überschreibt mit Snapshot nach `backend/reports/`). Fehlt das Frame, zeigt das Fenster einen Hinweis darauf.
+- Test: `backend/test_dialog_info_frame.py`.
 
 UI-Regel:
 - Der Button "Auswählen / Edit öffnen" entfällt.

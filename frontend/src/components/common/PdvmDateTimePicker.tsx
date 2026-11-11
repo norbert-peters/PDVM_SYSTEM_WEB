@@ -75,8 +75,9 @@ interface PdvmDateTimePickerProps {
     showMilliseconds?: boolean;
 
     /**
-    * Zeigt einen "Jetzt" Button (setzt Datum/Zeit auf aktuelle lokale Zeit).
-    * Default: true für mode='time', sonst false
+    * Zeigt einen "Jetzt" Button im Popover (setzt Datum und Uhrzeit des Entwurfs auf die aktuelle lokale Zeit;
+    * bei mode='date' nur das Datum, bei mode='time' nur die Zeit).
+    * Default: true
     */
     showNowButton?: boolean;
 
@@ -138,6 +139,12 @@ const pad3 = (n: number) => String(n).padStart(3, '0');
 
 const dateToDraftDate = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 
+/** Aktuelle lokale Zeit als timezone-naiver ISO-String ("YYYY-MM-DDTHH:mm:ss"), wie ihn der Picker liefert. */
+export const nowLocalIso = (): string => {
+  const now = new Date();
+  return `${dateToDraftDate(now)}T${pad2(now.getHours())}:${pad2(now.getMinutes())}:${pad2(now.getSeconds())}`;
+};
+
 const dateToDraftTime = (d: Date, showSeconds: boolean, showMilliseconds: boolean) => {
   const hh = pad2(d.getHours());
   const mm = pad2(d.getMinutes());
@@ -178,6 +185,7 @@ export const PdvmDateTimePicker: React.FC<PdvmDateTimePickerProps> = ({
   // Format: "YYYY-MM-DD" and "HH:mm"
   const [draftDate, setDraftDate] = useState<string>('');
   const [draftTime, setDraftTime] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -187,9 +195,7 @@ export const PdvmDateTimePicker: React.FC<PdvmDateTimePickerProps> = ({
 
   const effectiveShowMilliseconds = !!showMilliseconds;
   const effectiveShowSeconds = !!showSeconds || effectiveShowMilliseconds;
-  const effectiveShowNowButton = typeof showNowButton === 'boolean'
-    ? showNowButton
-    : effectiveMode === 'time';
+  const effectiveShowNowButton = typeof showNowButton === 'boolean' ? showNowButton : true;
 
   const effectiveClearPlacement: 'inside' | 'popover' | 'both' | 'none' =
     clearPlacement ?? (allowClear ? 'both' : 'none');
@@ -202,6 +208,7 @@ export const PdvmDateTimePicker: React.FC<PdvmDateTimePickerProps> = ({
   useEffect(() => {
     if (!isOpen) return;
 
+    setError(null);
     const base = value ? new Date(value) : new Date();
     const d = !isNaN(base.getTime()) ? base : new Date();
 
@@ -273,9 +280,9 @@ export const PdvmDateTimePicker: React.FC<PdvmDateTimePickerProps> = ({
   };
 
   const handleSave = () => {
+    setError(null);
     if (effectiveMode !== 'time' && !draftDate) {
-        // Falls kein Datum gewählt ist, könnte man auch Clearen
-        // Hier: Nichts tun oder Fehler anzeigen
+        setError('Bitte ein Datum wählen.');
         return;
     }
 
@@ -299,7 +306,7 @@ export const PdvmDateTimePicker: React.FC<PdvmDateTimePickerProps> = ({
         // Validate
         const d = new Date(fullStr);
         if (isNaN(d.getTime())) {
-            alert('Ungültiges Datum');
+            setError('Ungültiges Datum oder ungültige Uhrzeit.');
             return;
         }
 
@@ -308,11 +315,13 @@ export const PdvmDateTimePicker: React.FC<PdvmDateTimePickerProps> = ({
         setIsOpen(false);
     } catch (e) {
         console.error("Date construction error", e);
+        setError('Der Wert konnte nicht übernommen werden.');
     }
   };
 
   const handleNow = () => {
     const now = new Date();
+    setError(null);
     setDraftDate(dateToDraftDate(now));
     setDraftTime(dateToDraftTime(now, effectiveShowSeconds, effectiveShowMilliseconds));
   };
@@ -330,7 +339,7 @@ export const PdvmDateTimePicker: React.FC<PdvmDateTimePickerProps> = ({
         title={label}
       >
         <span className="pdvm-datetime-text">
-          {displayString || <span style={{color: '#999'}}>{label || 'Datum wählen...'}</span>}
+          {displayString || <span className="pdvm-datetime-placeholder">{label || 'Datum wählen...'}</span>}
         </span>
 
         {showInlineClear && (
@@ -393,21 +402,38 @@ export const PdvmDateTimePicker: React.FC<PdvmDateTimePickerProps> = ({
              )}
           </div>
 
+          {error && (
+            <div className="pdvm-datetime-error" role="alert">
+              {error}
+            </div>
+          )}
+
           <div className="pdvm-datetime-footer">
             {effectiveShowNowButton && (
-              <button className="pdvm-btn pdvm-btn-now" onClick={handleNow}>
+              <button
+                type="button"
+                className="pdvm-datetime-btn pdvm-datetime-btn--now"
+                onClick={handleNow}
+                title={
+                  effectiveMode === 'date'
+                    ? 'Aktuelles Datum einsetzen'
+                    : effectiveMode === 'time'
+                      ? 'Aktuelle Uhrzeit einsetzen'
+                      : 'Aktuelles Datum und aktuelle Uhrzeit einsetzen'
+                }
+              >
                 Jetzt
               </button>
             )}
             {showPopoverClear && (
-              <button className="pdvm-btn pdvm-btn-clear" onClick={handleClear}>
+              <button type="button" className="pdvm-datetime-btn pdvm-datetime-btn--clear" onClick={handleClear}>
                 Leeren
               </button>
             )}
-            <button className="pdvm-btn pdvm-btn-cancel" onClick={handleCancel}>
+            <button type="button" className="pdvm-datetime-btn pdvm-datetime-btn--cancel" onClick={handleCancel}>
                 Abbrechen
             </button>
-            <button className="pdvm-btn pdvm-btn-save" onClick={handleSave}>
+            <button type="button" className="pdvm-datetime-btn pdvm-datetime-btn--save" onClick={handleSave}>
                 Übernehmen
             </button>
           </div>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { PdvmDateTimePicker } from '../common/PdvmDateTimePicker';
+import { PdvmDateTimePicker, nowLocalIso } from '../common/PdvmDateTimePicker';
 import { gcsAPI } from '../../api/client';
 
 interface StichtagsBarProps {
@@ -71,6 +71,15 @@ export const StichtagsBar: React.FC<StichtagsBarProps> = ({ heading }) => {
       </div>
 
       <div className="stichtags-bar-right">
+        <button
+          type="button"
+          className="stichtags-bar-now"
+          onClick={() => handleStichtagChange(nowLocalIso())}
+          disabled={loading}
+          title="Stichtag auf aktuelles Datum und aktuelle Uhrzeit setzen"
+        >
+          Jetzt
+        </button>
         <PdvmDateTimePicker
           value={appliedIso}
           onChange={handleStichtagChange}

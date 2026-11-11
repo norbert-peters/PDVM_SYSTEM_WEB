@@ -37,6 +37,7 @@ from app.core.dialog_service import (
 )
 from app.core.pdvm_datenbank import PdvmDatabase
 from app.core.control_template_service import ControlTemplateService
+from app.core.dialog_info import DIALOG_INFO_FRAME_GUID
 from app.core.workflow_draft_access import WorkflowDraftAccess
 from app.core.workflow_draft_service import WorkflowDraftService
 from app.core.dialog_api_helpers import (
@@ -273,6 +274,7 @@ async def get_dialog_definition(dialog_guid: str, dialog_table: Optional[str] = 
             "tabs": runtime.get("tabs", 2),
             "dialog_table": dialog_table_norm,
             "expert_mode": bool(gcs.get_expert_mode()),
+            "info_frame_guid": str(DIALOG_INFO_FRAME_GUID),
             "last_call": last_call_str,
             "last_call_key": f"{last_call_key}::{_table_key_upper(root_table)}" if last_call_key and root_table else last_call_key,
             "last_call_scope": "dialog_guid+table",

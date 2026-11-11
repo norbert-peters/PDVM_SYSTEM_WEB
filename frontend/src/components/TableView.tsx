@@ -57,29 +57,29 @@ export default function TableView({ token }: TableViewProps) {
 const styles = {
   container: {
     minHeight: '100vh',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: 'var(--color-background-secondary)',
   },
   header: {
-    backgroundColor: 'white',
+    backgroundColor: 'var(--color-background-primary)',
     padding: '1rem 2rem',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+    boxShadow: 'var(--shadow-sm)',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   backLink: {
-    color: '#007bff',
+    color: 'var(--color-text-on-primary)',
     textDecoration: 'none',
     fontSize: '1rem',
   },
   title: {
     fontSize: '1.5rem',
     fontWeight: 'bold',
-    color: '#333',
+    color: 'var(--color-text-primary)',
   },
   count: {
     fontSize: '0.9rem',
-    color: '#666',
+    color: 'var(--color-text-secondary)',
   },
   main: {
     padding: '2rem',
@@ -88,21 +88,21 @@ const styles = {
   },
   table: {
     width: '100%',
-    backgroundColor: 'white',
+    backgroundColor: 'var(--color-background-primary)',
     borderRadius: '8px',
     overflow: 'hidden',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+    boxShadow: 'var(--shadow-md)',
     borderCollapse: 'collapse' as const,
   },
   th: {
     padding: '1rem',
     textAlign: 'left' as const,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: 'var(--color-background-secondary)',
     fontWeight: '600',
-    borderBottom: '2px solid #dee2e6',
+    borderBottom: '2px solid var(--color-border-medium)',
   },
   tr: {
-    borderBottom: '1px solid #dee2e6',
+    borderBottom: '1px solid var(--color-border-medium)',
   },
   td: {
     padding: '1rem',
@@ -113,7 +113,7 @@ const styles = {
     alignItems: 'center',
     minHeight: '100vh',
     fontSize: '1.25rem',
-    color: '#666',
+    color: 'var(--color-text-secondary)',
   },
   error: {
     display: 'flex',
@@ -121,6 +121,6 @@ const styles = {
     alignItems: 'center',
     minHeight: '100vh',
     fontSize: '1.25rem',
-    color: '#dc3545',
+    color: 'var(--color-error)',
   },
 }

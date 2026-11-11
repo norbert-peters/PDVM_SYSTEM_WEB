@@ -99,6 +99,6 @@ ul, ol {
 
 /* ===== Selection ===== */
 ::selection {
-  background-color: var(--color-primary-200);
+  background-color: color-mix(in srgb, var(--color-primary-500) 30%, transparent);
   color: var(--color-text-primary);
 }

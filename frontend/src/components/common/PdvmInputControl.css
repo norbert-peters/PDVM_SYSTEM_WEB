@@ -1,15 +1,12 @@
 .pdvm-pic {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px 10px;
-  border: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.12));
-  border-radius: var(--border-radius-md, 8px);
-  background: var(--color-background-primary, rgba(255, 255, 255, 0.7));
-}
-
-:root[data-theme="dark"] .pdvm-pic {
-  background: rgba(0, 0, 0, 0.18);
+  gap: var(--density-pic-gap);
+  padding: var(--density-pic-pad);
+  border: var(--block-pic-std-border, 1px solid var(--color-border-light));
+  border-radius: var(--block-pic-std-radius, var(--border-radius-md));
+  background: var(--block-pic-std-bg-color, var(--color-background-primary));
+  color: var(--block-pic-std-text-color, var(--color-text-primary));
 }
 
 .pdvm-pic__labelRow {
@@ -21,7 +18,7 @@
 .pdvm-pic__label {
   font-size: 12px;
   font-weight: 700;
-  color: var(--color-text-secondary, rgba(0, 0, 0, 0.7));
+  color: var(--block-pic-std-label-color, var(--color-text-secondary));
 }
 
 .pdvm-pic__helpBtn {
@@ -29,23 +26,16 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  border: 1px solid var(--color-border-medium, rgba(0, 0, 0, 0.24));
-  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--color-border-medium);
+  background: var(--color-background-secondary);
+  color: var(--color-text-primary);
   cursor: pointer;
   font-weight: 800;
   line-height: 1;
 }
 
-:root[data-theme="dark"] .pdvm-pic__helpBtn {
-  background: rgba(0, 0, 0, 0.2);
-}
-
 .pdvm-pic__helpBtn:hover {
-  background: rgba(0, 0, 0, 0.06);
-}
-
-:root[data-theme="dark"] .pdvm-pic__helpBtn:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--state-hover);
 }
 
 .pdvm-pic__control {
@@ -66,9 +56,10 @@
 }
 
 .pdvm-pic__openBtn {
-  border: 1px solid var(--color-border-medium, rgba(0, 0, 0, 0.24));
-  border-radius: var(--border-radius-md, 8px);
-  background: var(--color-background-primary, white);
+  border: 1px solid var(--color-border-medium);
+  border-radius: var(--border-radius-md);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
   padding: 6px 10px;
   font: inherit;
   cursor: pointer;
@@ -88,21 +79,23 @@
 .pdvm-pic__select,
 .pdvm-pic__textarea {
   width: 100%;
-  border-radius: var(--border-radius-md, 8px);
-  border: 1px solid var(--color-border-medium, rgba(0, 0, 0, 0.24));
-  padding: 8px 10px;
+  border-radius: var(--block-pic-std-radius, var(--border-radius-md));
+  border: var(--block-pic-std-border, 1px solid var(--color-border-medium));
+  padding: var(--density-control-pad);
   font: inherit;
-  background: var(--color-background-primary, white);
-}
-
-:root[data-theme="dark"] .pdvm-pic__input,
-:root[data-theme="dark"] .pdvm-pic__select,
-:root[data-theme="dark"] .pdvm-pic__textarea {
-  background: rgba(0, 0, 0, 0.18);
+  background: var(--block-pic-std-bg-color, var(--color-background-primary));
+  color: var(--block-pic-std-text-color, var(--color-text-primary));
 }
 
 .pdvm-pic__textarea {
   resize: vertical;
+}
+
+/* markier- und kopierbare Anzeigefelder (PdvmInputControl selectable) */
+.pdvm-pic__input[readonly],
+.pdvm-pic__textarea[readonly] {
+  background: var(--block-pic-std-readonly-bg, var(--color-background-secondary));
+  cursor: text;
 }
 
 .pdvm-pic__checkbox {
@@ -125,13 +118,9 @@
   gap: 6px;
   min-height: 34px;
   padding: 4px;
-  border: 1px solid var(--color-border-medium, rgba(0, 0, 0, 0.24));
-  border-radius: var(--border-radius-md, 8px);
-  background: var(--color-background-primary, white);
-}
-
-:root[data-theme="dark"] .pdvm-pic__multiSelected {
-  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid var(--color-border-medium);
+  border-radius: var(--border-radius-md);
+  background: var(--color-background-primary);
 }
 
 .pdvm-pic__multiHint {
@@ -144,10 +133,10 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border: 1px solid var(--color-border-medium, rgba(0, 0, 0, 0.24));
+  border: 1px solid var(--color-border-medium);
   border-radius: 999px;
   padding: 4px 8px;
-  background: rgba(34, 116, 71, 0.1);
+  background: var(--state-selected);
 }
 
 .pdvm-pic__chipLabel {
@@ -184,8 +173,8 @@
 .pdvm-dialog__elementEmpty {
   font-size: 12px;
   opacity: 0.75;
-  border: 1px dashed var(--color-border-medium, rgba(0, 0, 0, 0.24));
-  border-radius: var(--border-radius-md, 8px);
+  border: 1px dashed var(--color-border-medium);
+  border-radius: var(--border-radius-md);
   padding: 8px 10px;
   margin-bottom: 8px;
 }

@@ -9,15 +9,25 @@ Nach Desktop-Vorbild: pdvm_central_systemsteuerung.py
 - Session-Storage: get_gcs() fÃ¼r direkten Zugriff
 """
 import uuid
+import json
 import logging
 import time
 import copy
 from typing import Optional, Dict, Any
 from app.core.pdvm_central_datenbank import PdvmCentralDatabase
-from app.core.central_write_service import create_record_central
+from app.core.central_write_service import create_record_central, update_record_central
 from app.core.pdvm_datenbank import PdvmDatabase
+from app.core import theme_service
+from app.core import layout_schema
 
 logger = logging.getLogger(__name__)
+
+# Reservierte Basissaetze (000/555/666) sind keine waehlbaren Theme-Pakete
+_RESERVED_BASE_UIDS = {
+    "00000000-0000-0000-0000-000000000000",
+    "55555555-5555-5555-5555-555555555555",
+    "66666666-6666-6666-6666-666666666666",
+}
 
 
 # ============================================
@@ -288,6 +298,10 @@ class PdvmCentralSystemsteuerung:
         self._last_activity_ts: Optional[float] = None
 
         self.layout = None
+        # Fuer den Mandanten freigegebene Theme-Pakete: guid -> {"name": str, "data": dict}; self.layout ist das Standard-Paket
+        self.layout_packages: Dict[str, Dict[str, Any]] = {}
+        # Mandanten-Overlay (nur Abweichungen zum Theme-Paket), msy_layout-Zeile mit link_uid = Mandant
+        self.layout_overlay: Dict[str, Any] = {}
         
         # ===== DESKTOP-PATTERN: Separate Instanzen =====
         
@@ -584,11 +598,158 @@ class PdvmCentralSystemsteuerung:
                     self.layout.set_data({})
                 self.layout.set_guid(theme_guid_str)
                 logger.info(f"âœ… Layout geladen aus msy_layout: {theme_guid_str}")
+
+                # Mandanten-Overlay: eigene msy_layout-Zeile (link_uid = Mandant), Kennzeichen ROOT.LAYER=OVERLAY.
+                # Zeilen ohne Kennzeichen (Paket-Kopien) werden bewusst ignoriert.
+                self.layout_overlay = {}
+                try:
+                    overlay_row = await self.layout.db.get_by_link_uid(mandant_uuid)
+                    overlay_data = (overlay_row or {}).get("daten")
+                    if isinstance(overlay_data, str):
+                        overlay_data = json.loads(overlay_data)
+                    if isinstance(overlay_data, dict) and (overlay_data.get("ROOT") or {}).get("LAYER") == "OVERLAY":
+                        self.layout_overlay = overlay_data
+                except Exception as overlay_exc:
+                    logger.warning(f"âš ï¸ Layout-Overlay konnte nicht geladen werden: {overlay_exc}")
         else:
             logger.warning("âš ï¸ Keine THEME_GUID im Mandant-CONFIG gefunden")
 
+        await self._load_extra_layout_packages()
+
         # --- sys_control_dict Template-Cache (555) ---
         await self.preload_control_template_cache()
+
+    # === Theme-Pakete (mehrere je Mandant) ===
+
+    async def _fetch_package_row(self, theme_uuid: uuid.UUID) -> Optional[Dict[str, Any]]:
+        """Paketzeile aus msy_layout; fehlt sie, wird sie einmalig aus sys_layout uebernommen (wie beim Login)."""
+        pools = {"system_pool": self._system_pool, "mandant_pool": self._mandant_pool}
+        row = await PdvmDatabase("msy_layout", **pools).get_row(theme_uuid)
+        if row:
+            return row
+        legacy_row = await PdvmDatabase("sys_layout", **pools).get_row(theme_uuid)
+        if not legacy_row:
+            return None
+        try:
+            await create_record_central(
+                table_name="msy_layout",
+                uid=theme_uuid,
+                daten=legacy_row.get("daten") or {},
+                name=legacy_row.get("name") or "",
+                historisch=int(legacy_row.get("historisch") or 0),
+                **pools,
+            )
+        except Exception as exc:
+            logger.warning(f"Theme-Paket {theme_uuid}: Uebernahme nach msy_layout fehlgeschlagen: {exc}")
+        return legacy_row
+
+    @staticmethod
+    def _package_from_row(row: Dict[str, Any], guid: str) -> Dict[str, Any]:
+        data = row.get("daten")
+        if isinstance(data, str):
+            try:
+                data = json.loads(data)
+            except Exception:
+                data = {}
+        data = data if isinstance(data, dict) else {}
+        info = data.get("info") if isinstance(data.get("info"), dict) else {}
+        name = str(row.get("name") or info.get("name") or guid).strip()
+        return {"name": name, "data": data}
+
+    async def fetch_theme_package(self, guid: Any) -> Optional[Dict[str, Any]]:
+        """Laedt ein Theme-Paket ({"name", "data"}) per GUID; ``None`` wenn es nicht existiert."""
+        try:
+            theme_uuid = uuid.UUID(str(guid).strip())
+        except Exception:
+            return None
+        row = await self._fetch_package_row(theme_uuid)
+        return self._package_from_row(row, str(theme_uuid)) if row else None
+
+    def _allowed_package_guids(self) -> list:
+        """THEME_ALLOWED (ohne das Standard-Paket), normalisierte GUID-Strings ohne Duplikate."""
+        raw = self._raw_value(self.mandant, "CONFIG", "THEME_ALLOWED")
+        default = str(self._raw_value(self.mandant, "CONFIG", "THEME_GUID") or "").strip().lower()
+        guids: list = []
+        for item in raw if isinstance(raw, list) else []:
+            guid = str(item or "").strip().lower()
+            if guid and guid != default and guid not in guids:
+                guids.append(guid)
+        return guids
+
+    async def _load_extra_layout_packages(self) -> None:
+        """Laedt die Standard- und alle freigegebenen Pakete in ``layout_packages`` (Session-Cache)."""
+        packages: Dict[str, Dict[str, Any]] = {}
+        extra_guids = self._allowed_package_guids()
+        if self.layout is not None:
+            guid = str(self.layout.guid)
+            packages[guid] = {"name": self._default_package_name(), "data": self.layout.data}
+            if extra_guids:
+                try:
+                    named = await self.fetch_theme_package(guid)
+                    if named is not None:
+                        packages[guid]["name"] = named["name"]
+                except Exception as exc:
+                    logger.warning(f"Name des Standard-Themepakets {guid} nicht lesbar: {exc}")
+        for guid in extra_guids:
+            try:
+                package = await self.fetch_theme_package(guid)
+            except Exception as exc:
+                logger.warning(f"Theme-Paket {guid} konnte nicht geladen werden: {exc}")
+                package = None
+            if package is None:
+                logger.warning(f"Freigegebenes Theme-Paket {guid} nicht gefunden")
+                continue
+            packages[guid] = package
+        self.layout_packages = packages
+
+    async def reload_layout_packages(self) -> None:
+        """Nach Aenderung von THEME_GUID/THEME_ALLOWED: Standard-Paket und freigegebene Pakete neu laden."""
+        guid = str(self._raw_value(self.mandant, "CONFIG", "THEME_GUID") or "").strip()
+        if guid and (self.layout is None or str(self.layout.guid).lower() != guid.lower()):
+            package = await self.fetch_theme_package(guid)
+            if package is not None:
+                self.layout = PdvmCentralDatabase(
+                    "msy_layout",
+                    guid=None,
+                    no_save=True,
+                    stichtag=float(self.stichtag),
+                    system_pool=self._system_pool,
+                    mandant_pool=self._mandant_pool,
+                )
+                self.layout.set_data(package["data"])
+                self.layout.set_guid(guid)
+        await self._load_extra_layout_packages()
+
+    def _default_package_name(self) -> str:
+        data = self.layout.data if self.layout is not None and isinstance(self.layout.data, dict) else {}
+        info = data.get("info") if isinstance(data.get("info"), dict) else {}
+        return str(info.get("name") or self.layout.guid)
+
+    def _package_entries(self) -> Dict[str, Dict[str, Any]]:
+        """Alle waehlbaren Pakete (Standard zuerst): guid -> {"name", "data"}."""
+        entries: Dict[str, Dict[str, Any]] = {}
+        if self.layout is not None:
+            guid = str(self.layout.guid)
+            cached = (getattr(self, "layout_packages", None) or {}).get(guid) or {}
+            entries[guid] = {"name": cached.get("name") or self._default_package_name(), "data": self.layout.data}
+        for guid, entry in (getattr(self, "layout_packages", None) or {}).items():
+            entries.setdefault(guid, entry)
+        return entries
+
+    def _default_package_guid(self) -> Optional[str]:
+        return str(self.layout.guid) if self.layout is not None else None
+
+    def get_user_theme_package_guid(self) -> Optional[str]:
+        """Aktives Paket: Benutzerwahl (THEME_CHOICE), sofern freigegeben, sonst das Standard-Paket des Mandanten."""
+        choice = str(self._raw_value(self.systemsteuerung, str(self.user_guid), "THEME_CHOICE") or "").strip()
+        entries = self._package_entries()
+        if choice in entries:
+            return choice
+        return self._default_package_guid()
+
+    def _package_data(self, guid: Optional[str]) -> Dict[str, Any]:
+        entry = self._package_entries().get(guid or "")
+        return entry["data"] if entry and isinstance(entry["data"], dict) else {}
 
     async def preload_control_template_cache(self) -> None:
         """LÃ¤dt nicht-persistenten Control-Template-Cache (GUID 555...) in die Session."""
@@ -651,27 +812,415 @@ class PdvmCentralSystemsteuerung:
     
     # === Theme-Einstellungen ===
     
-    def get_user_theme_group(self, mode: str) -> str:
+    def get_user_theme_group(self, mode: str, package: Optional[Dict[str, Any]] = None) -> str:
         """
-        Ermittelt die Layout-Gruppe basierend auf User-PrÃ¤ferenz
-        
+        Ermittelt die Variante (Gruppe im Theme-Paket) fuer den Modus.
+
+        Prioritaet: Benutzer (msy_systemsteuerung) -> Mandant (asy_mandanten.CONFIG) -> Modus-Name.
+        Existiert eine Variante im aktiven Paket nicht (z. B. nach einem Paketwechsel), gilt die naechste.
+
         Args:
             mode: 'light' oder 'dark'
-            
-        Returns:
-            Name der Gruppe im sys_layout (z.B. "Orange_Dark")
+            package: Paketdaten; ohne Angabe das aktive Paket des Benutzers
         """
-        # Mapping Key: THEME_LIGHT oder THEME_DARK
-        config_key = f"THEME_{mode.upper()}"
-        
-        # Versuche Wert aus asy_benutzer.CONFIG zu lesen
-        val = self.benutzer.get_static_value("CONFIG", config_key)
-        
-        # Fallback: Wenn leer, return mode selbst (fÃ¼r "light"/"dark" Standard)
-        if not val:
-            return mode
-            
-        return str(val)
+        candidates = [
+            self._raw_value(self.systemsteuerung, str(self.user_guid), f"THEME_VARIANT_{mode.upper()}"),
+            self._raw_value(self.mandant, "CONFIG", f"THEME_{mode.upper()}"),
+        ]
+        if package is None:
+            package = self._package_data(self.get_user_theme_package_guid())
+        for candidate in candidates:
+            if candidate and (not package or isinstance(package.get(str(candidate)), dict)):
+                return str(candidate)
+        return mode
+
+    @staticmethod
+    def _raw_value(inst: Any, gruppe: str, feld: str) -> Any:
+        """Liest einen Wert ohne Seiteneffekte (get_static_value legt fehlende Felder an)."""
+        data = getattr(inst, "data", None)
+        group = data.get(gruppe) if isinstance(data, dict) else None
+        return group.get(feld) if isinstance(group, dict) else None
+
+    def get_user_theme_mode(self) -> str:
+        """Gespeicherter Hell/Dunkel-Modus des Benutzers (THEME_MODE), sonst Mandanten-Default, sonst 'light'."""
+        stored = self._raw_value(self.systemsteuerung, str(self.user_guid), "THEME_MODE")
+        if stored in ("light", "dark"):
+            return stored
+        default = self._raw_value(self.mandant, "CONFIG", "THEME_DEFAULT_MODE")
+        return default if default in ("light", "dark") else "light"
+
+    def resolve_active_theme(self, mode: Optional[str] = None) -> Dict[str, Any]:
+        """Loest Paket, Mandanten-Overlay und Benutzer-Overlay zum aktiven Theme auf (siehe theme_service)."""
+        mode = mode if mode in ("light", "dark") else self.get_user_theme_mode()
+        user_overlay = self._raw_value(self.systemsteuerung, str(self.user_guid), "THEME_OVERRIDES")
+        edit_patterns = self._raw_value(self.mandant, "CONFIG", "USER_THEME_EDIT")
+        if not isinstance(edit_patterns, list):
+            edit_patterns = []
+
+        package_guid = self.get_user_theme_package_guid()
+        package = self._package_data(package_guid)
+
+        return theme_service.resolve_theme(
+            package=package or (self.layout.data if self.layout is not None else None),
+            package_guid=package_guid,
+            mode=mode,
+            variant=self.get_user_theme_group(mode, package),
+            mandant_overlay=self.layout_overlay,
+            user_overlay=user_overlay if isinstance(user_overlay, dict) else None,
+            user_edit_patterns=edit_patterns,
+        ) | self._resolve_layout_part()
+
+    def _resolve_layout_part(self) -> Dict[str, Any]:
+        """Wirksame Layout-Varianten (Strukturkatalog); Warnungen werden an ``warnings`` angehaengt."""
+        cfg = self._mandant_theme_config()
+        user_choice = self._raw_value(self.systemsteuerung, str(self.user_guid), "LAYOUT_CHOICE")
+        layout, warnings = layout_schema.resolve_layout(
+            default_map=cfg["layout_default"], allowed_map=cfg["layout_allowed"], user_choice=user_choice
+        )
+        return {"layout": layout, "layout_warnings": warnings}
+
+    # --- Theme-Editor (P4) ---
+
+    def _mandant_theme_config(self) -> Dict[str, Any]:
+        cfg = self._raw_value(self.mandant, "CONFIG", "USER_THEME_EDIT")
+        layout_default = self._raw_value(self.mandant, "CONFIG", "LAYOUT_DEFAULT")
+        layout_allowed = self._raw_value(self.mandant, "CONFIG", "LAYOUT_ALLOWED")
+        return {
+            "theme_default": str(self._raw_value(self.mandant, "CONFIG", "THEME_GUID") or ""),
+            "theme_allowed": self._allowed_package_guids(),
+            "theme_light": self._raw_value(self.mandant, "CONFIG", "THEME_LIGHT") or "",
+            "theme_dark": self._raw_value(self.mandant, "CONFIG", "THEME_DARK") or "",
+            "default_mode": self._raw_value(self.mandant, "CONFIG", "THEME_DEFAULT_MODE") or "",
+            "user_theme_edit": cfg if isinstance(cfg, list) else [],
+            "layout_default": layout_default if isinstance(layout_default, dict) else {},
+            "layout_allowed": layout_allowed if isinstance(layout_allowed, dict) else {},
+        }
+
+    def _layout_editor_part(self, scope: str) -> Dict[str, Any]:
+        """Layout-Bereiche fuer den Editor; ``available`` = Varianten, die auf dieser Ebene waehlbar sind."""
+        cfg = self._mandant_theme_config()
+        catalog = layout_schema.get_layout_catalog()
+        for area, data in catalog.items():
+            all_options = [o["value"] for o in data["options"]]
+            data["available"] = all_options if scope == "mandant" else layout_schema.available_options(
+                area, cfg["layout_default"], cfg["layout_allowed"]
+            )
+            data["mandant_default"] = layout_schema.mandant_defaults(cfg["layout_default"])[area]
+        return catalog
+
+    def get_theme_editor_state(self, scope: str, package_guid: Optional[str] = None) -> Dict[str, Any]:
+        """Zustand fuer den Theme-Editor: Basis je Modus, bestehendes Overlay der Ebene und Einstellungen.
+
+        scope='mandant': Basis = Paket-Variante des Mandanten (Standard-Paket), Overlay = Mandanten-Overlay.
+        scope='user': Basis = Paket-Variante des Benutzers inkl. Mandanten-Overlay, Overlay = Benutzer-Overlay.
+            ``package_guid`` zeigt die Basis eines anderen freigegebenen Pakets (Vorschau vor dem Speichern).
+        """
+        if scope not in ("mandant", "user"):
+            raise ValueError("scope muss 'mandant' oder 'user' sein")
+
+        entries = self._package_entries()
+        if scope == "mandant":
+            used_guid = self._default_package_guid()
+        else:
+            used_guid = package_guid if package_guid in entries else self.get_user_theme_package_guid()
+        package = self._package_data(used_guid) or None
+        mandant_cfg = self._mandant_theme_config()
+        user_key = str(self.user_guid)
+        stored_user_overlay = self._raw_value(self.systemsteuerung, user_key, "THEME_OVERRIDES")
+        stored_user_overlay = stored_user_overlay if isinstance(stored_user_overlay, dict) else {}
+
+        modes: Dict[str, Any] = {}
+        for mode in ("light", "dark"):
+            if scope == "mandant":
+                variant = mandant_cfg[f"theme_{mode}"] or mode
+                variant_name, base, warnings = theme_service.compose_base(package, mode=mode, variant=variant)
+                overlay = self.layout_overlay.get(mode) if isinstance(self.layout_overlay, dict) else None
+            else:
+                variant_name, base, warnings = theme_service.compose_base(
+                    package, mode=mode, variant=self.get_user_theme_group(mode, package or {}), mandant_overlay=self.layout_overlay
+                )
+                overlay = stored_user_overlay.get(mode)
+            modes[mode] = {
+                "variant": variant_name,
+                "base": base,
+                "overlay": overlay if isinstance(overlay, dict) else {},
+                "warnings": warnings,
+            }
+
+        if scope == "mandant":
+            settings_node: Dict[str, Any] = dict(mandant_cfg)
+        else:
+            user_choice = self._raw_value(self.systemsteuerung, user_key, "LAYOUT_CHOICE")
+            settings_node = {
+                "theme_choice": str(self._raw_value(self.systemsteuerung, user_key, "THEME_CHOICE") or ""),
+                "variant_light": self._raw_value(self.systemsteuerung, user_key, "THEME_VARIANT_LIGHT") or "",
+                "variant_dark": self._raw_value(self.systemsteuerung, user_key, "THEME_VARIANT_DARK") or "",
+                "mode": self.get_user_theme_mode(),
+                "layout_choice": user_choice if isinstance(user_choice, dict) else {},
+            }
+
+        return {
+            "scope": scope,
+            "theme_package_id": used_guid,
+            "packages": [
+                {"guid": guid, "name": entry["name"], "is_default": guid == self._default_package_guid()}
+                for guid, entry in entries.items()
+            ],
+            "variants": theme_service.list_variants(package),
+            "modes": modes,
+            "settings": settings_node,
+            "layout": self._layout_editor_part(scope),
+            "allowed_patterns": mandant_cfg["user_theme_edit"] if scope == "user" else None,
+        }
+
+    def _validate_variant(self, variant: Any, mode: str, package: Optional[Dict[str, Any]] = None) -> str:
+        name = str(variant or "").strip()
+        if not name:
+            return ""
+        if package is None:
+            package = self._package_data(self.get_user_theme_package_guid()) or (self.layout.data if self.layout is not None else None)
+        if name not in theme_service.list_variants(package).get(mode, []):
+            raise theme_service.ThemeValidationError([f"Variante '{name}' existiert im Theme-Paket nicht fuer den Modus '{mode}'"])
+        return name
+
+    def _mandant_overlay_bases(self, modes: Any) -> list:
+        """Basis je freigegebenem Paket (Mandanten-Variante, sonst Modus-Name) fuer die Kontrastpruefung des Overlays."""
+        cfg = self._mandant_theme_config()
+        result = []
+        for guid, entry in self._package_entries().items():
+            bases = {}
+            for mode in modes:
+                wanted = cfg[f"theme_{mode}"]
+                variant = wanted if wanted and isinstance(entry["data"].get(wanted), dict) else mode
+                bases[mode] = theme_service.compose_base(entry["data"], mode=mode, variant=variant)[1]
+            result.append((guid, entry["name"], bases))
+        return result
+
+    async def list_available_theme_packages(self) -> list:
+        """Alle Theme-Pakete aus sys_layout (ohne reservierte Basissaetze) zur Auswahl durch den Mandanten."""
+        rows = await PdvmDatabase("sys_layout", system_pool=self._system_pool, mandant_pool=self._mandant_pool).get_all(
+            where="historisch = 0", order_by="name ASC"
+        )
+        result = []
+        for row in rows:
+            guid = str(row.get("uid"))
+            if guid in _RESERVED_BASE_UIDS:
+                continue
+            result.append({"guid": guid, "name": self._package_from_row(row, guid)["name"]})
+        return result
+
+    async def save_mandant_theme_overlay(self, overlay: Any) -> Dict[str, Any]:
+        """Speichert das Mandanten-Overlay (msy_layout-Zeile mit ROOT.LAYER='OVERLAY', link_uid = Mandant)."""
+        if self.layout is None:
+            raise theme_service.ThemeValidationError(["Fuer den Mandanten ist kein Theme-Paket konfiguriert"])
+        clean, errors = theme_service.validate_overlay_payload(overlay, layer="Mandant")
+        if errors:
+            raise theme_service.ThemeValidationError(errors)
+
+        # Kontrast: Aenderungen duerfen in keinem freigegebenen Paket einen Pflicht-Kontrast verletzen
+        # (das Overlay gilt fuer alle Pakete; Basis = Mandanten-Variante bzw. Modus-Name je Paket)
+        contrast_text: list = []
+        contrast_payload: list = []
+        per_package = self._mandant_overlay_bases(clean)
+        for guid, name, bases in per_package:
+            texts, payload = theme_service.contrast_errors(bases, clean, layer="Mandant")
+            prefix = f"[{name}] " if len(per_package) > 1 else ""
+            contrast_text += [prefix + t for t in texts]
+            contrast_payload += [{**p, "package": guid} for p in payload]
+        if contrast_text:
+            raise theme_service.ThemeValidationError(contrast_text, contrast_payload)
+
+        daten = {
+            "ROOT": {"TABLE": "msy_layout", "LAYER": "OVERLAY", "BASE_THEME_GUID": str(self.layout.guid)},
+            "light": clean.get("light", {}),
+            "dark": clean.get("dark", {}),
+        }
+        row = await self.layout.db.get_by_link_uid(self.mandant_guid)
+        row_daten = (row or {}).get("daten")
+        if isinstance(row_daten, str):
+            row_daten = json.loads(row_daten)
+        is_overlay_row = isinstance(row_daten, dict) and (row_daten.get("ROOT") or {}).get("LAYER") == "OVERLAY"
+
+        if is_overlay_row:
+            await update_record_central(
+                table_name="msy_layout",
+                uid=row["uid"],
+                daten=daten,
+                expected_snapshot_daten=row_daten,
+                gcs=self,
+            )
+        else:
+            mandant_name = (self.mandant.data.get("MANDANT") or {}).get("NAME") if isinstance(self.mandant.data, dict) else None
+            await create_record_central(
+                table_name="msy_layout",
+                daten=daten,
+                name=f"Overlay {mandant_name or self.mandant_guid}",
+                link_uid=self.mandant_guid,
+                gcs=self,
+            )
+        self.layout_overlay = daten
+        return {"overlay": {"light": daten["light"], "dark": daten["dark"]}}
+
+    async def save_mandant_theme_config(self, settings_in: Dict[str, Any]) -> Dict[str, Any]:
+        """Speichert THEME_GUID/THEME_ALLOWED/THEME_LIGHT/THEME_DARK/THEME_DEFAULT_MODE/USER_THEME_EDIT in asy_mandanten.CONFIG."""
+        errors: list = []
+        updates: Dict[str, Any] = {}
+        variant_package = self.layout.data if self.layout is not None else {}
+
+        if "theme_default" in settings_in:
+            guid = str(settings_in["theme_default"] or "").strip()
+            package = await self.fetch_theme_package(guid) if guid else None
+            if package is None:
+                errors.append(f"Standard-Theme-Paket '{guid}' existiert nicht")
+            else:
+                updates["THEME_GUID"] = str(uuid.UUID(guid))
+                variant_package = package["data"]
+        if "theme_allowed" in settings_in:
+            raw_allowed = settings_in["theme_allowed"]
+            allowed: list = []
+            if not isinstance(raw_allowed, list):
+                errors.append("theme_allowed muss eine Liste von Theme-Paketen sein")
+                raw_allowed = []
+            for item in raw_allowed:
+                if await self.fetch_theme_package(item) is None:
+                    errors.append(f"Theme-Paket '{item}' existiert nicht")
+                    continue
+                guid = str(uuid.UUID(str(item).strip()))
+                if guid not in allowed:
+                    allowed.append(guid)
+            updates["THEME_ALLOWED"] = allowed
+        for mode in ("light", "dark"):
+            key = f"theme_{mode}"
+            if key in settings_in:
+                try:
+                    updates[f"THEME_{mode.upper()}"] = self._validate_variant(settings_in[key], mode, variant_package or {})
+                except theme_service.ThemeValidationError as exc:
+                    errors += exc.errors
+        if "default_mode" in settings_in:
+            default_mode = str(settings_in["default_mode"] or "").strip()
+            if default_mode not in ("", "light", "dark"):
+                errors.append("default_mode muss 'light', 'dark' oder leer sein")
+            updates["THEME_DEFAULT_MODE"] = default_mode
+        if "user_theme_edit" in settings_in:
+            patterns, pattern_errors = theme_service.validate_user_edit_patterns(settings_in["user_theme_edit"])
+            errors += pattern_errors
+            updates["USER_THEME_EDIT"] = patterns
+        if "layout_default" in settings_in:
+            layout_default, layout_errors = layout_schema.validate_choice_map(settings_in["layout_default"], layer="Mandant")
+            errors += layout_errors
+            updates["LAYOUT_DEFAULT"] = layout_default
+        if "layout_allowed" in settings_in:
+            layout_allowed, allowed_errors = layout_schema.validate_allowed_map(settings_in["layout_allowed"])
+            errors += allowed_errors
+            updates["LAYOUT_ALLOWED"] = layout_allowed
+        if errors:
+            raise theme_service.ThemeValidationError(errors)
+
+        # Frisch aus der Datenbank lesen: Die Session-Kopie (Login-Zeitpunkt) kann veraltet sein, z. B. durch eine
+        # zweite Sitzung. Geschrieben werden nur die Theme-Schluessel, alles andere bleibt wie in der DB.
+        row = await PdvmDatabase("asy_mandanten").get_by_uid(self.mandant_guid)
+        current = (row or {}).get("daten")
+        if isinstance(current, str):
+            current = json.loads(current)
+        if not isinstance(current, dict):
+            raise theme_service.ThemeValidationError(["Mandantendaten konnten nicht gelesen werden"])
+
+        before = copy.deepcopy(current)
+        after = copy.deepcopy(current)
+        cfg = after.get("CONFIG") if isinstance(after.get("CONFIG"), dict) else {}
+        cfg.update(updates)
+        after["CONFIG"] = cfg
+        # asy_mandanten.gilt_bis ist eine Text-Spalte; ein mitgeschriebenes SELF_GILT_BIS wuerde als datetime
+        # gebunden und scheitern. Ohne den Schluessel bleibt die Spalte unveraendert.
+        if isinstance(after.get("ROOT"), dict):
+            after["ROOT"].pop("SELF_GILT_BIS", None)
+
+        await update_record_central(
+            table_name="asy_mandanten",
+            uid=self.mandant_guid,
+            daten=after,
+            expected_snapshot_daten=before,
+            gcs=self,
+        )
+        if isinstance(self.mandant.data, dict):
+            self.mandant.data["CONFIG"] = copy.deepcopy(cfg)
+        if "THEME_GUID" in updates or "THEME_ALLOWED" in updates:
+            await self.reload_layout_packages()
+        return self._mandant_theme_config()
+
+    async def save_user_theme_settings(
+        self,
+        overlay: Any,
+        variant_light: Any = None,
+        variant_dark: Any = None,
+        layout_choice: Any = None,
+        theme_choice: Any = None,
+    ) -> Dict[str, Any]:
+        """Speichert Benutzer-Overlay, Paket-/Variantenwahl und Layout-Wahl in msy_systemsteuerung (nur Freigegebenes)."""
+        cfg = self._mandant_theme_config()
+        patterns = cfg["user_theme_edit"]
+        clean, errors = theme_service.validate_overlay_payload(
+            overlay, layer="Benutzer", allowed_patterns=patterns, require_user_editable=True
+        )
+
+        # Paketwahl: nur freigegebene Pakete; leer = Standard-Paket des Mandanten
+        chosen_package = self.get_user_theme_package_guid()
+        clean_choice = None
+        if theme_choice is not None:
+            clean_choice = str(theme_choice or "").strip()
+            if clean_choice and clean_choice not in self._package_entries():
+                errors.append(f"Theme-Paket '{clean_choice}' ist für den Mandanten nicht freigegeben")
+                clean_choice = None
+            else:
+                chosen_package = clean_choice or self._default_package_guid()
+        package = self._package_data(chosen_package) or (self.layout.data if self.layout is not None else None)
+
+        light = dark = None
+        try:
+            light = self._validate_variant(variant_light, "light", package) if variant_light is not None else None
+            dark = self._validate_variant(variant_dark, "dark", package) if variant_dark is not None else None
+        except theme_service.ThemeValidationError as exc:
+            errors += exc.errors
+
+        clean_layout = None
+        if layout_choice is not None:
+            clean_layout, layout_errors = layout_schema.validate_choice_map(layout_choice, layer="Benutzer")
+            errors += layout_errors
+            for area, option in clean_layout.items():
+                if option not in layout_schema.available_options(area, cfg["layout_default"], cfg["layout_allowed"]):
+                    errors.append(f"Benutzer: Variante '{option}' im Bereich '{area}' ist für den Mandanten nicht freigegeben")
+        if errors:
+            raise theme_service.ThemeValidationError(errors)
+
+        # Kontrast: Basis = Paket-Variante des Benutzers (inkl. neu gewaehltem Paket/Variante) + Mandanten-Overlay
+        def _variant_for(mode: str, override: Optional[str]) -> str:
+            if override is None:
+                return self.get_user_theme_group(mode, package or {})
+            return override or cfg[f"theme_{mode}"] or mode
+
+        bases = {
+            mode: theme_service.compose_base(
+                package, mode=mode, variant=_variant_for(mode, light if mode == "light" else dark),
+                mandant_overlay=self.layout_overlay,
+            )[1]
+            for mode in clean
+        }
+        contrast_text, contrast_payload = theme_service.contrast_errors(bases, clean, layer="Benutzer")
+        if contrast_text:
+            raise theme_service.ThemeValidationError(contrast_text, contrast_payload)
+
+        user_key = str(self.user_guid)
+        self.systemsteuerung.set_value(user_key, "THEME_OVERRIDES", clean, self.stichtag)
+        if clean_choice is not None:
+            self.systemsteuerung.set_value(user_key, "THEME_CHOICE", clean_choice, self.stichtag)
+        if light is not None:
+            self.systemsteuerung.set_value(user_key, "THEME_VARIANT_LIGHT", light, self.stichtag)
+        if dark is not None:
+            self.systemsteuerung.set_value(user_key, "THEME_VARIANT_DARK", dark, self.stichtag)
+        if clean_layout is not None:
+            self.systemsteuerung.set_value(user_key, "LAYOUT_CHOICE", clean_layout, self.stichtag)
+        await self.save_all_values()
+        return {"overlay": clean}
 
     # === Stichtag ===
     

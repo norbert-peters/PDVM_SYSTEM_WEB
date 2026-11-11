@@ -14,6 +14,7 @@
 @import './styles/layouts/header.css';
 @import './styles/layouts/sidebar.css';
 @import './styles/layouts/horizontal-nav.css';
+@import './styles/layouts/variants.css';
 
 /* ===== Component Styles (werden später hinzugefügt) ===== */
 /* @import './styles/components/buttons.css'; */

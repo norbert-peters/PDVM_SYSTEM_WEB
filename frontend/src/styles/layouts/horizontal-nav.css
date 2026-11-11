@@ -140,8 +140,8 @@
 }
 
 .additional-menu-item.active {
-  background-color: var(--color-primary-100);
-  color: var(--color-primary-700);
+  background-color: var(--state-selected);
+  color: var(--color-text-primary);
 }
 
 /* ===== Responsive ===== */
@@ -250,7 +250,7 @@
   }
   
   .mobile-nav-item.active {
-    background-color: var(--color-primary-100);
-    color: var(--color-primary-700);
+    background-color: var(--state-selected);
+    color: var(--color-text-primary);
   }
 }

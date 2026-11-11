@@ -1,407 +1,207 @@
 """
 Layout API
-Endpoints für mandantenspezifische Layouts und Themes
-"""
-from fastapi import APIRouter, HTTPException, Depends
-from typing import Optional, Dict, Any
-from uuid import UUID
-import logging
-import json
+Aufgeloestes Theme (Paket + Mandanten-Overlay + Benutzer-Overlay), Token-Katalog und Hell/Dunkel-Praeferenz.
 
-from ..core.pdvm_database import PdvmDatabaseService
-from ..core.central_write_service import update_record_central
-from ..core.security import get_current_user
+Die Logik liegt in ``app.core.theme_service`` bzw. ``PdvmCentralSystemsteuerung.resolve_active_theme``;
+der Router enthaelt weder SQL noch direkten Zugriff auf JSON-Strukturen (ARCHITECTURE_RULES 1.1).
+"""
+from typing import Any, Dict, Optional
+import logging
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+
+from ..core import theme_service
+from ..core.security import get_current_user, has_overlay_rights, require_overlay_user
 from .gcs import get_gcs_instance
 
 router = APIRouter(tags=["layout"])
 logger = logging.getLogger(__name__)
 
-
-def get_default_colors(theme: str) -> Dict[str, Any]:
-    """Gibt Standard-Farben für light/dark Theme zurück"""
-    if theme == 'dark':
-        return {
-            "primary": {"500": "#3b82f6", "600": "#2563eb"},
-            "secondary": {"500": "#8b5cf6", "600": "#7c3aed"},
-            "neutral": {"500": "#6b7280", "600": "#4b5563"},
-            "success": "#10b981",
-            "warning": "#f59e0b",
-            "error": "#ef4444",
-            "info": "#3b82f6",
-            "background": {
-                "primary": "#1e1e1e",
-                "secondary": "#2d2d2d",
-                "tertiary": "#3d3d3d"
-            },
-            "text": {
-                "primary": "#ffffff",
-                "secondary": "#b0b0b0",
-                "disabled": "#6b7280",
-                "inverse": "#000000"
-            },
-            "border": {
-                "light": "#404040",
-                "medium": "#525252",
-                "dark": "#737373"
-            }
-        }
-    else:  # light theme
-        return {
-            "primary": {"500": "#3b82f6", "600": "#2563eb"},
-            "secondary": {"500": "#8b5cf6", "600": "#7c3aed"},
-            "neutral": {"500": "#6b7280", "600": "#4b5563"},
-            "success": "#10b981",
-            "warning": "#f59e0b",
-            "error": "#ef4444",
-            "info": "#3b82f6",
-            "background": {
-                "primary": "#ffffff",
-                "secondary": "#f3f4f6",
-                "tertiary": "#e5e7eb"
-            },
-            "text": {
-                "primary": "#111827",
-                "secondary": "#4b5563",
-                "disabled": "#9ca3af",
-                "inverse": "#ffffff"
-            },
-            "border": {
-                "light": "#e5e7eb",
-                "medium": "#d1d5db",
-                "dark": "#9ca3af"
-            }
-        }
+_MODES = ("light", "dark")
 
 
-def get_default_typography() -> Dict[str, Any]:
-    """Gibt Standard-Typografie zurück"""
-    return {
-        "fontFamily": {
-            "primary": "Inter, system-ui, sans-serif",
-            "secondary": "Georgia, serif",
-            "mono": "JetBrains Mono, monospace"
-        },
-        "fontSize": {"scale": 1.0},
-        "fontWeight": {"normal": 400, "medium": 500, "bold": 700},
-        "lineHeight": {"tight": 1.25, "normal": 1.5, "relaxed": 1.75}
-    }
+def _check_mode(mode: Optional[str]) -> None:
+    if mode is not None and mode not in _MODES:
+        raise HTTPException(status_code=400, detail="mode muss 'light' oder 'dark' sein")
 
 
-@router.get("/active")
-async def get_active_theme(
+def _translate_write_error(exc: Exception) -> HTTPException:
+    """Pruefungsfehler -> 422 (alle Meldungen), Schreibkonflikt -> 409, Rest -> 500."""
+    if isinstance(exc, theme_service.ThemeValidationError):
+        detail: Dict[str, Any] = {"errors": exc.errors}
+        if exc.contrast:
+            detail["contrast"] = exc.contrast
+        return HTTPException(status_code=422, detail=detail)
+    if isinstance(exc, ValueError) and "zwischenzeitlich" in str(exc):
+        return HTTPException(
+            status_code=409,
+            detail="Die Daten wurden gleichzeitig geändert. Bitte erneut speichern.",
+        )
+    logger.error(f"Fehler beim Speichern der Theme-Einstellungen: {exc}")
+    return HTTPException(status_code=500, detail=str(exc))
+
+
+@router.get("/resolved")
+async def get_resolved_theme(
     mode: Optional[str] = None,
-    gcs = Depends(get_gcs_instance),
-    current_user: dict = Depends(get_current_user)
+    gcs=Depends(get_gcs_instance),
+    current_user: dict = Depends(get_current_user),
 ):
     """
-    Lädt das aktive Theme-Block-Set für den User.
-    Kombiniert Mandanten-Vorgabe (Theme Package) und User-Präferenz (Variant).
-    
+    Liefert das aktive Theme des Benutzers, bereits aus allen Schichten aufgeloest.
+
     Args:
-        mode: 'light' oder 'dark'. Wenn None, wird User-Präferenz aus GCS geladen.
+        mode: 'light' oder 'dark'. Ohne Angabe gilt die gespeicherte Benutzer-Praeferenz
+              (sonst Mandanten-Default, sonst 'light').
     """
-    logger.info(f"🎨 Lade aktives Theme für User {gcs.user_guid} (Mode override: {mode})")
-    
+    _check_mode(mode)
     try:
-        # 1. Modus bestimmen
-        if not mode:
-            # Versuche gespeicherten Modus, sonst Default 'light'
-            mode = gcs.systemsteuerung.get_static_value(str(gcs.user_guid), "THEME_MODE") or "light"
-        
-        # 2. Ziel-Gruppe ermitteln (z.B. "Orange_Dark") via neuer Logic in GCS
-        target_group = gcs.get_user_theme_group(mode)
-        logger.info(f"Target Group: {target_group} (für Mode {mode})")
-        
-        # 3. Daten aus gcs.layout holen
-        # Das Layout-Package wurde bereits beim GCS-Start basierend auf Mandant CONFIG geladen
-        if not gcs.layout:
-            logger.error("❌ gcs.layout ist None!")
-            raise HTTPException(status_code=500, detail="Systemfehler: Layout-Container nicht initialisiert")
-            
-        # Hole alle Blöcke der Zielgruppe
-        layout_blocks = gcs.layout.get_value_by_group(target_group)
-        
-        if not layout_blocks:
-            logger.warning(f"⚠️ Keine Blöcke gefunden für Gruppe '{target_group}' im Layout {gcs.layout.guid}")
-            # Fallback oder leeres Set zurückgeben?
-            # Wir geben Warnung zurück, Frontend muss Fallback nutzen
-        
-        return {
-            "theme_package_id": gcs.layout.guid,
-            "theme_variant": target_group,
-            "mode": mode,
-            "blocks": layout_blocks
-        }
-        
+        theme = gcs.resolve_active_theme(mode)
     except Exception as e:
-        logger.error(f"Fehler bei get_active_theme: {e}")
+        logger.error(f"Fehler beim Aufloesen des Themes: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+    for warning in theme.get("warnings", []) + theme.get("layout_warnings", []):
+        logger.warning(f"Theme {theme.get('theme_variant')}: {warning}")
+    return theme
 
-@router.get("/{mandant_uid}")
-async def get_mandant_layouts(
-    mandant_uid: str,
-    theme: Optional[str] = None,
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Lädt Layout-Konfiguration für einen Mandanten
-    
-    Args:
-        mandant_uid: UUID des Mandanten
-        theme: Optional - 'light' oder 'dark', wenn None werden beide zurückgegeben
-        
-    Returns:
-        Layout-Konfiguration(en)
-    """
-    try:
-        db = PdvmDatabaseService(database="pdvm_system", table="sys_layout")
-        
-        # Alle Layouts für den Mandanten
-        all_layouts = await db.list_all(historisch=0)
-        
-        # Filtere nach mandant_uid
-        mandant_layouts = [
-            layout for layout in all_layouts 
-            if layout.get('daten', {}).get('mandant_uid') == mandant_uid
-        ]
-        
-        if not mandant_layouts:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Keine Layouts gefunden für Mandant {mandant_uid}"
-            )
-        
-        # Wenn theme spezifiziert, nur dieses zurückgeben
-        if theme:
-            theme_layout = next(
-                (l for l in mandant_layouts if l.get('daten', {}).get('theme') == theme),
-                None
-            )
-            if not theme_layout:
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"Theme '{theme}' nicht gefunden für Mandant {mandant_uid}"
-                )
-            return theme_layout
-        
-        # Sonst alle Themes zurückgeben
-        return {
-            "mandant_uid": mandant_uid,
-            "layouts": mandant_layouts
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Fehler beim Laden des Layouts: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/catalog")
+async def get_token_catalog(current_user: dict = Depends(get_current_user)):
+    """Liefert das vorgegebene Token-Schema (Gruppen, Typen, Benutzer-Anpassbarkeit)."""
+    return theme_service.get_catalog()
 
 
 @router.post("/preferences/theme")
 async def save_theme_preference(
     theme_mode: str,
     current_user: dict = Depends(get_current_user),
-    gcs = Depends(get_gcs_instance)
+    gcs=Depends(get_gcs_instance),
 ):
-    """
-    Speichert Theme-Präferenz (light/dark) in msy_systemsteuerung
-    
-    Args:
-        theme_mode: 'light' oder 'dark'
-        
-    Returns:
-        Success-Nachricht
-    """
+    """Speichert den Hell/Dunkel-Modus des Benutzers in msy_systemsteuerung."""
+    _check_mode(theme_mode)
     try:
-        logger.info(f"📝 Speichere Theme-Präferenz: user={gcs.user_guid}, theme={theme_mode}")
-        
-        # Speichere über systemsteuerung-Instanz (direkter Aufruf)
         gcs.systemsteuerung.set_value(str(gcs.user_guid), "THEME_MODE", theme_mode, gcs.stichtag)
-        
-        # Persistent speichern
         await gcs.save_all_values()
-        
-        logger.info(f"✅ Theme-Präferenz gespeichert: {theme_mode}")
         return {"success": True, "theme_mode": theme_mode}
-        
     except Exception as e:
-        logger.error(f"Fehler beim Speichern der Theme-Präferenz: {e}")
+        logger.error(f"Fehler beim Speichern der Theme-Praeferenz: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/preferences/theme")
 async def get_theme_preference(
     current_user: dict = Depends(get_current_user),
-    gcs = Depends(get_gcs_instance)
+    gcs=Depends(get_gcs_instance),
 ):
-    """
-    Lädt gespeicherte Theme-Präferenz aus msy_systemsteuerung
-    
-    Returns:
-        Theme-Präferenz oder default 'light'
-    """
-    try:
-        logger.info(f"📖 Lade Theme-Präferenz: user={gcs.user_guid}")
-        
-        # Lese über systemsteuerung-Instanz (get_static_value für nicht-historische Daten)
-        theme_mode = gcs.systemsteuerung.get_static_value(str(gcs.user_guid), "THEME_MODE")
-        
-        logger.info(f"💡 Gelesener Theme-Modus: {theme_mode}")
-        
-        # Default wenn noch nicht gesetzt
-        if theme_mode is None:
-            theme_mode = "light"
-        
-        return {"theme_mode": theme_mode}
-        
-    except Exception as e:
-        logger.error(f"Fehler beim Laden der Theme-Präferenz: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    """Liefert den effektiven Hell/Dunkel-Modus des Benutzers."""
+    return {"theme_mode": gcs.get_user_theme_mode()}
 
 
-@router.get("/{mandant_uid}/{theme}")
-async def get_mandant_theme(
-    mandant_uid: str,
-    theme: str,
+# --- Theme-Editor (P4) ---
+
+
+class OverlayBody(BaseModel):
+    overlay: Dict[str, Any] = {}
+
+
+class MandantSettingsBody(BaseModel):
+    theme_default: Optional[str] = None
+    theme_allowed: Optional[list] = None
+    theme_light: Optional[str] = None
+    theme_dark: Optional[str] = None
+    default_mode: Optional[str] = None
+    user_theme_edit: Optional[list] = None
+    layout_default: Optional[Dict[str, Any]] = None
+    layout_allowed: Optional[Dict[str, Any]] = None
+
+
+class UserSettingsBody(BaseModel):
+    overlay: Dict[str, Any] = {}
+    theme_choice: Optional[str] = None
+    variant_light: Optional[str] = None
+    variant_dark: Optional[str] = None
+    layout_choice: Optional[Dict[str, Any]] = None
+
+
+@router.get("/editor/{scope}")
+async def get_theme_editor_state(
+    scope: str,
+    package: Optional[str] = None,
     current_user: dict = Depends(get_current_user),
-    gcs = Depends(get_gcs_instance)
+    gcs=Depends(get_gcs_instance),
 ):
     """
-    Lädt spezifisches Theme für einen Mandanten
-    NEUE STRUKTUR: Nutzt GCS-Theme-Instanz
-    
-    Args:
-        mandant_uid: UUID des Mandanten
-        theme: 'light' oder 'dark' (Gruppe)
-        
-    Returns:
-        Layout-Konfiguration für das Theme
+    Zustand fuer den Theme-Editor.
+
+    scope='user' ("Mein Design"): jeder Benutzer; scope='mandant': nur Rolle 'overlay'.
+    ``can_edit_overlay`` zeigt, ob der Benutzer die Mandanten-Ebene aendern darf.
+    ``package`` (nur scope='user'): Basis eines anderen freigegebenen Theme-Pakets als Vorschau.
     """
+    if scope not in ("mandant", "user"):
+        raise HTTPException(status_code=404, detail="scope muss 'mandant' oder 'user' sein")
+    can_edit_overlay = has_overlay_rights(current_user)
+    if scope == "mandant" and not can_edit_overlay:
+        raise HTTPException(status_code=403, detail="Rolle 'overlay' erforderlich")
     try:
-        # Prüfe ob GCS-Layout-Instanz verfügbar
-        if not gcs.layout:
-            # Kein Theme konfiguriert -> Gib Standard-Theme zurück
-            logger.warning(f"⚠️ Kein Theme für Mandant {mandant_uid} konfiguriert - verwende Standard")
-            return {
-                "mandant_uid": str(mandant_uid),
-                "theme": theme,
-                "colors": get_default_colors(theme),
-                "typography": get_default_typography(),
-                "customizations": {},
-                "assets": {}
-            }
-        
-        # Hole Theme-Gruppe direkt aus gcs.layout
-        theme_group = gcs.layout.get_value_by_group(theme)
-        
-        if not theme_group:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Theme-Gruppe '{theme}' nicht gefunden"
-            )
-        
-        # Erstelle Response
-        response = {
-            "mandant_uid": str(mandant_uid),
-            "theme": theme,
-            "colors": theme_group.get('colors', {}),
-            "typography": theme_group.get('typography', {}),
-            "customizations": theme_group.get('customizations', {}),
-            "assets": theme_group.get('assets', {})
-        }
-        
-        logger.info(f"✅ Theme geladen: {theme}")
-        return response
-        
-    except HTTPException:
-        raise
+        state = gcs.get_theme_editor_state(scope, package)
     except Exception as e:
-        logger.error(f"Fehler beim Laden des Themes: {e}")
+        logger.error(f"Fehler beim Laden des Theme-Editors: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    state["can_edit_overlay"] = can_edit_overlay
+    return state
+
+
+@router.get("/packages")
+async def list_theme_packages(
+    current_user: dict = Depends(require_overlay_user),
+    gcs=Depends(get_gcs_instance),
+):
+    """Alle verfuegbaren Theme-Pakete (sys_layout) zur Freigabe fuer den Mandanten (nur Rolle 'overlay')."""
+    try:
+        return {"packages": await gcs.list_available_theme_packages()}
+    except Exception as e:
+        logger.error(f"Fehler beim Laden der Theme-Pakete: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.put("/{mandant_uid}/{theme}")
-async def update_mandant_theme(
-    mandant_uid: str,
-    theme: str,
-    layout_data: Dict[str, Any],
+@router.put("/overlay/mandant")
+async def save_mandant_overlay(
+    body: OverlayBody,
+    current_user: dict = Depends(require_overlay_user),
+    gcs=Depends(get_gcs_instance),
+):
+    """Speichert das Mandanten-Overlay (nur Rolle 'overlay')."""
+    try:
+        return await gcs.save_mandant_theme_overlay(body.overlay)
+    except Exception as e:
+        raise _translate_write_error(e)
+
+
+@router.put("/settings/mandant")
+async def save_mandant_settings(
+    body: MandantSettingsBody,
+    current_user: dict = Depends(require_overlay_user),
+    gcs=Depends(get_gcs_instance),
+):
+    """Speichert Standard-Varianten, Standard-Modus und Benutzer-Freigaben des Mandanten (nur Rolle 'overlay')."""
+    try:
+        return await gcs.save_mandant_theme_config(body.model_dump(exclude_unset=True))
+    except Exception as e:
+        raise _translate_write_error(e)
+
+
+@router.put("/settings/user")
+async def save_user_settings(
+    body: UserSettingsBody,
     current_user: dict = Depends(get_current_user),
-    gcs = Depends(get_gcs_instance),
+    gcs=Depends(get_gcs_instance),
 ):
-    """
-    Aktualisiert Theme-Konfiguration für einen Mandanten
-    
-    Args:
-        mandant_uid: UUID des Mandanten
-        theme: 'light' oder 'dark'
-        layout_data: Neue Layout-Konfiguration
-        
-    Returns:
-        Aktualisiertes Layout
-    """
+    """Speichert Benutzer-Overlay und Variantenwahl; Tokens nur nach Freigabe des Mandanten."""
     try:
-        db = PdvmDatabaseService(database="pdvm_system", table="sys_layout")
-        
-        # Finde existierendes Layout
-        all_layouts = await db.list_all(historisch=0)
-        existing_layout = next(
-            (l for l in all_layouts 
-             if l.get('daten', {}).get('mandant_uid') == mandant_uid 
-             and l.get('daten', {}).get('theme') == theme),
-            None
+        return await gcs.save_user_theme_settings(
+            body.overlay, body.variant_light, body.variant_dark, body.layout_choice, body.theme_choice
         )
-        
-        if not existing_layout:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Layout nicht gefunden: {mandant_uid}/{theme}"
-            )
-        
-        # Update daten
-        updated_data = existing_layout.get('daten', {})
-        updated_data.update(layout_data)
-        
-        # Speichere Update ueber zentralen Write-Gateway
-        updated_layout = await update_record_central(
-            table_name="sys_layout",
-            uid=existing_layout["uid"],
-            daten=updated_data,
-            name=existing_layout.get("name"),
-            historisch=existing_layout.get("historisch"),
-            gcs=gcs,
-        )
-        
-        logger.info(f"✅ Layout aktualisiert: {mandant_uid}/{theme}")
-        return updated_layout
-        
-    except HTTPException:
-        raise
     except Exception as e:
-        logger.error(f"Fehler beim Update des Layouts: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/current/theme")
-async def get_current_mandant_theme(
-    theme: str = "light",
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Lädt Theme für den aktuell angemeldeten Mandanten
-    
-    Args:
-        theme: 'light' oder 'dark' (default: light)
-        
-    Returns:
-        Layout-Konfiguration
-    """
-    mandant_uid = current_user.get("mandant_uid")
-    
-    if not mandant_uid:
-        raise HTTPException(
-            status_code=400,
-            detail="Kein Mandant ausgewählt"
-        )
-    
-    return await get_mandant_theme(mandant_uid, theme, current_user)
+        raise _translate_write_error(e)

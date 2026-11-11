@@ -733,11 +733,11 @@ export function PdvmMenuEditor(props: {
           setGroupItems(next)
         }}
         style={{
-          border: isSelected ? '2px solid rgba(80,160,255,0.85)' : '1px solid rgba(255,255,255,0.08)',
+          border: isSelected ? '2px solid var(--state-selected-border)' : '1px solid var(--color-divider)',
           borderRadius: 10,
           padding: 10,
           marginBottom: 8,
-          background: isSelected ? 'rgba(80,160,255,0.14)' : 'rgba(255,255,255,0.03)',
+          background: isSelected ? 'var(--state-selected)' : 'var(--state-subtle)',
           marginLeft: level * 18,
         }}
         title="Drag & Drop: gleiche Ebene sortieren. Shift+Drop: als Kind einhängen."
@@ -823,7 +823,7 @@ export function PdvmMenuEditor(props: {
   if (menuQuery.isLoading) return <div>Lade Menü…</div>
   if (menuQuery.isError)
     return (
-      <div style={{ color: 'crimson' }}>
+      <div style={{ color: 'var(--color-error-text)' }}>
         Fehler: {(menuQuery.error as any)?.message || 'Menü konnte nicht geladen werden'}
       </div>
     )
@@ -1038,7 +1038,7 @@ export function PdvmMenuEditor(props: {
             )}
 
             {commandControlDef ? (
-              <div style={{ marginTop: 4, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.10)' }}>
+              <div style={{ marginTop: 4, paddingTop: 10, borderTop: '1px solid var(--color-divider)' }}>
                 <div style={{ fontWeight: 800, marginBottom: 8 }}>{commandControlDef.label || 'Menü Kommando'}</div>
 
                 {selectedIsParent ? (
@@ -1076,7 +1076,7 @@ export function PdvmMenuEditor(props: {
                 ) : null}
 
                 {commandCatalogQuery.isError ? (
-                  <div style={{ color: 'crimson', fontSize: 12, marginTop: 6 }}>Command-Katalog konnte nicht geladen werden.</div>
+                  <div style={{ color: 'var(--color-error-text)', fontSize: 12, marginTop: 6 }}>Command-Katalog konnte nicht geladen werden.</div>
                 ) : null}
 
                 {selectedCmdDef && asArray(selectedCmdDef.params).length > 0 ? (

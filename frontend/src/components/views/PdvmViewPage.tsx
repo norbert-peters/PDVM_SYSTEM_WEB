@@ -746,7 +746,7 @@ export function PdvmViewPageContent({
       (defQuery.error as any)?.message ||
       ''
     return (
-      <div style={{ padding: 16, color: 'crimson' }}>
+      <div style={{ padding: 16, color: 'var(--color-error-text)' }}>
         Fehler beim Laden der ViewDefinition{detail ? `: ${String(detail)}` : ''}
       </div>
     )
@@ -823,7 +823,7 @@ export function PdvmViewPageContent({
             <h3 className="pdvm-view__name">{defQuery.data?.name || 'View'}</h3>
             <div className="pdvm-view__meta">
               VIEW_GUID: {viewGuid} · Tabelle: {matrixQuery.data?.table || defQuery.data?.root?.TABLE || ''} · Treffer: {totalAfterFilter}
-              {meta?.table_truncated ? <span style={{ marginLeft: 8, color: 'darkorange', fontWeight: 800 }}>(gekürzt)</span> : null}
+              {meta?.table_truncated ? <span style={{ marginLeft: 8, color: 'var(--color-warning-text)', fontWeight: 800 }}>(gekürzt)</span> : null}
             </div>
           </div>
 
@@ -951,7 +951,7 @@ export function PdvmViewPageContent({
                             },
                           })
                         }}
-                        style={{ padding: '6px 8px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.15)', background: 'white' }}
+                        style={{ padding: '6px 8px', borderRadius: 8, border: 'var(--block-view-input-std-border, 1px solid var(--color-border-medium))', background: 'var(--block-view-input-std-bg-color, var(--color-background-primary))', color: 'var(--block-view-input-std-text-color, var(--color-text-primary))' }}
                       >
                         <option value="">(keine)</option>
                         {allControls.map((c) => (
@@ -976,7 +976,7 @@ export function PdvmViewPageContent({
                             },
                           })
                         }}
-                        style={{ padding: '6px 8px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.15)', background: 'white' }}
+                        style={{ padding: '6px 8px', borderRadius: 8, border: 'var(--block-view-input-std-border, 1px solid var(--color-border-medium))', background: 'var(--block-view-input-std-bg-color, var(--color-background-primary))', color: 'var(--block-view-input-std-text-color, var(--color-text-primary))' }}
                       >
                         <option value="">(keine)</option>
                         {allControls
@@ -1026,7 +1026,7 @@ export function PdvmViewPageContent({
                   {!stateQuery.data ? (
                     <div style={{ marginTop: 8, fontSize: 12, opacity: 0.75 }}>
                       {stateQuery.error ? (
-                        <span style={{ color: 'crimson', opacity: 1 }}>
+                        <span style={{ color: 'var(--color-error-text)', opacity: 1 }}>
                           Fehler beim Laden des States:{' '}
                           {String((stateQuery.error as any)?.response?.data?.detail || (stateQuery.error as any)?.message || stateQuery.error)}
                         </span>
@@ -1089,10 +1089,10 @@ export function PdvmViewPageContent({
                         <div
                           key={c.control_guid}
                           style={{
-                            border: '1px solid rgba(0,0,0,0.10)',
+                            border: '1px solid var(--color-divider)',
                             borderRadius: 10,
                             padding: 10,
-                            background: 'white',
+                            background: 'var(--block-view-panel-bg-color, var(--color-background-primary))',
                             display: 'flex',
                             flexDirection: 'column',
                             gap: 8,
@@ -1144,7 +1144,7 @@ export function PdvmViewPageContent({
                                 setDraftControlsSource(next)
                               }}
                               title="Reihenfolge"
-                              style={{ width: 70, padding: '4px 6px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.15)' }}
+                              style={{ width: 70, padding: '4px 6px', borderRadius: 8, border: 'var(--block-view-input-std-border, 1px solid var(--color-border-medium))', background: 'var(--block-view-input-std-bg-color, var(--color-background-primary))', color: 'var(--block-view-input-std-text-color, var(--color-text-primary))' }}
                             />
 
                             <input
@@ -1179,7 +1179,7 @@ export function PdvmViewPageContent({
                               title="Breite (px) – leer = auto"
                               placeholder="auto"
                               min={40}
-                              style={{ width: 78, padding: '4px 6px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.15)' }}
+                              style={{ width: 78, padding: '4px 6px', borderRadius: 8, border: 'var(--block-view-input-std-border, 1px solid var(--color-border-medium))', background: 'var(--block-view-input-std-bg-color, var(--color-background-primary))', color: 'var(--block-view-input-std-text-color, var(--color-text-primary))' }}
                             />
                           </div>
 
@@ -1199,7 +1199,7 @@ export function PdvmViewPageContent({
                                   setDraftTableStateSource(next)
                                 }}
                                 placeholder="Filter enthält…"
-                                style={{ width: '100%', padding: '6px 8px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.12)', fontSize: 12 }}
+                                style={{ width: '100%', padding: '6px 8px', borderRadius: 8, border: 'var(--block-view-input-std-border, 1px solid var(--color-border-medium))', background: 'var(--block-view-input-std-bg-color, var(--color-background-primary))', color: 'var(--block-view-input-std-text-color, var(--color-text-primary))', fontSize: 12 }}
                               />
                             </div>
                           ) : null}
@@ -1210,7 +1210,7 @@ export function PdvmViewPageContent({
                 ) : null}
 
                   {saveStateMutation.error ? (
-                    <div style={{ marginTop: 8, color: 'crimson', fontSize: 12 }}>Fehler beim Speichern der Spalten</div>
+                    <div style={{ marginTop: 8, color: 'var(--color-error-text)', fontSize: 12 }}>Fehler beim Speichern der Spalten</div>
                   ) : null}
                 </div>
               ) : null}
@@ -1253,10 +1253,10 @@ export function PdvmViewPageContent({
 
       <div className="pdvm-view__scroll">
         {matrixQuery.isLoading ? <div style={{ padding: 8 }}>Daten laden…</div> : null}
-        {matrixQuery.error ? <div style={{ padding: 8, color: 'crimson' }}>Fehler beim Laden der Daten</div> : null}
+        {matrixQuery.error ? <div style={{ padding: 8, color: 'var(--color-error-text)' }}>Fehler beim Laden der Daten</div> : null}
 
         <div className="pdvm-view__tableWrap">
-          <table className="pdvm-view__table" style={{ background: 'var(--block-surface-std-background, white)' as any }}>
+          <table className="pdvm-view__table" style={{ background: 'var(--block-view-table-bg-color, var(--block-surface-main-bg-color, var(--color-background-primary)))' as any }}>
             <thead>
               <tr>
                 {controls.map((c) => (
@@ -1285,13 +1285,13 @@ export function PdvmViewPageContent({
                     }}
                     style={{
                       textAlign: 'left',
-                      padding: '10px 12px',
+                      padding: 'var(--density-cell-pad)',
                       fontSize: 12,
                       fontWeight: 700,
-                      borderBottom: '1px solid rgba(0,0,0,0.12)',
+                      borderBottom: 'var(--block-view-table-header-border-bottom, 1px solid var(--color-divider))',
                       position: 'sticky',
                       top: 0,
-                      background: 'var(--block-surface-std-background, white)' as any,
+                      background: 'var(--block-view-table-header-bg-color, var(--block-surface-main-bg-color, var(--color-background-primary)))' as any,
                       zIndex: 1,
                       whiteSpace: 'nowrap',
                       width: c.width ? `${c.width}px` : undefined,
@@ -1321,8 +1321,8 @@ export function PdvmViewPageContent({
                         padding: '6px 10px',
                         fontSize: 12,
                         fontWeight: 400,
-                        borderBottom: '1px solid rgba(0,0,0,0.08)',
-                        background: 'var(--block-surface-std-background, white)' as any,
+                        borderBottom: '1px solid var(--color-divider)',
+                        background: 'var(--block-view-table-header-bg-color, var(--block-surface-main-bg-color, var(--color-background-primary)))' as any,
                       }}
                     >
                       <input
@@ -1343,7 +1343,9 @@ export function PdvmViewPageContent({
                           width: '100%',
                           padding: '4px 6px',
                           borderRadius: 8,
-                          border: '1px solid rgba(0,0,0,0.12)',
+                          border: 'var(--block-view-input-std-border, 1px solid var(--color-border-medium))',
+                          background: 'var(--block-view-input-std-bg-color, var(--color-background-primary))',
+                          color: 'var(--block-view-input-std-text-color, var(--color-text-primary))',
                           fontSize: 12,
                         }}
                         onClick={(e) => e.stopPropagation()}
@@ -1361,17 +1363,18 @@ export function PdvmViewPageContent({
                   return (
                     <tr
                       key={`group:${item.key}`}
-                      style={{ borderBottom: '1px solid rgba(0,0,0,0.08)', cursor: 'pointer' }}
+                      style={{ borderBottom: '1px solid var(--color-divider)', cursor: 'pointer' }}
                       onClick={() => toggleGroupCollapsed(item.key)}
                       title={isCollapsed ? 'Aufklappen' : 'Zuklappen'}
                     >
                       <td
                         colSpan={Math.max(1, controls.length)}
                         style={{
-                          padding: '10px 12px',
+                          padding: 'var(--density-cell-pad)',
                           fontSize: 12,
                           fontWeight: 800,
-                          background: 'rgba(0,0,0,0.03)',
+                          background: 'var(--block-view-group-row-bg-color, var(--state-subtle))',
+                          color: 'var(--block-view-group-row-text-color, var(--color-text-primary))',
                         }}
                       >
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
@@ -1409,8 +1412,8 @@ export function PdvmViewPageContent({
                       )
                     }}
                     style={{
-                      borderBottom: '1px solid rgba(0,0,0,0.08)',
-                      background: isSelected ? 'rgba(0, 120, 212, 0.10)' : undefined,
+                      borderBottom: '1px solid var(--color-divider)',
+                      background: isSelected ? 'var(--block-view-table-row-selected-bg-color, var(--state-selected))' : undefined,
                       cursor: 'pointer',
                     }}
                   >
@@ -1425,7 +1428,7 @@ export function PdvmViewPageContent({
                       return (
                         <td
                           key={`${row.uid}:${c.control_guid}`}
-                          style={{ padding: '10px 12px', fontSize: 13 }}
+                          style={{ padding: 'var(--density-cell-pad)', fontSize: 13 }}
                           title={tooltip || undefined}
                         >
                           {cell || <span style={{ opacity: 0.4 }}>–</span>}
@@ -1437,14 +1440,15 @@ export function PdvmViewPageContent({
               })}
 
               {groupingTotals && (
-                <tr style={{ borderTop: '2px solid rgba(0,0,0,0.12)' }}>
+                <tr style={{ borderTop: '2px solid var(--color-border-light)' }}>
                   <td
                     colSpan={Math.max(1, controls.length)}
                     style={{
-                      padding: '10px 12px',
+                      padding: 'var(--density-cell-pad)',
                       fontSize: 12,
                       fontWeight: 900,
-                      background: 'rgba(0,0,0,0.05)',
+                      background: 'var(--block-view-total-row-bg-color, var(--state-hover))',
+                      color: 'var(--block-view-total-row-text-color, var(--color-text-primary))',
                     }}
                   >
                     Gesamt · {groupingTotals.count}

@@ -34,9 +34,10 @@
 .pdvm-view__fixed {
   flex-shrink: 0;
   padding: 10px 12px;
-  background: var(--color-background-primary);
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  border-radius: 10px;
+  background: var(--block-view-toolbar-bg-color, var(--color-background-primary));
+  color: var(--block-view-toolbar-text-color, var(--color-text-primary));
+  border: var(--block-view-toolbar-border, 1px solid var(--color-border-light));
+  border-radius: var(--block-view-toolbar-radius, 10px);
 }
 
 .pdvm-view__headerRow {
@@ -56,22 +57,22 @@
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  background: var(--color-background-primary);
+  border: var(--block-view-btn-std-border, 1px solid var(--color-border-light));
+  background: var(--block-view-btn-std-bg-color, var(--color-background-primary));
   cursor: pointer;
 }
 
 .pdvm-view__settingsToggle:hover {
-  background: var(--color-background-secondary);
+  background: var(--block-view-btn-std-hover-bg, var(--state-hover));
 }
 
 
 .pdvm-view__settings {
   margin-top: 10px;
   width: 100%;
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  border: var(--block-view-panel-border, 1px solid var(--color-border-light));
   border-radius: 10px;
-  background: var(--color-background-primary);
+  background: var(--block-view-panel-bg-color, var(--color-background-secondary));
   overflow: hidden;
 }
 
@@ -81,13 +82,13 @@
   justify-content: space-between;
   gap: 12px;
   padding: 10px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
-  background: var(--color-background-primary);
+  border-bottom: 1px solid var(--color-divider);
+  background: var(--block-view-panel-bg-color, var(--color-background-secondary));
 }
 
 .pdvm-view__settingsBody {
   padding: 10px;
-  background: rgba(0, 0, 0, 0.02);
+  background: var(--state-subtle);
   max-height: min(38vh, 420px);
   overflow: auto;
 }
@@ -98,9 +99,9 @@
 }
 
 .pdvm-view__settingsSection {
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  border: var(--block-view-panel-border, 1px solid var(--color-border-light));
   border-radius: 10px;
-  background: var(--color-background-primary);
+  background: var(--block-view-panel-bg-color, var(--color-background-primary));
   padding: 10px;
 }
 
@@ -131,16 +132,16 @@
   width: auto;
   padding: 6px 10px;
   border-radius: 8px;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  background: var(--color-background-primary);
-  color: var(--color-text-primary);
+  border: var(--block-view-btn-std-border, 1px solid var(--color-border-light));
+  background: var(--block-view-btn-std-bg-color, var(--color-background-primary));
+  color: var(--block-view-btn-std-text-color, var(--color-text-primary));
   cursor: pointer;
   font-size: 12px;
   white-space: nowrap;
 }
 
 .pdvm-view__settingsButton:hover:not(:disabled) {
-  background: var(--color-background-secondary);
+  background: var(--block-view-btn-std-hover-bg, var(--state-hover));
 }
 
 .pdvm-view__settingsButton:disabled {
@@ -149,7 +150,7 @@
 }
 
 .pdvm-view__settingsButton--active {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--state-selected);
 }
 
 .pdvm-view__title {
@@ -172,9 +173,9 @@
 .pdvm-view__drawer {
   margin-top: 10px;
   padding: 10px;
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--color-border-light);
   border-radius: 10px;
-  background: rgba(0, 0, 0, 0.02);
+  background: var(--state-subtle);
   max-height: 34vh;
   overflow: auto;
 }
@@ -195,8 +196,9 @@
 .pdvm-view__navButton {
   padding: 6px 10px;
   border-radius: 8px;
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  background: var(--color-background-primary);
+  border: var(--block-view-btn-std-border, 1px solid var(--color-border-light));
+  background: var(--block-view-btn-std-bg-color, var(--color-background-primary));
+  color: var(--block-view-btn-std-text-color, var(--color-text-primary));
 }
 
 .pdvm-view__navButton:disabled {
@@ -215,9 +217,9 @@
   overflow: auto;
 
   /* Scrollbar sitzt hier -> Radius muss hier hin, damit alle Ecken rund sind */
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  border: var(--block-view-table-border, 1px solid var(--color-border-light));
   border-radius: 10px;
-  background: var(--block-surface-std-background, white);
+  background: var(--block-view-table-bg-color, var(--block-surface-main-bg-color, var(--color-background-primary)));
 }
 
 .pdvm-view__tableWrap {
@@ -234,7 +236,8 @@
   position: sticky;
   top: 0;
   z-index: 2;
-  background: var(--block-surface-std-background, white);
+  background: var(--block-view-table-header-bg-color, var(--block-surface-main-bg-color, var(--color-background-primary)));
+  color: var(--block-view-table-header-text-color, var(--color-text-primary));
 }
 
 /* Stabiler Offset für die Filterzeile unter dem Spaltenkopf */
@@ -254,5 +257,5 @@
   gap: 8px;
   padding: 10px;
   background: var(--color-background-primary);
-  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  border-top: 1px solid var(--color-divider);
 }

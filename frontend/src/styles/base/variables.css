@@ -11,6 +11,12 @@
   --sidebar-collapsed-width: 60px;
   --horizontal-menu-height: 48px;
   --footer-height: 48px;
+
+  /* ===== Dichte (Layout-Variante "dichte", siehe styles/layouts/variants.css) ===== */
+  --density-pic-pad: 8px 10px;
+  --density-pic-gap: 6px;
+  --density-control-pad: 8px 10px;
+  --density-cell-pad: 10px 12px;
   
   /* ===== Responsive Breakpoints ===== */
   --bp-mobile: 640px;
@@ -60,6 +66,8 @@
 /* ===== Default Theme (Light - Orange) ===== */
 :root,
 :root[data-theme="light"] {
+  color-scheme: light; /* native Felder (Datum/Zeit, Scrollbars) folgen dem Modus */
+
   /* Primary Colors */
   --color-primary-50: #fff3e0;
   --color-primary-100: #ffe0b2;
@@ -108,15 +116,15 @@
   --color-background-tertiary: #fff3e0;
   
   /* Text */
-  --color-text-primary: #e65100; /* Dark Orange as Primary Text */
-  /* Variablen passend zu DB-JSON Keys (on_primary etc.) */
-  --color-text-on_primary: #e65100;
-  --color-text-on_secondary: #ffffff;
-  --color-text-on_tertiary: #333333;
+  --color-text-primary: #ca4700; /* Dark Orange as Primary Text (>= 4.5:1 auf background-primary/secondary) */
+  /* Variablen passend zu DB-JSON Keys (Hyphens, siehe theme_schema.normalize_token_name) */
+  --color-text-on-primary: #d04900;
+  --color-text-on-secondary: #424242;
+  --color-text-on-tertiary: #333333;
   
   --color-text-secondary: #616161;
   --color-text-disabled: #bdbdbd;
-  --color-text-inverse: #ffffff;
+  --color-text-inverse: #444444; /* Text auf gefuellten Primaerflaechen (Orange): Kontrast >= 4.5:1 */
   
   /* Border */
   --color-border-light: #ffe0b2;
@@ -152,6 +160,8 @@
 
 /* ===== Dark Theme (Orange) ===== */
 :root[data-theme="dark"] {
+  color-scheme: dark;
+
   /* Primary Colors */
   --color-primary-50: #fff3e0;
   --color-primary-100: #ffe0b2;
@@ -223,9 +233,62 @@
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
 }
 
+/* ===== Abgeleitete Tokens (Default-Schicht, folgen automatisch dem aktiven Theme) ===== */
+/* Zustaende, Status und Overlay werden aus den Theme-Tokens (--color-*) berechnet und sind
+   damit die einzige Stelle fuer Transparenzen/Mischfarben. Komponenten nutzen nur diese Namen.
+   Der Selektor .pdvm-theme-preview berechnet sie im Vorschau-Container neu, damit Entwuerfe dort
+   ihre eigenen Farben nutzen. */
+:root,
+.pdvm-theme-preview {
+  --state-hover: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+  --state-hover-strong: color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  --state-subtle: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
+  --state-selected: color-mix(in srgb, var(--color-primary-500) 14%, transparent);
+  --state-selected-border: color-mix(in srgb, var(--color-primary-500) 65%, transparent);
+  --state-focus-ring: color-mix(in srgb, var(--color-primary-500) 30%, transparent);
+  --state-focus-border: var(--color-primary-500);
+
+  --color-overlay: rgba(0, 0, 0, 0.4);
+  --color-overlay-strong: rgba(0, 0, 0, 0.55);
+  --color-divider: color-mix(in srgb, var(--color-text-primary) 14%, transparent);
+  --color-highlight: #ffeb3b;
+  --color-highlight-border: #ffc107;
+
+  /* Status-Flaechen sind deckend (Mischung mit der Hintergrundfarbe): Die Textfarbe -text ist gegen genau diese
+     Flaeche ausgelegt und darf nicht von dem abhaengen, was hinter der Meldung liegt (z. B. Verlaeufe). */
+  --color-success-bg: color-mix(in srgb, var(--color-success) 14%, var(--color-background-primary));
+  --color-success-border: color-mix(in srgb, var(--color-success) 40%, transparent);
+  --color-success-text: color-mix(in srgb, var(--color-success) 60%, black);
+  --color-warning-bg: color-mix(in srgb, var(--color-warning) 16%, var(--color-background-primary));
+  --color-warning-border: color-mix(in srgb, var(--color-warning) 45%, transparent);
+  --color-warning-text: color-mix(in srgb, var(--color-warning) 50%, black);
+  --color-error-bg: color-mix(in srgb, var(--color-error) 12%, var(--color-background-primary));
+  --color-error-border: color-mix(in srgb, var(--color-error) 40%, transparent);
+  --color-error-text: color-mix(in srgb, var(--color-error) 65%, black);
+  --color-info-bg: color-mix(in srgb, var(--color-info) 12%, var(--color-background-primary));
+  --color-info-border: color-mix(in srgb, var(--color-info) 40%, transparent);
+  --color-info-text: color-mix(in srgb, var(--color-info) 60%, black);
+}
+
+:root[data-theme="dark"],
+.pdvm-theme-preview[data-theme="dark"] {
+  --color-overlay: rgba(0, 0, 0, 0.6);
+  --color-overlay-strong: rgba(0, 0, 0, 0.75);
+  --color-success-text: color-mix(in srgb, var(--color-success) 70%, white);
+  --color-warning-text: color-mix(in srgb, var(--color-warning) 70%, white);
+  --color-error-text: color-mix(in srgb, var(--color-error) 65%, white);
+  --color-info-text: color-mix(in srgb, var(--color-info) 65%, white);
+}
+
 /* ===== Theme Transition ===== */
-* {
-  transition: 
+/* Nur interaktive Elemente werden animiert; ein globales '*' kostet Performance und animiert jeden Layoutwechsel. */
+a,
+button,
+input,
+select,
+textarea,
+[role="button"] {
+  transition:
     background-color var(--transition-base) var(--transition-easing),
     color var(--transition-base) var(--transition-easing),
     border-color var(--transition-base) var(--transition-easing);
@@ -258,7 +321,4 @@
   --color-text-primary: var(--color-text-inverse);
   color: var(--color-text-primary);
 }
-/* Verhindere Transition bei bestimmten Elementen */
-*:where(:not(input):not(textarea):not(select)) {
-  transition-property: background-color, color, border-color;
-}
+

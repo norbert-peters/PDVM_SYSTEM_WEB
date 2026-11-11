@@ -25,6 +25,7 @@ import { PdvmImportDataEditor, PdvmImportDataSteps } from './PdvmImportDataEdito
 import { resolveElementFieldRuntimeContract } from './elementFieldRuntimeContract'
 import { PdvmJsonEditor, type PdvmJsonEditorHandle, type PdvmJsonEditorMode } from '../common/PdvmJsonEditor'
 import { PdvmDialogModal, type PdvmDialogModalField } from '../common/PdvmDialogModal'
+import { PdvmDialogInfoModal, type PdvmDialogInfoItem, type PdvmDialogInfoTab } from './PdvmDialogInfoModal'
 import { PdvmInputControl, type PdvmDropdownOption, type PdvmElementDefinition, type PdvmElementField } from '../common/PdvmInputControl'
 import { useAuth } from '../../hooks/useAuth'
 import '../../styles/components/dialog.css'
@@ -329,7 +330,7 @@ function buildFlatPicControl(params: {
 
 function normalizePicType(
   value: any
-): 'string' | 'number' | 'text' | 'dropdown' | 'multi_dropdown' | 'true_false' | 'datetime' | 'date' | 'time' | 'go_select_view' | 'action' | 'element_list' | 'group_list' {
+): 'string' | 'number' | 'text' | 'dropdown' | 'multi_dropdown' | 'true_false' | 'datetime' | 'date' | 'time' | 'go_select_view' | 'action' | 'element_list' | 'group_list' | 'color' | 'css_length' | 'css_border' | 'font_family' | 'theme_preview' {
   const t = String(value || '').trim().toLowerCase()
   if (t === 'number' || t === 'int' || t === 'integer') return 'number'
   if (t === 'text') return 'text'
@@ -343,6 +344,7 @@ function normalizePicType(
   if (t === 'action') return 'action'
   if (t === 'element_list' || t === 'elemente_list') return 'element_list'
   if (t === 'group_list') return 'group_list'
+  if (t === 'color' || t === 'css_length' || t === 'css_border' || t === 'font_family' || t === 'theme_preview') return t
   return 'string'
 }
 
@@ -1508,6 +1510,17 @@ export default function PdvmDialogPage() {
   })
   const globalExpertMode = toBoolean((defQuery.data?.meta as any)?.expert_mode)
 
+  // Info-Fenster (Debug-Angaben): Das Standard-Info-Frame liegt in sys_framedaten; die GUID liefert das Backend.
+  const [infoOpen, setInfoOpen] = useState(false)
+  const infoFrameGuid = String((defQuery.data?.meta as any)?.info_frame_guid || '').trim()
+  const infoFrameQuery = useQuery<FrameDefinitionResponse>({
+    queryKey: ['dialog', 'info-frame', infoFrameGuid],
+    queryFn: () => dialogsAPI.getFrameDefinition(infoFrameGuid),
+    enabled: infoOpen && !!infoFrameGuid,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  })
+
   const moduleTabs = useMemo(() => {
     const tabs = defQuery.data?.tab_modules
     return Array.isArray(tabs) ? tabs : []
@@ -2015,6 +2028,63 @@ export default function PdvmDialogPage() {
     return fromRoot || currentName
   }, [isWorkflowDialog, workflowDisplayDaten, currentName])
 
+  // Laufzeitwerte fuers Info-Fenster; Gruppe INFO, Felder wie in den Controls des Info-Frames (sys_control_dict).
+  const infoData = useMemo(() => {
+    const d = defQuery.data
+    const meta = asObject(d?.meta)
+    const recordUid = isDraftMode ? String(activeDraft?.draft_id || '') : String(selectedUid || '')
+    return {
+      INFO: {
+        DIALOG_NAME: String(d?.name || ''),
+        DIALOG_GUID: String(dialogGuid || d?.uid || ''),
+        DIALOG_TYPE: String(d?.dialog_type || ''),
+        DIALOG_TABLE: String(effectiveDialogTable || ''),
+        DIALOG_EDIT_TYPE: String(d?.edit_type || ''),
+        DIALOG_OPEN_EDIT_MODE: String(d?.open_edit_mode || ''),
+        DIALOG_VIEW_GUID: String(d?.view_guid || ''),
+        DIALOG_FRAME_GUID: String(d?.frame_guid || ''),
+        RECORD_UID: recordUid,
+        RECORD_NAME: String(workflowDisplayName || ''),
+        RECORD_STORAGE: isDraftMode ? 'Entwurf' : (selectedUid ? 'Live' : ''),
+        LAST_CALL: String(meta.last_call || ''),
+        LAST_CALL_KEY: String(meta.last_call_key || ''),
+        LAST_CALL_SCOPE: String(meta.last_call_scope || 'unknown'),
+        LAST_CALL_SCOPE_CLIENT: String(debugLastCallScopeClient || ''),
+        LAST_CALL_RUNTIME_STATE: String(lastCallRuntimeState || ''),
+      },
+    } as Record<string, any>
+  }, [
+    defQuery.data, dialogGuid, effectiveDialogTable, isDraftMode, activeDraft?.draft_id, selectedUid,
+    workflowDisplayName, debugLastCallScopeClient, lastCallRuntimeState,
+  ])
+
+  // Aufbau des Info-Fensters aus dem Frame: Tabs (ROOT.TAB_ELEMENTS) und Controls (FIELDS -> sys_control_dict).
+  const infoModel = useMemo(() => {
+    const frame = infoFrameQuery.data
+    if (!frame) return { tabs: [] as PdvmDialogInfoTab[], items: [] as PdvmDialogInfoItem[] }
+
+    const defs = extractPicDefs(frame.daten)
+    const tabMeta = parseFrameTabElements(frame.root)
+    const tabs = Array.from(new Set(defs.map((def) => Number(def.tab || 1) || 1)))
+      .sort((a, b) => a - b)
+      .map((index) => ({ index, head: tabMeta.get(index)?.head || `Tab ${index}` }))
+
+    const items = defs.map((def) => {
+      const type = normalizePicType(def.type)
+      const raw = getFieldValue(infoData, String(def.gruppe || ''), String(def.feld || ''))
+      const value = raw == null ? '' : typeof raw === 'object' ? safeJsonPretty(raw) : String(raw)
+      return {
+        key: String(def.key || def.name || def.feld || ''),
+        tab: Number(def.tab || 1) || 1,
+        label: String(def.label || def.name || def.feld || ''),
+        tooltip: def.tooltip || undefined,
+        type: (['string', 'number', 'text', 'true_false', 'datetime', 'date', 'time'] as const).includes(type as any) ? type : 'string',
+        value,
+      } as PdvmDialogInfoItem
+    })
+    return { tabs, items }
+  }, [infoFrameQuery.data, infoData])
+
   const unifiedControlMatrix = useMemo(() => {
     if (!usesUnifiedControlMatrix) return null
     const source: UnifiedControlSource = isPdvmEditCore ? 'frame_fields' : 'record_groups'
@@ -2456,29 +2526,6 @@ export default function PdvmDialogPage() {
     const group = String(tab?.group || tab?.head || '').trim()
     return group || null
   }, [isControlEditor, controlEditModel, picActiveTab])
-
-  const editInfoParts = useMemo(() => {
-    const items: Array<{ label: string; value: string }> = []
-    if (effectiveDialogTable) items.push({ label: 'TABLE', value: effectiveDialogTable })
-    if (defQuery.data?.edit_type) items.push({ label: 'EDIT_TYPE', value: String(defQuery.data.edit_type) })
-    if (selectedUid) items.push({ label: 'UID', value: selectedUid })
-    if (currentName) items.push({ label: 'NAME', value: String(currentName) })
-    return items
-  }, [effectiveDialogTable, defQuery.data?.edit_type, selectedUid, currentName])
-
-  const renderEditInfo = () => {
-    if (editInfoParts.length === 0) return null
-    return (
-      <div className="pdvm-dialog__editInfo">
-        {editInfoParts.map((item, idx) => (
-          <span key={item.label}>
-            {item.label}: <span style={{ fontFamily: 'monospace' }}>{item.value}</span>
-            {idx < editInfoParts.length - 1 ? ' | ' : ''}
-          </span>
-        ))}
-      </div>
-    )
-  }
 
 
 
@@ -5147,16 +5194,41 @@ export default function PdvmDialogPage() {
         }}
       />
 
+      <PdvmDialogInfoModal
+        open={infoOpen}
+        title={`Info: ${title}`}
+        tabs={infoModel.tabs}
+        items={infoModel.items}
+        loading={infoFrameQuery.isLoading}
+        error={
+          !infoFrameGuid
+            ? 'Info-Frame nicht konfiguriert (meta.info_frame_guid fehlt).'
+            : infoFrameQuery.isError
+              ? `Info-Frame konnte nicht geladen werden (${(infoFrameQuery.error as any)?.response?.status === 404 ? 'nicht gefunden: seed_dialog_info_frame_v1.py ausführen' : (infoFrameQuery.error as any)?.message || 'Fehler'})`
+              : null
+        }
+        onClose={() => setInfoOpen(false)}
+      />
+
       <div className="pdvm-dialog__header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <h2 style={{ margin: 0 }}>{title}</h2>
+            <div className="pdvm-dialog__titleRow">
+              <h2 style={{ margin: 0 }}>{title}</h2>
+              <button
+                type="button"
+                className="pdvm-dialog__infoBtn"
+                onClick={() => setInfoOpen(true)}
+                disabled={!defQuery.data}
+                title="Dialog-Informationen"
+                aria-label="Dialog-Informationen"
+              >
+                i
+              </button>
+            </div>
             {selectedRecordSubtitle ? (
               <div style={{ fontSize: 14, fontWeight: 700, fontStyle: 'italic', opacity: 0.9 }}>{selectedRecordSubtitle}</div>
             ) : null}
-          </div>
-          <div style={{ fontSize: 12, opacity: 0.7 }}>
-            {defQuery.data?.root_table ? `TABLE: ${defQuery.data.root_table}` : null}
           </div>
 
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -5292,60 +5364,42 @@ export default function PdvmDialogPage() {
         {defQuery.data ? (
           <div style={{ marginTop: 6, fontSize: 12, opacity: 0.75, display: 'flex', gap: 14, flexWrap: 'wrap' }}>
             {isFieldEditor && activeTab === editTabIndex && picDirty ? (
-              <div style={{ color: '#8a6d3b', fontWeight: 600 }}>
+              <div style={{ color: 'var(--color-warning-text)', fontWeight: 600 }}>
                 Lokale Aenderungen vorhanden: erst mit "Speichern" wird in die Datenbank persistiert.
               </div>
             ) : null}
             {isFieldEditor && activeTab === editTabIndex && !picDirty && updateMutation.isSuccess ? (
-              <div style={{ color: '#195e36', fontWeight: 600 }}>
+              <div style={{ color: 'var(--color-success-text)', fontWeight: 600 }}>
                 Gespeichert.
               </div>
             ) : null}
             {isFieldEditor && activeTab === editTabIndex && updateMutation.isPending ? (
-              <div style={{ color: '#1d4f91', fontWeight: 600 }}>
+              <div style={{ color: 'var(--color-info-text)', fontWeight: 600 }}>
                 Speichere...
               </div>
             ) : null}
             {isFieldEditor && activeTab === editTabIndex && !!picSaveError ? (
-              <div style={{ color: 'crimson', fontWeight: 600 }}>
+              <div style={{               color: 'var(--color-error-text)', fontWeight: 600 }}>
                 Fehler beim Speichern: {picSaveError}
               </div>
             ) : null}
-            <div>
-              open_edit_mode: <span style={{ fontFamily: 'monospace' }}>{String(defQuery.data.open_edit_mode || '')}</span>
-            </div>
-            <div>
-              last_call: <span style={{ fontFamily: 'monospace' }}>{String((defQuery.data.meta as any)?.last_call || '')}</span>
-            </div>
-            <div>
-              last_call_key: <span style={{ fontFamily: 'monospace' }}>{String((defQuery.data.meta as any)?.last_call_key || '')}</span>
-            </div>
-            <div>
-              last_call_scope: <span style={{ fontFamily: 'monospace' }}>{String((defQuery.data.meta as any)?.last_call_scope || 'unknown')}</span>
-            </div>
-            <div>
-              last_call_scope_client: <span style={{ fontFamily: 'monospace' }}>{debugLastCallScopeClient || '-'}</span>
-            </div>
-            <div>
-              last_call_runtime_state: <span style={{ fontFamily: 'monospace' }}>{lastCallRuntimeState}</span>
-            </div>
           </div>
         ) : null}
 
         {defQuery.isError ? (
-          <div style={{ color: 'crimson', marginTop: 8 }}>
+          <div style={{           color: 'var(--color-error-text)', marginTop: 8 }}>
             Fehler: {(defQuery.error as any)?.message || 'Dialog konnte nicht geladen werden'}
           </div>
         ) : null}
 
         {isWorkflowDialog && !workflowLastModuleIsActi ? (
-          <div style={{ color: 'crimson', marginTop: 8, fontSize: 12 }}>
+          <div style={{           color: 'var(--color-error-text)', marginTop: 8, fontSize: 12 }}>
             Workflow-Konfiguration ungültig: letzter Tab muss MODULE=acti sein.
           </div>
         ) : null}
 
         {isWorkflowDraftBuilderDialog && workflowDraftError ? (
-          <div style={{ color: 'crimson', marginTop: 8, fontSize: 12 }}>
+          <div style={{           color: 'var(--color-error-text)', marginTop: 8, fontSize: 12 }}>
             Workflow: {workflowDraftError}
           </div>
         ) : null}
@@ -5478,7 +5532,7 @@ export default function PdvmDialogPage() {
                       {dialogNewBusy ? 'Erstelle...' : 'Erstellen'}
                     </button>
                     {dialogNewSuccess ? <div style={{ fontSize: 12, opacity: 0.8 }}>{dialogNewSuccess}</div> : null}
-                    {dialogNewError ? <div style={{ fontSize: 12, color: 'crimson' }}>{dialogNewError}</div> : null}
+                    {dialogNewError ? <div style={{ fontSize: 12, color: 'var(--color-error-text)' }}>{dialogNewError}</div> : null}
                   </div>
                 </div>
               ) : effectiveViewGuid ? (
@@ -5491,7 +5545,7 @@ export default function PdvmDialogPage() {
                 />
               ) : (
                 <>
-                  <div style={{ marginBottom: 12, color: 'crimson', fontSize: 12 }}>
+                  <div style={{ marginBottom: 12, color: 'var(--color-error-text)', fontSize: 12 }}>
                     View-Tab hat keine gueltige TAB-GUID. Bitte Dialog-Tabdefinition pruefen (MODULE=view -&gt; GUID aus sys_viewdaten; MODULE=edit|show|acti -&gt; GUID aus sys_framedaten).
                   </div>
 
@@ -5514,14 +5568,14 @@ export default function PdvmDialogPage() {
 
                   {rowsQuery.isLoading ? <div>Lade...</div> : null}
                   {rowsQuery.isError ? (
-                    <div style={{ color: 'crimson' }}>Fehler: {(rowsQuery.error as any)?.message || 'Rows konnten nicht geladen werden'}</div>
+                    <div style={{ color: 'var(--color-error-text)' }}>Fehler: {(rowsQuery.error as any)?.message || 'Rows konnten nicht geladen werden'}</div>
                   ) : null}
                   <div className="pdvm-dialog__viewList">
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                       <thead>
                         <tr>
-                          <th style={{ textAlign: 'left', borderBottom: '1px solid #ccc', padding: 6, width: 360 }}>UID</th>
-                          <th style={{ textAlign: 'left', borderBottom: '1px solid #ccc', padding: 6 }}>Name</th>
+                          <th style={{ textAlign: 'left', borderBottom: '1px solid var(--color-border-medium)', padding: 6, width: 360 }}>UID</th>
+                          <th style={{ textAlign: 'left', borderBottom: '1px solid var(--color-border-medium)', padding: 6 }}>Name</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -5553,11 +5607,11 @@ export default function PdvmDialogPage() {
                                   setActiveTab(editTabIndex)
                                 }
                               }}
-                              style={{ cursor: 'pointer', background: isSelected ? 'rgba(0, 120, 215, 0.12)' : 'transparent' }}
+                              style={{ cursor: 'pointer', background: isSelected ? 'var(--state-selected)' : 'transparent' }}
                               title={isSelected ? 'Ausgewählt' : 'Klicken zum Auswählen'}
                             >
-                              <td style={{ borderBottom: '1px solid #eee', padding: 6, fontFamily: 'monospace', fontSize: 12 }}>{r.uid}</td>
-                              <td style={{ borderBottom: '1px solid #eee', padding: 6 }}>{r.name}</td>
+                              <td style={{ borderBottom: '1px solid var(--color-divider)', padding: 6, fontFamily: 'monospace', fontSize: 12 }}>{r.uid}</td>
+                              <td style={{ borderBottom: '1px solid var(--color-divider)', padding: 6 }}>{r.name}</td>
                             </tr>
                           )
                         })}
@@ -5574,7 +5628,6 @@ export default function PdvmDialogPage() {
               {isMenuEditor ? (
                 <>
                   <div className="pdvm-dialog__editAreaHeader">
-                    {renderEditInfo()}
                     {selectedUid && menuEditTabs.tabs >= 2 && menuEditTabs.items.length >= 2 ? (
                       <div className="pdvm-tabs">
                         <div className="pdvm-tabs__bar">
@@ -5686,7 +5739,6 @@ export default function PdvmDialogPage() {
                         </div>
                       </div>
                     ) : null}
-                    {renderEditInfo()}
                     {isControlEditor && activeControlGroup ? (
                       <div style={{ marginTop: 8 }}>
                         <button
@@ -5850,7 +5902,6 @@ export default function PdvmDialogPage() {
                 <>
                   <div className="pdvm-dialog__editAreaHeader">
                     {isImportEditor ? <PdvmImportDataSteps step={importStep} onChange={setImportStep} /> : null}
-                    {renderEditInfo()}
                   </div>
                   <div
                     className={`pdvm-dialog__editAreaContent ${editType === 'edit_json' ? 'pdvm-dialog__editAreaContent--noScroll' : ''}`.trim()}
@@ -5860,7 +5911,7 @@ export default function PdvmDialogPage() {
 
                   {selectedUid && !isDraftMode && recordQuery.isLoading ? <div>Lade Datensatz...</div> : null}
                   {selectedUid && !isDraftMode && recordQuery.isError ? (
-                    <div style={{ color: 'crimson' }}>
+                    <div style={{                     color: 'var(--color-error-text)' }}>
                       Fehler: {(recordQuery.error as any)?.message || 'Datensatz konnte nicht geladen werden'}
                     </div>
                   ) : null}
@@ -5982,15 +6033,15 @@ export default function PdvmDialogPage() {
                           ) : null}
                           {isWorkflowDraftBuilderDialog && (workflowDraftStatus || workflowDraftError || workflowDraftValidation || workflowDraftCommitReport) ? (
                             <div style={{ marginBottom: 8, fontSize: 12, lineHeight: 1.35 }}>
-                              {workflowDraftStatus ? <div style={{ color: '#195e36' }}>{workflowDraftStatus}</div> : null}
-                              {workflowDraftError ? <div style={{ color: 'crimson' }}>{workflowDraftError}</div> : null}
+                              {workflowDraftStatus ? <div style={{ color: 'var(--color-success-text)' }}>{workflowDraftStatus}</div> : null}
+                                                            {workflowDraftError ? <div style={{ color: 'var(--color-error-text)' }}>{workflowDraftError}</div> : null}
                               {workflowDraftValidation && !workflowDraftValidation.valid ? (
-                                <div style={{ color: '#9a4f00' }}>
+                                                              <div style={{ color: 'var(--color-warning-text)' }}>
                                   Fehler: {workflowDraftValidation.errors.map((e) => e.message).join(' | ')}
                                 </div>
                               ) : null}
                               {workflowDraftCommitReport ? (
-                                <div style={{ color: workflowDraftCommitReport.success ? '#195e36' : '#9a4f00' }}>
+                                <div style={{ color: workflowDraftCommitReport.success ? 'var(--color-success-text)' : 'var(--color-warning-text)' }}>
                                   Commit-Report: modus={workflowDraftCommitReport.dry_run ? 'dry-run' : 'live'},
                                   neu={workflowDraftCommitReport.created_count},
                                   update={workflowDraftCommitReport.updated_count},
@@ -6001,12 +6052,6 @@ export default function PdvmDialogPage() {
                               ) : null}
                             </div>
                           ) : null}
-                          <div style={{ marginBottom: 8, fontSize: 12, opacity: 0.8 }}>
-                            UID: <span style={{ fontFamily: 'monospace' }}>{isDraftMode ? activeDraft?.draft_id : (isWorkflowDialog ? selectedUid : recordQuery.data?.uid)}</span>
-                          </div>
-                          <div style={{ marginBottom: 8, fontSize: 12, opacity: 0.8 }}>
-                            Name: <span style={{ fontFamily: 'monospace' }}>{workflowDisplayName}</span>
-                          </div>
                         </>
                       ) : null}
 
@@ -6156,24 +6201,24 @@ export default function PdvmDialogPage() {
                             {updateMutation.isSuccess ? <div style={{ fontSize: 12, opacity: 0.8 }}>Gespeichert</div> : null}
                             {commitDraftMutation.isSuccess ? <div style={{ fontSize: 12, opacity: 0.8 }}>Satz angelegt</div> : null}
                             {createMutation.isError ? (
-                              <div style={{ fontSize: 12, color: 'crimson' }}>
+                              <div style={{ fontSize: 12,                               color: 'var(--color-error-text)' }}>
                                 Fehler: {(createMutation.error as any)?.message || 'Erstellen fehlgeschlagen'}
                               </div>
                             ) : null}
                             {updateMutation.isError ? (
-                              <div style={{ fontSize: 12, color: 'crimson' }}>
+                              <div style={{ fontSize: 12,                               color: 'var(--color-error-text)' }}>
                                 Fehler: {(updateMutation.error as any)?.message || 'Speichern fehlgeschlagen'}
                               </div>
                             ) : null}
                             {commitDraftMutation.isError ? (
-                              <div style={{ fontSize: 12, color: 'crimson' }}>
+                              <div style={{ fontSize: 12,                               color: 'var(--color-error-text)' }}>
                                 Fehler: {(commitDraftMutation.error as any)?.response?.data?.detail?.message || (commitDraftMutation.error as any)?.message || 'Satz anlegen fehlgeschlagen'}
                               </div>
                             ) : null}
                           </div>
 
                           {jsonError ? (
-                            <div style={{ marginBottom: 8, color: 'crimson', fontSize: 12 }}>JSON Fehler: {jsonError}</div>
+                            <div style={{ marginBottom: 8, color: 'var(--color-error-text)', fontSize: 12 }}>JSON Fehler: {jsonError}</div>
                           ) : null}
 
                           <PdvmJsonEditor
@@ -6338,8 +6383,8 @@ export default function PdvmDialogPage() {
                         <pre
                           style={{
                             whiteSpace: 'pre-wrap',
-                            background: '#0b1020',
-                            color: '#d6deeb',
+                            background: 'var(--color-background-secondary)',
+                            color: 'var(--color-text-primary)',
                             padding: 12,
                             borderRadius: 8,
                             fontSize: 12,

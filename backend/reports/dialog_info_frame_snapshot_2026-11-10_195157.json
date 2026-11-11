@@ -1,0 +1,104 @@
+[
+ {
+  "table": "sys_control_dict",
+  "uid": "4a223446-bef4-5c7b-a25d-d69972d60ac6",
+  "name": "SYS_DIALOG_NAME",
+  "daten": "{\"ROOT\": {\"TABLE\": \"sys_control_dict\", \"SELF_GUID\": \"4a223446-bef4-5c7b-a25d-d69972d60ac6\", \"SELF_NAME\": \"SYS_DIALOG_NAME\"}, \"CONTROL\": {\"TAB\": 0, \"NAME\": \"SYS_DIALOG_NAME\", \"TYPE\": \"string\", \"FIELD\": \"DIALOG_NAME\", \"LABEL\": \"Dialog\", \"TABLE\": \"\", \"GRUPPE\": \"INFO\", \"ABDATUM\": false, \"CONFIGS\": {\"help\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}, \"dropdown\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}}, \"DEFAULT\": \"\", \"SORTABLE\": false, \"READ_ONLY\": true, \"HISTORICAL\": false, \"MODUL_TYPE\": \"edit\", \"SEARCHABLE\": false, \"UPPER_CASE\": false, \"EXPERT_MODE\": false, \"FILTER_TYPE\": \"contains\", \"PARENT_GUID\": null, \"SOURCE_PATH\": \"root\", \"DISPLAY_SHOW\": true, \"EXPERT_ORDER\": 0, \"DISPLAY_ORDER\": 0, \"SORT_DIRECTION\": \"asc\", \"FIELDS_ELEMENTS\": {}, \"CONFIGS_ELEMENTS\": {}, \"SORT_BY_ORIGINAL\": false}}"
+ },
+ {
+  "table": "sys_control_dict",
+  "uid": "1365040b-fe05-53b3-ab1d-18d07ccf5fed",
+  "name": "SYS_DIALOG_GUID",
+  "daten": "{\"ROOT\": {\"TABLE\": \"sys_control_dict\", \"SELF_GUID\": \"1365040b-fe05-53b3-ab1d-18d07ccf5fed\", \"SELF_NAME\": \"SYS_DIALOG_GUID\"}, \"CONTROL\": {\"TAB\": 0, \"NAME\": \"SYS_DIALOG_GUID\", \"TYPE\": \"string\", \"FIELD\": \"DIALOG_GUID\", \"LABEL\": \"Dialog-GUID\", \"TABLE\": \"\", \"GRUPPE\": \"INFO\", \"ABDATUM\": false, \"CONFIGS\": {\"help\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}, \"dropdown\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}}, \"DEFAULT\": \"\", \"SORTABLE\": false, \"READ_ONLY\": true, \"HISTORICAL\": false, \"MODUL_TYPE\": \"edit\", \"SEARCHABLE\": false, \"UPPER_CASE\": false, \"EXPERT_MODE\": false, \"FILTER_TYPE\": \"contains\", \"PARENT_GUID\": null, \"SOURCE_PATH\": \"root\", \"DISPLAY_SHOW\": true, \"EXPERT_ORDER\": 0, \"DISPLAY_ORDER\": 0, \"SORT_DIRECTION\": \"asc\", \"FIELDS_ELEMENTS\": {}, \"CONFIGS_ELEMENTS\": {}, \"SORT_BY_ORIGINAL\": false}}"
+ },
+ {
+  "table": "sys_control_dict",
+  "uid": "a1725169-faa2-5e68-a84b-6d554b9293ab",
+  "name": "SYS_INFO_DIALOG_TYPE",
+  "daten": "{\"ROOT\": {\"TABLE\": \"sys_control_dict\", \"SELF_GUID\": \"a1725169-faa2-5e68-a84b-6d554b9293ab\", \"SELF_NAME\": \"SYS_INFO_DIALOG_TYPE\"}, \"CONTROL\": {\"TAB\": 0, \"NAME\": \"SYS_INFO_DIALOG_TYPE\", \"TYPE\": \"string\", \"FIELD\": \"DIALOG_TYPE\", \"LABEL\": \"Dialogtyp\", \"TABLE\": \"\", \"GRUPPE\": \"INFO\", \"ABDATUM\": false, \"CONFIGS\": {\"help\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}, \"dropdown\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}}, \"DEFAULT\": \"\", \"SORTABLE\": false, \"READ_ONLY\": true, \"HISTORICAL\": false, \"MODUL_TYPE\": \"edit\", \"SEARCHABLE\": false, \"UPPER_CASE\": false, \"EXPERT_MODE\": false, \"FILTER_TYPE\": \"contains\", \"PARENT_GUID\": null, \"SOURCE_PATH\": \"root\", \"DISPLAY_SHOW\": true, \"EXPERT_ORDER\": 0, \"DISPLAY_ORDER\": 0, \"SORT_DIRECTION\": \"asc\", \"FIELDS_ELEMENTS\": {}, \"CONFIGS_ELEMENTS\": {}, \"SORT_BY_ORIGINAL\": false}}"
+ },
+ {
+  "table": "sys_control_dict",
+  "uid": "65e96850-dfb0-5fae-a6b1-7d485d1f360f",
+  "name": "SYS_DIALOG_TABLE",
+  "daten": "{\"ROOT\": {\"TABLE\": \"sys_control_dict\", \"SELF_GUID\": \"65e96850-dfb0-5fae-a6b1-7d485d1f360f\", \"SELF_NAME\": \"SYS_DIALOG_TABLE\"}, \"CONTROL\": {\"TAB\": 0, \"NAME\": \"SYS_DIALOG_TABLE\", \"TYPE\": \"string\", \"FIELD\": \"DIALOG_TABLE\", \"LABEL\": \"Tabelle\", \"TABLE\": \"\", \"GRUPPE\": \"INFO\", \"ABDATUM\": false, \"CONFIGS\": {\"help\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}, \"dropdown\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}}, \"DEFAULT\": \"\", \"SORTABLE\": false, \"READ_ONLY\": true, \"HISTORICAL\": false, \"MODUL_TYPE\": \"edit\", \"SEARCHABLE\": false, \"UPPER_CASE\": false, \"EXPERT_MODE\": false, \"FILTER_TYPE\": \"contains\", \"PARENT_GUID\": null, \"SOURCE_PATH\": \"root\", \"DISPLAY_SHOW\": true, \"EXPERT_ORDER\": 0, \"DISPLAY_ORDER\": 0, \"SORT_DIRECTION\": \"asc\", \"FIELDS_ELEMENTS\": {}, \"CONFIGS_ELEMENTS\": {}, \"SORT_BY_ORIGINAL\": false}}"
+ },
+ {
+  "table": "sys_control_dict",
+  "uid": "d85477f7-4bbf-500d-921e-6705ca9f4aa9",
+  "name": "SYS_DIALOG_EDIT_TYPE",
+  "daten": "{\"ROOT\": {\"TABLE\": \"sys_control_dict\", \"SELF_GUID\": \"d85477f7-4bbf-500d-921e-6705ca9f4aa9\", \"SELF_NAME\": \"SYS_DIALOG_EDIT_TYPE\"}, \"CONTROL\": {\"TAB\": 0, \"NAME\": \"SYS_DIALOG_EDIT_TYPE\", \"TYPE\": \"string\", \"FIELD\": \"DIALOG_EDIT_TYPE\", \"LABEL\": \"Edit-Typ\", \"TABLE\": \"\", \"GRUPPE\": \"INFO\", \"ABDATUM\": false, \"CONFIGS\": {\"help\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}, \"dropdown\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}}, \"DEFAULT\": \"\", \"SORTABLE\": false, \"READ_ONLY\": true, \"HISTORICAL\": false, \"MODUL_TYPE\": \"edit\", \"SEARCHABLE\": false, \"UPPER_CASE\": false, \"EXPERT_MODE\": false, \"FILTER_TYPE\": \"contains\", \"PARENT_GUID\": null, \"SOURCE_PATH\": \"root\", \"DISPLAY_SHOW\": true, \"EXPERT_ORDER\": 0, \"DISPLAY_ORDER\": 0, \"SORT_DIRECTION\": \"asc\", \"FIELDS_ELEMENTS\": {}, \"CONFIGS_ELEMENTS\": {}, \"SORT_BY_ORIGINAL\": false}}"
+ },
+ {
+  "table": "sys_control_dict",
+  "uid": "50fed6d1-c7fa-56a7-9948-b00a6cb89c46",
+  "name": "SYS_DIALOG_OPEN_EDIT_MODE",
+  "daten": "{\"ROOT\": {\"TABLE\": \"sys_control_dict\", \"SELF_GUID\": \"50fed6d1-c7fa-56a7-9948-b00a6cb89c46\", \"SELF_NAME\": \"SYS_DIALOG_OPEN_EDIT_MODE\"}, \"CONTROL\": {\"TAB\": 0, \"NAME\": \"SYS_DIALOG_OPEN_EDIT_MODE\", \"TYPE\": \"string\", \"FIELD\": \"DIALOG_OPEN_EDIT_MODE\", \"LABEL\": \"Edit öffnen\", \"TABLE\": \"\", \"GRUPPE\": \"INFO\", \"ABDATUM\": false, \"CONFIGS\": {\"help\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}, \"dropdown\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}}, \"DEFAULT\": \"\", \"SORTABLE\": false, \"READ_ONLY\": true, \"HISTORICAL\": false, \"MODUL_TYPE\": \"edit\", \"SEARCHABLE\": false, \"UPPER_CASE\": false, \"EXPERT_MODE\": false, \"FILTER_TYPE\": \"contains\", \"PARENT_GUID\": null, \"SOURCE_PATH\": \"root\", \"DISPLAY_SHOW\": true, \"EXPERT_ORDER\": 0, \"DISPLAY_ORDER\": 0, \"SORT_DIRECTION\": \"asc\", \"FIELDS_ELEMENTS\": {}, \"CONFIGS_ELEMENTS\": {}, \"SORT_BY_ORIGINAL\": false}}"
+ },
+ {
+  "table": "sys_control_dict",
+  "uid": "209a1c53-1608-5997-a543-b54965b296fe",
+  "name": "SYS_DIALOG_VIEW_GUID",
+  "daten": "{\"ROOT\": {\"TABLE\": \"sys_control_dict\", \"SELF_GUID\": \"209a1c53-1608-5997-a543-b54965b296fe\", \"SELF_NAME\": \"SYS_DIALOG_VIEW_GUID\"}, \"CONTROL\": {\"TAB\": 0, \"NAME\": \"SYS_DIALOG_VIEW_GUID\", \"TYPE\": \"string\", \"FIELD\": \"DIALOG_VIEW_GUID\", \"LABEL\": \"View-GUID\", \"TABLE\": \"\", \"GRUPPE\": \"INFO\", \"ABDATUM\": false, \"CONFIGS\": {\"help\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}, \"dropdown\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}}, \"DEFAULT\": \"\", \"SORTABLE\": false, \"READ_ONLY\": true, \"HISTORICAL\": false, \"MODUL_TYPE\": \"edit\", \"SEARCHABLE\": false, \"UPPER_CASE\": false, \"EXPERT_MODE\": false, \"FILTER_TYPE\": \"contains\", \"PARENT_GUID\": null, \"SOURCE_PATH\": \"root\", \"DISPLAY_SHOW\": true, \"EXPERT_ORDER\": 0, \"DISPLAY_ORDER\": 0, \"SORT_DIRECTION\": \"asc\", \"FIELDS_ELEMENTS\": {}, \"CONFIGS_ELEMENTS\": {}, \"SORT_BY_ORIGINAL\": false}}"
+ },
+ {
+  "table": "sys_control_dict",
+  "uid": "030bb672-e1bd-52e4-9dcd-0c7a145bde8d",
+  "name": "SYS_DIALOG_FRAME_GUID",
+  "daten": "{\"ROOT\": {\"TABLE\": \"sys_control_dict\", \"SELF_GUID\": \"030bb672-e1bd-52e4-9dcd-0c7a145bde8d\", \"SELF_NAME\": \"SYS_DIALOG_FRAME_GUID\"}, \"CONTROL\": {\"TAB\": 0, \"NAME\": \"SYS_DIALOG_FRAME_GUID\", \"TYPE\": \"string\", \"FIELD\": \"DIALOG_FRAME_GUID\", \"LABEL\": \"Frame-GUID\", \"TABLE\": \"\", \"GRUPPE\": \"INFO\", \"ABDATUM\": false, \"CONFIGS\": {\"help\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}, \"dropdown\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}}, \"DEFAULT\": \"\", \"SORTABLE\": false, \"READ_ONLY\": true, \"HISTORICAL\": false, \"MODUL_TYPE\": \"edit\", \"SEARCHABLE\": false, \"UPPER_CASE\": false, \"EXPERT_MODE\": false, \"FILTER_TYPE\": \"contains\", \"PARENT_GUID\": null, \"SOURCE_PATH\": \"root\", \"DISPLAY_SHOW\": true, \"EXPERT_ORDER\": 0, \"DISPLAY_ORDER\": 0, \"SORT_DIRECTION\": \"asc\", \"FIELDS_ELEMENTS\": {}, \"CONFIGS_ELEMENTS\": {}, \"SORT_BY_ORIGINAL\": false}}"
+ },
+ {
+  "table": "sys_control_dict",
+  "uid": "69fd4dbd-90a7-56d5-8508-f81504c52348",
+  "name": "SYS_RECORD_UID",
+  "daten": "{\"ROOT\": {\"TABLE\": \"sys_control_dict\", \"SELF_GUID\": \"69fd4dbd-90a7-56d5-8508-f81504c52348\", \"SELF_NAME\": \"SYS_RECORD_UID\"}, \"CONTROL\": {\"TAB\": 0, \"NAME\": \"SYS_RECORD_UID\", \"TYPE\": \"string\", \"FIELD\": \"RECORD_UID\", \"LABEL\": \"UID\", \"TABLE\": \"\", \"GRUPPE\": \"INFO\", \"ABDATUM\": false, \"CONFIGS\": {\"help\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}, \"dropdown\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}}, \"DEFAULT\": \"\", \"SORTABLE\": false, \"READ_ONLY\": true, \"HISTORICAL\": false, \"MODUL_TYPE\": \"edit\", \"SEARCHABLE\": false, \"UPPER_CASE\": false, \"EXPERT_MODE\": false, \"FILTER_TYPE\": \"contains\", \"PARENT_GUID\": null, \"SOURCE_PATH\": \"root\", \"DISPLAY_SHOW\": true, \"EXPERT_ORDER\": 0, \"DISPLAY_ORDER\": 0, \"SORT_DIRECTION\": \"asc\", \"FIELDS_ELEMENTS\": {}, \"CONFIGS_ELEMENTS\": {}, \"SORT_BY_ORIGINAL\": false}}"
+ },
+ {
+  "table": "sys_control_dict",
+  "uid": "a555a4d2-824e-5217-a59b-8664112fe955",
+  "name": "SYS_RECORD_NAME",
+  "daten": "{\"ROOT\": {\"TABLE\": \"sys_control_dict\", \"SELF_GUID\": \"a555a4d2-824e-5217-a59b-8664112fe955\", \"SELF_NAME\": \"SYS_RECORD_NAME\"}, \"CONTROL\": {\"TAB\": 0, \"NAME\": \"SYS_RECORD_NAME\", \"TYPE\": \"string\", \"FIELD\": \"RECORD_NAME\", \"LABEL\": \"Name\", \"TABLE\": \"\", \"GRUPPE\": \"INFO\", \"ABDATUM\": false, \"CONFIGS\": {\"help\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}, \"dropdown\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}}, \"DEFAULT\": \"\", \"SORTABLE\": false, \"READ_ONLY\": true, \"HISTORICAL\": false, \"MODUL_TYPE\": \"edit\", \"SEARCHABLE\": false, \"UPPER_CASE\": false, \"EXPERT_MODE\": false, \"FILTER_TYPE\": \"contains\", \"PARENT_GUID\": null, \"SOURCE_PATH\": \"root\", \"DISPLAY_SHOW\": true, \"EXPERT_ORDER\": 0, \"DISPLAY_ORDER\": 0, \"SORT_DIRECTION\": \"asc\", \"FIELDS_ELEMENTS\": {}, \"CONFIGS_ELEMENTS\": {}, \"SORT_BY_ORIGINAL\": false}}"
+ },
+ {
+  "table": "sys_control_dict",
+  "uid": "727fd450-f684-5aba-b7dc-e1d9badb4475",
+  "name": "SYS_RECORD_STORAGE",
+  "daten": "{\"ROOT\": {\"TABLE\": \"sys_control_dict\", \"SELF_GUID\": \"727fd450-f684-5aba-b7dc-e1d9badb4475\", \"SELF_NAME\": \"SYS_RECORD_STORAGE\"}, \"CONTROL\": {\"TAB\": 0, \"NAME\": \"SYS_RECORD_STORAGE\", \"TYPE\": \"string\", \"FIELD\": \"RECORD_STORAGE\", \"LABEL\": \"Speicherort\", \"TABLE\": \"\", \"GRUPPE\": \"INFO\", \"ABDATUM\": false, \"CONFIGS\": {\"help\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}, \"dropdown\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}}, \"DEFAULT\": \"\", \"SORTABLE\": false, \"READ_ONLY\": true, \"HISTORICAL\": false, \"MODUL_TYPE\": \"edit\", \"SEARCHABLE\": false, \"UPPER_CASE\": false, \"EXPERT_MODE\": false, \"FILTER_TYPE\": \"contains\", \"PARENT_GUID\": null, \"SOURCE_PATH\": \"root\", \"DISPLAY_SHOW\": true, \"EXPERT_ORDER\": 0, \"DISPLAY_ORDER\": 0, \"SORT_DIRECTION\": \"asc\", \"FIELDS_ELEMENTS\": {}, \"CONFIGS_ELEMENTS\": {}, \"SORT_BY_ORIGINAL\": false}}"
+ },
+ {
+  "table": "sys_control_dict",
+  "uid": "74c67a95-8166-5cff-a342-1fbce4b17053",
+  "name": "SYS_LAST_CALL",
+  "daten": "{\"ROOT\": {\"TABLE\": \"sys_control_dict\", \"SELF_GUID\": \"74c67a95-8166-5cff-a342-1fbce4b17053\", \"SELF_NAME\": \"SYS_LAST_CALL\"}, \"CONTROL\": {\"TAB\": 0, \"NAME\": \"SYS_LAST_CALL\", \"TYPE\": \"string\", \"FIELD\": \"LAST_CALL\", \"LABEL\": \"last_call\", \"TABLE\": \"\", \"GRUPPE\": \"INFO\", \"ABDATUM\": false, \"CONFIGS\": {\"help\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}, \"dropdown\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}}, \"DEFAULT\": \"\", \"SORTABLE\": false, \"READ_ONLY\": true, \"HISTORICAL\": false, \"MODUL_TYPE\": \"edit\", \"SEARCHABLE\": false, \"UPPER_CASE\": false, \"EXPERT_MODE\": false, \"FILTER_TYPE\": \"contains\", \"PARENT_GUID\": null, \"SOURCE_PATH\": \"root\", \"DISPLAY_SHOW\": true, \"EXPERT_ORDER\": 0, \"DISPLAY_ORDER\": 0, \"SORT_DIRECTION\": \"asc\", \"FIELDS_ELEMENTS\": {}, \"CONFIGS_ELEMENTS\": {}, \"SORT_BY_ORIGINAL\": false}}"
+ },
+ {
+  "table": "sys_control_dict",
+  "uid": "9957de72-8e86-5c49-ad38-6e69f5af8ab5",
+  "name": "SYS_LAST_CALL_KEY",
+  "daten": "{\"ROOT\": {\"TABLE\": \"sys_control_dict\", \"SELF_GUID\": \"9957de72-8e86-5c49-ad38-6e69f5af8ab5\", \"SELF_NAME\": \"SYS_LAST_CALL_KEY\"}, \"CONTROL\": {\"TAB\": 0, \"NAME\": \"SYS_LAST_CALL_KEY\", \"TYPE\": \"string\", \"FIELD\": \"LAST_CALL_KEY\", \"LABEL\": \"last_call_key\", \"TABLE\": \"\", \"GRUPPE\": \"INFO\", \"ABDATUM\": false, \"CONFIGS\": {\"help\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}, \"dropdown\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}}, \"DEFAULT\": \"\", \"SORTABLE\": false, \"READ_ONLY\": true, \"HISTORICAL\": false, \"MODUL_TYPE\": \"edit\", \"SEARCHABLE\": false, \"UPPER_CASE\": false, \"EXPERT_MODE\": false, \"FILTER_TYPE\": \"contains\", \"PARENT_GUID\": null, \"SOURCE_PATH\": \"root\", \"DISPLAY_SHOW\": true, \"EXPERT_ORDER\": 0, \"DISPLAY_ORDER\": 0, \"SORT_DIRECTION\": \"asc\", \"FIELDS_ELEMENTS\": {}, \"CONFIGS_ELEMENTS\": {}, \"SORT_BY_ORIGINAL\": false}}"
+ },
+ {
+  "table": "sys_control_dict",
+  "uid": "35e6f00b-f1ef-50b2-b986-3c9abba94d9f",
+  "name": "SYS_LAST_CALL_SCOPE",
+  "daten": "{\"ROOT\": {\"TABLE\": \"sys_control_dict\", \"SELF_GUID\": \"35e6f00b-f1ef-50b2-b986-3c9abba94d9f\", \"SELF_NAME\": \"SYS_LAST_CALL_SCOPE\"}, \"CONTROL\": {\"TAB\": 0, \"NAME\": \"SYS_LAST_CALL_SCOPE\", \"TYPE\": \"string\", \"FIELD\": \"LAST_CALL_SCOPE\", \"LABEL\": \"last_call_scope\", \"TABLE\": \"\", \"GRUPPE\": \"INFO\", \"ABDATUM\": false, \"CONFIGS\": {\"help\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}, \"dropdown\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}}, \"DEFAULT\": \"\", \"SORTABLE\": false, \"READ_ONLY\": true, \"HISTORICAL\": false, \"MODUL_TYPE\": \"edit\", \"SEARCHABLE\": false, \"UPPER_CASE\": false, \"EXPERT_MODE\": false, \"FILTER_TYPE\": \"contains\", \"PARENT_GUID\": null, \"SOURCE_PATH\": \"root\", \"DISPLAY_SHOW\": true, \"EXPERT_ORDER\": 0, \"DISPLAY_ORDER\": 0, \"SORT_DIRECTION\": \"asc\", \"FIELDS_ELEMENTS\": {}, \"CONFIGS_ELEMENTS\": {}, \"SORT_BY_ORIGINAL\": false}}"
+ },
+ {
+  "table": "sys_control_dict",
+  "uid": "7ff1bd39-3c0e-58a0-a6e9-16a5479efc21",
+  "name": "SYS_LAST_CALL_SCOPE_CLIENT",
+  "daten": "{\"ROOT\": {\"TABLE\": \"sys_control_dict\", \"SELF_GUID\": \"7ff1bd39-3c0e-58a0-a6e9-16a5479efc21\", \"SELF_NAME\": \"SYS_LAST_CALL_SCOPE_CLIENT\"}, \"CONTROL\": {\"TAB\": 0, \"NAME\": \"SYS_LAST_CALL_SCOPE_CLIENT\", \"TYPE\": \"string\", \"FIELD\": \"LAST_CALL_SCOPE_CLIENT\", \"LABEL\": \"last_call_scope_client\", \"TABLE\": \"\", \"GRUPPE\": \"INFO\", \"ABDATUM\": false, \"CONFIGS\": {\"help\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}, \"dropdown\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}}, \"DEFAULT\": \"\", \"SORTABLE\": false, \"READ_ONLY\": true, \"HISTORICAL\": false, \"MODUL_TYPE\": \"edit\", \"SEARCHABLE\": false, \"UPPER_CASE\": false, \"EXPERT_MODE\": false, \"FILTER_TYPE\": \"contains\", \"PARENT_GUID\": null, \"SOURCE_PATH\": \"root\", \"DISPLAY_SHOW\": true, \"EXPERT_ORDER\": 0, \"DISPLAY_ORDER\": 0, \"SORT_DIRECTION\": \"asc\", \"FIELDS_ELEMENTS\": {}, \"CONFIGS_ELEMENTS\": {}, \"SORT_BY_ORIGINAL\": false}}"
+ },
+ {
+  "table": "sys_control_dict",
+  "uid": "67d0c014-7479-50d5-87a1-e99a5c004b88",
+  "name": "SYS_LAST_CALL_RUNTIME_STATE",
+  "daten": "{\"ROOT\": {\"TABLE\": \"sys_control_dict\", \"SELF_GUID\": \"67d0c014-7479-50d5-87a1-e99a5c004b88\", \"SELF_NAME\": \"SYS_LAST_CALL_RUNTIME_STATE\"}, \"CONTROL\": {\"TAB\": 0, \"NAME\": \"SYS_LAST_CALL_RUNTIME_STATE\", \"TYPE\": \"string\", \"FIELD\": \"LAST_CALL_RUNTIME_STATE\", \"LABEL\": \"last_call_runtime_state\", \"TABLE\": \"\", \"GRUPPE\": \"INFO\", \"ABDATUM\": false, \"CONFIGS\": {\"help\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}, \"dropdown\": {\"key\": \"\", \"feld\": \"\", \"table\": \"\", \"gruppe\": \"\"}}, \"DEFAULT\": \"\", \"SORTABLE\": false, \"READ_ONLY\": true, \"HISTORICAL\": false, \"MODUL_TYPE\": \"edit\", \"SEARCHABLE\": false, \"UPPER_CASE\": false, \"EXPERT_MODE\": false, \"FILTER_TYPE\": \"contains\", \"PARENT_GUID\": null, \"SOURCE_PATH\": \"root\", \"DISPLAY_SHOW\": true, \"EXPERT_ORDER\": 0, \"DISPLAY_ORDER\": 0, \"SORT_DIRECTION\": \"asc\", \"FIELDS_ELEMENTS\": {}, \"CONFIGS_ELEMENTS\": {}, \"SORT_BY_ORIGINAL\": false}}"
+ },
+ {
+  "table": "sys_framedaten",
+  "uid": "83a2a243-c461-5881-b6c8-d3c1513e2ee3",
+  "name": "Dialog Info",
+  "daten": "{\"ROOT\": {\"TABS\": 3, \"TABLE\": \"\", \"EDIT_TYPE\": \"pdvm_edit\", \"SELF_GUID\": \"83a2a243-c461-5881-b6c8-d3c1513e2ee3\", \"SELF_NAME\": \"Dialog Info\", \"FRAME_TYPE\": \"popup\", \"GO_NEW_SET\": false, \"TAB_ELEMENTS\": {\"TAB_01\": {\"TAB\": 1, \"HEAD\": \"Dialog\", \"GRUPPE\": \"INFO\"}, \"TAB_02\": {\"TAB\": 2, \"HEAD\": \"Datensatz\", \"GRUPPE\": \"INFO\"}, \"TAB_03\": {\"TAB\": 3, \"HEAD\": \"Letzter Aufruf\", \"GRUPPE\": \"INFO\"}}}, \"FIELDS\": {\"030bb672-e1bd-52e4-9dcd-0c7a145bde8d\": {\"TAB\": 1, \"SOURCE_PATH\": \"root\", \"DISPLAY_ORDER\": 80}, \"1365040b-fe05-53b3-ab1d-18d07ccf5fed\": {\"TAB\": 1, \"SOURCE_PATH\": \"root\", \"DISPLAY_ORDER\": 20}, \"209a1c53-1608-5997-a543-b54965b296fe\": {\"TAB\": 1, \"SOURCE_PATH\": \"root\", \"DISPLAY_ORDER\": 70}, \"35e6f00b-f1ef-50b2-b986-3c9abba94d9f\": {\"TAB\": 3, \"SOURCE_PATH\": \"root\", \"DISPLAY_ORDER\": 30}, \"4a223446-bef4-5c7b-a25d-d69972d60ac6\": {\"TAB\": 1, \"SOURCE_PATH\": \"root\", \"DISPLAY_ORDER\": 10}, \"50fed6d1-c7fa-56a7-9948-b00a6cb89c46\": {\"TAB\": 1, \"SOURCE_PATH\": \"root\", \"DISPLAY_ORDER\": 60}, \"65e96850-dfb0-5fae-a6b1-7d485d1f360f\": {\"TAB\": 1, \"SOURCE_PATH\": \"root\", \"DISPLAY_ORDER\": 40}, \"67d0c014-7479-50d5-87a1-e99a5c004b88\": {\"TAB\": 3, \"SOURCE_PATH\": \"root\", \"DISPLAY_ORDER\": 50}, \"69fd4dbd-90a7-56d5-8508-f81504c52348\": {\"TAB\": 2, \"SOURCE_PATH\": \"root\", \"DISPLAY_ORDER\": 10}, \"727fd450-f684-5aba-b7dc-e1d9badb4475\": {\"TAB\": 2, \"SOURCE_PATH\": \"root\", \"DISPLAY_ORDER\": 30}, \"74c67a95-8166-5cff-a342-1fbce4b17053\": {\"TAB\": 3, \"SOURCE_PATH\": \"root\", \"DISPLAY_ORDER\": 10}, \"7ff1bd39-3c0e-58a0-a6e9-16a5479efc21\": {\"TAB\": 3, \"SOURCE_PATH\": \"root\", \"DISPLAY_ORDER\": 40}, \"9957de72-8e86-5c49-ad38-6e69f5af8ab5\": {\"TAB\": 3, \"SOURCE_PATH\": \"root\", \"DISPLAY_ORDER\": 20}, \"a1725169-faa2-5e68-a84b-6d554b9293ab\": {\"TAB\": 1, \"SOURCE_PATH\": \"root\", \"DISPLAY_ORDER\": 30}, \"a555a4d2-824e-5217-a59b-8664112fe955\": {\"TAB\": 2, \"SOURCE_PATH\": \"root\", \"DISPLAY_ORDER\": 20}, \"d85477f7-4bbf-500d-921e-6705ca9f4aa9\": {\"TAB\": 1, \"SOURCE_PATH\": \"root\", \"DISPLAY_ORDER\": 50}}}"
+ }
+]
