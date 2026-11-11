@@ -36,3 +36,6 @@ build/
 tmp_*.py
 run_inspect.py
 backend/reports/*_debug.json
+
+# DB-Sicherungen (enthalten Rollen/Passwort-Hashes) - nicht ins Repo
+database/backups/stand_*/
