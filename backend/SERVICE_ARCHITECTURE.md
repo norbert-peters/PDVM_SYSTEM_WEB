@@ -31,6 +31,7 @@ PostgreSQL: auth · system · Mandanten-DBs
 | `PdvmCentralDatabase` | `core/pdvm_central_datenbank.py` | Business-Schicht für einen Datensatz: `.load()`, `get_value`/`set_value`, Historie und Stichtag |
 | `PdvmCentralSystemsteuerung` (GCS) | `core/pdvm_central_systemsteuerung.py` | Sitzungskontext je Benutzer und Mandant: Pools, Stichtag, Benutzer-/Mandanteneinstellungen (`msy_systemsteuerung`, `msy_anwendungsdaten`, `msy_layout`) |
 | `pdvm_table_schema`, `pdvm_mandant_provisioning`, `mandant_setup_service`, `mandant_access` | `core/` | Standard-Tabellenstruktur, Anlage der Mandantentabellen, Mandant anlegen (`create_mandant`: Satz, Zuweisung, Datenbank; Aktion `mandant.setup`), Mandanten-Zulassung eines Benutzers (`MANDANTEN.LIST`, Login/Wahl/Listen) |
+| `mandant_delete_service`, `mandant_tombstone` | `core/` | Mandant löschen (Aktion `mandant.delete`: `pg_dump`-Sicherung nach `database/backups/mandant_geloescht/` bzw. `MANDANT_DELETE_BACKUP_DIR`, `DROP DATABASE`, Benutzerzuordnungen entfernen, `gilt_bis` = `created_at`); `mandant_tombstone` erkennt den Löschmarker und filtert ihn stichtagsunabhängig aus allen Lesepfaden von `asy_mandanten` |
 | `PdvmDateTime` | `core/pdvm_datetime.py` | Einzige Umrechnung zwischen Python-/JS-Datum und dem PDVM-Format `YYYYDDD.FRACTION` (Regel 1.9) |
 
 Sonderpfade (dokumentierte Ausnahmen in Regel 1.1/1.13):

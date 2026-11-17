@@ -36,6 +36,11 @@ class Settings(BaseSettings):
     # (verhindert versehentliches Anlegen bei fehlerhafter Mandanten-Konfiguration)
     ALLOW_MANDANT_DB_AUTO_CREATE: bool = False
 
+    # Mandant loeschen (Aktion mandant.delete): Ablage der Sicherung vor dem Loeschen der Datenbank und Ort der PostgreSQL-Client-
+    # Werkzeuge (pg_dump, pg_restore). Leer = <Repository>/database/backups/mandant_geloescht bzw. Suche im PATH/Standardpfaden.
+    MANDANT_DELETE_BACKUP_DIR: str = ""
+    PG_BIN_DIR: str = ""
+
     # Release-Check (GitHub Katalog)
     # Repo-Format: owner/name (z. B. norbert-peters/PDVM_SYSTEM_WEB)
     GITHUB_RELEASE_REPO: str = ""

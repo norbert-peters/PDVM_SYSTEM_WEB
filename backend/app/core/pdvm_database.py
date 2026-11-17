@@ -15,6 +15,7 @@ from uuid import UUID, uuid4
 from urllib.parse import urlparse, unquote
 
 from .config import settings
+from .mandant_tombstone import is_deleted_record, without_deleted
 from .pool_registry import acquire_pooled_connection
 
 logger = logging.getLogger(__name__)
@@ -123,7 +124,7 @@ class PdvmDatabaseService:
                     record['daten_backup'] = json.loads(record['daten_backup'])
                 result.append(record)
             
-            return result
+            return without_deleted(self.table, result)
             
         finally:
             await conn.close()
@@ -157,6 +158,9 @@ class PdvmDatabaseService:
                 record['backup_daten'] = json.loads(record['backup_daten'])
             elif record.get('daten_backup') and isinstance(record['daten_backup'], str):
                 record['daten_backup'] = json.loads(record['daten_backup'])
+            
+            if is_deleted_record(self.table, record):
+                return None
             
             return record
             
@@ -375,7 +379,7 @@ class PdvmDatabaseService:
                     record['daten'] = json.loads(record['daten'])
                 result.append(record)
             
-            return result
+            return without_deleted(self.table, result)
             
         finally:
             await conn.close()

@@ -18,6 +18,7 @@ from typing import Any, Dict, List, Optional
 from app.core.pdvm_central_systemsteuerung import PdvmCentralSystemsteuerung
 from app.core.pdvm_central_datenbank import PdvmCentralDatabase
 from app.core.pdvm_datenbank import PdvmDatabase
+from app.core.mandant_tombstone import without_deleted
 from app.core.config import settings
 from app.core.pdvm_datetime import datetime_to_pdvm, get_form_timestamp
 
@@ -461,8 +462,8 @@ async def load_view_base_rows(
     if not isinstance(by_uid, dict):
         by_uid = {}
 
-    # Stabil sortieren (modified_at DESC) und dann auf limit kappen
-    rows_raw = list(by_uid.values())
+    # Stabil sortieren (modified_at DESC) und dann auf limit kappen; geloeschte Mandanten sind stichtagsunabhaengig ausgeschlossen
+    rows_raw = without_deleted(table_name, by_uid.values())
     rows_raw.sort(key=lambda r: (r.get("modified_at") or datetime.min), reverse=True)
     rows = rows_raw[: int(limit)]
 

@@ -19,6 +19,7 @@ from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable, Dict, FrozenSet, Iterable, List, Optional
 
 from app.core import text_template_service as texts
+from app.core import mandant_delete_service
 from app.core.mandant_setup_service import MANDANT_TABLE, grant_mandant_access, mandant_setup_state, setup_mandant_database
 from app.core.password_reset_service import issue_password_reset, update_account_lock
 from app.core.pdvm_central_benutzer import PdvmCentralBenutzer
@@ -80,6 +81,8 @@ class Action:
     precheck: Optional[Precheck] = None
     executor: str = "server"
     needs_record: bool = True
+    # Rollen, die zusaetzlich zu einer der `roles_by_table` ALLE vorhanden sein muessen (z. B. superadmin UND delmand)
+    also_require: FrozenSet[str] = frozenset()
 
     @property
     def tables(self) -> FrozenSet[str]:
@@ -124,6 +127,9 @@ def _allowed(action: Action, table: str, gcs: Any) -> tuple[bool, Optional[str]]
         return False, "Aktion gilt nicht für diese Tabelle"
     if not (session_roles(gcs) & roles):
         return False, "Keine Berechtigung"
+    missing = action.also_require - session_roles(gcs)
+    if missing:
+        return False, f"Keine Berechtigung (Rolle {', '.join(sorted(missing))} erforderlich)"
     return True, None
 
 
@@ -244,6 +250,30 @@ async def _mandant_setup_state(ctx: ActionContext) -> Dict[str, Any]:
     return await mandant_setup_state(ctx.uid)
 
 
+async def _mandant_delete_state(ctx: ActionContext) -> Dict[str, Any]:
+    return await mandant_delete_service.delete_state(ctx.uid, getattr(ctx.gcs, "mandant_guid", None))
+
+
+async def _require_mandant_deletable(ctx: ActionContext) -> None:
+    state = await _mandant_delete_state(ctx)
+    if not state["can_delete"]:
+        raise ActionError(state["reason"] or "Mandant nicht gefunden")
+
+
+async def _mandant_delete(ctx: ActionContext) -> Dict[str, Any]:
+    actor = _actor(ctx)
+    done = await mandant_delete_service.delete_mandant(
+        ctx.uid, confirm_name=ctx.params.get("confirm_name", ""), session_mandant_id=getattr(ctx.gcs, "mandant_guid", None),
+        actor_uid=actor["actor_user_uid"], actor_ip=actor["actor_ip"],
+    )
+    backup = f" Sicherung: {done['backup_file']}." if done["backup_file"] else " Es gab keine Datenbank zu sichern."
+    return result(
+        f"Mandant „{done['name']}“ gelöscht.{backup} Aus {done['users_updated']} Benutzer(n) entfernt. "
+        "Bitte melden Sie sich neu an.",
+        key="frame_action.mandant.delete.done", refresh=["rows", "state"], data={**done, "relogin": True},
+    )
+
+
 # --- Host-Aktionen des Workflow-Draft-Builders --------------------------------------------------------------
 
 _WORKFLOW_ROLES = frozenset({"admin", "superadmin", "develop", "developer"})
@@ -274,6 +304,9 @@ REGISTRY: Dict[str, Action] = _register(
            _texttemplate_adopt, state=_texttemplate_source_state),
     Action("mandant.setup", {MANDANT_TABLE: frozenset({"superadmin"})}, _mandant_setup,
            precheck=_require_mandant_needs_setup, state=_mandant_setup_state),
+    Action("mandant.delete", {MANDANT_TABLE: frozenset({"superadmin"})}, _mandant_delete,
+           params={"confirm_name": ParamSpec("string", required=True, max_length=200)},
+           precheck=_require_mandant_deletable, state=_mandant_delete_state, also_require=frozenset({"delmand"})),
     *(_host_action(action_id, _WORKFLOW_ROLES) for action_id in WORKFLOW_HOST_ACTIONS),
     _host_action("workflow.apply", _WORKFLOW_APPLY_ROLES),
 )

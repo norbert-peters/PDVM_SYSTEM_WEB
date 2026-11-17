@@ -90,6 +90,15 @@ class ProvisioningConnection:
         await self._conn.execute(f'DROP DATABASE IF EXISTS "{db_name}"')
 
     @_translate_postgres_errors
+    async def terminate_connections(self, db_name: str) -> int:
+        """Beendet alle anderen Verbindungen auf die Datenbank (Voraussetzung fuer DROP DATABASE); liefert die Anzahl."""
+        rows = await self._conn.fetch(
+            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = $1 AND pid <> pg_backend_pid()",
+            db_name,
+        )
+        return len(rows)
+
+    @_translate_postgres_errors
     async def install_uuid_ossp(self) -> None:
         await self._conn.execute('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"')
 

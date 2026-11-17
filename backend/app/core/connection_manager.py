@@ -12,6 +12,7 @@ import asyncpg
 import json
 from .config import settings
 from .database import DatabasePool
+from .mandant_tombstone import is_deleted_mandant_row
 import logging
 from urllib.parse import urlparse, unquote, quote
 from .credential_store import Credential, DEFAULT_CREDENTIAL, get_credential
@@ -218,11 +219,11 @@ class ConnectionManager:
         try:
             # Lade Mandanten-Record
             mandant = await conn.fetchrow(
-                "SELECT daten FROM asy_mandanten WHERE uid = $1",
+                "SELECT daten, gilt_bis, created_at FROM asy_mandanten WHERE uid = $1",
                 mandant_id
             )
             
-            if not mandant:
+            if not mandant or is_deleted_mandant_row(dict(mandant)):
                 raise ValueError(f"Mandant '{mandant_id}' nicht gefunden")
             
             daten = ConnectionManager._normalize_mandant_daten(mandant['daten'])

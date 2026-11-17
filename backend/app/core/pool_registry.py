@@ -54,6 +54,28 @@ class PoolRegistry:
         return any(pool is p for p in cls._pools.values())
 
     @classmethod
+    async def close_for_database(cls, db_name: str) -> int:
+        """Schliesst alle gemeinsamen Pools auf die Datenbank `db_name` (Schluessel: DSN `.../<db>` oder `svc|...|<db>|...`).
+
+        Voraussetzung fuer DROP DATABASE; Pools werden bei Bedarf neu angelegt. Liefert die Anzahl geschlossener Pools.
+        """
+        name = str(db_name or "").strip()
+        if not name:
+            return 0
+        keys = [
+            k for k in cls._pools
+            if k.split("?", 1)[0].rstrip("/").endswith(f"/{name}") or f"|{name}|" in k
+        ]
+        for key in keys:
+            pool = cls._pools.pop(key)
+            cls._locks.pop(key, None)
+            try:
+                await pool.close()
+            except Exception as exc:
+                logger.warning("Pool konnte nicht geschlossen werden: %s", exc)
+        return len(keys)
+
+    @classmethod
     async def close_all(cls) -> None:
         pools = list(cls._pools.values())
         cls._pools.clear()

@@ -213,6 +213,15 @@ async def close_gcs_session(session_token: str):
         logger.info(f"✅ GCS-Session geschlossen: {session_token[:8]}...")
 
 
+async def close_sessions_of_mandant(mandant_guid: Any) -> int:
+    """Schliesst alle GCS-Sessions des Mandanten (z. B. vor dem Loeschen seiner Datenbank); liefert die Anzahl."""
+    target = str(mandant_guid or "").strip().lower()
+    tokens = [t for t, gcs in _gcs_sessions.items() if str(getattr(gcs, "mandant_guid", "")).strip().lower() == target]
+    for token in tokens:
+        await close_gcs_session(token)
+    return len(tokens)
+
+
 class PdvmCentralSystemsteuerung:
     """
     Global Configuration System

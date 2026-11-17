@@ -105,6 +105,16 @@ MANDANT_CONTROLS = [
         "info": {"text": "„{{state.database}}“ ist noch nicht eingerichtet.", "severity": "warning", "placement": "header",
                  "modes": ["edit"], "state": {"action": "mandant.setup"},
                  "visible_when": {"path": "state.needs_setup", "equals": True}}}),
+    control("ASY_ACTION_MANDANT_DELETE", MANDANT_TABLE_ASY, "ACTION_MANDANT_DELETE", "action", "Mandant löschen", {
+        "action": {"id": "mandant.delete", "placement": "header", "modes": ["edit"],
+                   "visible_when": {"path": "state.can_delete", "equals": True},
+                   "confirm": {"title": "Mandant löschen",
+                               "message": "Die Datenbank des Mandanten wird gesichert und danach gelöscht, der Mandant wird bei allen Benutzern "
+                                          "entfernt und ist nicht mehr erreichbar. Der Mandantensatz bleibt erhalten. "
+                                          "Zur Bestätigung den Namen des Mandanten eingeben.",
+                               "label": "Endgültig löschen"},
+                   "params": [{"name": "confirm_name", "label": "Mandantenname", "type": "string", "required": True}]}},
+        tooltip="Nur mit den Rollen superadmin und delmand; der Mandant der aktuellen Sitzung kann nicht gelöscht werden."),
 ]
 
 # Frame -> Controls

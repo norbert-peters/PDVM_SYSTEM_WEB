@@ -17,6 +17,7 @@ import copy
 import logging
 from app.core.pdvm_datetime import SENTINEL_MAX, datetime_to_pdvm, pdvm_to_datetime, pdvm_to_str
 from app.core.feld_aenderungshistorie_service import FieldChangeHistoryService
+from app.core.mandant_tombstone import is_deleted_record
 from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime
 import asyncpg
@@ -668,12 +669,14 @@ class PdvmDatabase:
         *,
         storage_scope: Optional[str] = "live",
         draft_guid: Optional[Any] = None,
+        include_deleted: bool = False,
     ) -> Optional[Dict[str, Any]]:
         """
         Lädt einen vollständigen Datensatz anhand der UID
         
         Args:
             uid: UUID des Datensatzes
+            include_deleted: nur fuer den Loeschdienst; geloeschte Mandanten (`mandant_tombstone`) sind sonst nicht erreichbar
             
         Returns:
             Dict mit allen Spalten oder None wenn nicht gefunden
@@ -708,6 +711,9 @@ class PdvmDatabase:
             # Parse JSONB fields (asyncpg gibt als String zurück)
             if result['daten'] and isinstance(result['daten'], str):
                 result['daten'] = json.loads(result['daten'])
+
+            if not include_deleted and is_deleted_record(self.table_name, result):
+                return None
 
             return self._inject_root_meta_fields(result)
 
@@ -745,6 +751,8 @@ class PdvmDatabase:
             result = dict(row)
             if result.get('daten') and isinstance(result['daten'], str):
                 result['daten'] = json.loads(result['daten'])
+            if is_deleted_record(self.table_name, result):
+                return None
             return self._inject_root_meta_fields(result)
     
     async def get_row(self, uid: uuid.UUID) -> Optional[Dict[str, Any]]:
@@ -878,6 +886,8 @@ class PdvmDatabase:
             result = []
             for row in rows:
                 row_dict = dict(row)
+                if is_deleted_record(self.table_name, row_dict):
+                    continue
                 # Parse JSONB
                 if row_dict['daten'] and isinstance(row_dict['daten'], str):
                     row_dict['daten'] = json.loads(row_dict['daten'])

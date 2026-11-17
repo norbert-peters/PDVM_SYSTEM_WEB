@@ -40,3 +40,5 @@ backend/reports/*_debug.json
 
 # DB-Sicherungen (enthalten Rollen/Passwort-Hashes) - nicht ins Repo
 database/backups/stand_*/
+# Sicherungen geloeschter Mandanten (Aktion mandant.delete, enthalten Mandantendaten)
+database/backups/mandant_geloescht/
