@@ -53,6 +53,13 @@
       "presentation": { "reveal": "always", "panel": "shared" }
     },
     {
+      "label": "PDVM: Datenbanken sichern",
+      "type": "shell",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File ${workspaceFolder}\\database\\scripts\\backup_all_databases.ps1",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
       "label": "PDVM: Tests (Backend)",
       "type": "shell",
       "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe -m pytest",

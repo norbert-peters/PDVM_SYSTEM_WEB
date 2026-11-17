@@ -57,9 +57,11 @@ Starten: siehe [SYSTEM_STARTUP_GUIDE.md](./SYSTEM_STARTUP_GUIDE.md).
 - Schemas: `database/schema_pdvm_system.sql` (System-DB) und `database/schema_mandant.sql` (Mandanten-DBs, wird bei der Mandantenanlage angewendet). Für die AUTH-DB gibt es kein Schema-Skript; sie wird per Backup/Restore bereitgestellt (siehe unten).
 - Tabellenstruktur, Basissätze (UID 000/555/666) und Konventionen: [ARCHITECTURE_RULES.md](./ARCHITECTURE_RULES.md), [docs/specs/PDVM_LINEAR_SCHEMA_V1.md](./docs/specs/PDVM_LINEAR_SCHEMA_V1.md).
 
-## Backup und Restore (PostgreSQL in Docker)
+## Backup und Restore
 
-Skripte in `database/scripts` (Standard-Container `pdvm_postgres`):
+**Lokaler PostgreSQL-Server (Windows-Dienst), alle Datenbanken:** `backup_pdvm.bat` (Doppelklick, optional mit Namen: `backup_pdvm.bat vor_update`) oder VS-Code-Task „PDVM: Datenbanken sichern“. Das Skript `database/scripts/backup_all_databases.ps1` liest den Zugang aus `backend/.env`, sichert jede Datenbank mit `pg_dump` (Custom-Format) plus die Rollen (`globals.sql`), prüft jeden Dump mit `pg_restore --list` und schreibt `MANIFEST.txt` nach `database/backups/stand_<Commit>_<Zeit>/` (`_mod` im Namen: Arbeitsstand mit uncommitteten Änderungen). Der Ordner ist von Git ausgeschlossen (enthält Passwort-Hashes); es bleiben die letzten 10 Stände (`-KeepLast`). Eine Datenbank zurückspielen: leere Datenbank anlegen (`createdb`), dann `pg_restore --clean --if-exists -d <Datenbank> <Datei>.dump`; Rollen mit `psql -f globals.sql`. Eine Sicherung vor jedem Update oder `--apply`-Lauf der Seed-Werkzeuge erfüllt deren Pflicht `--confirm-backup`.
+
+**PostgreSQL in Docker (einzelne Datenbank):** Skripte in `database/scripts` (Standard-Container `pdvm_postgres`):
 
 ```powershell
 cd database\scripts
