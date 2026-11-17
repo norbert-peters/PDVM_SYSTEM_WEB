@@ -38,6 +38,7 @@ from app.core.dialog_service import (
 from app.core.pdvm_datenbank import PdvmDatabase
 from app.core.control_template_service import ControlTemplateService
 from app.core.dialog_info import DIALOG_INFO_FRAME_GUID
+from app.core.mandant_record_rules import dialog_create_blocked_reason
 from app.core.workflow_draft_access import WorkflowDraftAccess
 from app.core.workflow_draft_service import WorkflowDraftService
 from app.core.dialog_api_helpers import (
@@ -225,7 +226,7 @@ async def get_dialog_definition(dialog_guid: str, dialog_table: Optional[str] = 
     runtime = extract_dialog_runtime_config(dialog_def)
 
     dialog_table_norm = _normalize_dialog_table(dialog_table)
-    _resolve_runtime_root_table(runtime, dialog_table_norm=dialog_table_norm)
+    resolved_table = _resolve_runtime_root_table(runtime, dialog_table_norm=dialog_table_norm)
 
     frame_payload = None
     frame_guid = runtime.get("frame_guid")
@@ -275,6 +276,7 @@ async def get_dialog_definition(dialog_guid: str, dialog_table: Optional[str] = 
             "dialog_table": dialog_table_norm,
             "expert_mode": bool(gcs.get_expert_mode()),
             "info_frame_guid": str(DIALOG_INFO_FRAME_GUID),
+            "create_blocked_reason": dialog_create_blocked_reason(resolved_table),
             "last_call": last_call_str,
             "last_call_key": f"{last_call_key}::{_table_key_upper(root_table)}" if last_call_key and root_table else last_call_key,
             "last_call_scope": "dialog_guid+table",
@@ -409,6 +411,9 @@ async def post_dialog_draft_start(
     )
     if not effective_root_table:
         raise HTTPException(status_code=400, detail="ROOT.TABLE ist leer")
+    blocked_reason = dialog_create_blocked_reason(effective_root_table)
+    if blocked_reason:
+        raise HTTPException(status_code=403, detail=blocked_reason)
 
     if str(runtime.get("dialog_type") or "").strip().lower() == "work":
         system_pool = getattr(gcs, "_pool_system", None) or getattr(gcs, "_system_pool", None)
@@ -1076,6 +1081,9 @@ async def post_dialog_record_create(
 
     if not table:
         raise HTTPException(status_code=400, detail="Dialog ROOT.TABLE ist leer")
+    blocked_reason = dialog_create_blocked_reason(table)
+    if blocked_reason:
+        raise HTTPException(status_code=403, detail=blocked_reason)
 
     name = str(payload.name or "").strip()
     if not name:

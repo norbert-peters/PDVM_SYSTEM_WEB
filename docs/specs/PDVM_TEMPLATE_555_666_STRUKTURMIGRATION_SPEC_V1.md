@@ -290,10 +290,7 @@ Implementierung:
 3. Zielversion wird aus TEMPLATE_META::<table> (Group TEMPLATE_META) in der jeweiligen
   *systemdaten-Tabelle gelesen.
 
-Reports:
-1. backend/reports/phaseC_apply_struct_version_applied_dryrun_v1.json
-2. backend/reports/phaseC_apply_struct_version_applied_apply_v1.json
-3. backend/reports/phaseC_apply_struct_version_applied_dryrun_v2.json
+Reports: die Berichtsdateien (`backend/reports/phaseC_apply_struct_version_applied_*.json`) wurden entfernt, da sie Zugangsdaten enthielten; die Kennzahlen stehen unten.
 
 Kennzahlen:
 1. Dry-Run V1: tables_in_scope=22, rows_scanned=295, rows_updated=295, db_errors=0
@@ -311,11 +308,7 @@ Implementierung:
 4. Delta-Rerun ueber --changed-since (zeitstempelbasiert, falls Timestamp-Spalte vorhanden).
 5. Scope unveraendert: voll_templatefaehig und teiltemplatefaehig.
 
-Reports:
-1. backend/reports/phaseC_batch_reconcile_struct_version_dryrun_v1.json
-2. backend/reports/phaseC_batch_reconcile_struct_version_apply_v1.json
-3. backend/reports/phaseC_batch_reconcile_struct_version_delta_dryrun_v1.json
-4. backend/reports/phaseC_batch_reconcile_struct_version_checkpoint.json
+Reports: die Berichtsdateien `phaseC_batch_reconcile_struct_version_{dryrun_v1,apply_v1,delta_dryrun_v1}.json` wurden entfernt, da sie Zugangsdaten enthielten; die Kennzahlen stehen unten. Der Checkpoint liegt weiterhin unter `backend/reports/phaseC_batch_reconcile_struct_version_checkpoint.json`.
 
 Kennzahlen:
 1. Dry-Run V1 (batch_size=100): tables_in_scope=22, tables_completed=22, batches_processed=23, rows_scanned=295, rows_updated=0, rows_already_current=295, db_errors=0

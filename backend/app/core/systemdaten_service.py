@@ -61,6 +61,9 @@ def _ensure_builtin_menu_commands(commands: List[Dict[str, Any]]) -> List[Dict[s
     if "toggle_menu" not in existing:
         out.append({"handler": "toggle_menu", "label": "Menü ein-/ausblenden", "params": []})
 
+    if "go_mandant_create" not in existing:
+        out.append({"handler": "go_mandant_create", "label": "Neuen Mandanten anlegen", "params": []})
+
     return out
 
 

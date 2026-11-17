@@ -10,11 +10,12 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 from typing import Any, Dict
 
 import asyncpg
 
-DEFAULT_DB_URL = "postgresql://postgres:Polari$55@localhost:5432/pdvm_system"
+DEFAULT_DB_URL = os.getenv("PDVM_SYSTEM_DATABASE_URL")
 
 
 def as_dict(value: Any) -> Dict[str, Any]:
@@ -57,7 +58,12 @@ def read_ci(source: Dict[str, Any], *keys: str) -> Any:
 
 async def main() -> None:
     parser = argparse.ArgumentParser(description="Canonicalize sys_framedaten FIELD refs to UUID")
-    parser.add_argument("--db-url", default=DEFAULT_DB_URL, help="PostgreSQL connection URL")
+    parser.add_argument(
+        "--db-url",
+        default=DEFAULT_DB_URL,
+        required=DEFAULT_DB_URL is None,
+        help="PostgreSQL connection URL (Standard: Umgebungsvariable PDVM_SYSTEM_DATABASE_URL)",
+    )
     parser.add_argument("--dry-run", action="store_true", help="Preview only")
     parser.add_argument("--apply", action="store_true", help="Persist updates")
     args = parser.parse_args()

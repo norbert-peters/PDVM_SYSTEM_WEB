@@ -69,6 +69,8 @@ Für `edit_control` (und `sys_control_dict`) gilt im Draft/Create-Flow:
 Im Edit-Tab ist die Property-Liste des Datensatzes die Feldliste:
 - Top-Level Properties werden direkt als Eingabefelder angeboten.
 - Bool-Werte werden als `true_false` gerendert.
+- `password` (write-only): Feldwert ist der Name eines Zugangsdatensatzes; das Passwort wird nie angezeigt oder zurückgegeben (siehe PDVM_FRAME_INPUT_RENDERING_SPEC_V1.md, Abschnitt 9).
+- `text` (mehrzeilig) und `text_popup` (Schaltfläche mit Kurzvorschau): Lesen und Bearbeiten im großen Textfenster (siehe PDVM_FRAME_INPUT_RENDERING_SPEC_V1.md, Abschnitt 10).
 - Objekt-/Listenwerte werden als Sammlung erwartet (`element_list` oder `group_list`).
 
 Neu:
@@ -110,8 +112,8 @@ Frontend:
 ## 6. Eingabevalidierung über PdvmInputControl
 
 Regel (Stufe 1):
-- Wenn ein Control als `type=number` gerendert wird, akzeptiert `PdvmInputControl` nur die Ziffern `1-9`.
-- Ungültige Eingaben erzeugen die Meldung: `Es sind nur die Ziffern 1-9 möglich`.
+- Wenn ein Control als `type=number` gerendert wird, akzeptiert `PdvmInputControl` nur die Ziffern `0-9` (korrigiert 2026-11-13; zuvor fälschlich `1-9`, wodurch `0` nicht eingebbar war und z. B. `1200` als `12` angezeigt wurde).
+- Ungültige Eingaben erzeugen die Meldung: `Es sind nur die Ziffern 0-9 möglich`.
 
 Wichtig:
 - Die Regel wirkt global überall dort, wo ein Editor `PdvmInputControl` **mit** `type='number'` aufruft.
@@ -139,7 +141,7 @@ Ziel:
 - Zeichen-Zulaessigkeit darf direkt im `PdvmInputControl` vorgeprueft werden (z. B. Regex).
 - Diese Pruefung ist nur Vorfilter fuer bessere UX, nicht fachlich abschliessend.
 - Alle Editoren muessen denselben Typ-Mapper verwenden: Control-Typ -> `PdvmInputControl.type`.
-- Fuer `type=number` gilt aktuell global im Control: nur `1-9`, Fehlermeldung wie in Abschnitt 6.
+- Fuer `type=number` gilt aktuell global im Control: nur `0-9`, Fehlermeldung wie in Abschnitt 6.
 
 ### 7.3 Backend-Pflichten (verbindliche Validierung)
 - Verbindliche Pruefung erfolgt bei `blur/leave`, `save/commit` oder gleichwertiger Aktivitaet.

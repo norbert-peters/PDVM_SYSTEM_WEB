@@ -313,9 +313,9 @@ def test_save_mandant_config_validates_and_writes_cfg(monkeypatch):
 
     monkeypatch.setattr(gcs_module, "update_record_central", fake_update)
     monkeypatch.setattr(gcs_module, "PdvmDatabase", FakeMandantDb)
-    # DB-Stand weicht von der Session-Kopie ab (zweite Sitzung) und enthaelt ein SELF_GILT_BIS (Text-Spalte)
+    # DB-Stand weicht von der Session-Kopie ab (zweite Sitzung)
     FakeMandantDb.current = {
-        "ROOT": {"SELF_GILT_BIS": "9999365.00000", "NAME": "M"},
+        "ROOT": {"SELF_GILT_BIS": "9999365.99999", "NAME": "M"},
         "CONTACT": {"TOWN": "Neu"},
         "CONFIG": {"THEME_GUID": "pkg-1", "FEATURES": ["x"]},
     }
@@ -329,7 +329,7 @@ def test_save_mandant_config_validates_and_writes_cfg(monkeypatch):
     assert cfg["THEME_LIGHT"] == "Blue_Light" and cfg["USER_THEME_EDIT"] == ["color.primary-*"]
     assert cfg["THEME_GUID"] == "pkg-1" and cfg["FEATURES"] == ["x"]  # fremde Schluessel bleiben erhalten
     assert written["CONTACT"] == {"TOWN": "Neu"}  # Aenderung der zweiten Sitzung geht nicht verloren
-    assert "SELF_GILT_BIS" not in written["ROOT"] and written["ROOT"]["NAME"] == "M"
+    assert written["ROOT"] == {"SELF_GILT_BIS": "9999365.99999", "NAME": "M"}  # ROOT bleibt unveraendert
     assert calls[0]["expected_snapshot_daten"]["CONFIG"] == {"THEME_GUID": "pkg-1", "FEATURES": ["x"]}
     assert gcs.mandant.data["CONFIG"]["THEME_DEFAULT_MODE"] == "dark"
 

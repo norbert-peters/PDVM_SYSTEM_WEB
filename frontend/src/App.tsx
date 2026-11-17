@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Login from './components/Login'
 import MandantSelect from './components/MandantSelect'
 import MandantCreate from './components/MandantCreate'
@@ -12,7 +12,7 @@ import ThemeEditorPage from './components/design/ThemeEditorPage'
 import MenuHome from './components/menu/MenuHome'
 import { AppLayout } from './components/layout'
 import { MenuProvider } from './contexts/MenuContext'
-import { ThemeProvider } from './contexts/ThemeContext'
+import { ThemeProvider, applyStoredThemeMode } from './contexts/ThemeContext'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import type { Mandant } from './contexts/AuthContext'
 import { authAPI } from './api/client'
@@ -20,7 +20,6 @@ import { PdvmDialogModal } from './components/common/PdvmDialogModal'
 
 function AppContent() {
   const { token, mandantId, login, updateToken, logout, selectMandant } = useAuth()
-  const [showCreateMandant, setShowCreateMandant] = useState(false)
   const [idleWarningOpen, setIdleWarningOpen] = useState(false)
   const [idleRemainingSec, setIdleRemainingSec] = useState<number | null>(null)
   const lastActivityRef = useRef<number>(Date.now())
@@ -31,6 +30,11 @@ function AppContent() {
 
   // NOTE: state 'token' and 'mandantId' now come from context
 
+  // Ohne Mandant gibt es kein Theme der Sitzung: nur den zuletzt benutzten Hell/Dunkel-Modus anwenden (vor dem ersten Paint)
+  useLayoutEffect(() => {
+    if (!mandantId) applyStoredThemeMode()
+  }, [mandantId])
+
   useEffect(() => {
     if (!token) {
       document.title = 'PDVM System - Login'
@@ -38,10 +42,10 @@ function AppContent() {
     }
 
     if (!mandantId) {
-      document.title = showCreateMandant ? 'PDVM System - Mandant anlegen' : 'PDVM System - Mandant wählen'
+      document.title = 'PDVM System - Mandant wählen'
       return
     }
-  }, [token, mandantId, showCreateMandant])
+  }, [token, mandantId])
   
   const handleLogin = (newToken: string) => {
     login(newToken)
@@ -153,26 +157,9 @@ function AppContent() {
     return <Login onLogin={handleLogin} />
   }
 
-  // Token aber kein Mandant → Mandantenauswahl oder Create
+  // Token aber kein Mandant → Mandantenauswahl
   if (!mandantId) {
-    if (showCreateMandant) {
-      return (
-        <MandantCreate
-          token={token}
-          onSuccess={() => {
-            setShowCreateMandant(false)
-            // Nach Erstellung zurück zur Auswahl (passiert automatisch wenn kein Mandant gewählt)
-          }}
-          onCancel={() => setShowCreateMandant(false)}
-        />
-      )
-    }
-    return (
-      <MandantSelect
-        onMandantSelected={handleMandantSelected}
-        onCreateNew={() => setShowCreateMandant(true)}
-      />
-    )
+    return <MandantSelect onMandantSelected={handleMandantSelected} />
   }
 
   // Token + Mandant → Dashboard mit neuem Layout
@@ -213,6 +200,7 @@ function AppContent() {
             <Route path="/view/:viewGuid" element={<PdvmViewPage />} />
             <Route path="/dialog/:dialogGuid" element={<PdvmDialogPage />} />
             <Route path="/design" element={<ThemeEditorPage />} />
+            <Route path="/mandant/new" element={<MandantCreate />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </AppLayout>

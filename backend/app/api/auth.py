@@ -4,9 +4,10 @@ Login, register, token management
 
 Nach Desktop-Vorbild: pdvm_login_dialog.py
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
+import asyncio
 import uuid
 import logging
 from app.models.schemas import Token, UserLogin, UserCreate
@@ -17,11 +18,29 @@ from app.core.security import (
 )
 from app.core.pdvm_central_systemsteuerung import get_gcs_session, rotate_gcs_session_token
 from app.core.config import settings
+from app.core.rate_limit import RateLimiter
 from app.core.user_manager import UserManager
-from app.core.password_reset_service import issue_password_reset, _extract_user_email
+from app.core.password_reset_service import issue_password_reset, stored_user_email
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+PASSWORD_CHANGE_TOKEN_MINUTES = 15
+GENERIC_LOGIN_ERROR = "E-Mail oder Passwort falsch"
+FORGOT_PASSWORD_REPLY = "Falls die Adresse bekannt ist, wurde ein maschinelles Passwort versendet."
+
+# Fehlversuche je IP (zusaetzlich zur Kontosperre nach 5 Fehlversuchen) und Anfragen "Passwort vergessen" je IP
+_login_failures = RateLimiter(limit=20, window_seconds=300)
+_forgot_requests = RateLimiter(limit=5, window_seconds=900)
+_DUMMY_HASH: list = []
+_background_tasks: set = set()
+
+
+def _dummy_password_hash() -> str:
+    """Platzhalter-Hash, damit auch bei unbekanntem Benutzer eine bcrypt-Pruefung laeuft (gleiche Laufzeit)."""
+    if not _DUMMY_HASH:
+        _DUMMY_HASH.append(UserManager.hash_password(uuid.uuid4().hex))
+    return _DUMMY_HASH[0]
 
 
 class PasswordChangeRequest(BaseModel):
@@ -30,10 +49,11 @@ class PasswordChangeRequest(BaseModel):
 
 
 class ForgotPasswordRequest(BaseModel):
+    benutzer: str = Field(..., min_length=3)
     email: str = Field(..., min_length=3)
 
 @router.post("/login", response_model=Token)
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
     """
     Login endpoint nach Desktop-Vorbild
     
@@ -43,10 +63,18 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     - Account-Lock nach 5 Fehlversuchen
     - Last-Login Tracking
     - Failed-Login Counter
+    - Einheitliche Fehlermeldung (keine Benutzer-Aufzaehlung), Begrenzung der Fehlversuche je IP (Login-Frame-Spec F3)
     
     Returns JWT token on success
     """
     user_manager = UserManager()
+    client_ip = request.client.host if request.client else "unknown"
+    if _login_failures.is_blocked(client_ip):
+        logger.warning(f"❌ Zu viele Fehlversuche von {client_ip}")
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Zu viele Anmeldeversuche. Bitte später erneut versuchen.",
+        )
     
     # Email normalisieren (case-insensitive)
     email = user_manager.normalize_email(form_data.username)
@@ -54,45 +82,33 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     
     logger.info(f"🔍 Login-Versuch: {email}")
     
-    # 1. SECURITY CHECK: Account gesperrt?
-    if await user_manager.is_account_locked(email):
+    # 1. User laden; das Passwort wird immer geprueft (bei unbekanntem Benutzer gegen einen Platzhalter-Hash,
+    #    damit Antwort und Laufzeit nicht verraten, ob es das Konto gibt)
+    user = await user_manager.get_user_by_email(email)
+    locked = await user_manager.is_account_locked(email) if user else False
+    password_ok = user_manager.verify_password(password, user['passwort'] if user else _dummy_password_hash())
+    
+    if not user or not password_ok:
+        logger.warning(f"❌ Anmeldung fehlgeschlagen ({'unbekannter Benutzer' if not user else 'falsches Passwort'}): {email}")
+        _login_failures.record(client_ip)
+        if user and not locked:
+            failed_count = await user_manager.increment_failed_login(email)
+            if failed_count >= 5:
+                logger.warning(f"❌ Account gesperrt nach {failed_count} Fehlversuchen: {email}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=GENERIC_LOGIN_ERROR,
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # 2. Passwort stimmt: nur der Kontoinhaber erfaehrt, dass der Account gesperrt ist
+    if locked:
         logger.warning(f"❌ Account gesperrt: {email}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Der Account ist gesperrt. Bitte wenden Sie sich an den Administrator.",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
-    # 2. User aus Datenbank laden
-    user = await user_manager.get_user_by_email(email)
-    
-    if not user:
-        logger.warning(f"❌ Benutzer nicht gefunden: {email}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Falsche Email oder Passwort",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    # 3. Passwort mit bcrypt verifizieren
-    if not user_manager.verify_password(password, user['passwort']):
-        logger.warning(f"❌ Falsches Passwort für: {email}")
-        
-        # Failed-Login Counter erhöhen
-        failed_count = await user_manager.increment_failed_login(email)
-        
-        if failed_count >= 5:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Account gesperrt nach {failed_count} Fehlversuchen.",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=f"Falsches Passwort. Verbleibende Versuche: {5 - failed_count}",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
     
     # 4. ✅ LOGIN ERFOLGREICH
     logger.info(f"✅ Login erfolgreich: {user['name']} ({email})")
@@ -116,6 +132,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     
     # 7. Lade Mandanten-Liste für User (mit Berechtigungs-Filter)
     from app.core.data_managers import MandantDataManager
+    from app.core.mandant_access import allowed_mandant_ids
     from app.api.mandanten import SYSTEM_MANDANT_UIDS
     
     # Extrahiere Berechtigungen aus User-Daten
@@ -137,7 +154,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     # CASE 2a: LIST leer, aber DEFAULT gesetzt → Verwende DEFAULT als Liste
     if not allowed_mandanten_list and default_mandant:
         logger.info(f"✅ User {user['name']} - Auto-Select-Kandidat: LIST leer, DEFAULT={default_mandant}")
-        allowed_mandanten_list = [default_mandant]
+    allowed_mandanten_list = allowed_mandant_ids(user_daten)  # gleiche Regel wie /api/mandanten/select
     
     # Lade und filtere Mandanten
     mandanten_manager = MandantDataManager()
@@ -152,7 +169,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
             "description": m["daten"].get("MANDANT", {}).get("DESCRIPTION", "")
         }
         for m in all_mandanten
-        if str(m["uid"]) in allowed_mandanten_list and str(m["uid"]) not in SYSTEM_MANDANT_UIDS
+        if str(m["uid"]).lower() in allowed_mandanten_list and str(m["uid"]) not in SYSTEM_MANDANT_UIDS
     ]
     
     # Alphabetisch sortieren
@@ -174,15 +191,17 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     logger.info(f"🔍 DEBUG: User {user['name']} hat START.MENU GUID: {start_menu_guid}")
     
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={
-            "sub": str(user['uid']),  # User-ID (Primary Key)
-            "email": email,
-            "name": user['name'],
-            "user_data": user_daten  # Vollständige JSONB-Daten (MEINEAPPS, SETTINGS, etc.)
-        },
-        expires_delta=access_token_expires
-    )
+    token_data = {
+        "sub": str(user['uid']),  # User-ID (Primary Key)
+        "email": email,
+        "name": user['name'],
+        "user_data": user_daten  # Vollständige JSONB-Daten (MEINEAPPS, SETTINGS, etc.)
+    }
+    if password_change_required:
+        # Eingeschränktes Token: nur Passwortwechsel und Abmeldung (security.get_current_user), kurze Laufzeit
+        token_data["pwc"] = True
+        access_token_expires = timedelta(minutes=PASSWORD_CHANGE_TOKEN_MINUTES)
+    access_token = create_access_token(data=token_data, expires_delta=access_token_expires)
     
     # 9. Return: Token + User-Daten + Mandanten-Liste (für Frontend-Caching)
     return {
@@ -236,35 +255,67 @@ async def change_password(payload: PasswordChangeRequest, current_user: dict = D
     await clear_password_reset_flags(user_uid=str(user_id))
     await mark_password_changed(user_uid=str(user_id))
 
-    return {"success": True, "message": "Passwort wurde geändert"}
+    response = {"success": True, "message": "Passwort wurde geändert"}
+    if current_user.get("pwc"):
+        # Das eingeschränkte Token wird durch ein vollwertiges ersetzt (frische Benutzerdaten, normale Laufzeit)
+        fresh = await user_manager.get_user_by_id(user_id) or user
+        response["access_token"] = create_access_token(
+            data={
+                "sub": str(user_id),
+                "email": current_user.get("email"),
+                "name": current_user.get("name"),
+                "user_data": (fresh or {}).get("daten") or {},
+            },
+            expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+        )
+        response["token_type"] = "bearer"
+    return response
 
 
 @router.post("/forgot-password")
-async def forgot_password(payload: ForgotPasswordRequest):
+async def forgot_password(payload: ForgotPasswordRequest, request: Request):
     """
-    Vergisst-Passwort-Flow: erzeugt maschinelles Passwort und sendet es an USER.EMAIL.
+    Vergisst-Passwort-Flow: Benutzer (Anmeldename) und die dort hinterlegte E-Mail-Adresse (USER.EMAIL) muessen beide stimmen.
+    Dann laeuft derselbe Vorgang wie bei der Aktion "Maschinelles Passwort setzen": maschinelles Passwort erzeugen,
+    per E-Mail senden und "Passwortwechsel erforderlich" setzen (`issue_password_reset`).
+
+    Die Antwort ist immer dieselbe (keine Benutzer-Aufzaehlung, Login-Frame-Spec F3); der Versand laeuft im Hintergrund,
+    damit die Laufzeit nicht verraet, ob die Angaben stimmen. Fehler stehen nur im Log. Begrenzung je IP.
     """
+    client_ip = request.client.host if request.client else "unknown"
+    if not _forgot_requests.allow(client_ip):
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Zu viele Anfragen. Bitte später erneut versuchen.")
+
     user_manager = UserManager()
+    benutzer = user_manager.normalize_email(str(payload.benutzer or "").strip())
     email = user_manager.normalize_email(str(payload.email or "").strip())
 
-    if not user_manager.validate_email(email):
+    if not user_manager.validate_email(benutzer) or not user_manager.validate_email(email):
         raise HTTPException(status_code=400, detail="Ungültige E-Mail-Adresse")
 
-    user = await user_manager.get_user_by_user_email(email)
-    if not user:
-        raise HTTPException(status_code=400, detail="E-Mail-Adresse nicht gefunden")
+    async def _send() -> None:
+        try:
+            user = await user_manager.get_user_by_email(benutzer)
+            if not user:
+                logger.info("Passwort vergessen: Benutzer unbekannt (%s)", benutzer)
+                return
+            stored = stored_user_email(user)
+            if not stored:
+                logger.warning("Passwort vergessen: Konto %s hat keine E-Mail-Adresse hinterlegt", benutzer)
+                return
+            if user_manager.normalize_email(stored) != email:
+                logger.info("Passwort vergessen: E-Mail-Adresse passt nicht zum Konto %s", benutzer)
+                return
+            result = await issue_password_reset(gcs=None, user_uid=str(user["uid"]))
+            if not result.get("email_sent"):
+                logger.warning("Passwort vergessen: E-Mail fuer %s nicht versendet: %s", benutzer, result.get("email_error"))
+        except Exception as exc:
+            logger.error("Passwort vergessen fehlgeschlagen (%s): %s", benutzer, exc)
 
-    stored_email = _extract_user_email(user)
-    if not stored_email or user_manager.normalize_email(stored_email) != email:
-        raise HTTPException(status_code=400, detail="E-Mail-Adresse stimmt nicht überein")
-
-    try:
-        result = await issue_password_reset(gcs=None, user_uid=str(user["uid"]))
-        return result
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    task = asyncio.create_task(_send())
+    _background_tasks.add(task)  # Referenz halten, bis der Versand fertig ist
+    task.add_done_callback(_background_tasks.discard)
+    return {"email_sent": True, "message": FORGOT_PASSWORD_REPLY}
 
 
 @router.post("/keep-alive")

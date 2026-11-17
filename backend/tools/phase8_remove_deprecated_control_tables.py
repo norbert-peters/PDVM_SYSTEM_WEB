@@ -195,7 +195,7 @@ def _extract_connection_config_from_mandant_row(
     host = str(mandant.get("HOST") or (auth_defaults.host if auth_defaults else "") or "").strip()
     user = str(mandant.get("USER") or (auth_defaults.user if auth_defaults else "") or "").strip()
     password = str(mandant.get("PASSWORD") or "")
-    if (not password or password in {"postgres", "Polari$55"}) and auth_defaults:
+    if (not password or password == "postgres") and auth_defaults:
         password = str(auth_defaults.password or "")
 
     database = str(mandant.get("DATABASE") or "").strip()

@@ -342,6 +342,8 @@ Tokennamen in `color`/`font` sind bindestrich-normalisiert (`text-on_primary` ==
 
 **Frontend:** `contexts/ThemeContext.tsx` (`ThemeProvider`, `useTheme`) ist die einzige Instanz. Setzt `--<gruppe>-<token>` auf `:root`, `data-theme` und Klasse `dark`, entfernt nicht mehr vorhandene Variablen und cached je Mandant/Modus in `localStorage` (kein Flackern beim Umschalten).
 
+**Vor der Anmeldung (Entscheidung 2026-11-16):** Login und Mandantenauswahl haben keine Sitzung und damit kein aufgelöstes Theme; es gelten die Standardwerte aus `variables.css`. Angewendet wird nur der zuletzt benutzte Hell/Dunkel-Modus (`pdvm_theme_mode`, `applyStoredThemeMode`), auch nach dem Abmelden. Ein systemweites Login-Theme (öffentlicher Endpunkt) und Mandanten-Branding vor dem Login sind nicht umgesetzt (zurückgestellt).
+
 ## 7. Theme-Editor und Schreibwege (P4)
 
 **Rolle `overlay`:** Wer in `asy_benutzer.PERMISSIONS.ROLES` (auch `SECURITY.ROLES`) die Rolle `overlay` hat, darf Mandanten-Overlay und Theme-Einstellungen des Mandanten ändern. Die Rolle ist unabhängig von `admin` und wird ausdrücklich vergeben (`security.has_overlay_rights`, Dependency `require_overlay_user`).

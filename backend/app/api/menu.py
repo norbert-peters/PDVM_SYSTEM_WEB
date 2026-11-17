@@ -8,7 +8,7 @@ import logging
 import uuid
 import json
 from pydantic import BaseModel, Field
-from ..core.security import get_current_user
+from ..core.security import get_current_user, normalized_roles
 from ..core.pdvm_central_datenbank import PdvmCentralDatabase
 from ..api.gcs import get_gcs_instance
 
@@ -26,6 +26,55 @@ def _has_children(items: Dict[str, Any], uid: str) -> bool:
         if str(item.get("parent_guid") or "").strip() == uid_str:
             return True
     return False
+
+
+def _item_roles(item: Dict[str, Any]) -> set:
+    raw = item.get("roles")
+    if isinstance(raw, str):
+        raw = raw.split(",")
+    if not isinstance(raw, (list, tuple)):
+        return set()
+    return {str(r).strip().lower() for r in raw if str(r or "").strip()}
+
+
+def filter_menu_group_by_roles(items: Dict[str, Any], user_roles: set) -> Dict[str, Any]:
+    """Blendet Einträge aus, deren `roles` (optional) keine Rolle des Benutzers enthalten.
+
+    Ohne `roles` ist ein Eintrag für alle sichtbar; `superadmin` sieht alles. Untergeordnete Einträge eines
+    ausgeblendeten Zweigs entfallen mit, ebenso Zweige, die durch das Filtern keine Einträge mehr haben.
+    """
+    if not isinstance(items, dict) or "superadmin" in user_roles:
+        return items
+
+    hidden = {
+        str(uid) for uid, item in items.items()
+        if isinstance(item, dict) and (needed := _item_roles(item)) and not (needed & user_roles)
+    }
+    if not hidden:
+        return items
+
+    parent_of = {str(uid): str((item or {}).get("parent_guid") or "").strip() for uid, item in items.items() if isinstance(item, dict)}
+    changed = True
+    while changed:
+        changed = False
+        for uid, parent in parent_of.items():
+            if uid not in hidden and parent in hidden:
+                hidden.add(uid)
+                changed = True
+
+    visible = {uid: item for uid, item in items.items() if str(uid) not in hidden}
+
+    # Zweige, die nur wegen des Filters leer wurden, ebenfalls ausblenden
+    had_children = {p for p in parent_of.values() if p}
+    changed = True
+    while changed:
+        changed = False
+        remaining_parents = {str((item or {}).get("parent_guid") or "").strip() for item in visible.values() if isinstance(item, dict)}
+        for uid in list(visible):
+            if str(uid) in had_children and str(uid) not in remaining_parents:
+                visible.pop(uid)
+                changed = True
+    return visible
 
 
 def _normalize_flag(value: Any) -> bool:
@@ -320,6 +369,11 @@ async def get_start_menu(
         grund = await expand_templates(grund, "GRUND", gcs._system_pool) if grund else {}
         vertikal = await expand_templates(vertikal, "VERTIKAL", gcs._system_pool) if vertikal else {}
 
+        # Rollen am Menüeintrag (`roles`): Ausblenden serverseitig, vor der Normalisierung
+        user_roles = normalized_roles(getattr(gcs.benutzer, "data", None))
+        grund = filter_menu_group_by_roles(grund, user_roles)
+        vertikal = filter_menu_group_by_roles(vertikal, user_roles)
+
         # Enforce invariants after expansion (parents become SUBMENU, commands stripped)
         grund = _normalize_menu_group(grund)
         vertikal = _normalize_menu_group(vertikal)
@@ -396,6 +450,11 @@ async def get_app_menu(
         # Template-Expansion
         grund = await expand_templates(grund, "GRUND", gcs._system_pool) if grund else {}
         vertikal = await expand_templates(vertikal, "VERTIKAL", gcs._system_pool) if vertikal else {}
+
+        # Rollen am Menüeintrag (`roles`): Ausblenden serverseitig, vor der Normalisierung
+        user_roles = normalized_roles(getattr(gcs.benutzer, "data", None))
+        grund = filter_menu_group_by_roles(grund, user_roles)
+        vertikal = filter_menu_group_by_roles(vertikal, user_roles)
 
         # Enforce invariants after expansion (parents become SUBMENU, commands stripped)
         grund = _normalize_menu_group(grund)

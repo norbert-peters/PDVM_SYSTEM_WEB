@@ -9,7 +9,9 @@ import logging
 import smtplib
 import ssl
 from email.message import EmailMessage
-from typing import Dict, Any
+from typing import Dict, Any, Optional
+
+from .credential_store import get_credential
 
 logger = logging.getLogger(__name__)
 
@@ -28,17 +30,29 @@ def _truthy(value: Any) -> bool:
     return s in {"1", "true", "yes", "y", "on"}
 
 
+def _smtp_credentials(cfg: Dict[str, Any]) -> Dict[str, str]:
+    """SMTP-Zugang: bevorzugt aus dem Credential-Store (SEND_EMAIL.CREDENTIAL), sonst Altfelder."""
+    name = str(cfg.get("CREDENTIAL") or "").strip()
+    if name:
+        credential = get_credential(name)
+        if credential is None:
+            raise ValueError(f"SEND_EMAIL.CREDENTIAL '{name}' ist im Credential-Store nicht vorhanden")
+        return {"user": str(cfg.get("SMTP_USER") or credential.user or "").strip(), "password": credential.password}
+    return {"user": str(cfg.get("SMTP_USER") or "").strip(), "password": str(cfg.get("SMTP_PASS") or "")}
+
+
 def build_smtp_config(raw: Dict[str, Any]) -> Dict[str, Any]:
     cfg = raw or {}
     smtp_tls = _truthy(cfg.get("SMTP_TLS"))
     if not smtp_tls:
         smtp_tls = _truthy(cfg.get("SMTP_STARTTLS"))
+    smtp_auth = _smtp_credentials(cfg)
     return {
         "mail": str(cfg.get("MAIL") or "").strip(),
         "smtp_host": str(cfg.get("SMTP_HOST") or "").strip(),
         "smtp_port": int(cfg.get("SMTP_PORT") or 0) if str(cfg.get("SMTP_PORT") or "").strip() else 0,
-        "smtp_user": str(cfg.get("SMTP_USER") or "").strip(),
-        "smtp_pass": str(cfg.get("SMTP_PASS") or ""),
+        "smtp_user": smtp_auth["user"],
+        "smtp_pass": smtp_auth["password"],
         "smtp_tls": smtp_tls,
         "smtp_ssl": _truthy(cfg.get("SMTP_SSL")),
         "reply_to": str(cfg.get("REPLY_TO") or "").strip(),
@@ -46,7 +60,7 @@ def build_smtp_config(raw: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def send_email(config: Dict[str, Any], to_email: str, subject: str, body: str) -> None:
+def send_email(config: Dict[str, Any], to_email: str, subject: str, body: str, html: Optional[str] = None) -> None:
     cfg = build_smtp_config(config)
 
     if not cfg["mail"]:
@@ -67,6 +81,8 @@ def send_email(config: Dict[str, Any], to_email: str, subject: str, body: str) -
     if cfg["reply_to"]:
         msg["Reply-To"] = cfg["reply_to"]
     msg.set_content(body)
+    if html:
+        msg.add_alternative(html, subtype="html")
 
     try:
         if cfg["smtp_ssl"]:
@@ -85,8 +101,8 @@ def send_email(config: Dict[str, Any], to_email: str, subject: str, body: str) -
                 if cfg["smtp_user"]:
                     server.login(cfg["smtp_user"], cfg["smtp_pass"])
                 server.send_message(msg)
-        logger.info("âœ… E-Mail gesendet an %s", to_email)
+        logger.info("✅ E-Mail gesendet an %s", to_email)
     except Exception as e:
-        logger.error("âŒ E-Mail-Versand fehlgeschlagen: %s", e)
+        logger.error("❌ E-Mail-Versand fehlgeschlagen: %s", e)
         raise
 

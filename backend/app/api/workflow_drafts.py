@@ -16,7 +16,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from app.core.security import get_current_user, require_admin_or_develop_user
+from app.core.security import get_current_user, has_admin_rights, require_admin_or_develop_user
 from app.core.pdvm_central_systemsteuerung import get_gcs_session
 from app.core.workflow_draft_access import WorkflowDraftAccess
 from app.core.workflow_draft_service import WorkflowDraftService
@@ -489,6 +489,10 @@ async def commit_draft_to_live(
     operator_user: dict = Depends(require_admin_or_develop_user),
 ):
     system_pool = _require_system_pool(gcs)
+
+    # Live-Commit (kein Dry-Run) schreibt in produktive Tabellen: nur Administratoren, nicht Develop (serverseitig erzwungen)
+    if not bool(payload.dry_run) and not has_admin_rights(operator_user):
+        raise HTTPException(status_code=403, detail="Live-Commit ist nur für Administratoren freigegeben (Dry-Run ist erlaubt)")
 
     try:
         user_guid = _extract_user_guid(operator_user, gcs)

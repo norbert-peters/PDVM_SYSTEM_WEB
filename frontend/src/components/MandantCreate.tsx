@@ -1,203 +1,86 @@
-import { useState, useEffect } from 'react'
-import { apiClient } from '../api/client'
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
+import { framesAPI, mandantenAPI, type MandantCreateResult } from '../api/client'
+import { useAuth } from '../contexts/AuthContext'
+import { PdvmDialogModal } from './common/PdvmDialogModal'
+import { PdvmFrameForm, type FrameFormError } from './frames/PdvmFrameForm'
 
-interface MandantCreateProps {
-  token: string
-  onSuccess: () => void
-  onCancel: () => void
+const FRAME_STALE_MS = 5 * 60 * 1000
+
+function resultMessage(result: MandantCreateResult): { text: string; relogin: boolean } {
+  const parts = [`Der Mandant „${result.name}“ wurde gespeichert.`]
+  if (result.database.status === 'created') parts.push(`Die Datenbank ${result.database.name || ''} wurde eingerichtet.`.replace('  ', ' '))
+  else if (result.database.status === 'failed') {
+    parts.push(`Die Datenbank konnte nicht eingerichtet werden: ${result.database.message}`)
+    parts.push('Sie können den Schritt unter „Mandanten bearbeiten“ mit „Datenbank aufbauen“ wiederholen.')
+  }
+  if (!result.access_granted && result.access_error) parts.push(`Die Zuweisung an Ihren Benutzer ist fehlgeschlagen: ${result.access_error}`)
+  const relogin = result.access_granted && result.database.status !== 'failed'
+  if (relogin) parts.push('Bitte melden Sie sich neu an, damit der Mandant in der Auswahl erscheint.')
+  return { text: parts.join('\n'), relogin }
 }
 
-interface Property {
-  name: string
-  label: string
-  type: string
-  readonly: boolean
-  display_order: number
-  required: boolean
-  default_value: string
-}
-
-interface PropertyControl {
-  [key: string]: Property
-}
-
-export default function MandantCreate({ token, onSuccess, onCancel }: MandantCreateProps) {
-  const [properties, setProperties] = useState<PropertyControl>({})
-  const [formData, setFormData] = useState<any>({})
-  const [validated, setValidated] = useState(false)
+// Die Eingabemaske ist das Frame (sys_framedaten) aus dem Template-Endpunkt; hier steht kein Feld und kein Label.
+// Seite im AppLayout (Menüpunkt „Neuer Mandant“, Handler go_mandant_create); nur Superadmin, das Backend prüft ebenfalls.
+export default function MandantCreate() {
+  const navigate = useNavigate()
+  const { currentUser, logout } = useAuth()
+  const [formData, setFormData] = useState<Record<string, any> | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<FrameFormError[]>([])
+  const [result, setResult] = useState<MandantCreateResult | null>(null)
+  const allowed = !!currentUser?.isSuperadmin
 
-  useEffect(() => {
-    loadTemplate()
-  }, [])
+  const templateQuery = useQuery({
+    queryKey: ['mandant-template'],
+    queryFn: () => mandantenAPI.getTemplate(),
+    staleTime: FRAME_STALE_MS,
+    enabled: allowed,
+  })
+  const frameGuid = templateQuery.data?.frame_guid
+  const frameQuery = useQuery({
+    queryKey: ['frame-runtime', frameGuid],
+    queryFn: () => framesAPI.getRuntime(frameGuid as string),
+    enabled: !!frameGuid,
+    staleTime: FRAME_STALE_MS,
+  })
 
-  async function loadTemplate() {
-    try {
-      const response = await apiClient.get('/mandanten/template', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      
-      // Template IST das Formular - direkt als formData verwenden
-      setProperties(response.data.properties)
-      setFormData(response.data.template)
-      
-    } catch (err: any) {
-      console.error('Template-Ladefehler:', err)
-      setError(err.response?.data?.detail || err.message || 'Template konnte nicht geladen werden')
-    }
-  }
+  const data = formData ?? templateQuery.data?.template ?? null
+  const loadError = templateQuery.error || frameQuery.error
+  const loadMessage = loadError
+    ? (loadError as any)?.response?.data?.detail || (loadError as Error).message || 'Maske konnte nicht geladen werden'
+    : ''
 
-  function handleValidate(e: React.FormEvent) {
-    e.preventDefault()
-    setError('')
-    
-    // Validierung
-    if (!formData.ROOT?.NAME) {
-      setError('Bitte Bezeichnung eingeben')
-      return
-    }
-    if (!formData.MANDANT?.DATABASE || formData.MANDANT.DATABASE === '-eingeben-') {
-      setError('Bitte Mandanten Datenbank eingeben')
-      return
-    }
-    
-    setValidated(true)
-    setError('')
-  }
-
-  async function handleCreate() {
-    if (!validated) return
-    
+  async function handleSave() {
+    if (!data) return
     try {
       setSaving(true)
       setError('')
-      
-      // Nur speichern - DB-Create-Prozess kommt später
-      const response = await apiClient.post('/mandanten/save', formData, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      
-      console.log('Mandant gespeichert:', response.data)
-      alert('Mandant erfolgreich gespeichert!')
-      onSuccess()
-      
+      setFieldErrors([])
+      setResult(await mandantenAPI.create(data))
     } catch (err: any) {
-      console.error('Speicher-Fehler:', err)
-      setError(err.response?.data?.detail || 'Fehler beim Speichern des Mandanten')
-      setValidated(false)
+      const detail = err.response?.data?.detail
+      if (err.response?.status === 422 && Array.isArray(detail?.errors)) {
+        setFieldErrors(detail.errors)
+        setError('Bitte die markierten Angaben prüfen')
+      } else {
+        setError(typeof detail === 'string' ? detail : 'Fehler beim Anlegen des Mandanten')
+      }
     } finally {
       setSaving(false)
     }
   }
 
-  function handleChange(group: string, field: string, value: any) {
-    setFormData({
-      ...formData,
-      [group]: { ...formData[group], [field]: value }
-    })
-  }
+  const outcome = result ? resultMessage(result) : null
 
-  function renderField(group: string, fieldName: string) {
-    // System-Felder ausblenden (diese werden automatisch gesetzt)
-    if (['SELF_GUID', 'CREATED_AT', 'MODIFIED_AT', 'CREATED_BY'].includes(fieldName)) {
-      return null
-    }
-
-    const property = properties[fieldName]
-    const value = formData[group]?.[fieldName]
-    
-    // Fallback wenn keine Property-Definition vorhanden
-    const propertyType = property?.type || 'text'
-    const isReadonly = property?.readonly === true
-    const label = property?.label || fieldName
-
-    switch (propertyType) {
-      case 'list':
-        // Arrays/Listen als JSON-String in textarea
-        const displayValue = Array.isArray(value) ? JSON.stringify(value, null, 2) : (value || '')
-        return (
-          <div key={fieldName} style={styles.field}>
-            <label style={styles.label}>{label}</label>
-            <textarea
-              value={displayValue}
-              disabled={isReadonly}
-              style={{...styles.input, minHeight: '80px', fontFamily: 'monospace', fontSize: '12px'}}
-              rows={4}
-            />
-          </div>
-        )
-
-      case 'boolean':
-        return (
-          <div key={fieldName} style={styles.field}>
-            <label style={styles.checkboxLabel}>
-              <input
-                type="checkbox"
-                checked={value || false}
-                onChange={(e) => handleChange(group, fieldName, e.target.checked)}
-                disabled={isReadonly}
-              />
-              <span style={styles.label}>{label}</span>
-            </label>
-          </div>
-        )
-
-      case 'number':
-        return (
-          <div key={fieldName} style={styles.field}>
-            <label style={styles.label}>{label}</label>
-            <input
-              type="number"
-              value={value || ''}
-              onChange={(e) => handleChange(group, fieldName, parseInt(e.target.value))}
-              disabled={isReadonly}
-              style={styles.input}
-            />
-          </div>
-        )
-
-      case 'email':
-        return (
-          <div key={fieldName} style={styles.field}>
-            <label style={styles.label}>{label}</label>
-            <input
-              type="email"
-              value={value || ''}
-              onChange={(e) => handleChange(group, fieldName, e.target.value)}
-              disabled={isReadonly}
-              style={styles.input}
-            />
-          </div>
-        )
-
-      default: // text und alle anderen Typen
-        return (
-          <div key={fieldName} style={styles.field}>
-            <label style={styles.label}>{label}</label>
-            <input
-              type="text"
-              value={value || ''}
-              onChange={(e) => handleChange(group, fieldName, e.target.value)}
-              disabled={isReadonly}
-              style={styles.input}
-            />
-          </div>
-        )
-    }
-  }
-
-  function renderGroup(groupName: string) {
-    const groupData = formData[groupName]
-    if (!groupData || typeof groupData !== 'object') return null
-
+  if (!allowed) {
     return (
-      <div key={groupName} style={styles.group}>
-        <h3 style={styles.groupTitle}>{groupName}</h3>
-        <div style={styles.groupFields}>
-          {Object.keys(groupData).map((fieldName) => 
-            renderField(groupName, fieldName)
-          )}
+      <div style={styles.container}>
+        <div style={styles.card}>
+          <h1 style={styles.title}>Neuen Mandanten anlegen</h1>
+          <div style={styles.error}>Für diese Funktion ist die Rolle „superadmin“ erforderlich.</div>
         </div>
       </div>
     )
@@ -207,44 +90,49 @@ export default function MandantCreate({ token, onSuccess, onCancel }: MandantCre
     <div style={styles.container}>
       <div style={styles.card}>
         <h1 style={styles.title}>Neuen Mandanten anlegen</h1>
-        
-        {error && <div style={styles.error}>{error}</div>}
-        {validated && !error && <div style={{...styles.error, backgroundColor: 'var(--color-success-bg)', color: 'var(--color-success-text)', border: '1px solid var(--color-success-border)'}}>Daten validiert. Klicken Sie auf "Speichern" um die Daten zu sichern.</div>}
-        
-        <form onSubmit={handleValidate}>
-          {renderGroup('ROOT')}
-          {renderGroup('MANDANT')}
-          {renderGroup('CONFIG')}
-          {renderGroup('CONTACT')}
-          {renderGroup('SECURITY')}
-          
-          <div style={styles.buttons}>
-            <button
-              type="button"
-              onClick={onCancel}
-              style={styles.cancelButton}
-              disabled={saving}
-            >
-              Abbrechen
-            </button>
-            <button
-              type="submit"
-              style={styles.submitButton}
-              disabled={saving || validated}
-            >
-              Übernehmen
-            </button>
-            <button
-              type="button"
-              onClick={handleCreate}
-              style={{...styles.submitButton, backgroundColor: validated ? 'var(--color-success)' : 'var(--color-text-secondary)'}}
-              disabled={!validated || saving}
-            >
-              {saving ? 'Wird gespeichert...' : 'Speichern'}
-            </button>
-          </div>
-        </form>
+
+        {error || loadMessage ? <div style={styles.error}>{error || loadMessage}</div> : null}
+        {!loadMessage && (templateQuery.isLoading || frameQuery.isLoading) ? <div style={styles.loading}>Lade Maske...</div> : null}
+
+        {frameQuery.data && data ? (
+          <PdvmFrameForm
+            frame={frameQuery.data}
+            data={data}
+            onChange={setFormData}
+            errors={fieldErrors}
+            disabled={saving || !!result}
+          />
+        ) : null}
+
+        <div style={styles.buttons}>
+          <button type="button" onClick={() => navigate('/menu-home')} style={styles.cancelButton} disabled={saving}>
+            Abbrechen
+          </button>
+          <button type="button" onClick={handleSave} style={styles.submitButton} disabled={saving || !!result || !frameQuery.data}>
+            {saving ? 'Mandant wird angelegt...' : 'Mandant anlegen'}
+          </button>
+        </div>
       </div>
+
+      <PdvmDialogModal
+        open={!!outcome}
+        kind="info"
+        title={result?.database.status === 'failed' ? 'Mandant teilweise angelegt' : 'Mandant angelegt'}
+        message={<div style={{ whiteSpace: 'pre-line' }}>{outcome?.text}</div>}
+        confirmLabel={outcome?.relogin ? 'Zur Anmeldung' : 'Schließen'}
+        onConfirm={() => {
+          const relogin = outcome?.relogin
+          setResult(null)
+          if (relogin) logout()
+          else navigate('/menu-home')
+        }}
+        onCancel={() => {
+          const relogin = outcome?.relogin
+          setResult(null)
+          if (relogin) logout()
+          else navigate('/menu-home')
+        }}
+      />
     </div>
   )
 }
@@ -254,9 +142,8 @@ const styles = {
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'flex-start',
-    minHeight: '100vh',
     backgroundColor: 'var(--color-background-secondary)',
-    padding: '2rem',
+    padding: '1.5rem',
     overflowY: 'auto' as const,
   },
   card: {
@@ -284,48 +171,6 @@ const styles = {
     borderRadius: '4px',
     marginBottom: '1rem',
   },
-  group: {
-    marginBottom: '2rem',
-    padding: '1rem',
-    backgroundColor: 'var(--color-background-secondary)',
-    borderRadius: '6px',
-    border: '1px solid var(--color-border-light)',
-  },
-  groupTitle: {
-    fontSize: '1.2rem',
-    fontWeight: 'bold',
-    marginBottom: '1rem',
-    color: 'var(--color-text-secondary)',
-    borderBottom: '2px solid var(--color-primary-500)',
-    paddingBottom: '0.5rem',
-  },
-  groupFields: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '1rem',
-  },
-  field: {
-    marginBottom: '0.5rem',
-  },
-  label: {
-    display: 'block',
-    marginBottom: '0.5rem',
-    fontWeight: '500',
-    color: 'var(--color-text-primary)',
-  },
-  checkboxLabel: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    cursor: 'pointer',
-  },
-  input: {
-    width: '100%',
-    padding: '0.5rem',
-    border: '1px solid var(--color-border-medium)',
-    borderRadius: '4px',
-    fontSize: '1rem',
-  },
   buttons: {
     display: 'flex',
     gap: '1rem',
@@ -334,9 +179,9 @@ const styles = {
   },
   cancelButton: {
     padding: '0.75rem 1.5rem',
-    backgroundColor: 'var(--color-text-secondary)',
-    color: 'var(--color-text-inverse)',
-    border: 'none',
+    backgroundColor: 'var(--color-background-primary)',
+    color: 'var(--color-text-primary)',
+    border: '1px solid var(--color-border-dark)',
     borderRadius: '4px',
     fontSize: '1rem',
     cursor: 'pointer',

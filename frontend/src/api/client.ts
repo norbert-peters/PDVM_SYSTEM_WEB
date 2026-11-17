@@ -27,6 +27,8 @@ export interface PasswordChangeRequest {
 export interface PasswordChangeResponse {
   success: boolean
   message: string
+  /** Bei eingeschraenktem Login-Token (maschinelles Passwort): vollwertiges Token nach dem Wechsel */
+  access_token?: string
 }
 
 export interface KeepAliveResponse {
@@ -422,12 +424,8 @@ export interface PasswordResetResponse {
 }
 
 export interface ForgotPasswordRequest {
+  benutzer: string
   email: string
-}
-
-export interface LockAccountResponse {
-  success: boolean
-  message: string
 }
 
 export interface DialogTableOverrideOptions {
@@ -592,17 +590,15 @@ export const authAPI = {
   },
 }
 
-export const usersAPI = {
-  resetPassword: async (userUid: string): Promise<PasswordResetResponse> => {
-    const response = await api.post(`/users/${userUid}/password-reset`)
-    return response.data
-  },
-  lockAccount: async (userUid: string, reason?: string): Promise<LockAccountResponse> => {
-    const response = await api.post(`/users/${userUid}/lock`, { reason })
-    return response.data
-  },
-  unlockAccount: async (userUid: string): Promise<LockAccountResponse> => {
-    const response = await api.post(`/users/${userUid}/unlock`)
+// Oeffentliche Frames (ohne Token): Login-Masken, siehe docs/specs/PDVM_LOGIN_FRAME_SPEC_V1.md
+export interface LoginFramesResponse {
+  frames: { login: FrameRuntime; forgot: FrameRuntime; change: FrameRuntime }
+}
+
+export const publicAPI = {
+  getLoginFrames: async (language?: string): Promise<LoginFramesResponse> => {
+    // Kurze Zeitgrenze: danach greift der Notfall-Rueckfall im Login (ein Frame-Fehler darf die Anmeldung nicht blockieren)
+    const response = await api.get('/public/login-frames', { params: language ? { language } : undefined, timeout: 3000 })
     return response.data
   },
 }
@@ -706,6 +702,16 @@ export const menuAPI = {
 }
 
 // Mandanten API
+export interface MandantCreateResult {
+  success: boolean
+  mandant_id: string
+  name: string
+  saved: boolean
+  access_granted: boolean
+  access_error: string | null
+  database: { status: 'created' | 'failed' | 'skipped'; name: string | null; message: string }
+}
+
 export const mandantenAPI = {
   getAll: async (token: string) => {
     const response = await api.get('/mandanten', {
@@ -716,6 +722,105 @@ export const mandantenAPI = {
   
   selectMandant: async (mandantId: string) => {
     const response = await api.post(`/mandanten/select`, { mandant_id: mandantId })
+    return response.data
+  },
+
+  getTemplate: async (): Promise<{ template: Record<string, any>; frame_guid: string }> => {
+    const response = await api.get('/mandanten/template')
+    return response.data
+  },
+
+  /** Legt den Mandanten an (nur Superadmin): Satz, Zuweisung an den Anleger, Datenbank. Teilfehler stehen im Ergebnis. */
+  create: async (data: Record<string, any>): Promise<MandantCreateResult> => {
+    const response = await api.post('/mandanten/create', data)
+    return response.data
+  },
+}
+
+// Frames API (Runtime-Modell: Frame + aufgeloeste Controls, auch vor der Mandantenwahl)
+export interface FrameRuntimeField {
+  key: string
+  control_uid: string | null
+  tab: number
+  display_order: number
+  type: string
+  label: string
+  tooltip: string | null
+  gruppe: string
+  feld: string
+  source_path: string
+  save_path: string | null
+  table: string | null
+  read_only: boolean
+  immutable: boolean
+  immutable_after: string | null
+  default: any
+  configs: Record<string, any>
+  options: Array<{ value: string; label: string }>
+  resolution_warning: string | null
+}
+
+export interface FrameRuntime {
+  uid: string
+  name: string
+  root: { EDIT_TYPE?: string | null; FRAME_TYPE?: string | null; ROOT_TABLE?: string | null; TABLE?: string | null }
+  tabs: Array<{ index: number; head: string }>
+  fields: FrameRuntimeField[]
+}
+
+export const framesAPI = {
+  getRuntime: async (frameGuid: string): Promise<FrameRuntime> => {
+    const response = await api.get(`/frames/${frameGuid}/runtime`)
+    return response.data
+  },
+}
+
+// Frame-Aktionen (Backend-Register, Regel 2.17)
+export interface FrameActionStateEntry {
+  allowed: boolean
+  reason: string | null
+  state: Record<string, any> | null
+  /** `host`: Der Dialog fuehrt die Aktion selbst aus (z. B. Workflow-Builder), das Backend liefert nur die Rechte. */
+  executor?: 'server' | 'host'
+}
+
+export interface FrameActionResult {
+  status: 'ok' | 'error'
+  message: string
+  message_key: string
+  severity: 'info' | 'warning' | 'error'
+  refresh: Array<'record' | 'rows' | 'state'>
+  data: Record<string, any>
+}
+
+export const frameActionsAPI = {
+  getStates: async (table: string, uid: string | null, ids: string[]): Promise<Record<string, FrameActionStateEntry>> => {
+    const response = await api.post('/frame-actions/state', { table, uid: uid || undefined, ids })
+    return response.data.states
+  },
+  run: async (actionId: string, table: string, uid: string, params?: Record<string, string>): Promise<FrameActionResult> => {
+    const response = await api.post(`/frame-actions/${encodeURIComponent(actionId)}/run`, { table, uid, params: params || {} })
+    return response.data
+  },
+}
+
+// Credentials API (write-only: das Passwort wird nie zurueckgegeben)
+export interface CredentialInfo {
+  name: string
+  exists: boolean
+  source: 'env' | 'store' | null
+  user: string | null
+  ssl: boolean
+  updated_at: string | null
+}
+
+export const credentialsAPI = {
+  getInfo: async (name: string): Promise<CredentialInfo> => {
+    const response = await api.get(`/credentials/${encodeURIComponent(name)}`)
+    return response.data
+  },
+  setPassword: async (name: string, password: string): Promise<CredentialInfo> => {
+    const response = await api.put(`/credentials/${encodeURIComponent(name)}`, { password })
     return response.data
   },
 }

@@ -12,6 +12,8 @@ export interface User {
   roles?: string[];
   isAdmin?: boolean;
   isDevelop?: boolean;
+  /** Rolle `superadmin`: darf Mandanten anlegen (Backend erzwingt es, hier nur zur Anzeige). */
+  isSuperadmin?: boolean;
 }
 
 export interface Mandant {
@@ -43,30 +45,28 @@ function normalizeRoleToken(value: any): string {
 
 function parseSecurityRoles(userData: any): Set<string> {
   const roles = new Set<string>();
+  const addToken = (value: any) => {
+    const token = normalizeRoleToken(value);
+    if (token) roles.add(token);
+  };
+  const addList = (raw: any) => {
+    if (Array.isArray(raw)) raw.forEach(addToken);
+    else if (typeof raw === 'string') raw.split(',').forEach(addToken);
+  };
+
+  // Gleiche Quellen wie das Backend (security._normalized_security_roles): SECURITY, PERMISSIONS.ROLES, SETTINGS.MODE
   const security = userData?.SECURITY;
-  if (!security || typeof security !== 'object') return roles;
-
-  const role = normalizeRoleToken((security as any).ROLE);
-  if (role) roles.add(role);
-
-  const rolesRaw = (security as any).ROLES;
-  if (Array.isArray(rolesRaw)) {
-    rolesRaw.forEach((entry) => {
-      const token = normalizeRoleToken(entry);
-      if (token) roles.add(token);
-    });
-  } else if (typeof rolesRaw === 'string') {
-    rolesRaw
-      .split(',')
-      .map((entry) => normalizeRoleToken(entry))
-      .filter(Boolean)
-      .forEach((entry) => roles.add(entry));
+  if (security && typeof security === 'object') {
+    addToken((security as any).ROLE);
+    addList((security as any).ROLES);
+    const isAdminRaw = (security as any).IS_ADMIN;
+    if ([true, 1, '1', 'true', 'TRUE'].includes(isAdminRaw as any)) {
+      roles.add('admin');
+    }
   }
-
-  const isAdminRaw = (security as any).IS_ADMIN;
-  if ([true, 1, '1', 'true', 'TRUE'].includes(isAdminRaw as any)) {
-    roles.add('admin');
-  }
+  const permissions = userData?.PERMISSIONS;
+  if (permissions && typeof permissions === 'object') addList((permissions as any).ROLES);
+  addToken(userData?.SETTINGS?.MODE);
 
   return roles;
 }
@@ -82,6 +82,7 @@ function parseUserFromStoredUserData(userData: any): User {
   const roleSet = new Set(roles);
   const isAdmin = roleSet.has('admin') || roleSet.has('superadmin');
   const isDevelop = roleSet.has('develop') || roleSet.has('developer');
+  const isSuperadmin = roleSet.has('superadmin');
 
   return {
     uid: userData.uid || userData.benutzer_uid,
@@ -96,6 +97,7 @@ function parseUserFromStoredUserData(userData: any): User {
     roles,
     isAdmin,
     isDevelop,
+    isSuperadmin,
   };
 }
 

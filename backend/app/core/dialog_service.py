@@ -2,13 +2,13 @@
 
 Architekturregel: keine SQL in Routern.
 Dieses Modul kapselt Zugriff auf sys_dialogdaten / sys_framedaten und stellt
-Hilfsfunktionen fÃ¼r den ersten Dialog-MVP bereit.
+Hilfsfunktionen für den ersten Dialog-MVP bereit.
 
 MVP (Phase 0):
 - DialogDefinition laden (sys_dialogdaten)
 - FrameDefinition laden (sys_framedaten)
 - Dialog-View: Root-Tabelle nur mit Systemspalten uid + name
-- Dialog-Edit: show_json -> liefert vollstÃ¤ndigen Datensatz (daten JSON)
+- Dialog-Edit: show_json -> liefert vollständigen Datensatz (daten JSON)
 """
 
 from __future__ import annotations
@@ -143,10 +143,10 @@ async def _resolve_named_group_lists_from_elements(
     *,
     daten_copy: Dict[str, Any],
 ) -> Dict[str, Any]:
-    """FÃ¼gt benannte Gruppenlisten aus 555...daten.ELEMENTS ein.
+    """Fügt benannte Gruppenlisten aus 555...daten.ELEMENTS ein.
 
     Ziel: Auf derselben Ebene (Top-Level) mehrere Gruppen wie
-    PER_PERSONEN, FIN_BASIS etc. linear hinzufÃ¼gen.
+    PER_PERSONEN, FIN_BASIS etc. linear hinzufügen.
 
     Datenmodell (555...daten.ELEMENTS):
     {
@@ -164,11 +164,11 @@ async def _resolve_named_group_lists_from_elements(
 
     Auswahlregel:
     - ROOT.GROUP_LISTS (Liste mit Namen) = explizite Auswahl
-    - sonst: alle EintrÃ¤ge mit AUTO_APPLY=true
+    - sonst: alle Einträge mit AUTO_APPLY=true
 
     Merge-Regel (linear):
     - GROUP_TEMPLATE als Default
-    - vorhandene Basiswerte der Zielgruppe Ã¼berschreiben Defaults
+    - vorhandene Basiswerte der Zielgruppe überschreiben Defaults
     """
     if not isinstance(daten_copy, dict):
         return daten_copy
@@ -234,7 +234,7 @@ async def _resolve_named_group_lists_from_elements(
 
 
 def _strip_template_meta_groups(daten_copy: Dict[str, Any]) -> Dict[str, Any]:
-    """Entfernt reine Template-Metagruppen aus instanziierten DatensÃ¤tzen."""
+    """Entfernt reine Template-Metagruppen aus instanziierten Datensätzen."""
     if not isinstance(daten_copy, dict):
         return daten_copy
 
@@ -245,10 +245,10 @@ def _strip_template_meta_groups(daten_copy: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _apply_root_identity(root: Dict[str, Any], *, self_guid: str, self_name: str, root_patch: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-    """Appliziert ROOT-Patch ohne SELF_GUID/SELF_NAME zu Ã¼berschreiben.
+    """Appliziert ROOT-Patch ohne SELF_GUID/SELF_NAME zu überschreiben.
 
-    Regel fÃ¼r Neuer-Satz: nur bereits vorhandene ROOT-Felder dÃ¼rfen Ã¼berschrieben
-    werden (keine neuen ROOT-Keys aus root_patch einfÃ¼hren).
+    Regel für Neuer-Satz: nur bereits vorhandene ROOT-Felder dürfen überschrieben
+    werden (keine neuen ROOT-Keys aus root_patch einführen).
     """
     out = dict(root or {})
 
@@ -499,9 +499,9 @@ class ModulSelectionRequiredException(Exception):
         self.modul_group_key = modul_group_key
         self.available_moduls = available_moduls
         super().__init__(
-            f"Template enthÃ¤lt Gruppe 'MODUL' in '{modul_group_key}', "
-            f"aber modul_type wurde nicht Ã¼bergeben. "
-            f"VerfÃ¼gbare Module: {available_moduls}"
+            f"Template enthält Gruppe 'MODUL' in '{modul_group_key}', "
+            f"aber modul_type wurde nicht übergeben. "
+            f"Verfügbare Module: {available_moduls}"
         )
 
 
@@ -513,17 +513,17 @@ async def _resolve_modul_template(
 ) -> Dict[str, Any]:
     """GENERISCHE MODUL-TEMPLATE-MERGE-FUNKTION
     
-        PrÃ¼ft ob im Template eine Gruppe "MODUL" existiert.
+        Prüft ob im Template eine Gruppe "MODUL" existiert.
         Wenn ja:
-            1. Wenn modul_type gegeben â†’ Merge mit Template 555555...MODUL[type]
-            2. Wenn modul_type fehlt â†’ deterministische Standardauswahl (linearer Fallback)
+            1. Wenn modul_type gegeben → Merge mit Template 555555...MODUL[type]
+            2. Wenn modul_type fehlt → deterministische Standardauswahl (linearer Fallback)
     
-    Funktioniert fÃ¼r ALLE Tabellen (sys_control_dict, sys_framedaten, etc.)
+    Funktioniert für ALLE Tabellen (sys_control_dict, sys_framedaten, etc.)
     
     Args:
         system_pool: DB Pool
         daten_copy: Template-Daten (Deep Copy von 666666...)
-        modul_type: GewÃ¤hlter Modul-Typ (z.B. "edit", "view", "tabs")
+        modul_type: Gewählter Modul-Typ (z.B. "edit", "view", "tabs")
     
     Returns:
         Modified daten_copy mit MODUL-Gruppe ersetzt
@@ -531,7 +531,7 @@ async def _resolve_modul_template(
     Raises:
         ValueError: Wenn angeforderter Modul-Typ nicht existiert
     """
-    # 1. PrÃ¼fe: Gibt es eine Gruppe "MODUL" im Template?
+    # 1. Prüfe: Gibt es eine Gruppe "MODUL" im Template?
     has_modul = False
     modul_group_key = None
     
@@ -544,10 +544,10 @@ async def _resolve_modul_template(
             break
     
     if not has_modul:
-        # Kein MODUL â†’ Normale Template-Copy ohne Merge
+        # Kein MODUL → Normale Template-Copy ohne Merge
         return daten_copy
     
-    # 2. MODUL gefunden â†’ Lade Template 555... um verfÃ¼gbare Module zu kennen
+    # 2. MODUL gefunden → Lade Template 555... um verfügbare Module zu kennen
     db = PdvmDatabase("sys_control_dict", system_pool=system_pool, mandant_pool=None)
     modul_template_row = await db.get_by_uid(_MODUL_TEMPLATE_UID)
     
@@ -579,7 +579,7 @@ async def _resolve_modul_template(
                 break
         if selected is None:
             if not available_moduls:
-                raise ValueError("Modul-Template enthÃ¤lt keine MODUL-EintrÃ¤ge")
+                raise ValueError("Modul-Template enthält keine MODUL-Einträge")
             selected = available_moduls[0]
         modul_key = selected
         modul_type_norm = str(selected).strip().lower()
@@ -588,7 +588,7 @@ async def _resolve_modul_template(
             available = list(modul_section.keys())
             raise ValueError(
                 f"Modul-Typ '{modul_type_norm}' nicht gefunden in Template. "
-                f"VerfÃ¼gbar: {available}"
+                f"Verfügbar: {available}"
             )
         modul_key = available_moduls_map[modul_type_norm]
 
@@ -596,7 +596,7 @@ async def _resolve_modul_template(
         available = list(modul_section.keys())
         raise ValueError(
             f"Modul-Typ '{modul_key}' nicht gefunden in Template. "
-            f"VerfÃ¼gbar: {available}"
+            f"Verfügbar: {available}"
         )
 
     modul_data = modul_section[modul_key]
@@ -606,7 +606,7 @@ async def _resolve_modul_template(
     # 5. Ersetze komplette "MODUL"-Gruppe mit Template-Daten
     daten_copy[modul_group_key]["MODUL"] = copy.deepcopy(modul_data)
     
-    # 6. Setze MODUL_TYPE in ROOT (fÃ¼r spÃ¤tere Referenz)
+    # 6. Setze MODUL_TYPE in ROOT (für spätere Referenz)
     if "ROOT" not in daten_copy:
         daten_copy["ROOT"] = {}
     daten_copy["ROOT"]["MODUL_TYPE"] = modul_type_norm
@@ -745,7 +745,7 @@ async def load_dialog_record(
     if not root_table:
         raise KeyError("ROOT.TABLE ist leer")
 
-    # asy_benutzer: Sonderfall mit zusÃ¤tzlichen Spalten (email/benutzer/passwort)
+    # asy_benutzer: Sonderfall mit zusätzlichen Spalten (email/benutzer/passwort)
     if str(root_table).strip().lower() == "asy_benutzer":
         benutzer_mgr = PdvmCentralBenutzer(record_uuid)
         row = await benutzer_mgr.get_user()
@@ -787,7 +787,7 @@ async def load_dialog_record(
     # Finaler, tabellenunabhaengiger SELF_* Mirror aus DB-Metadaten.
     daten = _mirror_row_meta_into_root(daten=_as_object(daten), row=row)
 
-    # Einheitliches Payload fÃ¼r show_json
+    # Einheitliches Payload für show_json
     return {
         "uid": str(row.get("uid")),
         "name": row.get("name") or "",
@@ -807,7 +807,7 @@ async def update_dialog_record_json(
 ) -> Dict[str, Any]:
     """Aktualisiert NUR das JSONB-Feld 'daten' eines Datensatzes.
 
-    Gedacht fÃ¼r edit_type='edit_json' (Ã¤hnlich PostgreSQL JSON Editor).
+    Gedacht für edit_type='edit_json' (ähnlich PostgreSQL JSON Editor).
     """
     if not root_table:
         raise KeyError("ROOT.TABLE ist leer")
@@ -845,7 +845,7 @@ async def update_dialog_record_json(
             daten=_as_object(daten_to_store),
         )
 
-    # Name/historisch bleiben unverÃ¤ndert.
+    # Name/historisch bleiben unverändert.
     await update_record_central(
         table_name=root_table,
         uid=record_uuid,
@@ -870,12 +870,12 @@ async def update_dialog_record_central(
     record_uuid: uuid.UUID,
     daten: Dict[str, Any],
 ) -> Dict[str, Any]:
-    """Aktualisiert Datensatz via PdvmCentralDatabase (Pflicht fÃ¼r edit_user).
+    """Aktualisiert Datensatz via PdvmCentralDatabase (Pflicht für edit_user).
 
     Regeln:
     - Werte werden per set_value(gruppe, feld) gesetzt
-    - SYSTEM-Gruppe ist fÃ¼r Tabellen-Spalten reserviert (SonderfÃ¤lle)
-    - asy_benutzer: Spalten email/benutzer werden zusÃ¤tzlich synchronisiert
+    - SYSTEM-Gruppe ist für Tabellen-Spalten reserviert (Sonderfälle)
+    - asy_benutzer: Spalten email/benutzer werden zusätzlich synchronisiert
     """
     if not root_table:
         raise KeyError("ROOT.TABLE ist leer")
@@ -982,7 +982,7 @@ async def update_dialog_record_central(
                 for ts_value, timeline_value in value_timeline:
                     central.set_value(str(gruppe), str(feld), timeline_value, ab_zeit=ts_value)
 
-    await central.save_all_values()
+    await central.save_all_values(gcs=gcs)
 
     # asy_benutzer: Spalten-Sync (email/benutzer)
     if table_norm == "asy_benutzer":
@@ -991,8 +991,8 @@ async def update_dialog_record_central(
         if benutzer_value is not None:
             await benutzer_mgr.update_benutzer(str(benutzer_value))
 
-    # SYSTEM-Gruppe: falls weitere Tabellen-Spalten unterstÃ¼tzt werden, hier ergÃ¤nzen.
-    # Aktuell wird SYSTEM nur fÃ¼r asy_benutzer (email/benutzer) synchronisiert.
+    # SYSTEM-Gruppe: falls weitere Tabellen-Spalten unterstützt werden, hier ergänzen.
+    # Aktuell wird SYSTEM nur für asy_benutzer (email/benutzer) synchronisiert.
 
     return await load_dialog_record(gcs, root_table=root_table, record_uuid=record_uuid)
 
@@ -1133,11 +1133,11 @@ async def create_dialog_record_from_template(
     - Tabellenweit: Basis aus 555, leere Gruppen aus 666.(TEMPLATE|TEMPLATES)
     - Ausnahme: Benutzer-Tabelle nutzt den bestehenden Sonderpfad
     - ROOT.SELF_GUID und ROOT.SELF_NAME werden auf den neuen Datensatz gesetzt
-    - name-Spalte wird auf den Ã¼bergebenen Namen gesetzt
+    - name-Spalte wird auf den übergebenen Namen gesetzt
 
     Args:
         gcs: Global Control System
-        root_table: Tabelle fÃ¼r neuen Datensatz
+        root_table: Tabelle für neuen Datensatz
         name: Name des neuen Datensatzes
         template_uuid: Template-GUID fuer Benutzer-Sonderpfad (default: 666666...)
         root_patch: Optional ROOT-Patch

@@ -1,11 +1,14 @@
 ﻿"""
 Mandanten API Endpoints
-Nutzt MandantDataManager fÃ¼r Business Logic + GCS-Initialisierung
+Nutzt MandantDataManager für Business Logic + GCS-Initialisierung
 """
 from fastapi import APIRouter, HTTPException, Depends, Request
 from typing import List
 from ..models.schemas import MandantResponse, MandantSelectRequest, MandantSelectResponse
 from ..api.auth import get_current_user
+from ..core.security import require_superadmin_user
+from ..core.mandant_setup_service import MandantValidationError, create_mandant
+from ..core.mandant_access import allowed_mandant_ids, is_mandant_allowed, load_user_daten
 from ..core.data_managers import MandantDataManager
 from ..core.database import get_database_url, DatabasePool
 from ..core.config import settings
@@ -29,6 +32,21 @@ def _parse_idle_seconds(value) -> int | None:
         return None
 
 
+def _effective_language(user_data, mandant_data) -> str | None:
+    """Oberflaechensprache der Sitzung: `USER.SETTINGS.LANGUAGE`, sonst `CONFIG.DEFAULT_LANGUAGE` des Mandanten (None, wenn beides fehlt).
+
+    Das Frontend merkt sie sich fuer die Anmeldemaske des naechsten Besuchs.
+    """
+    from ..core.i18n_policy import normalize_language
+
+    def _group(data, name) -> dict:
+        value = data.get(name) if isinstance(data, dict) else None
+        return value if isinstance(value, dict) else {}
+
+    raw = _group(user_data, "SETTINGS").get("LANGUAGE") or _group(mandant_data, "CONFIG").get("DEFAULT_LANGUAGE")
+    return normalize_language(raw) if str(raw or "").strip() else None
+
+
 # System-UIDs die nicht in der Auswahl angezeigt werden
 SYSTEM_MANDANT_UIDS = [
     "66666666-6666-6666-6666-666666666666",  # Template
@@ -36,19 +54,13 @@ SYSTEM_MANDANT_UIDS = [
     "00000000-0000-0000-0000-000000000000",  # System-Infos
 ]
 
-@router.get("", response_model=List[MandantResponse])
-async def get_all_mandanten(current_user: dict = Depends(get_current_user)):
-    """
-    Gibt Liste aller Mandanten zurÃ¼ck (fÃ¼r Auswahl-Dialog)
-    Filtert System-DatensÃ¤tze (Template, Properties Control, System-Infos)
-    Sortiert alphabetisch nach Name (aufsteigend)
-    """
+async def _mandanten_of_user(current_user: dict) -> list:
+    """Mandanten, die dem Benutzer zugelassen sind (`MANDANTEN.LIST`), ohne System-Datensätze, alphabetisch."""
     manager = MandantDataManager()
-    
     try:
+        allowed = set(allowed_mandant_ids(await load_user_daten(current_user.get("sub"))))
         mandanten = await manager.list_all(include_inactive=False)
-        
-        # System-DatensÃ¤tze filtern und in Response-Format konvertieren
+
         filtered_mandanten = [
             {
                 "id": str(m["uid"]),
@@ -57,51 +69,24 @@ async def get_all_mandanten(current_user: dict = Depends(get_current_user)):
                 "description": m["daten"].get("MANDANT", {}).get("DESCRIPTION", "")
             }
             for m in mandanten
-            if str(m["uid"]) not in SYSTEM_MANDANT_UIDS
+            if str(m["uid"]) not in SYSTEM_MANDANT_UIDS and str(m["uid"]).lower() in allowed
         ]
-        
-        # Alphabetisch nach Name sortieren (aufsteigend)
         return sorted(filtered_mandanten, key=lambda x: x["name"].lower())
-    
     except Exception as e:
         logger.error(f"Fehler beim Laden der Mandanten: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("", response_model=List[MandantResponse])
+async def get_all_mandanten(current_user: dict = Depends(get_current_user)):
+    """Zugelassene Mandanten des Benutzers (für Auswahl-Dialog), alphabetisch."""
+    return await _mandanten_of_user(current_user)
 
 
 @router.get("/list", response_model=List[MandantResponse])
 async def get_mandanten_list(current_user: dict = Depends(get_current_user)):
-    """
-    Gibt Liste aller Mandanten zurÃ¼ck (fÃ¼r Auswahl-Dialog)
-    Nutzt MandantDataManager mit Cache
-    Filtert System-DatensÃ¤tze (Template, Properties Control, System-Infos)
-    Sortiert alphabetisch nach Name (aufsteigend)
-    
-    Returns:
-        Liste von Mandanten mit ID, Name, Berechtigung
-    """
-    manager = MandantDataManager()
-    
-    try:
-        mandanten = await manager.list_all(include_inactive=False)
-        
-        # System-DatensÃ¤tze filtern und in Response-Format konvertieren
-        filtered_mandanten = [
-            {
-                "id": str(m["uid"]),
-                "name": m["name"],
-                "is_allowed": m["daten"].get("MANDANT", {}).get("IS_ALLOWED", False),
-                "description": m["daten"].get("MANDANT", {}).get("DESCRIPTION", "")
-            }
-            for m in mandanten
-            if str(m["uid"]) not in SYSTEM_MANDANT_UIDS
-        ]
-        
-        # Alphabetisch nach Name sortieren (aufsteigend)
-        return sorted(filtered_mandanten, key=lambda x: x["name"].lower())
-    
-    except Exception as e:
-        logger.error(f"Fehler beim Laden der Mandanten: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    """Wie `GET /api/mandanten`: zugelassene Mandanten des Benutzers mit ID, Name, Berechtigung."""
+    return await _mandanten_of_user(current_user)
 
 
 @router.post("/select", response_model=MandantSelectResponse)
@@ -120,23 +105,23 @@ async def select_mandant(
         Mandant-Details wenn berechtigt
         
     Raises:
-        403: Wenn keine Berechtigung fÃ¼r Mandant
+        403: Wenn keine Berechtigung für Mandant
         404: Wenn Mandant nicht existiert
     """
     manager = MandantDataManager()
     mandant_id = request.mandant_id
     user_id = current_user.get("sub")  # User-ID aus JWT Token
     
-    print(f"\n\nðŸš€ START: Mandant-Auswahl fÃ¼r Mandant '{mandant_id}' von User '{user_id}'", flush=True)
-    logger.info(f"ðŸš€ START: Mandant-Auswahl fÃ¼r Mandant '{mandant_id}' von User '{user_id}'")
+    print(f"\n\n🚀 START: Mandant-Auswahl für Mandant '{mandant_id}' von User '{user_id}'", flush=True)
+    logger.info(f"🚀 START: Mandant-Auswahl für Mandant '{mandant_id}' von User '{user_id}'")
     
     try:
         # Lade Mandant
-        print(f"ðŸ“– Lade Mandant-Daten fÃ¼r ID '{mandant_id}'...", flush=True)
-        logger.info(f"ðŸ“– Lade Mandant-Daten fÃ¼r ID '{mandant_id}'...")
+        print(f"📖 Lade Mandant-Daten für ID '{mandant_id}'...", flush=True)
+        logger.info(f"📖 Lade Mandant-Daten für ID '{mandant_id}'...")
         mandant = await manager.get_by_id(mandant_id)
-        print(f"âœ… Mandant geladen: {mandant.get('name') if mandant else 'None'}", flush=True)
-        logger.info(f"âœ… Mandant geladen: {mandant.get('name') if mandant else 'None'}")
+        print(f"✅ Mandant geladen: {mandant.get('name') if mandant else 'None'}", flush=True)
+        logger.info(f"✅ Mandant geladen: {mandant.get('name') if mandant else 'None'}")
         
         if not mandant:
             raise HTTPException(
@@ -144,92 +129,79 @@ async def select_mandant(
                 detail=f"Mandant '{mandant_id}' nicht gefunden"
             )
         
-        # PrÃ¼fe Berechtigung
-        logger.info(f"ðŸ” PrÃ¼fe Berechtigung fÃ¼r User '{user_id}' auf Mandant '{mandant_id}'...")
-        has_access = await manager.check_access(mandant_id, user_id)
-        logger.info(f"âœ… Berechtigung: {has_access}")
+        # Prüfe Berechtigung: Zulassung des Benutzers (MANDANTEN.LIST, frisch aus der DB) und Mandanten-Freigabe (IS_ALLOWED)
+        logger.info(f"🔐 Prüfe Berechtigung für User '{user_id}' auf Mandant '{mandant_id}'...")
+        user_allowed = is_mandant_allowed(await load_user_daten(user_id), mandant_id)
+        has_access = user_allowed and await manager.check_access(mandant_id, user_id)
+        logger.info(f"✅ Berechtigung: {has_access}")
         
         if not has_access:
             raise HTTPException(
                 status_code=403,
-                detail=f"Keine Berechtigung fÃ¼r Mandant '{mandant['name']}'"
+                detail=f"Keine Berechtigung für Mandant '{mandant['name']}'"
             )
         
         # Hole Datenbank-Name
-        print(f"ðŸ—„ï¸ Hole Datenbank-Name fÃ¼r Mandant '{mandant_id}'...", flush=True)
-        logger.info(f"ðŸ—„ï¸ Hole Datenbank-Name fÃ¼r Mandant '{mandant_id}'...")
+        print(f"🗄️ Hole Datenbank-Name für Mandant '{mandant_id}'...", flush=True)
+        logger.info(f"🗄️ Hole Datenbank-Name für Mandant '{mandant_id}'...")
         database = await manager.get_database_name(mandant_id)
-        print(f"ðŸ”§ DEBUG: Datenbank-Name: {database}", flush=True)
-        logger.info(f"ðŸ”§ DEBUG: Datenbank-Name: {database}")
+        print(f"🔧 DEBUG: Datenbank-Name: {database}", flush=True)
+        logger.info(f"🔧 DEBUG: Datenbank-Name: {database}")
         
         # ========================================
         # CONNECTION-PARAMETER DIREKT AUS MANDANT-DATEN EXTRAHIEREN
-        # Wir haben die Daten bereits oben geladen - keine neue Connection nÃ¶tig!
+        # Wir haben die Daten bereits oben geladen - keine neue Connection nötig!
         # ========================================
-        print(f"\nðŸ”§ Extrahiere Connection-Config aus Mandant-Daten...", flush=True)
+        print(f"\n🔧 Extrahiere Connection-Config aus Mandant-Daten...", flush=True)
         
         mandant_data = mandant.get('daten', {})
         mandant_config_dict = mandant_data.get('MANDANT', {})
 
-        # Fallback: nutze funktionierende AUTH-DB Credentials aus .env,
-        # falls Mandanten-Connectiondaten fehlen oder auf Legacy-Defaults stehen.
-        auth_config = await ConnectionManager.get_auth_config()
-        host = mandant_config_dict.get('HOST') or auth_config.host
-        port = int(mandant_config_dict.get('PORT') or auth_config.port)
-        user = mandant_config_dict.get('USER') or auth_config.user
-        password = mandant_config_dict.get('PASSWORD')
-        if not password or password in {"postgres", "Polari$55"}:
-            password = auth_config.password
-        
-        # Mandanten-DB Config
-        mandant_config = ConnectionConfig(
-            host=host,
-            port=port,
-            user=user,
-            password=password,
-            database=mandant_config_dict.get('DATABASE', database)
-        )
+        # Adressen aus MANDANT.*, Zugangsdaten ueber CREDENTIAL bzw. AUTH-Zugangsdaten (ConnectionManager).
+        from ..core.credential_service import ensure_fresh
+        await ensure_fresh()
+        try:
+            system_config, mandant_config = ConnectionManager.resolve_mandant_connections(
+                mandant_config_dict, fallback_database=database
+            )
+        except ValueError as cred_error:
+            raise HTTPException(status_code=500, detail=str(cred_error))
         mandant_db_name = mandant_config.database
         mandant_db_url = mandant_config.to_url()
-        
-        # System-DB Config (unterstuetzt SYSTEM_DB und SYSTEM_DATABASE)
-        system_db_name = (
-            mandant_config_dict.get('SYSTEM_DB')
-            or mandant_config_dict.get('SYSTEM_DATABASE')
-            or 'pdvm_system'
-        )
-        system_config = ConnectionConfig(
-            host=host,
-            port=port,
-            user=user,
-            password=password,
-            database=system_db_name
-        )
         system_db_url = system_config.to_url()
+        # Existenzpruefung der Mandanten-DB: ueber die System-DB, wenn beide auf derselben Instanz liegen,
+        # sonst ueber die Verwaltungsdatenbank 'postgres' der Mandanten-Instanz.
+        if ConnectionManager.same_instance(system_config, mandant_config):
+            admin_db_url = system_db_url
+        else:
+            admin_db_url = ConnectionConfig(
+                mandant_config.host, mandant_config.port, mandant_config.user, mandant_config.password,
+                "postgres", ssl=mandant_config.ssl,
+            ).to_url()
         
-        print(f"âœ… Connection-Config extrahiert:", flush=True)
+        print(f"✅ Connection-Config extrahiert:", flush=True)
         print(f"  System-DB: {system_config.database} @ {system_config.host}:{system_config.port}", flush=True)
         print(f"  Mandant-DB: {mandant_config.database} @ {mandant_config.host}:{mandant_config.port}", flush=True)
         
         # ========================================
-        # DATENBANK-EXISTENZ PRÃœFEN UND ERSTELLEN
+        # DATENBANK-EXISTENZ PRÜFEN UND ERSTELLEN
         # ========================================
-        print(f"ðŸ”§ DEBUG: Starte Datenbank-Existenz-PrÃ¼fung...", flush=True)
-        logger.info(f"ðŸ”§ DEBUG: Starte Datenbank-Existenz-PrÃ¼fung...")
+        print(f"🔧 DEBUG: Starte Datenbank-Existenz-Prüfung...", flush=True)
+        logger.info(f"🔧 DEBUG: Starte Datenbank-Existenz-Prüfung...")
         
         # Verwende direkte Connection statt Pool (Pool-Connections werden manchmal geschlossen)
         from ..core.config import settings
         
         try:
-            print(f"ðŸ” Erstelle direkte Connection zu pdvm_system via ConnectionManager...", flush=True)
-            # âœ… Verwende system_config vom ConnectionManager (bereits oben geladen)
-            conn = await provisioning.connect_pooled(system_db_url)
+            print(f"🔍 Erstelle direkte Connection zu pdvm_system via ConnectionManager...", flush=True)
+            # ✅ Verwende system_config vom ConnectionManager (bereits oben geladen)
+            conn = await provisioning.connect_pooled(admin_db_url)
             try:
-                print(f"âœ… Connection erfolgreich", flush=True)
-                print(f"ðŸ” PrÃ¼fe Datenbank '{mandant_db_name}' in pg_database...", flush=True)
+                print(f"✅ Connection erfolgreich", flush=True)
+                print(f"🔍 Prüfe Datenbank '{mandant_db_name}' in pg_database...", flush=True)
                 
                 db_exists = await conn.lookup_database(mandant_db_name)
-                print(f"âœ… Query erfolgreich, db_exists={db_exists}", flush=True)
+                print(f"✅ Query erfolgreich, db_exists={db_exists}", flush=True)
                 
                 if not db_exists:
                     if not settings.ALLOW_MANDANT_DB_AUTO_CREATE:
@@ -241,26 +213,26 @@ async def select_mandant(
                             )
                         )
 
-                    logger.info(f"ðŸ“¦ Datenbank '{mandant_db_name}' existiert nicht - erstelle sie...")
+                    logger.info(f"📦 Datenbank '{mandant_db_name}' existiert nicht - erstelle sie...")
                     
                     # CREATE DATABASE mit template0 (garantiert keine aktiven Verbindungen)
                     await conn.create_database(mandant_db_name, from_template0=True)
-                    logger.info(f"âœ… Datenbank '{mandant_db_name}' erfolgreich erstellt")
+                    logger.info(f"✅ Datenbank '{mandant_db_name}' erfolgreich erstellt")
                     
                     # WICHTIG: Nach CREATE DATABASE warten auf PostgreSQL-Initialisierung
                     await asyncio.sleep(1.0)
-                    logger.info(f"â³ Warte auf DB-Initialisierung...")
+                    logger.info(f"⏳ Warte auf DB-Initialisierung...")
                     
                     # Erste Connection: Extensions installieren und Init-Tabelle anlegen
                     init_conn = await provisioning.connect(mandant_db_url, timeout=10)
                     try:
-                        # SCHRITT 1: Extensions installieren (uuid-ossp fÃ¼r gen_random_uuid)
+                        # SCHRITT 1: Extensions installieren (uuid-ossp für gen_random_uuid)
                         await init_conn.install_uuid_ossp()
-                        logger.info(f"âœ… Extension 'uuid-ossp' installiert")
+                        logger.info(f"✅ Extension 'uuid-ossp' installiert")
                         
                         # SCHRITT 2: Init-Tabelle anlegen (jetzt mit UUID-Support)
                         await init_conn.write_init_marker(provisioning.INIT_MARKER_AUTO_CREATE)
-                        logger.info(f"âœ… Init-Tabelle '_db_init' in '{mandant_db_name}' angelegt")
+                        logger.info(f"✅ Init-Tabelle '_db_init' in '{mandant_db_name}' angelegt")
                     finally:
                         await init_conn.close()
                     
@@ -274,66 +246,66 @@ async def select_mandant(
                         value=db_created_at
                     )
                 else:
-                    logger.info(f"âœ“ Datenbank '{mandant_db_name}' existiert bereits")
+                    logger.info(f"✓ Datenbank '{mandant_db_name}' existiert bereits")
             finally:
-                # Connection schlieÃŸen
+                # Connection schließen
                 await conn.close()
-                print(f"âœ… Connection geschlossen", flush=True)
+                print(f"✅ Connection geschlossen", flush=True)
         except Exception as db_error:
-            logger.error(f"âŒ Fehler bei Datenbank-PrÃ¼fung/Erstellung: {db_error}")
+            logger.error(f"❌ Fehler bei Datenbank-Prüfung/Erstellung: {db_error}")
             raise HTTPException(
                 status_code=500,
                 detail=f"Fehler beim Erstellen der Datenbank: {str(db_error)}"
             )
         
         # ========================================
-        # TABELLEN-PRÃœFUNG UND AUTO-ERSTELLUNG
-        # (Jetzt kÃ¶nnen wir sicher sein, dass die Datenbank existiert)
+        # TABELLEN-PRÜFUNG UND AUTO-ERSTELLUNG
+        # (Jetzt können wir sicher sein, dass die Datenbank existiert)
         # ========================================
         
-        # mandant_db_url wurde bereits oben Ã¼ber ConnectionManager geladen!
-        # Keine manuelle URL-Erstellung mehr nÃ¶tig
+        # mandant_db_url wurde bereits oben über ConnectionManager geladen!
+        # Keine manuelle URL-Erstellung mehr nötig
         
         # ========================================
         # DATENBANK-WARTUNG VOR GCS-INITIALISIERUNG
-        # PrÃ¼ft und korrigiert:
+        # Prüft und korrigiert:
         # - Fehlende Tabellen aus CONFIG.FEATURES (NEU ANLEGEN mit Standard-Schema)
         # - Existierende Tabellen: Fehlende Spalten (daten_backup, gilt_bis, etc.)
-        # - Existierende Tabellen: Falsche Datentypen korrigieren (gilt_bis TEXT â†’ TIMESTAMP)
-        # - gilt_bis Werte fÃ¼r alte DatensÃ¤tze korrigieren
+        # - Existierende Tabellen: Falsche Datentypen korrigieren (gilt_bis TEXT → TIMESTAMP)
+        # - gilt_bis Werte für alte Datensätze korrigieren
         # ========================================
         try:
-            print(f"\nðŸ”§ Starte Datenbank-Wartung...", flush=True)
-            logger.info(f"ðŸ”§ Starte Datenbank-Wartung fÃ¼r Mandant {mandant_id}")
+            print(f"\n🔧 Starte Datenbank-Wartung...", flush=True)
+            logger.info(f"🔧 Starte Datenbank-Wartung für Mandant {mandant_id}")
             
             from ..core.mandant_db_maintenance import run_mandant_maintenance
             
-            # Erstelle temporÃ¤ren Connection Pool fÃ¼r Wartung
+            # Erstelle temporären Connection Pool für Wartung
             mandant_pool = await provisioning.get_shared_pool(mandant_db_url)
             
             try:
-                # FÃ¼hre Wartung aus - Ã¼bergebe mandant['daten'] mit CONFIG
+                # Führe Wartung aus - übergebe mandant['daten'] mit CONFIG
                 maintenance_stats = await run_mandant_maintenance(
                     mandant_pool, 
                     mandant_id,
-                    mandant['daten']  # Login-Daten enthÃ¤lt CONFIG.FEATURES
+                    mandant['daten']  # Login-Daten enthält CONFIG.FEATURES
                 )
                 
-                logger.info(f"âœ… Wartung abgeschlossen: {maintenance_stats}")
-                print(f"âœ… Wartung: {maintenance_stats['tables_created']} Tabellen erstellt, "
-                      f"{maintenance_stats['records_updated']} DatensÃ¤tze korrigiert", flush=True)
+                logger.info(f"✅ Wartung abgeschlossen: {maintenance_stats}")
+                print(f"✅ Wartung: {maintenance_stats['tables_created']} Tabellen erstellt, "
+                      f"{maintenance_stats['records_updated']} Datensätze korrigiert", flush=True)
             finally:
-                # Pool schlieÃŸen
+                # Pool schließen
                 pass  # gemeinsamer Pool (PoolRegistry) bleibt offen
             
         except Exception as maintenance_error:
             # Wartung fehlgeschlagen - logge Warnung aber fahre fort
-            logger.warning(f"âš ï¸ Datenbank-Wartung fehlgeschlagen: {maintenance_error}")
-            print(f"âš ï¸ Wartung fehlgeschlagen: {maintenance_error}", flush=True)
+            logger.warning(f"⚠️ Datenbank-Wartung fehlgeschlagen: {maintenance_error}")
+            print(f"⚠️ Wartung fehlgeschlagen: {maintenance_error}", flush=True)
         
         # ========================================
         # GCS-SESSION ERSTELLEN
-        # (Jetzt kÃ¶nnen wir sicher sein, dass die Tabellen existieren)
+        # (Jetzt können wir sicher sein, dass die Tabellen existieren)
         # ========================================
         
         # JWT-Token aus Header holen
@@ -343,18 +315,18 @@ async def select_mandant(
         if not token:
             raise HTTPException(status_code=401, detail="Kein Token gefunden")
         
-        # âœ… system_db_url wurde bereits oben Ã¼ber ConnectionManager geladen (aus system_config)
-        # Keine manuelle URL-Konstruktion mehr nÃ¶tig!
+        # ✅ system_db_url wurde bereits oben über ConnectionManager geladen (aus system_config)
+        # Keine manuelle URL-Konstruktion mehr nötig!
         
-        # Extrahiere benÃ¶tigte Variablen fÃ¼r GCS-Session
+        # Extrahiere benötigte Variablen für GCS-Session
         system_database = system_config.database
         mandant_data = mandant.get('daten', {})
         
-        # Maskierte URL fÃ¼r Logging
+        # Maskierte URL für Logging
         masked_url = mandant_db_url.split('@')[0].split(':')[0] + ":***@" + mandant_db_url.split('@')[1] if '@' in mandant_db_url else mandant_db_url
-        print(f"ðŸ”— Connection-String: {masked_url}", flush=True)
+        print(f"🔗 Connection-String: {masked_url}", flush=True)
         
-        # User-Daten aus JWT Token (bereits vollstÃ¤ndig mit MEINEAPPS, SETTINGS, etc.)
+        # User-Daten aus JWT Token (bereits vollständig mit MEINEAPPS, SETTINGS, etc.)
         user_data = current_user.get('user_data', {})
         
         # Mandanten-Daten aus DB laden
@@ -375,17 +347,17 @@ async def select_mandant(
                 )
                 mandant = updated_mandant if isinstance(updated_mandant, dict) else mandant
                 mandant_data = mandant.get("daten", mandant_data)
-                logger.info(f"âœ… Deprecated CONFIG.SYS_TABLES aus Mandant {mandant_id} entfernt")
+                logger.info(f"✅ Deprecated CONFIG.SYS_TABLES aus Mandant {mandant_id} entfernt")
         except Exception as cleanup_exc:
-            logger.warning(f"âš ï¸ CONFIG.SYS_TABLES Cleanup fehlgeschlagen: {cleanup_exc}")
+            logger.warning(f"⚠️ CONFIG.SYS_TABLES Cleanup fehlgeschlagen: {cleanup_exc}")
         
         # TODO: Mandanten_access und Berechtigungen beim Login laden
-        # FÃ¼r jetzt: Platzhalter-Werte
-        mandanten_access = []  # Wird spÃ¤ter beim Login geladen
-        berechtigungen = {}    # Wird spÃ¤ter beim Login geladen
+        # Für jetzt: Platzhalter-Werte
+        mandanten_access = []  # Wird später beim Login geladen
+        berechtigungen = {}    # Wird später beim Login geladen
         
         # GCS-Session erstellen mit beiden Pools und Daten
-        print(f"ðŸš€ Erstelle GCS-Session fÃ¼r '{database}' (System: {system_database})...", flush=True)
+        print(f"🚀 Erstelle GCS-Session für '{database}' (System: {system_database})...", flush=True)
         from app.core.pdvm_central_systemsteuerung import create_gcs_session
         
         gcs = await create_gcs_session(
@@ -398,13 +370,25 @@ async def select_mandant(
             mandant_db_url=mandant_db_url
         )
         
-        logger.info(f"âœ… GCS-Session erstellt fÃ¼r User {user_id}, Mandant {mandant['name']}")
+        logger.info(f"✅ GCS-Session erstellt für User {user_id}, Mandant {mandant['name']}")
         logger.info(f"   Stichtag: {gcs.stichtag}")
+
+        # Systemvorlagen (Texte) einmalig in den Mandanten uebernehmen; ein Fehler darf die Anmeldung nicht blockieren.
+        try:
+            from app.core.text_template_service import ensure_mandant_templates
+
+            copied = await ensure_mandant_templates(
+                system_pool=gcs._system_pool, mandant_pool=gcs._mandant_pool, actor_user_uid=user_id
+            )
+            if copied:
+                logger.info(f"✅ Textvorlagen in Mandant übernommen: {copied}")
+        except Exception as template_exc:
+            logger.warning(f"⚠️ Textvorlagen konnten nicht übernommen werden: {template_exc}")
         
         # ========================================
         
         # Erfolgreiche Auswahl
-        logger.info(f"âœ… Mandant ausgewÃ¤hlt: {mandant['name']} von User {user_id}")
+        logger.info(f"✅ Mandant ausgewählt: {mandant['name']} von User {user_id}")
         
         return {
             "mandant_id": str(mandant["uid"]),
@@ -413,8 +397,9 @@ async def select_mandant(
             "mandant_street": mandant_data.get("ROOT", {}).get("MANDANT_STREET"),
             "idle_timeout": _parse_idle_seconds(mandant_data.get("ROOT", {}).get("IDLE_TIMEOUT")),
             "idle_warning": _parse_idle_seconds(mandant_data.get("ROOT", {}).get("IDLE_WARNING")),
+            "language": _effective_language(user_data, mandant_data),
             "database": database,
-            "message": f"Mandant '{mandant['name']}' erfolgreich ausgewÃ¤hlt"
+            "message": f"Mandant '{mandant['name']}' erfolgreich ausgewählt"
         }
     
     except HTTPException:
@@ -427,19 +412,20 @@ async def select_mandant(
 
 
 @router.get("/template")
-async def get_mandant_template(current_user: dict = Depends(get_current_user)):
+async def get_mandant_template(current_user: dict = Depends(require_superadmin_user)):
     """
-    Gibt Template und Properties Control fÃ¼r Mandanten-Neuanlage zurÃ¼ck
+    Gibt Template und Properties Control für Mandanten-Neuanlage zurück
     
     Returns:
-        template: Leere Mandanten-Struktur (UID 6666...)
-        properties: Property-Definitionen (UID 5555...)
+        template: Neuer Mandantensatz in Datensatzform (ROOT + Gruppen) aus der 666-Vorlage, ohne Zugangsdaten
+        frame_guid: Frame (sys_framedaten), das die Eingabemaske definiert (GET /api/frames/{uid}/runtime)
     """
     from ..core.pdvm_datenbank import PdvmDatabase
+    from ..core.mandant_record_rules import MANDANT_FRAME_GUID, flatten_mandant_template
     import uuid
     
     try:
-        # FÃ¼r asy_mandanten verwenden wir PdvmDatabase direkt (keine Central-Klasse nÃ¶tig)
+        # Für asy_mandanten verwenden wir PdvmDatabase direkt (keine Central-Klasse nötig)
         db = PdvmDatabase("asy_mandanten")
         
         # Template laden (UID 6666...)
@@ -449,35 +435,11 @@ async def get_mandant_template(current_user: dict = Depends(get_current_user)):
         if not template_record:
             raise HTTPException(status_code=404, detail="Template nicht gefunden")
         
-        # Properties Control laden (UID 5555...)
-        properties_uid = uuid.UUID("55555555-5555-5555-5555-555555555555")
-        properties_record = await db.get_by_uid(properties_uid)
-        
-        if not properties_record:
-            raise HTTPException(status_code=404, detail="Properties Control nicht gefunden")
-        
-        # Properties umstrukturieren: von GUID-basiert zu name-basiert
-        # Original: { "guid": { "name": "FIELD_NAME", "label": "...", ... }, ... }
-        # Ziel: { "FIELD_NAME": { "label": "...", "type": "...", ... }, ... }
-        properties_by_name = {}
-        properties_controls = properties_record["daten"].get("PROPERTIES_CONTROLS", {})
-        
-        for guid, prop in properties_controls.items():
-            field_name = prop.get("name")
-            if field_name:
-                properties_by_name[field_name] = {
-                    "label": prop.get("label", field_name),
-                    "type": prop.get("type", "text"),
-                    "readonly": prop.get("readonly", False),
-                    "required": prop.get("required", False),
-                    "default_value": prop.get("default_value", "")
-                }
-        
+        # Feld-Properties (Typ, Label, ...) liefert das Frame ueber sys_control_dict, nicht dieser Endpunkt.
         return {
-            "template": template_record["daten"],
-            "properties": properties_by_name,
+            "template": flatten_mandant_template(template_record["daten"]),
+            "frame_guid": MANDANT_FRAME_GUID,
             "template_uid": str(template_uid),
-            "properties_uid": str(properties_uid)
         }
     
     except HTTPException:
@@ -487,425 +449,32 @@ async def get_mandant_template(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/save")
-async def save_mandant(
-    mandant_data: dict,
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Speichert einen neuen Mandanten in asy_mandanten
-    
-    Workflow:
-    1. Neue GUID generieren
-    2. Timestamps setzen (CREATED_AT, MODIFIED_AT)
-    3. Mit PdvmCentralDatabase.save_all_values() speichern
-    
-    Args:
-        mandant_data: Template-Struktur mit Benutzereingaben
-        
-    Returns:
-        Gespeicherter Mandant mit neuer GUID
-    """
-    from ..core.pdvm_central_datenbank import PdvmCentralDatabase
-    from ..core.pdvm_datetime import PdvmDateTime
-    import uuid
-    
-    try:
-        # 1. Neue GUID generieren
-        new_guid = str(uuid.uuid4())
-        
-        # 2. Timestamps setzen
-        now_str = PdvmDateTime().now().pdvm_datetime_str
-        
-        # ROOT Gruppe mit GUID und Timestamps
-        if "ROOT" not in mandant_data:
-            mandant_data["ROOT"] = {}
-            
-        mandant_data["ROOT"]["SELF_GUID"] = new_guid
-        mandant_data["ROOT"]["CREATED_AT"] = now_str
-        mandant_data["ROOT"]["MODIFIED_AT"] = now_str
-        
-        # 3. PdvmCentralDatabase Instanz erstellen und Daten setzen
-        central_db = PdvmCentralDatabase("asy_mandanten", new_guid)
-        central_db.set_data(mandant_data, new_guid)
-        
-        # 4. Alle Werte speichern
-        saved_guid = await central_db.save_all_values()
-        
-        logger.info(f"Mandant gespeichert: {saved_guid} - {mandant_data.get('ROOT', {}).get('NAME')}")
-        
-        return {
-            "success": True,
-            "mandant_id": saved_guid,
-            "message": "Mandant erfolgreich gespeichert",
-            "data": mandant_data
-        }
-    
-    except Exception as e:
-        logger.error(f"Fehler beim Speichern des Mandanten: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/pending-setup")
-async def get_mandanten_pending_setup(current_user: dict = Depends(get_current_user)):
-    """
-    Listet alle Mandanten auf, deren Datenbank noch nicht eingerichtet ist
-    
-    PrÃ¼ft fÃ¼r jeden Mandanten ob die in MANDANT.DATABASE eingetragene
-    Datenbank existiert. Gibt Liste der Mandanten zurÃ¼ck, bei denen
-    ROOT.DB_CREATED_AT nicht gesetzt ist oder Datenbank nicht existiert.
-    
-    Returns:
-        Liste von Mandanten die aufgebaut werden mÃ¼ssen
-    """
-    from ..core.pdvm_datenbank import PdvmDatabase
-    
-    try:
-        db = PdvmDatabase("asy_mandanten")
-        all_mandanten = await db.get_all()
-        
-        pending = []
-        
-        for mandant in all_mandanten:
-            # System-DatensÃ¤tze Ã¼berspringen
-            if str(mandant["uid"]) in SYSTEM_MANDANT_UIDS:
-                continue
-            
-            daten = mandant.get("daten", {})
-            root = daten.get("ROOT", {})
-            mandant_info = daten.get("MANDANT", {})
-            
-            # Einfache PrÃ¼fung: Ist DB_CREATED_AT gesetzt und nicht "-eingeben-"?
-            # Wenn nicht â†’ Datenbank muss aufgebaut werden
-            db_created_at = root.get("DB_CREATED_AT")
-            if not db_created_at or db_created_at == "-eingeben-":
-                # Datenbank wurde noch nicht aufgebaut
-                db_name = mandant_info.get("DATABASE", "-nicht konfiguriert-")
-                
-                pending.append({
-                    "id": str(mandant["uid"]),
-                    "name": mandant["name"],
-                    "database": db_name,
-                    "description": mandant_info.get("DESCRIPTION", ""),
-                    "reason": "Datenbank noch nicht erstellt"
-                })
-                logger.info(f"Mandant '{mandant['name']}' benÃ¶tigt DB-Setup (DB_CREATED_AT={db_created_at})")
-        
-        return pending
-    
-    except Exception as e:
-        logger.error(f"Fehler beim Ermitteln der aufzubauenden Mandanten: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.post("/setup/{mandant_id}")
-async def setup_mandant_database(
-    mandant_id: str,
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Baut die Datenbank fÃ¼r einen Mandanten auf
-    
-    Workflow:
-    1. Mandanten-Daten laden
-    2. Datenbank erstellen (aus MANDANT.DATABASE)
-    3. CONFIG.FEATURES Tabellen anlegen
-    4. ROOT.DB_CREATED_AT Zeitstempel setzen
-    5. ROOT.DB_CREATED_AT Zeitstempel setzen
-    
-    Args:
-        mandant_id: UUID des Mandanten
-        
-    Returns:
-        Success-Status und Details
-    """
-    from ..core.pdvm_datenbank import PdvmDatabase
-    from ..core.pdvm_central_datenbank import PdvmCentralDatabase
-    from ..core.pdvm_datetime import PdvmDateTime
-    from ..core.database import DatabasePool
-    import uuid
-    
-    try:
-        # 1. Mandanten-Daten laden
-        db = PdvmDatabase("asy_mandanten")
-        mandant_uuid = uuid.UUID(mandant_id)
-        central_db = PdvmCentralDatabase("asy_mandanten", mandant_id)
-        
-        # Daten laden
-        mandant_record = await db.get_by_uid(mandant_uuid)
-        if not mandant_record:
-            raise HTTPException(status_code=404, detail="Mandant nicht gefunden")
-        
-        daten = mandant_record.get("daten", {})
-        central_db.set_data(daten, mandant_id)
-        
-        # Konfiguration extrahieren
-        mandant_info = daten.get("MANDANT", {})
-        config = daten.get("CONFIG", {})
-        root = daten.get("ROOT", {})
-        
-        db_name = mandant_info.get("DATABASE")
-        if not db_name or db_name == "-eingeben-":
-            raise HTTPException(status_code=400, detail="Datenbank-Name nicht konfiguriert")
-        
-        # 2. Nur Datenbank erstellen - KEINE Tabellen!
-        # Tabellen werden beim ersten Login angelegt
-        # Grund: Setup-Admin hat evtl. keine Berechtigung fÃ¼r neue DB
-        
-        try:
-            # âœ… Verwende ConnectionManager fÃ¼r mandant-spezifische Connection-Daten
-            system_config, mandant_config = await ConnectionManager.get_mandant_config(mandant_id)
-            
-            # Direkte Connection fÃ¼r CREATE DATABASE (auÃŸerhalb Pool)
-            # Verbinde zu postgres (template) Datenbank fÃ¼r CREATE DATABASE
-            # âœ… Nutze system_config fÃ¼r postgres-DB
-            postgres_config = ConnectionConfig(
-                host=system_config.host,
-                port=system_config.port,
-                user=system_config.user,
-                password=system_config.password,
-                database="postgres"  # Template-DB fÃ¼r                 Datenbankanlage
-            )
-            conn = await provisioning.connect(**postgres_config.to_dict())
-            
-            try:
-                logger.info(f"Verwende direkte Connection fÃ¼r Datenbankanlage")
-                
-                # PrÃ¼fe ob DB existiert
-                exists = await conn.lookup_database(db_name)
-                
-                if not exists:
-                    # CREATE DATABASE mit template0 (keine aktiven Verbindungen)
-                    await conn.create_database(db_name, from_template0=True)
-                    logger.info(f"âœ… Datenbank '{db_name}' erstellt")
-                    
-                    # Warten auf PostgreSQL-Initialisierung
-                    await asyncio.sleep(1.0)
-                    
-                    # Extensions und Init-Tabelle sofort anlegen
-                    try:
-                        # âœ… Verwende mandant_config fÃ¼r neue DB-Connection
-                        init_conn = await provisioning.connect(**mandant_config.to_dict(), timeout=10)
-                        try:
-                            # SCHRITT 1: Extensions installieren
-                            await init_conn.install_uuid_ossp()
-                            logger.info(f"âœ… Extension 'uuid-ossp' installiert")
-                            
-                            # SCHRITT 2: Init-Tabelle anlegen
-                            await init_conn.write_init_marker(provisioning.INIT_MARKER_SETUP)
-                            logger.info(f"âœ… Init-Tabelle in '{db_name}' erstellt")
-                        finally:
-                            await init_conn.close()
-                    except Exception as init_error:
-                        logger.warning(f"âš ï¸ Konnte Init-Tabelle nicht erstellen: {init_error}")
-                else:
-                    logger.info(f"â„¹ï¸ Datenbank '{db_name}' existiert bereits")
-            finally:
-                await conn.close()
-            
-        except provisioning.ProvisioningConnectionError as e:
-            logger.error(f"Verbindungsfehler zu PostgreSQL: {e}")
-            raise HTTPException(status_code=500, detail=f"Kann nicht mit PostgreSQL verbinden: {str(e)}")
-        except provisioning.ProvisioningDatabaseError as e:
-            logger.error(f"Fehler beim Erstellen der Datenbank: {e}")
-            raise HTTPException(status_code=500, detail=f"Datenbankfehler: {str(e)}")
-        except Exception as e:
-            logger.error(f"Unerwarteter Fehler: {e}")
-            raise HTTPException(status_code=500, detail=f"Fehler: {str(e)}")
-        
-        # 3. ROOT.DB_CREATED_AT setzen (Tabellen werden spÃ¤ter beim Login erstellt)
-        now_pdvm = PdvmDateTime().now().pdvm_datetime_str
-        central_db.set_value("ROOT", "DB_CREATED_AT", now_pdvm)
-        await central_db.save_all_values()
-        
-        logger.info(f"âœ… Mandant '{mandant_record['name']}' Datenbank '{db_name}' erstellt")
-        logger.info(f"â„¹ï¸ Tabellen werden beim ersten Login automatisch angelegt")
-        
-        return {
-            "success": True,
-            "mandant_id": mandant_id,
-            "database": db_name,
-            "db_created_at": now_pdvm,
-            "message": f"Datenbank '{db_name}' erfolgreich erstellt. Tabellen werden beim ersten Login angelegt."
-        }
-    
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Fehler beim Aufbau der Mandanten-Datenbank: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 @router.post("/create")
-async def create_mandant(
+async def create_mandant_endpoint(
     mandant_data: dict,
-    current_user: dict = Depends(get_current_user)
+    setup_database: bool = True,
+    current_user: dict = Depends(require_superadmin_user)
 ):
     """
-    Erstellt einen neuen Mandanten inkl. Datenbank
-    
-    Workflow:
-    1. Template laden und mit Daten fÃ¼llen
-    2. Validierung (DB-Name, Verbindung)
-    3. Datenbank anlegen
-    4. Schema ausfÃ¼hren (features aus CONFIG)
-    5. Mandanten-Satz speichern
-    6. Connection Pool anlegen
-    
-    Request Body:
-    {
-        "name": "Neue Firma GmbH",
-        "database": "mandant_neue_firma",
-        "description": "Test-Mandant",
-        "host": "localhost",
-        "port": 5432,
-        "user": "postgres",
-        "password": "password",
-        ...
-    }
+    Legt einen neuen Mandanten an (nur Superadmin): prüfen, Satz speichern, dem Anleger in `MANDANTEN.LIST`
+    zuweisen und die Datenbank einrichten (`setup_database=false` überspringt den letzten Schritt).
+
+    Body: Datensatzform der Mandanten-Maske (wie von `GET /template`, Frame `Mandanten Edit`); Zugangsdaten nur als
+    `CREDENTIAL`-Verweis. Antwort: Status je Teilschritt (`saved`, `access_granted`, `database.status`). Ein Fehler bei der
+    Datenbank lässt den Satz bestehen (kein Rollback); die Aktion `mandant.setup` wiederholt diesen Schritt.
+    Tabellen entstehen beim ersten Login des Mandanten.
     """
-    from ..core.pdvm_datenbank import PdvmDatabase
-    from ..core.central_write_service import create_record_central
-    from ..core.pdvm_datetime import PdvmDateTime
-    from ..core.database import DatabasePool
-    import os
-    import uuid
-    
     try:
-        # FÃ¼r asy_mandanten verwenden wir PdvmDatabase direkt
-        db = PdvmDatabase("asy_mandanten")
-        
-        # 1. Template laden
-        template_uid = uuid.UUID("66666666-6666-6666-6666-666666666666")
-        template_record = await db.get_by_uid(template_uid)
-        
-        if not template_record:
-            raise HTTPException(status_code=404, detail="Template nicht gefunden")
-        
-        # Template-Daten aus dem Record extrahieren
-        template = template_record.get("daten", {})
-        
-        # 2. Template mit Eingabedaten aktualisieren
-        now_pdvm = PdvmDateTime().now().pdvm_datetime_str
-        
-        # Frontend sendet komplette Template-Struktur - mit Ã„nderungen mergen
-        if "ROOT" in mandant_data:
-            for key, value in mandant_data["ROOT"].items():
-                template["ROOT"][key] = value
-        
-        if "MANDANT" in mandant_data:
-            for key, value in mandant_data["MANDANT"].items():
-                template["MANDANT"][key] = value
-        
-        if "CONFIG" in mandant_data:
-            for key, value in mandant_data["CONFIG"].items():
-                template["CONFIG"][key] = value
-        
-        if "CONTACT" in mandant_data:
-            for key, value in mandant_data["CONTACT"].items():
-                template["CONTACT"][key] = value
-        
-        # Zeitstempel und Benutzer setzen
-        template["ROOT"]["CREATED_AT"] = now_pdvm
-        template["ROOT"]["MODIFIED_AT"] = now_pdvm
-        template["ROOT"]["CREATED_BY"] = current_user.get("uid", "")
-        
-        # 3. Validierung
-        database_name = template["MANDANT"]["DATABASE"]
-        if not database_name or database_name == "-eingeben-":
-            raise HTTPException(status_code=400, detail="Datenbank-Name erforderlich")
-        
-        # 4. DB-Verbindung testen
-        try:
-            test_conn = await provisioning.connect(
-                host=template["MANDANT"]["HOST"],
-                port=template["MANDANT"]["PORT"],
-                user=template["MANDANT"]["USER"],
-                password=template["MANDANT"]["PASSWORD"],
-                database="postgres"  # Connect to postgres DB to create new DB
-            )
-            
-            # PrÃ¼fen ob DB bereits existiert
-            existing = await test_conn.lookup_database(database_name)
-            
-            if existing:
-                await test_conn.close()
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Datenbank '{database_name}' existiert bereits"
-                )
-            
-            # 5. Datenbank anlegen
-            await test_conn.create_database(database_name)
-            await test_conn.close()
-            
-            logger.info(f"âœ… Datenbank '{database_name}' angelegt")
-            
-        except provisioning.ProvisioningDatabaseError as e:
-            logger.error(f"DB-Fehler: {e}")
-            raise HTTPException(status_code=500, detail=f"Datenbankfehler: {str(e)}")
-        
-        # 6. Schema ausfÃ¼hren
-        try:
-            mandant_conn = await provisioning.connect(
-                host=template["MANDANT"]["HOST"],
-                port=template["MANDANT"]["PORT"],
-                user=template["MANDANT"]["USER"],
-                password=template["MANDANT"]["PASSWORD"],
-                database=database_name
-            )
-            
-            # Schema-Datei laden
-            schema_path = os.path.join("database", "schema_mandant.sql")
-            if os.path.exists(schema_path):
-                with open(schema_path, "r", encoding="utf-8") as f:
-                    schema_sql = f.read()
-                    await mandant_conn.execute_script(schema_sql)
-                    logger.info(f"âœ… Schema ausgefÃ¼hrt fÃ¼r '{database_name}'")
-            else:
-                logger.warning(f"âš ï¸ Schema-Datei nicht gefunden: {schema_path}")
-            
-            await mandant_conn.close()
-            
-        except Exception as e:
-            logger.error(f"Schema-Fehler: {e}")
-            # DB wieder lÃ¶schen bei Fehler
-            cleanup_conn = await provisioning.connect(
-                host=template["MANDANT"]["HOST"],
-                port=template["MANDANT"]["PORT"],
-                user=template["MANDANT"]["USER"],
-                password=template["MANDANT"]["PASSWORD"],
-                database="postgres"
-            )
-            await cleanup_conn.drop_database_if_exists(database_name)
-            await cleanup_conn.close()
-            raise HTTPException(status_code=500, detail=f"Schema-Fehler: {str(e)}")
-        
-        # 7. Mandanten-Satz speichern
-        mandant_name = template["ROOT"]["NAME"]
-        new_mandant = await create_record_central(
-            table_name="asy_mandanten",
-            name=mandant_name,
-            daten=template,
-            actor_user_uid=current_user.get("sub"),
+        result = await create_mandant(
+            mandant_data=mandant_data,
+            actor_uid=current_user.get("sub"),
             actor_ip=current_user.get("client_ip"),
+            setup_database=setup_database,
         )
-        
-        logger.info(f"âœ… Mandant '{mandant_name}' angelegt (UID: {new_mandant['uid']})")
-        
-        # NOTE: Pool creation removed - pools now managed in GCS per session
-        
-        return {
-            "success": True,
-            "mandant_id": str(new_mandant["uid"]),
-            "mandant_name": mandant_name,
-            "database": database_name,
-            "message": f"Mandant '{mandant_name}' erfolgreich angelegt"
-        }
-    
-    except HTTPException:
-        raise
+    except MandantValidationError as exc:
+        raise HTTPException(status_code=422, detail={"errors": exc.errors})
     except Exception as e:
         logger.error(f"Fehler beim Anlegen des Mandanten: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+    return {"success": True, **result}
 

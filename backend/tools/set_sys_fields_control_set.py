@@ -15,11 +15,12 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 from typing import Any, Dict
 
 import asyncpg
 
-DEFAULT_DB_URL = "postgresql://postgres:Polari$55@localhost:5432/pdvm_system"
+DEFAULT_DB_URL = os.getenv("PDVM_SYSTEM_DATABASE_URL")
 TARGET_UID = "83206c27-0eb9-4690-b4c1-7ce45761f05e"
 
 
@@ -91,7 +92,12 @@ def _build_control_set() -> Dict[str, Any]:
 
 async def main() -> None:
     parser = argparse.ArgumentParser(description="Set SYS_FIELDS control set for element_list editor")
-    parser.add_argument("--db-url", default=DEFAULT_DB_URL, help="PostgreSQL connection URL")
+    parser.add_argument(
+        "--db-url",
+        default=DEFAULT_DB_URL,
+        required=DEFAULT_DB_URL is None,
+        help="PostgreSQL connection URL (Standard: Umgebungsvariable PDVM_SYSTEM_DATABASE_URL)",
+    )
     parser.add_argument("--dry-run", action="store_true", help="Show planned changes only")
     parser.add_argument("--apply", action="store_true", help="Persist changes")
     args = parser.parse_args()

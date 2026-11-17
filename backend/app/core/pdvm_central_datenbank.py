@@ -394,6 +394,7 @@ class PdvmCentralDatabase:
         self,
         actor_user_uid: Optional[str] = None,
         actor_ip: Optional[str] = None,
+        gcs=None,
     ) -> Optional[str]:
         """
         Speichert alle Daten in die Datenbank.
@@ -440,6 +441,7 @@ class PdvmCentralDatabase:
                     expected_snapshot_daten=self._loaded_snapshot,
                     system_pool=self.db._system_pool,
                     mandant_pool=self.db._mandant_pool,
+                    gcs=gcs,
                     actor_user_uid=effective_actor_user_uid,
                     actor_ip=effective_actor_ip,
                 )
@@ -452,6 +454,7 @@ class PdvmCentralDatabase:
                     daten=self.data,
                     name=name_value or "",
                     historisch=1 if self.historisch else 0,
+                    gcs=gcs,
                     system_pool=self.db._system_pool,
                     mandant_pool=self.db._mandant_pool,
                 )

@@ -18,8 +18,8 @@ def _normalize_sys_dialog_tab_elements_for_storage(*, daten: Dict[str, Any]) -> 
     - akzeptiert dict oder list als Eingabe
     - schreibt immer ROOT.TAB_ELEMENTS als dict mit TAB_01..TAB_NN
     - setzt TAB numerisch fortlaufend
-    - ergÃ¤nzt fehlende Felder per Root-Defaults (TABLE/EDIT_TYPE/OPEN_EDIT/SELECTION_MODE)
-    - entfernt Legacy ROOT.TAB_XX-BlÃ¶cke
+    - ergänzt fehlende Felder per Root-Defaults (TABLE/EDIT_TYPE/OPEN_EDIT/SELECTION_MODE)
+    - entfernt Legacy ROOT.TAB_XX-Blöcke
     """
     if not isinstance(daten, dict):
         return daten
@@ -362,7 +362,7 @@ def _normalize_element_field_type(value: Any) -> str:
     t = str(value or '').strip().lower()
     if t in {'number', 'int', 'float'}:
         return 'number'
-    if t in {'text', 'textarea'}:
+    if t in {'text', 'textarea', 'text_popup'}:
         return 'textarea'
     if t in {'dropdown', 'multi_dropdown', 'true_false'}:
         return 'dropdown'

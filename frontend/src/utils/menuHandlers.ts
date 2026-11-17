@@ -227,6 +227,14 @@ async function handleGoDialog(item: MenuItem, context: MenuHandlerContext): Prom
 }
 
 /**
+ * Handler: go_mandant_create
+ * Öffnet die Seite „Neuer Mandant“ (feste Route, kein freier Pfad aus Menüdaten; Rechte prüft das Backend)
+ */
+async function handleGoMandantCreate(_item: MenuItem, context: MenuHandlerContext): Promise<void> {
+  context.navigate('/mandant/new');
+}
+
+/**
  * Handler Registry
  * Mappt handler-Namen zu Funktionen
  */
@@ -240,6 +248,7 @@ const HANDLERS: Record<string, MenuHandler> = {
   'go_dialog': handleGoDialog,
   'go_pdvm_dialog': handleGoDialog,
   'go_pdvm_edit': handleGoDialog,
+  'go_mandant_create': handleGoMandantCreate,
 };
 
 /**

@@ -47,6 +47,17 @@ function readLastMode(): ThemeMode {
   return localStorage.getItem(LAST_MODE_KEY) === 'dark' ? 'dark' : 'light';
 }
 
+/**
+ * Wendet nur den zuletzt benutzten Hell/Dunkel-Modus an (Standardwerte aus variables.css, kein Mandanten-Theme).
+ * Gilt vor der Anmeldung und nach dem Abmelden: Login und Mandantenauswahl haben noch keine Sitzung und damit kein Theme.
+ */
+export function applyStoredThemeMode() {
+  const root = document.documentElement;
+  const mode = readLastMode();
+  root.dataset.theme = mode;
+  root.classList.toggle('dark', mode === 'dark');
+}
+
 /** Setzt die Tokens als CSS-Variablen (--<gruppe>-<token>) und gibt die gesetzten Namen zurueck. */
 function applyTheme(theme: ResolvedThemeResponse, previouslyApplied: Set<string>): Set<string> {
   const root = document.documentElement;
@@ -69,8 +80,7 @@ function applyTheme(theme: ResolvedThemeResponse, previouslyApplied: Set<string>
 function clearTheme(applied: Set<string>) {
   const root = document.documentElement;
   applied.forEach((name) => root.style.removeProperty(name));
-  delete root.dataset.theme;
-  root.classList.remove('dark');
+  applyStoredThemeMode();
   applyLayoutAttributes(null);
 }
 

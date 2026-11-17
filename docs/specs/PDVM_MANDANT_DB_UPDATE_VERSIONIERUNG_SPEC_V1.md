@@ -197,6 +197,10 @@ Gemeinsame CLI-Parameter (Mindeststandard):
 4. [x] Validierungs-Tool und standardisierten JSON-Report verankern.
 5. [x] Pilotlauf auf einer ausgewaehlten Ziel-Mandanten-DB durchfuehren.
 
+## 12a. Datenschritt `textvorlagen` (2026-11-14)
+
+Erster konkreter DATA_UPDATE-Schritt außerhalb der Versionsachsen: `backend/tools/mandant_textvorlagen_update_v1.py` liefert fehlende Basissätze 000/555/666 und fehlende Systemvorlagen (`sys_textvorlagen`) in alle Mandanten-DBs nach (nur Inserts, Dry-Run Standard, `--apply --confirm-backup`, idempotent). Details: `PDVM_TEXTVORLAGEN_SPEC_V1.md`, Abschnitt 8. Stand: Hauptmandant bekam 3 Basissätze, übrige Mandanten ohne `msy_textvorlagen` werden von der Mandanten-Wartung beim Login (oder mit `--with-maintenance`) versorgt.
+
 ## 12. Umsetzungsstand 2026-05-21
 
 Technisch umgesetzt:

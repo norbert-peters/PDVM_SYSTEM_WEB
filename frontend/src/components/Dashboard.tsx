@@ -1,8 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { apiClient } from '../api/client'
-import MandantCreate from './MandantCreate'
-import MandantSetup from './MandantSetup'
 import './Dashboard.css'
 
 interface DashboardProps {
@@ -25,13 +23,11 @@ interface MenuData {
   grundMenu: MenuItem[]
 }
 
-export default function Dashboard({ onLogout, mandantId, token }: DashboardProps) {
+export default function Dashboard({ onLogout, mandantId }: DashboardProps) {
   const [menuData, setMenuData] = useState<MenuData>({ verticalMenu: [], grundMenu: [] })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showGrundMenu, setShowGrundMenu] = useState(false)
-  const [showMandantCreate, setShowMandantCreate] = useState(false)
-  const [showMandantSetup, setShowMandantSetup] = useState(false)
 
   useEffect(() => {
     loadMenu()
@@ -147,20 +143,6 @@ export default function Dashboard({ onLogout, mandantId, token }: DashboardProps
             <span style={{color: 'var(--color-text-secondary)', fontSize: '0.9rem'}}>Mandant: {mandantId.substring(0, 8)}...</span>
           </div>
           <div className="dashboard-header-actions">
-            <button
-              onClick={() => setShowMandantCreate(true)}
-              className="dashboard-menu-button"
-              style={{ marginRight: '0.5rem', backgroundColor: 'var(--color-success)' }}
-            >
-              Neuer Mandant
-            </button>
-            <button
-              onClick={() => setShowMandantSetup(true)}
-              className="dashboard-menu-button"
-              style={{ marginRight: '1rem', backgroundColor: 'var(--color-primary-500)' }}
-            >
-              Mandant aufbauen
-            </button>
             {!loading && menuData.grundMenu.length > 0 && (
               <>
                 <button 
@@ -212,33 +194,13 @@ export default function Dashboard({ onLogout, mandantId, token }: DashboardProps
         
         {error && <p className="dashboard-error-text">{error}</p>}
         
-        {showMandantCreate ? (
-          <MandantCreate
-            token={token}
-            onSuccess={() => {
-              setShowMandantCreate(false)
-              alert('Mandant gespeichert')
-            }}
-            onCancel={() => setShowMandantCreate(false)}
-          />
-        ) : showMandantSetup ? (
-          <MandantSetup
-            token={token}
-            onSuccess={() => {
-              setShowMandantSetup(false)
-              alert('Mandanten-Datenbank erfolgreich aufgebaut')
-            }}
-            onCancel={() => setShowMandantSetup(false)}
-          />
-        ) : (
-          !loading && !error && (
-            <div className="dashboard-content">
-              <h2 className="dashboard-welcome-title">Willkommen im PDVM System</h2>
-              <p className="dashboard-welcome-text">
-                Wählen Sie einen Bereich aus der Navigation oben.
-              </p>
-            </div>
-          )
+        {!loading && !error && (
+          <div className="dashboard-content">
+            <h2 className="dashboard-welcome-title">Willkommen im PDVM System</h2>
+            <p className="dashboard-welcome-text">
+              Wählen Sie einen Bereich aus der Navigation oben.
+            </p>
+          </div>
         )}
       </main>
     </div>

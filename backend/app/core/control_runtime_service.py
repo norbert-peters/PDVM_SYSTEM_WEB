@@ -28,6 +28,8 @@ RUNTIME_KEY_MAP = {
     "filter_type": ("FILTER_TYPE", "filter_type"),
     "configs": ("CONFIGS", "configs"),
     "read_only": ("READ_ONLY", "read_only"),
+    "immutable": ("IMMUTABLE", "immutable"),
+    "immutable_after": ("IMMUTABLE_AFTER", "immutable_after"),
 }
 
 

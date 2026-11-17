@@ -4,6 +4,8 @@ import { PdvmLookupSelect } from './PdvmLookupSelect'
 import { PdvmDateTimePicker } from './PdvmDateTimePicker'
 import { PdvmBorderInput, PdvmColorInput, PdvmFontInput, PdvmLengthInput } from './PdvmThemeInputs'
 import { PdvmThemePreview } from './PdvmThemePreview'
+import { PdvmSecretInput } from './PdvmSecretInput'
+import { PdvmTextEditorModal } from './PdvmTextEditorModal'
 import { dateToPdvmFloat, pdvmFloatToDate, pdvmNowFloat } from '../../utils/pdvmDateTime'
 import { readRootCssVar } from '../../utils/themeTokens'
 import './PdvmInputControl.css'
@@ -11,6 +13,14 @@ import './PdvmInputControl.css'
 export type PdvmInputType = 'string' | 'number' | 'text' | 'dropdown' | 'multi_dropdown' | 'true_false' | 'datetime' | 'date' | 'time' | 'go_select_view' | 'element_list' | 'elemente_list' | 'group_list'
   // Theme-Typen (P3): Werte sind CSS-Strings, theme_preview erhaelt {gruppe: {token: wert}}
   | 'color' | 'css_length' | 'css_border' | 'font_family' | 'theme_preview'
+  // Geheimnisse: write-only, Feldwert ist der Name des Zugangsdatensatzes (siehe PdvmSecretInput)
+  | 'password'
+  // Passwort-Eingabe ohne Speicherung (Anmeldung): Wert nur im Zustand des Formulars bis zum Absenden (Login-Frames)
+  | 'password_input'
+  // Langtext: Schaltflaeche mit Kurzvorschau, Bearbeiten im grossen Fenster (siehe PdvmTextEditorModal)
+  | 'text_popup'
+  // Frame-Aktionen (Regel 2.17): Button bzw. reine Hinweisanzeige, siehe frames/frameActions.tsx
+  | 'action' | 'info'
 
 export type PdvmDropdownOption = { value: string; label: string; disabled?: boolean }
 export type PdvmElementDefinition = {
@@ -252,6 +262,10 @@ function normalizeInputType(value: any): PdvmInputType {
   if (t === 'elemente_list') return 'elemente_list'
   if (t === 'group_list') return 'group_list'
   if (t === 'color' || t === 'css_length' || t === 'css_border' || t === 'font_family' || t === 'theme_preview') return t
+  if (t === 'password') return 'password'
+  if (t === 'password_input') return 'password_input'
+  if (t === 'text_popup') return 'text_popup'
+  if (t === 'action' || t === 'info') return t
   return 'string'
 }
 
@@ -309,7 +323,7 @@ function normalizeStringValue(value: any): string {
 }
 
 function sanitizeNumberInput(value: any): string {
-  return String(value ?? '').replace(/[^1-9]+/g, '')
+  return String(value ?? '').replace(/[^0-9]+/g, '')
 }
 
 function normalizeNumberValue(value: any): string {
@@ -495,6 +509,8 @@ export function PdvmInputControl(props: {
   onChange: (value: any) => void
   onBlur?: () => void
   readOnly?: boolean
+  /** Erklaerung, warum das Feld schreibgeschuetzt ist (Tooltip am Schloss-Symbol). */
+  readOnlyHint?: string
   /** Nur mit readOnly: Text bleibt markier- und kopierbar (HTML readonly statt disabled), z. B. fuer GUIDs im Info-Fenster. */
   selectable?: boolean
   disabled?: boolean
@@ -519,6 +535,10 @@ export function PdvmInputControl(props: {
   elementDraftHydrator?: (draft: Record<string, any>, uid?: string | null) => Record<string, any>
   elementDraftNormalizer?: (draft: Record<string, any>, uid?: string | null) => Record<string, any>
   resolutionWarning?: string | null
+  /** Typ `action`: Zustand des Buttons (Sichtbarkeit/Rechte entscheidet der Host, siehe frames/frameActions.tsx). */
+  actionView?: { enabled: boolean; busy?: boolean; disabledReason?: string; onClick: () => void }
+  /** Typ `info`: anzuzeigender Text und Schweregrad. */
+  infoView?: { text: string; severity: 'info' | 'warning' | 'error' }
 }) {
   const [helpOpen, setHelpOpen] = useState(false)
   const [controlOpen, setControlOpen] = useState(false)
@@ -533,6 +553,8 @@ export function PdvmInputControl(props: {
   const [elementAddDefinitionUid, setElementAddDefinitionUid] = useState<string>('')
   const [elementAddLookupUid, setElementAddLookupUid] = useState<string>('')
   const [multiAddValue, setMultiAddValue] = useState<string>('')
+  const [textModalOpen, setTextModalOpen] = useState(false)
+  const [secretShown, setSecretShown] = useState(false)
 
   const controlDebugRaw = props.controlDebug && typeof props.controlDebug === 'object' ? (props.controlDebug as Record<string, any>) : null
   const controlDebugFieldKey = String(controlDebugRaw?.FIELD_KEY || '').trim() || props.id || props.label
@@ -683,6 +705,18 @@ export function PdvmInputControl(props: {
   }, [props.options, multiDropdownValue])
   const trueFalseValue = useMemo(() => normalizeTrueFalseValue(props.value), [props.value])
   const textValue = useMemo(() => normalizeTextValue(props.value), [props.value])
+  // Konfiguration resolved_configs.text = { rows, expand, title, mono, html_preview }
+  const textConfig = useMemo(() => {
+    const cfg = asObject(readCfgValue(props.resolvedConfigs, ['text']))
+    const rows = Number(readCfgValue(cfg, ['rows']))
+    return {
+      rows: Number.isFinite(rows) && rows >= 1 ? Math.min(Math.trunc(rows), 30) : 3,
+      expand: readCfgValue(cfg, ['expand']) !== false,
+      title: String(readCfgValue(cfg, ['title']) || '').trim(),
+      mono: readCfgValue(cfg, ['mono']) === true,
+      htmlPreview: readCfgValue(cfg, ['html_preview']) === true,
+    }
+  }, [props.resolvedConfigs])
   const stringValue = useMemo(() => normalizeStringValue(props.value), [props.value])
   // Konfiguration der Theme-Typen: resolved_configs.theme_token = { contrast_against: {value|var, min, label} }
   const themeTokenConfig = useMemo(() => asObject(readCfgValue(props.resolvedConfigs, ['theme_token'])), [props.resolvedConfigs])
@@ -1153,12 +1187,48 @@ export function PdvmInputControl(props: {
     setElementModalDraft(null)
   }
 
+  if (effectiveType === 'action') {
+    const view = props.actionView
+    return (
+      <div className="pdvm-pic pdvm-pic--action" title={view?.disabledReason || props.tooltip || undefined}>
+        <button
+          id={props.id}
+          type="button"
+          className="pdvm-pic__actionBtn"
+          disabled={!view || !view.enabled || !!view.busy}
+          onClick={view?.onClick}
+        >
+          {props.label}
+        </button>
+      </div>
+    )
+  }
+
+  if (effectiveType === 'info') {
+    const severity = props.infoView?.severity || 'info'
+    return (
+      <div className={`pdvm-pic pdvm-pic--info pdvm-pic--info-${severity}`} role="status" title={props.tooltip || undefined}>
+        <span className="pdvm-pic__infoLabel">{props.label}</span>
+        <span className="pdvm-pic__infoText">{props.infoView?.text}</span>
+      </div>
+    )
+  }
+
   return (
-    <div className="pdvm-pic" title={props.tooltip || undefined}>
+    <div className={`pdvm-pic${props.readOnly ? ' pdvm-pic--readonly' : ''}`} title={props.tooltip || undefined}>
       <div className="pdvm-pic__labelRow">
         <label className="pdvm-pic__label" htmlFor={props.id}>
           {props.label}
         </label>
+        {props.readOnly ? (
+          <span
+            className="pdvm-pic__lock"
+            title={props.readOnlyHint || 'Schreibgeschützt'}
+            aria-label={props.readOnlyHint || 'Schreibgeschützt'}
+          >
+            🔒
+          </span>
+        ) : null}
         {String(props.resolutionWarning || '').trim() ? (
           <span
             title={String(props.resolutionWarning || '').trim()}
@@ -1274,12 +1344,63 @@ export function PdvmInputControl(props: {
             id={props.id}
             className="pdvm-pic__input"
             type="text"
+            name={String(readCfgValue(asObject(readCfgValue(props.resolvedConfigs, ['input'])), ['name']) || '') || undefined}
+            autoComplete={String(readCfgValue(asObject(readCfgValue(props.resolvedConfigs, ['input'])), ['autocomplete']) || '') || undefined}
             value={stringValue}
             placeholder={props.placeholder}
             disabled={disabled && !copyable}
             readOnly={copyable}
             onChange={(e) => props.onChange(e.target.value)}
             onBlur={props.onBlur}
+          />
+        ) : null}
+
+        {effectiveType === 'password_input' ? (
+          (() => {
+            // Eingabe ohne Speicherung: CONFIGS.input {name, autocomplete} fuer Passwort-Manager, CONFIGS.password_input {reveal, min_length}
+            const inputCfg = asObject(readCfgValue(props.resolvedConfigs, ['input']))
+            const secretCfg = asObject(readCfgValue(props.resolvedConfigs, ['password_input']))
+            const minLength = Number(readCfgValue(secretCfg, ['min_length']) || 0)
+            const reveal = readCfgValue(secretCfg, ['reveal']) !== false
+            return (
+              <div className="pdvm-pic__secretWrap">
+                <input
+                  id={props.id}
+                  className="pdvm-pic__input"
+                  type={secretShown && reveal ? 'text' : 'password'}
+                  name={String(readCfgValue(inputCfg, ['name']) || '') || undefined}
+                  autoComplete={String(readCfgValue(inputCfg, ['autocomplete']) || '') || 'off'}
+                  minLength={minLength > 0 ? minLength : undefined}
+                  value={stringValue}
+                  placeholder={props.placeholder}
+                  disabled={disabled}
+                  onChange={(e) => props.onChange(e.target.value)}
+                  onBlur={props.onBlur}
+                />
+                {reveal ? (
+                  <button
+                    type="button"
+                    className="pdvm-pic__secretToggle"
+                    disabled={disabled}
+                    onClick={() => setSecretShown((prev) => !prev)}
+                    aria-label={secretShown ? 'Passwort verbergen' : 'Passwort anzeigen'}
+                    title={secretShown ? 'Passwort verbergen' : 'Passwort anzeigen'}
+                  >
+                    {secretShown ? '🙈' : '👁️'}
+                  </button>
+                ) : null}
+              </div>
+            )
+          })()
+        ) : null}
+
+        {effectiveType === 'password' ? (
+          <PdvmSecretInput
+            id={props.id}
+            name={stringValue}
+            namePrefix={String(asObject(props.resolvedConfigs?.password).name_prefix || '').trim() || undefined}
+            disabled={disabled}
+            onNameChange={props.onChange}
           />
         ) : null}
 
@@ -1321,7 +1442,7 @@ export function PdvmInputControl(props: {
               className="pdvm-pic__input"
               type="text"
               inputMode="numeric"
-              pattern="[1-9]*"
+              pattern="[0-9]*"
               value={numberValue}
               placeholder={props.placeholder}
               disabled={disabled}
@@ -1335,7 +1456,7 @@ export function PdvmInputControl(props: {
                 const raw = String(e.target.value || '')
                 const digitsOnly = sanitizeNumberInput(raw)
                 if (raw !== digitsOnly) {
-                  setNumberInputError('Es sind nur die Ziffern 1-9 möglich')
+                  setNumberInputError('Es sind nur die Ziffern 0-9 möglich')
                 } else {
                   setNumberInputError(null)
                 }
@@ -1347,17 +1468,46 @@ export function PdvmInputControl(props: {
         ) : null}
 
         {effectiveType === 'text' ? (
-          <textarea
+          <div className="pdvm-pic__textWrap">
+            <textarea
+              id={props.id}
+              className={`pdvm-pic__textarea ${textConfig.mono ? 'pdvm-pic__textarea--mono' : ''}`}
+              value={textValue}
+              placeholder={props.placeholder}
+              disabled={disabled && !copyable}
+              readOnly={copyable}
+              rows={textConfig.rows}
+              onBlur={props.onBlur}
+              onChange={(e) => props.onChange(e.target.value)}
+            />
+            {textConfig.expand ? (
+              <button
+                type="button"
+                className="pdvm-pic__expandBtn"
+                onClick={() => setTextModalOpen(true)}
+                title={disabled ? 'Text im großen Fenster lesen' : 'Text im großen Fenster bearbeiten'}
+                aria-label="Großes Textfenster öffnen"
+              >
+                ⤢
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
+        {effectiveType === 'text_popup' ? (
+          <button
             id={props.id}
-            className="pdvm-pic__textarea"
-            value={textValue}
-            placeholder={props.placeholder}
-            disabled={disabled && !copyable}
-            readOnly={copyable}
-            rows={3}
-            onBlur={props.onBlur}
-            onChange={(e) => props.onChange(e.target.value)}
-          />
+            type="button"
+            className="pdvm-pic__popupBtn"
+            onClick={() => setTextModalOpen(true)}
+            title={disabled ? 'Text im großen Fenster lesen' : 'Text im großen Fenster bearbeiten'}
+          >
+            <span className="pdvm-pic__popupIcon">{disabled ? '👁' : '✎'}</span>
+            <span className="pdvm-pic__popupText">
+              {textValue.trim() ? textValue.trim().split('\n')[0] : <em>(leer)</em>}
+            </span>
+            <span className="pdvm-pic__popupMeta">{textValue.length} Zeichen</span>
+          </button>
         ) : null}
 
         {effectiveType === 'dropdown' ? (
@@ -1496,6 +1646,20 @@ export function PdvmInputControl(props: {
           </label>
         ) : null}
       </div>
+
+      <PdvmTextEditorModal
+        open={textModalOpen && (effectiveType === 'text' || effectiveType === 'text_popup')}
+        title={textConfig.title || props.label}
+        value={textValue}
+        readOnly={disabled}
+        mono={textConfig.mono}
+        htmlPreview={textConfig.htmlPreview}
+        onApply={(next) => {
+          props.onChange(next)
+          setTextModalOpen(false)
+        }}
+        onCancel={() => setTextModalOpen(false)}
+      />
 
       <PdvmDialogModal
         open={helpOpen}

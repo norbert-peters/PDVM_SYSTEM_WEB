@@ -32,7 +32,7 @@ def _collect_edit_control_hints(daten: Dict[str, Any]) -> List[Dict[str, Any]]:
                         "field": key_norm,
                         "code": "hint_missing_collection_type",
                         "message": (
-                            f"Property '{key_norm}' ist ein Objekt. FÃ¼r edit_control sollte auf dieser Ebene "
+                            f"Property '{key_norm}' ist ein Objekt. Für edit_control sollte auf dieser Ebene "
                             f"TYPE=element_list oder TYPE=group_list gesetzt sein."
                         ),
                     }
@@ -50,7 +50,7 @@ def _collect_edit_control_hints(daten: Dict[str, Any]) -> List[Dict[str, Any]]:
                             "field": key_norm,
                             "code": "hint_nested_collection_depth",
                             "message": (
-                                f"Property '{key_norm}.{child_key}' ist tiefer verschachtelt. FÃ¼r edit_control "
+                                f"Property '{key_norm}.{child_key}' ist tiefer verschachtelt. Für edit_control "
                                 f"sollte die Sammlung eine Ebene tiefer bleiben."
                             ),
                         }
@@ -64,7 +64,7 @@ def _collect_edit_control_hints(daten: Dict[str, Any]) -> List[Dict[str, Any]]:
                     "field": key_norm,
                     "code": "hint_missing_collection_type",
                     "message": (
-                        f"Property '{key_norm}' ist eine Liste. FÃ¼r edit_control sollte diese Liste als "
+                        f"Property '{key_norm}' ist eine Liste. Für edit_control sollte diese Liste als "
                         f"TYPE=element_list oder TYPE=group_list modelliert sein."
                     ),
                 }
@@ -162,16 +162,16 @@ def validate_dialog_daten_generic(
 
 
 def extract_dialog_runtime_config(dialog_def: Dict[str, Any]) -> Dict[str, Any]:
-    """Extrahiert fÃ¼r die UI relevante Runtime-Konfiguration aus sys_dialogdaten.
+    """Extrahiert für die UI relevante Runtime-Konfiguration aus sys_dialogdaten.
 
-    PrimÃ¤rquelle: daten.ROOT
-    ZusÃ¤tzlich (neu): TAB_01/TAB_02/... BlÃ¶cke (z.B. fÃ¼r HEAD oder tab-spezifische Optionen).
+    Primärquelle: daten.ROOT
+    Zusätzlich (neu): TAB_01/TAB_02/... Blöcke (z.B. für HEAD oder tab-spezifische Optionen).
     """
     daten = dialog_def.get("daten") or {}
     root = dialog_def.get("root") or {}
 
     def _get_ci(d: Dict[str, Any], *keys: str) -> Any:
-        """Case-insensitive Zugriff auf Dict-Keys (unterstÃ¼tzt auch Varianten wie EDIT_TYPE/edit_type)."""
+        """Case-insensitive Zugriff auf Dict-Keys (unterstützt auch Varianten wie EDIT_TYPE/edit_type)."""
         if not isinstance(d, dict):
             return None
         lower_map = {str(k).lower(): k for k in d.keys()}
@@ -184,7 +184,7 @@ def extract_dialog_runtime_config(dialog_def: Dict[str, Any]) -> Dict[str, Any]:
         return None
 
     def _find_tab_block(container: Dict[str, Any], tab_index: int) -> Optional[Dict[str, Any]]:
-        """Findet TAB_01/TAB_02/... Block unabhÃ¤ngig von Schreibweise."""
+        """Findet TAB_01/TAB_02/... Block unabhängig von Schreibweise."""
         if not isinstance(container, dict):
             return None
         for k, v in container.items():
@@ -194,7 +194,7 @@ def extract_dialog_runtime_config(dialog_def: Dict[str, Any]) -> Dict[str, Any]:
         return None
 
     def _extract_tabs_from_elements(value: Any) -> Dict[int, Dict[str, Any]]:
-        """Extrahiert TAB-BlÃ¶cke aus TAB_ELEMENTS (dict oder list)."""
+        """Extrahiert TAB-Blöcke aus TAB_ELEMENTS (dict oder list)."""
         out: Dict[int, Dict[str, Any]] = {}
 
         if isinstance(value, dict):

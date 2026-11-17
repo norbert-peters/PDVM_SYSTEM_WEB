@@ -5,6 +5,9 @@
 - Node.js + npm
 - PostgreSQL läuft und ist in `backend/.env` konfiguriert
 
+## Schnellstart per Skript
+Doppelklick auf `start_pdvm.bat` startet Backend (Port 8000) und Frontend (Port 5173) in eigenen Fenstern und öffnet den Browser. `start_pdvm.bat backend` bzw. `start_pdvm.bat frontend` startet nur eine Seite. Beenden mit `stop_pdvm.bat` (ebenfalls optional `backend`/`frontend`). Die Skripte liegen in `scripts/` (`start_pdvm.ps1 -Target all|backend|frontend [-NoBrowser]`, `stop_pdvm.ps1`). Die folgenden Abschnitte beschreiben den manuellen Ablauf.
+
 ## 1. Backend starten (Terminal 1)
 ```powershell
 cd C:\Users\norbe\dev\PDVM_SYSTEM_WEB\backend
@@ -34,11 +37,8 @@ Frontend: http://localhost:5173 (Vite, leitet API-Aufrufe per Proxy an das Backe
 ## 3. Login
 Die Anmeldemaske ist mit `admin@example.com` vorbelegt (siehe `frontend/src/components/Login.tsx`). Das Passwort ist das des jeweiligen Benutzers in der Datenbank.
 
-## 4. Services über das Dashboard verwalten
-Nach dem Login zeigt der Tab "Services & Lauscher" die laufenden Prozesse (Port, PID, RAM, CPU) und erlaubt das Stoppen. Die zugehörige API liegt unter `/api/processes/*` (`backend/app/api/processes.py`).
-
-## 5. Stoppen
-Im jeweiligen Terminal `Strg+C`. Alternativ einen Prozess gezielt über seine PID beenden:
+## 4. Stoppen
+Im jeweiligen Terminal `Strg+C` oder `stop_pdvm.bat`. Alternativ einen Prozess gezielt über seine PID beenden:
 ```powershell
 Get-NetTCPConnection -LocalPort 8000 -State Listen | Select-Object OwningProcess
 Stop-Process -Id <PID>

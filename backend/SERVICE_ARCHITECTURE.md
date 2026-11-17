@@ -1,299 +1,95 @@
-# PDVM Service-Architektur
+# Backend-Komponenten (Service-Architektur)
 
-## 🏗️ Übersicht
+Überblick über die Bausteine des Backends und ihre Zuständigkeiten. Die **verbindlichen Regeln** stehen ausschließlich in [ARCHITECTURE_RULES.md](../ARCHITECTURE_RULES.md); dieses Dokument beschreibt nur den Ist-Stand. Bei Widerspruch gilt `ARCHITECTURE_RULES.md`.
 
-Die neue Service-Architektur folgt dem Desktop-Vorbild und bietet eine saubere Trennung zwischen Datenzugriff und Business Logic.
+## Schichten
 
 ```
-┌─────────────────────────────────────────┐
-│           API Layer (FastAPI)           │
-│         /api/mandanten, /api/tables     │
-└─────────────────────────────────────────┘
-                    ↓
-┌─────────────────────────────────────────┐
-│        DataManager (Business Logic)      │
-│  - MandantDataManager                   │
-│  - PersonDataManager                    │
-│  - Cache, Validierung, Geschäftslogik   │
-└─────────────────────────────────────────┘
-                    ↓
-┌─────────────────────────────────────────┐
-│      PdvmDatabaseService (CRUD)         │
-│  - Generic für alle PDVM-Tabellen       │
-│  - list_all(), get_by_uid(), create()   │
-│  - update(), delete(), search()         │
-└─────────────────────────────────────────┘
-                    ↓
-┌─────────────────────────────────────────┐
-│            PostgreSQL                    │
-│  auth.sys_benutzer, auth.sys_mandanten  │
-│  mandant.persondaten, ...               │
-└─────────────────────────────────────────┘
+Router (app/api)            kein SQL, kein asyncpg (Regel 1.1)
+   │
+Services (app/core/*_service.py, Central-Klassen)
+   │   Lesen:      PdvmDatabase (pdvm_datenbank.py)
+   │   Schreiben:  central_write_service
+   │
+Verbindungen: DatabasePool (auth) · ConnectionManager (Mandanten) · PoolRegistry (geteilte Pools)
+   │
+PostgreSQL: auth · system · Mandanten-DBs
 ```
 
-## 📁 Dateien
+`backend/test_architecture_guard.py` prüft die Schichtregeln statisch (Router ohne SQL, Schreiben nur über den Gateway).
 
-### Core Services
-- **`app/core/pdvm_database.py`** - Generischer Database Service
-- **`app/core/data_managers.py`** - Business Logic Layer (Manager-Klassen)
-- **`app/core/user_manager.py`** - User-spezifischer Manager (existiert bereits)
+## Datenbankzugriff
 
-### API Endpoints
-- **`app/api/mandanten.py`** - Mandanten-Verwaltung (nutzt MandantDataManager)
-- **`app/api/auth.py`** - Authentifizierung
-- **`app/api/tables.py`** - Generischer Tabellen-Zugriff (TODO)
+| Baustein | Datei | Aufgabe |
+|---|---|---|
+| `DatabasePool`, `resolve_db_name_by_prefix` | `core/database.py` | Pool der AUTH-DB (`DATABASE_URL_AUTH`); Routing Tabellenpräfix → Datenbank (`asy_`→auth, `sys_`/`dev_`→system, `msy_` und App-Präfixe→mandant, Regel 1.7a) |
+| `ConnectionManager` | `core/connection_manager.py` | Verbindungsparameter aller weiteren Datenbanken aus `asy_mandanten` (Regel 1.2): Adressen je Mandanten-DB und System-DB, Zugangsdaten über `resolve_mandant_connections` |
+| Credential-Store | `core/credential_store.py` | `get_credential(name)`: Zugangsdaten weiterer Server aus `PDVM_DB_CREDENTIALS` (austauschbar gegen einen Secret-Store); Passwörter stehen nie in `asy_mandanten` |
+| `PoolRegistry` | `core/pool_registry.py` | Gemeinsam genutzte asyncpg-Pools (Verbindungsaufbau kostet ca. 150 ms); GCS-Sessions teilen Pools und schließen sie beim Logout nicht |
+| `PdvmDatabase` | `core/pdvm_datenbank.py` | Zentraler Lesezugriff auf alle PDVM-Tabellen, Routing nach Tabellenname, Tabellennamen-Validierung |
+| `central_write_service` | `core/central_write_service.py` | Einziger Schreibpfad (`create_record_central`, `update_record_central`, `delete_record_central`) inkl. Actor-Kontext aus der GCS-Session |
+| `PdvmCentralDatabase` | `core/pdvm_central_datenbank.py` | Business-Schicht für einen Datensatz: `.load()`, `get_value`/`set_value`, Historie und Stichtag |
+| `PdvmCentralSystemsteuerung` (GCS) | `core/pdvm_central_systemsteuerung.py` | Sitzungskontext je Benutzer und Mandant: Pools, Stichtag, Benutzer-/Mandanteneinstellungen (`msy_systemsteuerung`, `msy_anwendungsdaten`, `msy_layout`) |
+| `pdvm_table_schema`, `pdvm_mandant_provisioning`, `mandant_setup_service`, `mandant_access` | `core/` | Standard-Tabellenstruktur, Anlage der Mandantentabellen, Mandant anlegen (`create_mandant`: Satz, Zuweisung, Datenbank; Aktion `mandant.setup`), Mandanten-Zulassung eines Benutzers (`MANDANTEN.LIST`, Login/Wahl/Listen) |
+| `PdvmDateTime` | `core/pdvm_datetime.py` | Einzige Umrechnung zwischen Python-/JS-Datum und dem PDVM-Format `YYYYDDD.FRACTION` (Regel 1.9) |
 
-### Setup Scripts
-- **`backend/setup_mandanten.py`** - Erstellt Standard-Mandanten
-- **`backend/test_architecture.py`** - Test der Architektur
-- **`backend/create_test_user.py`** - Erstellt Test-User
+Sonderpfade (dokumentierte Ausnahmen in Regel 1.1/1.13):
+- `asy_benutzer` hat die Zusatzspalten `benutzer` und `passwort`: `user_manager.py` (`UserManager`) und `pdvm_central_benutzer.py`.
+- `MandantDataManager` (`data_managers.py`) pflegt `asy_mandanten` über `PdvmDatabaseService` (`pdvm_database.py`, generischer CRUD-Service). `PersonDataManager` wird im Backend nicht mehr verwendet.
 
-## 🔧 PDVM Standard-Tabellenstruktur
+## Fachliche Services
 
-Alle Tabellen (außer sys_benutzer) haben diese Struktur:
+| Bereich | Dateien |
+|---|---|
+| Dialoge | `dialog_service.py`, `dialog_frame_helpers.py`, `dialog_runtime_config.py`, `dialog_create_helpers.py`, `dialog_api_helpers.py`, `dialog_info.py` |
+| Frame-Runtime (Masken ohne Dialog) | `frame_runtime_service.py` (Frame + Controls als ein Modell, Cache; Typ `password_input` nur in `public_form`-Frames), `public_frame_service.py` (öffentliche Login-Frames ohne Token: Allowlist, Typmenge), `rate_limit.py` (Begrenzung je Schlüssel im Speicher), `frame_action_service.py` (Aktionsregister für Controls `action`/`info`: Rollen, Parameter, Zustände, Regel 2.17), `mandant_record_rules.py` (Regeln der Mandanten-Neuanlage), `immutable_fields_service.py` (Sperre unveränderlicher Felder im Schreibpfad) |
+| Zugangsdaten | `credential_store.py` (`.env` + entschlüsselter Cache), `credential_service.py` (Tabelle `asy_credentials`, setzen/Status), `secret_box.py` (Fernet, `PDVM_SECRET_KEY`) |
+| Textvorlagen | `text_template_service.py` (Auswahl nach Schlüssel/aktiv/freigegebener Sprache, Rendern inkl. HTML, Prüfen, Schreib-Guard mit Rollen und Freigabelogik, Kopie), siehe [PDVM_TEXTVORLAGEN_SPEC_V1.md](../docs/specs/PDVM_TEXTVORLAGEN_SPEC_V1.md) |
+| Neuanlage (Draft) | `workflow_draft_service.py`, `workflow_draft_access.py` |
+| Views | `view_service.py`, `view_matrix_service.py`, `view_state_service.py`, `view_table_state_service.py` |
+| Control Dictionary | `control_dict_service.py`, `control_template_service.py`, `control_runtime_service.py` |
+| Menü, Dropdowns, Systemdaten | `menu_editor_service.py`, `dropdown_service.py`, `systemdaten_service.py` |
+| Theming | `theme_service.py`, `theme_schema.py`, `theme_color.py`, `layout_schema.py` |
+| Mandanten | `mandant_db_provisioning_service.py`, `mandant_db_maintenance.py`, `db_admin_service.py` |
+| Benutzer und Mail | `password_reset_service.py`, `email_service.py`, `security.py` |
+| Releases, Import, Historie | `release_service.py`, `import_data_service.py`, `feld_aenderungshistorie_service.py` |
+| Fehler und I18N | `error_handlers.py`, `i18n_policy.py` |
 
-```sql
-CREATE TABLE tabelle (
-    uid UUID PRIMARY KEY,              -- Eindeutige ID
-    daten JSONB NOT NULL,              -- Hauptdaten (verschachtelt)
-    name TEXT,                         -- Anzeigename
-    historisch INTEGER DEFAULT 0,     -- 0=aktiv, 1+=historisch
-    source_hash TEXT,                  -- Änderungsverfolgung
-    sec_id UUID,                       -- Security/Verknüpfung
-    gilt_bis TIMESTAMP DEFAULT '31.12.9999-59:59',  -- Gültigkeitsdatum default offen
-    created_at TIMESTAMP DEFAULT NOW(),
-    modified_at TIMESTAMP DEFAULT NOW(),
-    backup_daten JSONB                -- Backup bei Änderungen
-);
-```
+## API-Router
 
-### JSONB Daten-Format (Desktop-Kompatibel)
+Registriert in `app/main.py`:
 
-```json
-{
-  "ROOT": {},
-  "PERSDATEN": {
-    "PERSONALNUMMER": {"2025356.0": "A1"},
-    "FAMILIENNAME": {"2025356.0": "Mustermann"},
-    "VORNAME": {"2025356.0": "Max"}
-  },
-  "ANSCHRIFT_PERSON": {
-    "STRASSE": {"2025356.0": "Hauptstraße 1"},
-    "PLZ": {"2025356.0": "10115"},
-    "ORT": {"2025356.0": "Berlin"}
-  }
-}
-```
+| Präfix | Router |
+|---|---|
+| `/api/auth` | `auth.py` |
+| `/api/mandanten`, `/api/admin` | `mandanten.py`, `admin.py` |
+| `/api/gcs` | `gcs.py` |
+| `/api/tables`, `/api/lookups`, `/api/systemdaten` | `tables.py`, `lookups.py`, `systemdaten.py` |
+| `/api/menu`, `/api/menu-editor` | `menu.py`, `menu_editor.py` |
+| `/api/views`, `/api/dialogs`, `/api/workflow-drafts` | `views.py`, `dialogs.py`, `workflow_drafts.py` |
+| `/api/frames` | `frames.py` (`GET /{uid}/runtime?language=`, mit und ohne GCS-Session; liefert Dropdown-Optionen aus `sys_dropdowndaten`) |
+| `/api/frame-actions` | `frame_actions.py` (`POST /{id}/run` führt eine Aktion aus, `POST /state` liefert Rechte und Zustände je Satz; Register und Prüfung in `frame_action_service.py`, Regel 2.17) |
+| `/api/public` | `public_frames.py` (`GET /login-frames`, ohne Token: die drei Login-Frames; Allowlist, Typprüfung und Laden in `public_frame_service.py`, Begrenzung je IP über `rate_limit.py`, Regel 2.15) |
+| `/api/credentials` | `credentials.py` (Zugangsdaten setzen/Status, nur Admin, write-only) |
+| `/api/control`, `/api/import`, `/api/releases` | `control_dict.py`, `import_data.py`, `releases.py` |
+| `/api/layout` | `layout.py` (Theming, siehe [THEMING_SYSTEM.md](../docs/specs/THEMING_SYSTEM.md)) |
 
-Zeitstempel-Format: `YYYYDDD.0` (Jahr + Tag des Jahres)
-
-## 💻 Verwendung
-
-### 1. PdvmDatabaseService (Low-Level CRUD)
+## Typischer Ablauf
 
 ```python
-from app.core.pdvm_database import PdvmDatabaseService
+# Lesen im Service/Router: Pools kommen aus der GCS-Session
+db = PdvmDatabase("sys_menudaten", system_pool=gcs._system_pool, mandant_pool=gcs._mandant_pool)
+row = await db.get_by_uid(uid)
 
-# Initialisieren für spezifische Tabelle
-db = PdvmDatabaseService(database="mandant", table="persondaten")
-
-# Liste alle aktiven Datensätze
-personen = await db.list_all(historisch=0, limit=100)
-
-# Lade per UID
-person = await db.get_by_uid("ed21cb69-046b-465f-b231-6e75852b50b3")
-
-# Erstellen
-new_person = await db.create(
-    daten={
-        "ROOT": {},
-        "PERSDATEN": {"FAMILIENNAME": {"2025356.0": "Schmidt"}}
-    },
-    name="Anna Schmidt"
-)
-
-# Aktualisieren (mit Backup)
-updated = await db.update(
-    uid=person['uid'],
-    daten=new_data,
-    name="Neuer Name",
-    backup_old=True  # Alte Daten in daten_backup
-)
-
-# Löschen (soft delete)
-await db.delete(uid, soft=True)  # historisch=1
-
-# Suchen
-results = await db.search("Schmidt", search_fields=['name'])
-
-# Zählen
-count = await db.count(historisch=0)
+# Schreiben: ausschließlich über den Gateway
+await update_record_central(...)   # app/core/central_write_service.py
 ```
 
-### 2. DataManager (High-Level Business Logic)
+Fachlogik auf Datensatzebene (Defaults, Historie, Stichtag) läuft über `PdvmCentralDatabase.load(...)` (Regel 1.3), nie über direkte JSON-Zugriffe auf `row["daten"]`.
 
-```python
-from app.core.data_managers import MandantDataManager
+## Betrieb und Tests
 
-# Initialisieren
-manager = MandantDataManager()
-
-# Liste mit Cache
-mandanten = await manager.list_all()
-
-# Lade per ID (mit Cache)
-mandant = await manager.get_by_id(mandant_id)
-
-# Erstellen mit Validierung
-mandant = await manager.create(
-    name="Neuer Mandant",
-    database="mandant_neu",
-    description="Beschreibung",
-    is_allowed=True
-)
-
-# Berechtigung prüfen
-has_access = await manager.check_access(mandant_id, user_id)
-
-# Datenbank-Name holen
-db_name = await manager.get_database_name(mandant_id)
-
-# Aktualisieren
-updated = await manager.update(
-    mandant_id,
-    name="Neuer Name",
-    is_allowed=False
-)
-
-# Cache leeren (bei Bedarf)
-manager.clear_cache()
-```
-
-### 3. Person DataManager (Mandanten-spezifisch)
-
-```python
-from app.core.data_managers import PersonDataManager
-
-# Initialisieren für Mandanten-Datenbank
-manager = PersonDataManager(mandant_database="mandant")
-
-# Liste
-personen = await manager.list_all()
-
-# Erstellen mit PDVM-Datenstruktur
-person = await manager.create(
-    personalnummer="A001",
-    familienname="Schmidt",
-    vorname="Anna",
-    anrede="w",
-    strasse="Teststraße 1",
-    plz="10115",
-    ort="Berlin"
-)
-
-# Suchen
-results = await manager.search_by_name("Schmidt")
-```
-
-### 4. In API Endpoints verwenden
-
-```python
-from fastapi import APIRouter, Depends
-from app.core.data_managers import MandantDataManager
-from app.api.auth import get_current_user
-
-router = APIRouter()
-
-@router.get("/mandanten/list")
-async def get_mandanten(current_user: dict = Depends(get_current_user)):
-    manager = MandantDataManager()
-    mandanten = await manager.list_all()
-    return mandanten
-
-@router.post("/mandanten/select")
-async def select_mandant(mandant_id: str, current_user: dict = Depends(get_current_user)):
-    manager = MandantDataManager()
-    
-    # Berechtigung prüfen
-    has_access = await manager.check_access(mandant_id, current_user['sub'])
-    if not has_access:
-        raise HTTPException(403, "Keine Berechtigung")
-    
-    # Datenbank-Name holen
-    database = await manager.get_database_name(mandant_id)
-    
-    return {"database": database, "mandant_id": mandant_id}
-```
-
-## 🚀 Setup
-
-### 1. Mandanten erstellen
-```bash
-cd backend
-python setup_mandanten.py
-```
-
-### 2. Test-User erstellen
-```bash
-python create_test_user.py
-```
-
-### 3. Architektur testen
-```bash
-python test_architecture.py
-```
-
-### 4. Backend starten
-```bash
-python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-## 🎯 Vorteile
-
-### PdvmDatabaseService
-✅ **Generic** - Funktioniert mit jeder PDVM-Tabelle  
-✅ **JSONB-Parsing** - Automatisch  
-✅ **Backup** - Alte Daten bei Update  
-✅ **Soft Delete** - historisch-Flag  
-✅ **Search** - Volltextsuche  
-✅ **Pagination** - limit/offset  
-
-### DataManager
-✅ **Cache** - In-Memory für Performance  
-✅ **Validierung** - Business Rules  
-✅ **Geschäftslogik** - Mandanten-spezifisch  
-✅ **Typsicherheit** - Klare Interfaces  
-✅ **Wiederverwendbar** - Einmal schreiben, überall nutzen  
-
-## 📝 Nächste Schritte
-
-1. **Generic Table API** - REST-Endpoints für beliebige Tabellen
-2. **Rechte-System** - User-spezifische Mandanten-Rechte
-3. **Versionierung** - Historie mit git_bis
-4. **Validation Rules** - JSON-Schema für daten-Feld
-5. **Dashboard** - Frontend für Datenverwaltung
-
-## 🔍 Debugging
-
-```python
-# Logging aktivieren
-import logging
-logging.basicConfig(level=logging.INFO)
-
-# Database Service Debug
-db = PdvmDatabaseService(database="auth", table="sys_mandanten")
-mandanten = await db.list_all()
-print(f"Gefunden: {len(mandanten)}")
-
-# DataManager Debug
-manager = MandantDataManager()
-manager.clear_cache()  # Cache leeren
-mandanten = await manager.list_all()
-print(f"Cache: {len(manager._cache)}")
-```
-
-## 📚 Weitere Dokumentation
-
-- [AUTO_DATABASE_MANAGEMENT.md](../AUTO_DATABASE_MANAGEMENT.md) - Datenbank-Setup
-- [SYSTEM_STARTUP_GUIDE.md](../SYSTEM_STARTUP_GUIDE.md) - System starten
-- [database/schema_mandant.sql](../database/schema_mandant.sql) - Tabellenstruktur
+- Starten: [SYSTEM_STARTUP_GUIDE.md](../SYSTEM_STARTUP_GUIDE.md)
+- Tests: `..\.venv\Scripts\python.exe -m pytest` aus `backend/`
+- Werkzeuge (Audit, Seeder, Migrationen): [tools/README.md](./tools/README.md)
+- Datenbanken und Routing im Überblick: [README.md](../README.md)

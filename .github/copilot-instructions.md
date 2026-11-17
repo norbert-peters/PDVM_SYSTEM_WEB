@@ -4,9 +4,8 @@
 - Arbeitsbereich ist standardmäßig dieses Repository (https://github.com/norbert-peters/PDVM_SYSTEM_WEB), sofern nicht ausdrücklich anders angegeben.
 - Vor jeder Änderung (Backend, Frontend, Datenbank, Doku) die Architekturregeln lesen und einhalten:
   - [ARCHITECTURE_RULES.md](../ARCHITECTURE_RULES.md) (verbindlich, hat Vorrang)
-  - [FRAME_ARCHITECTURE_V2.md](../FRAME_ARCHITECTURE_V2.md)
-  - [backend/SERVICE_ARCHITECTURE.md](../backend/SERVICE_ARCHITECTURE.md)
-  - [backend/ARCHITECTURE_REDESIGN.md](../backend/ARCHITECTURE_REDESIGN.md)
+  - [docs/specs/PDVM_LINEAR_SCHEMA_V1.md](../docs/specs/PDVM_LINEAR_SCHEMA_V1.md) (Schema der Systemtabellen und Frames)
+  - [backend/SERVICE_ARCHITECTURE.md](../backend/SERVICE_ARCHITECTURE.md) (Ist-Stand der Backend-Komponenten, keine Regeln)
 - Bei Konflikt zwischen Anforderung und Architekturregel: nicht stillschweigend abweichen, sondern nachfragen.
 - Wird eine Regel durch eine Änderung berührt, die zugehörige Dokumentation mitpflegen.
 

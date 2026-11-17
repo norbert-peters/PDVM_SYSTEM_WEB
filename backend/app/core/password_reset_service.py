@@ -32,7 +32,7 @@ def _parse_security_time(value: Any) -> Optional[datetime]:
     if not value:
         return None
 
-    # PrimÃ¤r: PDVM float/timestamp
+    # Primär: PDVM float/timestamp
     try:
         pdvm_val = float(value)
         if pdvm_val >= 1001.0:
@@ -71,6 +71,24 @@ def _generate_strong_password(length: int = 12) -> str:
 
     secrets.SystemRandom().shuffle(chars)
     return "".join(chars)
+
+
+def stored_user_email(user: Dict[str, Any]) -> Optional[str]:
+    """Nur die im Benutzersatz hinterlegte Adresse (`USER.EMAIL`), ohne Rueckgriff auf den Anmeldenamen."""
+    daten = user.get("daten")
+    if isinstance(daten, str) and daten.strip().startswith("{"):
+        try:
+            import json
+
+            daten = json.loads(daten)
+        except Exception:
+            return None
+    group = daten.get("USER") if isinstance(daten, dict) else None
+    if isinstance(group, dict):
+        value = group.get("EMAIL") or group.get("email")
+        if value and str(value).strip():
+            return str(value).strip()
+    return None
 
 
 def _extract_user_email(user: Dict[str, Any]) -> Optional[str]:
@@ -155,25 +173,126 @@ def _extract_send_email_from_data(data: Any) -> Dict[str, Any]:
     return {}
 
 
-async def _get_send_email_config_async(gcs) -> Dict[str, Any]:
-    cfg = _get_send_email_config(gcs)
-    if cfg:
-        return cfg
-
+async def _load_mandant_daten_fresh(gcs) -> Dict[str, Any]:
+    """Aktuelle Daten des Session-Mandanten direkt aus asy_mandanten (statt der Login-Daten der Session)."""
+    guid = getattr(getattr(gcs, "mandant", None), "guid", None) if gcs else None
+    if not guid:
+        return {}
     try:
-        from app.core.data_managers import MandantDataManager
+        from app.core.pdvm_datenbank import PdvmDatabase
 
-        manager = MandantDataManager()
-        mandanten = await manager.list_all(include_inactive=False)
-        for mandant in mandanten:
-            data = mandant.get("daten") if isinstance(mandant, dict) else None
-            cfg = _extract_send_email_from_data(data)
-            if cfg:
-                return cfg
+        row = await PdvmDatabase("asy_mandanten").get_by_uid(uuid.UUID(str(guid)))
     except Exception:
         return {}
+    daten = row.get("daten") if row else None
+    return daten if isinstance(daten, dict) else {}
 
-    return {}
+
+async def _load_send_email_config_fresh(gcs) -> Dict[str, Any]:
+    """Aktuelle SEND_EMAIL-Konfiguration des Session-Mandanten direkt aus asy_mandanten.
+
+    Die GCS-Session haelt die Mandantendaten vom Anmeldezeitpunkt; Aenderungen (z. B. neues SMTP-Passwort)
+    wuerden sonst erst nach erneuter Mandantenwahl wirken. Der Versand ist selten, die Abfrage billig.
+    """
+    return _extract_send_email_from_data(await _load_mandant_daten_fresh(gcs))
+
+
+PASSWORD_RESET_TEMPLATE_KEY = "PASSWORD_RESET"
+
+
+def _user_language(user: Dict[str, Any]) -> Optional[str]:
+    daten = user.get("daten") if isinstance(user.get("daten"), dict) else {}
+    settings_group = daten.get("SETTINGS") if isinstance(daten.get("SETTINGS"), dict) else {}
+    return settings_group.get("LANGUAGE") or None
+
+
+async def _load_reset_template(gcs, user: Dict[str, Any], mandant_daten: Optional[Dict[str, Any]] = None, mandant_pool: Any = None):
+    """Textvorlage und freigegebene Sprache fuer die Reset-Mail (vor jeder Aenderung am Benutzer, damit Fehler folgenlos bleiben).
+
+    Ohne Sitzung (Login: Passwort vergessen) kommen Mandantendaten und -pool vom Mandanten des Benutzers (`mandant_daten`, `mandant_pool`).
+    """
+    from app.core import text_template_service as texts
+
+    system_pool = getattr(gcs, "_system_pool", None) if gcs else None
+    if system_pool is None:
+        from app.core.frame_runtime_service import resolve_pool_scope
+
+        system_pool = (await resolve_pool_scope(None))._system_pool
+    if mandant_daten is None:
+        mandant_daten = await _load_mandant_daten_fresh(gcs)
+    if mandant_pool is None and gcs:
+        mandant_pool = getattr(gcs, "_mandant_pool", None)
+    try:
+        candidates = await texts.load_candidates(
+            PASSWORD_RESET_TEMPLATE_KEY,
+            system_pool=system_pool,
+            mandant_pool=mandant_pool,
+        )
+        mandant_language = _as_dict_or_empty(mandant_daten.get("CONFIG")).get("DEFAULT_LANGUAGE")
+        return texts.select_group(candidates, texts.language_chain(_user_language(user), mandant_language))
+    except texts.TextTemplateError as exc:
+        raise ValueError(f"E-Mail-Text nicht verfügbar: {exc}")
+
+
+def _as_dict_or_empty(value: Any) -> Dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
+def _smtp_usable(cfg: Dict[str, Any]) -> bool:
+    return bool(str(cfg.get("SMTP_HOST") or "").strip())
+
+
+async def _resolve_user_mandant(user: Dict[str, Any]) -> Dict[str, Any]:
+    """Mandant des Benutzers fuer Aufrufe ohne Sitzung (Passwort vergessen): `MANDANTEN.DEFAULT`, dann `MANDANTEN.LIST`.
+
+    Gewaehlt wird der erste dieser Mandanten mit nutzbarer SEND_EMAIL-Konfiguration (SMTP_HOST gesetzt); gibt es keinen,
+    der erste vorhandene (Sprache/Vorlage) mit leerer Konfiguration. Nie ein Mandant, der dem Benutzer nicht zugeordnet ist.
+    Ergebnis: {"uid", "daten", "send_email", "pool"} (Pool nur, wenn die Mandanten-DB erreichbar ist, sonst None).
+    """
+    from app.core.mandant_access import allowed_mandant_ids
+    from app.core.pdvm_datenbank import PdvmDatabase
+
+    daten = user.get("daten") if isinstance(user.get("daten"), dict) else {}
+    config = daten.get("MANDANTEN") if isinstance(daten.get("MANDANTEN"), dict) else {}
+    ordered: list = []
+    for uid in [str(config.get("DEFAULT") or "").strip().lower()] + allowed_mandant_ids(daten):
+        if uid and uid not in ordered:
+            ordered.append(uid)
+
+    first: Optional[Dict[str, Any]] = None
+    for uid in ordered:
+        try:
+            row = await PdvmDatabase("asy_mandanten").get_by_uid(uuid.UUID(uid))
+        except Exception:
+            continue
+        mandant_daten = row.get("daten") if row and isinstance(row.get("daten"), dict) else None
+        if not mandant_daten:
+            continue
+        found = {"uid": uid, "daten": mandant_daten, "send_email": _extract_send_email_from_data(mandant_daten), "pool": None}
+        if _smtp_usable(found["send_email"]):
+            first = found
+            break
+        first = first or found
+    if first is None:
+        return {"uid": None, "daten": {}, "send_email": {}, "pool": None}
+
+    try:  # Aktive Vorlagenkopie des Mandanten (best effort; sonst gilt die Systemvorlage)
+        from app.core import mandant_db_provisioning_service as provisioning
+        from app.core.connection_manager import ConnectionManager
+
+        _, mandant_config = await ConnectionManager.get_mandant_config(first["uid"])
+        first["pool"] = await provisioning.get_shared_pool(mandant_config.to_url())
+    except Exception as exc:
+        logger.info("Passwort-Reset: Mandanten-DB nicht erreichbar, Systemvorlage wird verwendet (%s)", exc)
+    return first
+
+
+async def _get_send_email_config_async(gcs) -> Dict[str, Any]:
+    """SEND_EMAIL des Session-Mandanten (frisch aus der DB, sonst aus der Session). Kein Rueckgriff auf fremde Mandanten."""
+    cfg = await _load_send_email_config_fresh(gcs)
+    if cfg:
+        return cfg
+    return _get_send_email_config(gcs)
 
 
 def _update_security(daten: Dict[str, Any], updates: Dict[str, Any]) -> Dict[str, Any]:
@@ -202,7 +321,7 @@ async def issue_password_reset(
     try:
         user_uuid = uuid.UUID(str(user_uid))
     except Exception:
-        raise ValueError("UngÃ¼ltige User-GUID")
+        raise ValueError("Ungültige User-GUID")
 
     benutzer_mgr = PdvmCentralBenutzer(user_uuid)
     user = await benutzer_mgr.get_user()
@@ -213,9 +332,19 @@ async def issue_password_reset(
     if not user_email:
         raise ValueError("Benutzer hat keine E-Mail-Adresse")
 
-    # Mandant SMTP config
-    send_cfg = await _get_send_email_config_async(gcs)
-
+    # Mandant SMTP config (Zugangsdaten frisch aus dem Store). Mit Sitzung: Session-Mandant; ohne Sitzung
+    # (Passwort vergessen im Login): Mandant des Benutzers (MANDANTEN.DEFAULT/LIST).
+    from app.core.credential_service import ensure_fresh
+    await ensure_fresh()
+    if gcs is None:
+        ctx = await _resolve_user_mandant(user)
+        send_cfg = ctx["send_email"]
+        if not _smtp_usable(send_cfg):
+            raise ValueError("Für den Mandanten des Benutzers ist kein E-Mail-Versand konfiguriert")
+        template, language = await _load_reset_template(None, user, mandant_daten=ctx["daten"], mandant_pool=ctx["pool"])
+    else:
+        send_cfg = await _get_send_email_config_async(gcs)
+        template, language = await _load_reset_template(gcs, user)
     rate_limit = _get_rate_limit_config(send_cfg)
 
     now = _now_utc()
@@ -266,19 +395,18 @@ async def issue_password_reset(
         actor_ip=getattr(gcs, "actor_ip", None) if gcs else None,
     )
 
-    # Send email
-    subject = "PDVM Passwort zurÃ¼cksetzen"
-    body = (
-        "Ihr neues einmaliges Passwort wurde erzeugt.\n\n"
-        f"Passwort: {otp}\n"
-        f"GÃ¼ltigkeit: {expires_minutes} Minuten\n\n"
-        "Bitte melden Sie sich an und Ã¤ndern Sie Ihr Passwort sofort."
-    )
-
+    # Send email (Text aus der Textvorlage PASSWORD_RESET; der gerenderte Text enthaelt das OTP und wird nicht geloggt)
     email_sent = False
     email_error = None
     try:
-        send_email(send_cfg, user_email, subject, body)
+        from app.core import text_template_service as texts
+
+        message = texts.render_message(
+            template,
+            language,
+            {"otp": otp, "expires_minutes": expires_minutes, "user_email": user_email},
+        )
+        send_email(send_cfg, user_email, message["subject"], message["body"], html=message["body_html"])
         email_sent = True
     except Exception as e:
         email_error = str(e)
@@ -303,7 +431,7 @@ async def update_account_lock(
     try:
         user_uuid = uuid.UUID(str(user_uid))
     except Exception:
-        raise ValueError("UngÃ¼ltige User-GUID")
+        raise ValueError("Ungültige User-GUID")
 
     benutzer_mgr = PdvmCentralBenutzer(user_uuid)
     user = await benutzer_mgr.get_user()
@@ -339,7 +467,7 @@ async def clear_password_reset_flags(
     try:
         user_uuid = uuid.UUID(str(user_uid))
     except Exception:
-        raise ValueError("UngÃ¼ltige User-GUID")
+        raise ValueError("Ungültige User-GUID")
 
     benutzer_mgr = PdvmCentralBenutzer(user_uuid)
     user = await benutzer_mgr.get_user()
@@ -378,7 +506,7 @@ async def mark_password_changed(
     try:
         user_uuid = uuid.UUID(str(user_uid))
     except Exception:
-        raise ValueError("UngÃ¼ltige User-GUID")
+        raise ValueError("Ungültige User-GUID")
 
     benutzer_mgr = PdvmCentralBenutzer(user_uuid)
     user = await benutzer_mgr.get_user()

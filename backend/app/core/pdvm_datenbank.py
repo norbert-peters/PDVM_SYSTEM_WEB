@@ -1,12 +1,12 @@
 ﻿"""
 PDVM Database Manager
-Zentraler Datenbankmanager fÃ¼r alle PDVM-Tabellen (auÃŸer asy_benutzer Sonderfall)
+Zentraler Datenbankmanager für alle PDVM-Tabellen (außer asy_benutzer Sonderfall)
 
 Nach Desktop-Vorbild: pdvm_datenbank.py
 - Einheitlicher Zugriff auf alle Tabellen
 - JSONB-basierte Datenstruktur mit uid + daten
-- UnterstÃ¼tzt System-, Auth- und Mandanten-Datenbanken
-- Historie-Support fÃ¼r zeitbasierte Daten
+- Unterstützt System-, Auth- und Mandanten-Datenbanken
+- Historie-Support für zeitbasierte Daten
 """
 import uuid
 import json
@@ -17,7 +17,7 @@ import copy
 import logging
 from app.core.pdvm_datetime import SENTINEL_MAX, datetime_to_pdvm, pdvm_to_datetime, pdvm_to_str
 from app.core.feld_aenderungshistorie_service import FieldChangeHistoryService
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime
 import asyncpg
 from app.core.database import DatabasePool
@@ -31,14 +31,14 @@ class PdvmDatabase:
     """
     PDVM Datenbankmanager - Einheitlicher Zugriff auf alle PDVM-Tabellen
     
-    Standard-Struktur aller Tabellen (auÃŸer asy_benutzer):
+    Standard-Struktur aller Tabellen (außer asy_benutzer):
     - uid: UUID (Primary Key)
-    - daten: JSONB (Hauptdaten mit Gruppe â†’ Feld â†’ Wert Struktur)
+    - daten: JSONB (Hauptdaten mit Gruppe → Feld → Wert Struktur)
     - name: TEXT (Anzeigename)
     - historisch: INTEGER (0 = aktuell, 1 = historische Daten)
-    - source_hash: TEXT (Ã„nderungsverfolgung)
+    - source_hash: TEXT (Änderungsverfolgung)
     - sec_id: UUID (Security Profile)
-    - gilt_bis: TEXT (GÃ¼ltigkeitsdatum im PDVM-Format)
+    - gilt_bis: TIMESTAMP (Gültigkeitsdatum im PDVM-Format)
     - created_at: TIMESTAMP
     - modified_at: TIMESTAMP
     - backup_daten: JSONB
@@ -59,12 +59,12 @@ class PdvmDatabase:
     
     def __init__(self, table_name: str, system_pool: Optional[asyncpg.Pool] = None, mandant_pool: Optional[asyncpg.Pool] = None):
         """
-        Initialisiert PdvmDatabase fÃ¼r eine bestimmte Tabelle
+        Initialisiert PdvmDatabase für eine bestimmte Tabelle
         
         Args:
             table_name: Name der Tabelle (z.B. 'sys_systemsteuerung', 'persondaten')
-            system_pool: Pool fÃ¼r pdvm_system Datenbank (REQUIRED for system tables)
-            mandant_pool: Pool fÃ¼r mandanten Datenbank (REQUIRED for mandant tables)
+            system_pool: Pool für pdvm_system Datenbank (REQUIRED for system tables)
+            mandant_pool: Pool für mandanten Datenbank (REQUIRED for mandant tables)
         """
         self.table_name = table_name
         self.db_name = self._find_database(table_name)
@@ -93,7 +93,7 @@ class PdvmDatabase:
             raise ValueError(f"Ungueltiger Tabellenname: {table_name!r}")
 
         if "_" not in table:
-            logger.error(f"âŒ Tabellennamen ohne Praefix sind unzulaessig: table={table}")
+            logger.error(f"❌ Tabellennamen ohne Praefix sind unzulaessig: table={table}")
             raise ValueError(f"Tabellenname ohne Praefix ist unzulaessig: {table}")
 
         prefix = table.split("_", 1)[0] + "_"
@@ -106,7 +106,7 @@ class PdvmDatabase:
             return "mandant"
 
         # App-spezifische Praefixe (z.B. crm_, hrm_, pps_) laufen in Mandanten-DB.
-        logger.info(f"ðŸ”Ž App-Praefix erkannt, route nach mandant: table={table} prefix={prefix}")
+        logger.info(f"🔎 App-Praefix erkannt, route nach mandant: table={table} prefix={prefix}")
         return "mandant"
 
     _AUDIT_TABLE_MAP = {}
@@ -143,9 +143,17 @@ class PdvmDatabase:
 
     def _invalidate_caches_after_write(self) -> None:
         # Vor dem Schreiben leeren: auch bei Fehlern bleibt so kein veralteter Stand im Cache.
-        if str(self.table_name or "").strip().lower() == "sys_control_dict":
+        table = str(self.table_name or "").strip().lower()
+        if table == "sys_control_dict":
             PdvmDatabase.invalidate_template_cache()
+        if table in {"sys_control_dict", "sys_framedaten", "sys_dropdowndaten"}:
+            from app.core.frame_runtime_service import invalidate_frame_runtime_cache
 
+            invalidate_frame_runtime_cache()
+        if table in {"sys_textvorlagen", "msy_textvorlagen"}:
+            from app.core.text_template_service import invalidate_text_template_cache
+
+            invalidate_text_template_cache()
     _GUID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
     @staticmethod
@@ -460,7 +468,7 @@ class PdvmDatabase:
             return {}
 
         # Legacy/Standard-Format: verschachtelte ROOT+CONTROL-Struktur.
-        # Diese wird immer auf 666...-Templatebasis ergÃ¤nzt, damit fehlende
+        # Diese wird immer auf 666...-Templatebasis ergänzt, damit fehlende
         # Standard-Keys (z.B. in CONTROL) konsistent vorhanden sind.
         has_root = isinstance(control_data.get("ROOT"), dict)
         has_control = isinstance(control_data.get("CONTROL"), dict)
@@ -594,9 +602,45 @@ class PdvmDatabase:
                 row, system_pool=system_pool, mandant_pool=mandant_pool
             )
         return result
-    
+
+    @staticmethod
+    async def load_immutable_control_fields(
+        table_name: str,
+        *,
+        system_pool: asyncpg.Pool,
+    ) -> List[Tuple[str, str, Optional[str]]]:
+        """(GRUPPE, FIELD, IMMUTABLE_AFTER) aller Controls dieser Tabelle mit CONTROL.IMMUTABLE=true (kurz gecacht).
+
+        `IMMUTABLE_AFTER` (optional, Pfad `GRUPPE.FELD`) macht die Sperre bedingt: sie gilt erst, wenn dieses Feld im
+        gespeicherten Satz einen Wert hat (z. B. `ROOT.DB_CREATED_AT`); sonst `None`.
+        Der Cache liegt im Template-Cache und wird bei Schreibzugriffen auf sys_control_dict geleert.
+        """
+        table = str(table_name or "").strip().lower()
+        db = PdvmDatabase("sys_control_dict", system_pool=system_pool)
+        cache_key = ("immutable", table)
+        cached = PdvmDatabase._template_cache_get(db, cache_key)
+        if cached is not None:
+            return [tuple(item) for item in cached["fields"]]
+        async with system_pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT daten->'CONTROL'->>'GRUPPE' AS gruppe, daten->'CONTROL'->>'FIELD' AS feld,
+                       daten->'CONTROL'->>'IMMUTABLE_AFTER' AS after
+                FROM sys_control_dict
+                WHERE lower(daten->'CONTROL'->>'TABLE') = $1
+                  AND daten->'CONTROL'->'IMMUTABLE' = 'true'::jsonb
+                """,
+                table,
+            )
+        fields = [
+            (str(r["gruppe"] or "ROOT"), str(r["feld"]), (str(r["after"]).strip() or None) if r["after"] else None)
+            for r in rows if r["feld"]
+        ]
+        PdvmDatabase._template_cache_put(db, cache_key, {"fields": fields})
+        return fields
+
     def get_pool(self) -> asyncpg.Pool:
-        """Holt den richtigen Connection Pool fÃ¼r diese Tabelle"""
+        """Holt den richtigen Connection Pool für diese Tabelle"""
         if self.db_name == "auth":
             if DatabasePool._pool_auth is None:
                 raise RuntimeError("Auth pool not initialized")
@@ -626,7 +670,7 @@ class PdvmDatabase:
         draft_guid: Optional[Any] = None,
     ) -> Optional[Dict[str, Any]]:
         """
-        LÃ¤dt einen vollstÃ¤ndigen Datensatz anhand der UID
+        Lädt einen vollständigen Datensatz anhand der UID
         
         Args:
             uid: UUID des Datensatzes
@@ -636,7 +680,7 @@ class PdvmDatabase:
         """
         scope, _ = self._validate_storage_scope_contract(storage_scope=storage_scope, draft_guid=draft_guid)
         if scope != "live":
-            raise ValueError("PdvmDatabase.get_by_uid unterstÃ¼tzt aktuell nur storage_scope='live'")
+            raise ValueError("PdvmDatabase.get_by_uid unterstützt aktuell nur storage_scope='live'")
 
         pool = self.get_pool()
         async with pool.acquire() as conn:
@@ -661,14 +705,14 @@ class PdvmDatabase:
             
             result = dict(row)
             
-            # Parse JSONB fields (asyncpg gibt als String zurÃ¼ck)
+            # Parse JSONB fields (asyncpg gibt als String zurück)
             if result['daten'] and isinstance(result['daten'], str):
                 result['daten'] = json.loads(result['daten'])
 
             return self._inject_root_meta_fields(result)
 
     async def get_by_link_uid(self, link_uid: uuid.UUID) -> Optional[Dict[str, Any]]:
-        """LÃ¤dt den neuesten Datensatz anhand link_uid (fachliche IdentitÃ¤t)."""
+        """Lädt den neuesten Datensatz anhand link_uid (fachliche Identität)."""
         pool = self.get_pool()
         async with pool.acquire() as conn:
             try:
@@ -684,7 +728,7 @@ class PdvmDatabase:
                     link_uid,
                 )
             except Exception:
-                # Fallback fÃ¼r AltstÃ¤nde ohne link_uid-Spalte
+                # Fallback für Altstände ohne link_uid-Spalte
                 row = await conn.fetchrow(
                     f"""
                     SELECT uid, daten, name, historisch, sec_id, gilt_bis,
@@ -705,7 +749,7 @@ class PdvmDatabase:
     
     async def get_row(self, uid: uuid.UUID) -> Optional[Dict[str, Any]]:
         """
-        LÃ¤dt Datensatz mit den wichtigsten Feldern fÃ¼r CentralDatabase
+        Lädt Datensatz mit den wichtigsten Feldern für CentralDatabase
         
         Returns:
             {'uid', 'daten', 'historisch', 'name'} oder None
@@ -746,20 +790,20 @@ class PdvmDatabase:
         draft_guid: Optional[Any] = None,
     ) -> List[Dict[str, Any]]:
         """
-        LÃ¤dt alle DatensÃ¤tze (mit optionaler WHERE-Klausel)
+        Lädt alle Datensätze (mit optionaler WHERE-Klausel)
         
         Args:
             where: WHERE-Bedingung (z.B. "historisch = 0")
-            params: Parameter fÃ¼r WHERE ($1, $2, ...)
+            params: Parameter für WHERE ($1, $2, ...)
             order_by: ORDER BY Klausel
             limit: Optionales LIMIT (Performance-Schutz)
             
         Returns:
-            Liste von DatensÃ¤tzen
+            Liste von Datensätzen
         """
         scope, _ = self._validate_storage_scope_contract(storage_scope=storage_scope, draft_guid=draft_guid)
         if scope != "live":
-            raise ValueError("PdvmDatabase.get_all unterstÃ¼tzt aktuell nur storage_scope='live'")
+            raise ValueError("PdvmDatabase.get_all unterstützt aktuell nur storage_scope='live'")
 
         pool = self.get_pool()
         async with pool.acquire() as conn:
@@ -850,9 +894,9 @@ class PdvmDatabase:
         order_by: str = "modified_at ASC",
         limit: Optional[int] = None,
     ) -> List[Dict[str, Any]]:
-        """LÃ¤dt DatensÃ¤tze, die nach einem bestimmten Zeitpunkt geÃ¤ndert wurden.
+        """Lädt Datensätze, die nach einem bestimmten Zeitpunkt geändert wurden.
 
-        Ziel: Delta-Refresh fÃ¼r Session-Cache (statt Vollscan).
+        Ziel: Delta-Refresh für Session-Cache (statt Vollscan).
         """
         if not isinstance(modified_after, datetime):
             raise ValueError("modified_after must be a datetime")
@@ -944,7 +988,7 @@ class PdvmDatabase:
         """
         scope, _ = self._validate_storage_scope_contract(storage_scope=storage_scope, draft_guid=draft_guid)
         if scope != "live":
-            raise ValueError("PdvmDatabase.create unterstÃ¼tzt aktuell nur storage_scope='live'")
+            raise ValueError("PdvmDatabase.create unterstützt aktuell nur storage_scope='live'")
 
         name_from_self = self._extract_self_name_for_name_column(daten)
         effective_name = name_from_self if name_from_self is not None else name
@@ -978,7 +1022,7 @@ class PdvmDatabase:
                     link_uid,
                 )
             except Exception:
-                # Tabellen ohne link_uid (vor Migration) dÃ¼rfen nicht brechen.
+                # Tabellen ohne link_uid (vor Migration) dürfen nicht brechen.
                 pass
 
             # Unmittelbar nach Anlegen SELF_* in daten aus DB-Metadaten synchronisieren.
@@ -1016,7 +1060,7 @@ class PdvmDatabase:
             return await self.get_by_uid(uid)
 
     async def rekey_uid(self, old_uid: uuid.UUID, new_uid: uuid.UUID) -> bool:
-        """Ã„ndert die technische Row-UID eines Datensatzes."""
+        """Ändert die technische Row-UID eines Datensatzes."""
         pool = self.get_pool()
         async with pool.acquire() as conn:
             result = await conn.execute(
@@ -1057,7 +1101,7 @@ class PdvmDatabase:
         """
         scope, _ = self._validate_storage_scope_contract(storage_scope=storage_scope, draft_guid=draft_guid)
         if scope != "live":
-            raise ValueError("PdvmDatabase.update unterstÃ¼tzt aktuell nur storage_scope='live'")
+            raise ValueError("PdvmDatabase.update unterstützt aktuell nur storage_scope='live'")
 
         name_from_self = self._extract_self_name_for_name_column(daten)
         effective_name = name_from_self if name_from_self is not None else name
@@ -1098,7 +1142,7 @@ class PdvmDatabase:
                 before_row = _parse_row(before_raw)
                 before_row_plain = _parse_row(before_raw, inject_root_meta=False)
 
-                # KonfliktprÃ¼fung (optimistisches Concurrency-Guarding)
+                # Konfliktprüfung (optimistisches Concurrency-Guarding)
                 if expected_snapshot_daten is not None:
                     before_compare = self._strip_runtime_root_meta_fields(before_row_plain.get('daten'))
                     expected_compare = self._strip_runtime_root_meta_fields(expected_snapshot_daten)
@@ -1170,8 +1214,8 @@ class PdvmDatabase:
                     updated = None
                     updated_plain = None
 
-                # V1 Ã„nderungsnachweis: insert-only, nur geÃ¤nderte Felder.
-                # Gilt fÃ¼r alle DB-Kontexte (auth/system/mandant) und schreibt
+                # V1 Änderungsnachweis: insert-only, nur geänderte Felder.
+                # Gilt für alle DB-Kontexte (auth/system/mandant) und schreibt
                 # jeweils lokal in die DB, in der auch die Zieltabelle liegt.
                 is_history_table = await FieldChangeHistoryService.is_history_table(conn, self.table_name)
                 if updated and not is_history_table:
@@ -1206,7 +1250,7 @@ class PdvmDatabase:
         draft_guid: Optional[Any] = None,
     ) -> bool:
         """
-        LÃ¶scht einen Datensatz (soft oder hard)
+        Löscht einen Datensatz (soft oder hard)
         
         Args:
             uid: UUID des Datensatzes
@@ -1217,7 +1261,7 @@ class PdvmDatabase:
         """
         scope, _ = self._validate_storage_scope_contract(storage_scope=storage_scope, draft_guid=draft_guid)
         if scope != "live":
-            raise ValueError("PdvmDatabase.delete unterstÃ¼tzt aktuell nur storage_scope='live'")
+            raise ValueError("PdvmDatabase.delete unterstützt aktuell nur storage_scope='live'")
 
         self._invalidate_caches_after_write()
         pool = self.get_pool()
@@ -1238,7 +1282,7 @@ class PdvmDatabase:
     
     async def exists(self, uid: uuid.UUID) -> bool:
         """
-        PrÃ¼ft ob Datensatz existiert
+        Prüft ob Datensatz existiert
         
         Returns:
             True wenn vorhanden

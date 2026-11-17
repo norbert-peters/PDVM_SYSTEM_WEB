@@ -11,14 +11,21 @@ class Settings(BaseSettings):
     # =========================================================================
     # AUTH DATABASE - Die einzige fix konfigurierte Datenbank
     # =========================================================================
-    # Diese Datenbank enthÃ¤lt:
+    # Diese Datenbank enthält:
     # - asy_benutzer (User-Accounts, Credentials)
     # - asy_mandanten (Mandanten-Definitionen + Connection-Configs)
     # Alle anderen Datenbanken werden dynamisch aus asy_mandanten geladen!
-    DATABASE_URL_AUTH: str = "postgresql://postgres:Polari$55@localhost:5432/auth"
+    DATABASE_URL_AUTH: str
+
+    # Zugangsdaten weiterer Datenbankserver (JSON, siehe core/credential_store.py). Leer = nur AUTH-Zugangsdaten.
+    PDVM_DB_CREDENTIALS: str = ""
+
+    # Schluessel (Fernet) fuer die in asy_credentials gespeicherten Zugangsdaten. Ohne Schluessel koennen keine
+    # Zugangsdaten gespeichert oder gelesen werden. Gehoert in die .env bzw. einen Secret-Store, nie in die Datenbank.
+    PDVM_SECRET_KEY: str = ""
 
     # Auth
-    SECRET_KEY: str = "your-secret-key-change-this"
+    SECRET_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
@@ -38,10 +45,10 @@ class Settings(BaseSettings):
     # VIEW PIPELINE SCALING
     # =========================================================================
     # Wie viele Zeilen pro Tabelle maximal in Session-Cache gehalten werden.
-    # (Schutz vor RAM-Explosion; fÃ¼r sehr groÃŸe Tabellen spÃ¤ter DB-seitiges Paging/Query-Pushdown via PdvmDatabase-Adapter.)
+    # (Schutz vor RAM-Explosion; für sehr große Tabellen später DB-seitiges Paging/Query-Pushdown via PdvmDatabase-Adapter.)
     VIEW_TABLE_CACHE_MAX_ROWS: int = 20000
 
-    # Chunk-Size fÃ¼r initiales Laden (LIMIT/OFFSET Paging). 
+    # Chunk-Size für initiales Laden (LIMIT/OFFSET Paging). 
     VIEW_TABLE_CACHE_CHUNK_SIZE: int = 2000
 
     # Minimaler Abstand (Sekunden) zwischen Delta-Refresh (modified_at > max_modified_at) pro Tabelle.

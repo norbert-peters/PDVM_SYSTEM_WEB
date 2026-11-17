@@ -8,10 +8,10 @@ from app.core.pdvm_table_schema import PDVM_TABLE_COLUMNS, PDVM_TABLE_INDEXES
 
 async def ensure_mandant_tables(mandant_id: str, mandant_db_url: str, mandant_record: dict):
     """
-    PrÃ¼ft und erstellt fehlende Tabellen fÃ¼r einen Mandanten beim Login
+    Prüft und erstellt fehlende Tabellen für einen Mandanten beim Login
     
     Verwendet direkte Connection statt DatabasePool.
-    LÃ¤dt CONFIG.FEATURES aus mandant_record
+    Lädt CONFIG.FEATURES aus mandant_record
     und erstellt alle fehlenden Tabellen in der Mandanten-Datenbank.
     
     Args:
@@ -65,7 +65,7 @@ async def ensure_mandant_tables(mandant_id: str, mandant_db_url: str, mandant_re
     all_tables = list(dict.fromkeys(mandatory_tables + features))
     
     if not all_tables:
-        logger.info(f"Keine Tabellen fÃ¼r Mandant {mandant_id} konfiguriert")
+        logger.info(f"Keine Tabellen für Mandant {mandant_id} konfiguriert")
         return
     
     # 2. Direkte Connection zur Mandanten-DB (mit Retry)
@@ -79,11 +79,11 @@ async def ensure_mandant_tables(mandant_id: str, mandant_db_url: str, mandant_re
             break  # Erfolgreich verbunden
         except Exception as e:
             if attempt < max_retries - 1:
-                logger.warning(f"âš ï¸ Connection-Versuch {attempt + 1} fehlgeschlagen: {e}, retry in {retry_delay}s...")
+                logger.warning(f"⚠️ Connection-Versuch {attempt + 1} fehlgeschlagen: {e}, retry in {retry_delay}s...")
                 await asyncio.sleep(retry_delay)
                 retry_delay *= 2  # Exponential backoff
             else:
-                logger.error(f"âŒ Alle {max_retries} Connection-Versuche fehlgeschlagen")
+                logger.error(f"❌ Alle {max_retries} Connection-Versuche fehlgeschlagen")
                 raise
     
     if not conn:
@@ -102,11 +102,11 @@ async def ensure_mandant_tables(mandant_id: str, mandant_db_url: str, mandant_re
         created_count = 0
         for table_name in all_tables:
             if table_name in existing_table_names:
-                logger.info(f"âœ“ Tabelle '{table_name}' existiert bereits")
+                logger.info(f"✓ Tabelle '{table_name}' existiert bereits")
                 continue
             
             try:
-                # Standard PDVM-Tabellenschema (einheitlich fÃ¼r ALLE Tabellen)
+                # Standard PDVM-Tabellenschema (einheitlich für ALLE Tabellen)
                 columns = ', '.join([f"{col} {definition}" for col, definition in PDVM_TABLE_COLUMNS.items()])
                 
                 create_sql = f"""
@@ -120,7 +120,7 @@ async def ensure_mandant_tables(mandant_id: str, mandant_db_url: str, mandant_re
                 # Indizes erstellen
                 for idx_col in PDVM_TABLE_INDEXES:
                     if idx_col == 'daten':
-                        # GIN Index fÃ¼r JSONB
+                        # GIN Index für JSONB
                         await conn.execute(f"""
                             CREATE INDEX IF NOT EXISTS idx_{table_name}_{idx_col} 
                             ON {table_name} USING GIN({idx_col})
@@ -133,15 +133,15 @@ async def ensure_mandant_tables(mandant_id: str, mandant_db_url: str, mandant_re
                         """)
                 
                 created_count += 1
-                logger.info(f"âœ… Tabelle '{table_name}' mit Standard-Schema erstellt")
+                logger.info(f"✅ Tabelle '{table_name}' mit Standard-Schema erstellt")
             
             except Exception as e:
-                logger.error(f"âŒ Fehler beim Erstellen von '{table_name}': {e}")
+                logger.error(f"❌ Fehler beim Erstellen von '{table_name}': {e}")
         
         if created_count > 0:
-            logger.info(f"ðŸŽ‰ {created_count} Tabelle(n) fÃ¼r Mandant '{mandant_record['name']}' erstellt")
+            logger.info(f"🎉 {created_count} Tabelle(n) für Mandant '{mandant_record['name']}' erstellt")
         else:
-            logger.info(f"âœ“ Alle Tabellen fÃ¼r Mandant '{mandant_record['name']}' bereits vorhanden")
+            logger.info(f"✓ Alle Tabellen für Mandant '{mandant_record['name']}' bereits vorhanden")
     
     finally:
         await conn.close()

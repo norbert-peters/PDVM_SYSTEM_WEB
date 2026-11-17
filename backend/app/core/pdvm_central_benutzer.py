@@ -1,9 +1,9 @@
 ﻿"""
 PDVM Central Benutzer
-Benutzer-Management fÃ¼r asy_benutzer
+Benutzer-Management für asy_benutzer
 
 Besonderheit: asy_benutzer hat Zusatzspalten 'benutzer' und 'passwort'
-Wird vom Administrator fÃ¼r Benutzerverwaltung verwendet
+Wird vom Administrator für Benutzerverwaltung verwendet
 """
 import uuid
 from typing import Optional, Dict, List
@@ -17,14 +17,14 @@ import json
 class PdvmCentralBenutzer(PdvmCentralDatabase):
     """
     Benutzer-Management
-    Wird vom Administrator fÃ¼r Benutzerverwaltung verwendet
+    Wird vom Administrator für Benutzerverwaltung verwendet
     
     Besonderheit: asy_benutzer hat Zusatzspalten 'benutzer' und 'passwort'
     """
     
     def __init__(self, user_guid: uuid.UUID):
         """
-        Initialisiert Benutzer-Manager fÃ¼r spezifischen User
+        Initialisiert Benutzer-Manager für spezifischen User
         
         Args:
             user_guid: UUID des Benutzers
@@ -34,7 +34,7 @@ class PdvmCentralBenutzer(PdvmCentralDatabase):
     
     async def get_user(self) -> Optional[Dict]:
         """
-        LÃ¤dt kompletten User mit allen Spalten
+        Lädt kompletten User mit allen Spalten
         
         Returns:
             Dict mit uid, email, benutzer, passwort, daten, historisch, etc.
@@ -91,7 +91,7 @@ class PdvmCentralBenutzer(PdvmCentralDatabase):
     
     async def get_user_by_email(self, email: str) -> Optional[Dict]:
         """
-        LÃ¤dt User anhand Email
+        Lädt User anhand Email
         
         Args:
             email: Email-Adresse
@@ -135,7 +135,7 @@ class PdvmCentralBenutzer(PdvmCentralDatabase):
     
     async def change_password(self, new_password_hash: str):
         """
-        Ã„ndert Passwort des Users
+        Ändert Passwort des Users
         
         Args:
             new_password_hash: Bcrypt-Hash des neuen Passworts
@@ -150,7 +150,7 @@ class PdvmCentralBenutzer(PdvmCentralDatabase):
     
     async def update_email(self, new_email: str):
         """
-        Ã„ndert Email-Adresse des Users
+        Ändert Email-Adresse des Users
         
         Args:
             new_email: Neue Email-Adresse
@@ -174,7 +174,7 @@ class PdvmCentralBenutzer(PdvmCentralDatabase):
     
     async def update_benutzer(self, new_benutzer: str):
         """
-        Ã„ndert Benutzername
+        Ändert Benutzername
         
         Args:
             new_benutzer: Neuer Benutzername
@@ -210,7 +210,7 @@ class PdvmCentralBenutzer(PdvmCentralDatabase):
     @staticmethod
     async def get_all_users(include_inactive: bool = False) -> List[Dict]:
         """
-        LÃ¤dt alle Benutzer (fÃ¼r Admin)
+        Lädt alle Benutzer (für Admin)
         
         Args:
             include_inactive: True = auch deaktivierte User
@@ -250,7 +250,7 @@ class PdvmCentralBenutzer(PdvmCentralDatabase):
         sec_id: Optional[uuid.UUID] = None
     ) -> uuid.UUID:
         """
-        Erstellt neuen Benutzer (fÃ¼r Admin)
+        Erstellt neuen Benutzer (für Admin)
         
         Args:
             email: Email-Adresse
@@ -270,8 +270,8 @@ class PdvmCentralBenutzer(PdvmCentralDatabase):
         async with pool.acquire() as conn:
             await conn.execute("""
                 INSERT INTO asy_benutzer 
-                (uid, email, benutzer, passwort, daten, historisch, sec_id, gilt_bis)
-                VALUES ($1, $2, $3, $4, $5, 0, $6, '9999365.00000')
+                (uid, email, benutzer, passwort, daten, historisch, sec_id)
+                VALUES ($1, $2, $3, $4, $5, 0, $6)
             """, user_guid, email, benutzer, passwort_hash, daten_json, sec_id)
         
         return user_guid
@@ -279,7 +279,7 @@ class PdvmCentralBenutzer(PdvmCentralDatabase):
     @staticmethod
     async def email_exists(email: str) -> bool:
         """
-        PrÃ¼ft ob Email bereits existiert
+        Prüft ob Email bereits existiert
         
         Returns:
             True wenn Email bereits verwendet

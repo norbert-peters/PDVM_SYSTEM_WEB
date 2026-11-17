@@ -394,7 +394,7 @@ async def resolve_config_reference(
 ## 📚 Weitere Dokumentation
 
 - [GUID_CONVENTIONS.md](GUID_CONVENTIONS.md) - Fiktive GUIDs System
-- [FRAME_ARCHITECTURE_V2.md](FRAME_ARCHITECTURE_V2.md) - Frame-Architektur
+- [docs/specs/PDVM_LINEAR_SCHEMA_V1.md](docs/specs/PDVM_LINEAR_SCHEMA_V1.md) - Schema der Frames und Controls
 - [EDIT_DICT_KONZEPT.md](EDIT_DICT_KONZEPT.md) - edit_dict Implementation
 
 ---

@@ -91,11 +91,183 @@
   resize: vertical;
 }
 
+/* Passwort-Eingabe (password_input): Feld mit Auge-Schalter */
+.pdvm-pic__secretWrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.pdvm-pic__secretToggle {
+  flex: 0 0 auto;
+  border: 1px solid var(--color-border-medium);
+  border-radius: var(--border-radius-md);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+  padding: var(--density-control-pad);
+  cursor: pointer;
+}
+
+.pdvm-pic__secretToggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Langtext: Feld mit Vergroessern-Schaltflaeche; text_popup: Schaltflaeche mit Kurzvorschau */
+.pdvm-pic__textWrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+}
+
+.pdvm-pic__textWrap .pdvm-pic__textarea {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pdvm-pic__textarea--mono {
+  font-family: var(--font-mono, ui-monospace, Consolas, monospace);
+  font-size: 13px;
+}
+
+.pdvm-pic__expandBtn {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--color-border-medium);
+  border-radius: var(--border-radius-md);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pdvm-pic__expandBtn:hover {
+  background: var(--color-background-secondary);
+}
+
+.pdvm-pic__popupBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  border: var(--block-pic-std-border, 1px solid var(--color-border-medium));
+  border-radius: var(--block-pic-std-radius, var(--border-radius-md));
+  background: var(--block-pic-std-bg-color, var(--color-background-primary));
+  color: var(--block-pic-std-text-color, var(--color-text-primary));
+  padding: var(--density-control-pad);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pdvm-pic__popupBtn:hover {
+  background: var(--color-background-secondary);
+}
+
+.pdvm-pic__popupText {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pdvm-pic__popupMeta {
+  flex: 0 0 auto;
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+/* Frame-Aktionen (Typen action und info) */
+.pdvm-pic--action {
+  display: flex;
+  align-items: flex-end;
+}
+
+.pdvm-pic__actionBtn {
+  border: 1px solid var(--color-border-medium);
+  border-radius: var(--border-radius-md);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+  padding: 6px 12px;
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pdvm-pic__actionBtn:hover:not(:disabled) {
+  background: var(--color-background-secondary);
+}
+
+.pdvm-pic__actionBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pdvm-pic--info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--color-info-border);
+  border-radius: var(--border-radius-md);
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+  font-size: 13px;
+}
+
+.pdvm-pic--info-warning {
+  border-color: var(--color-warning-border);
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+}
+
+.pdvm-pic--info-error {
+  border-color: var(--color-error-border);
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
+}
+
+.pdvm-pic__infoLabel {
+  font-weight: 700;
+}
+
 /* markier- und kopierbare Anzeigefelder (PdvmInputControl selectable) */
 .pdvm-pic__input[readonly],
 .pdvm-pic__textarea[readonly] {
   background: var(--block-pic-std-readonly-bg, var(--color-background-secondary));
   cursor: text;
+}
+
+/* schreibgeschuetzte Felder: gedaempfte Flaeche, gestrichelter Rahmen, Schloss am Label */
+.pdvm-pic--readonly {
+  border-style: dashed;
+  background: var(--block-pic-std-readonly-bg, var(--color-background-secondary));
+}
+
+.pdvm-pic--readonly .pdvm-pic__input,
+.pdvm-pic--readonly .pdvm-pic__select,
+.pdvm-pic--readonly .pdvm-pic__textarea {
+  background: transparent;
+  border-style: dashed;
+  color: var(--color-text-secondary);
+  cursor: not-allowed;
+}
+
+.pdvm-pic--readonly .pdvm-pic__label {
+  font-style: italic;
+}
+
+.pdvm-pic__lock {
+  font-size: 11px;
+  line-height: 1;
+  cursor: help;
 }
 
 .pdvm-pic__checkbox {

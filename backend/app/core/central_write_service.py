@@ -9,7 +9,19 @@ from __future__ import annotations
 import uuid
 from typing import Any, Dict, Optional, Tuple
 
+from app.core.immutable_fields_service import enforce_immutable_fields
 from app.core.pdvm_datenbank import PdvmDatabase
+
+
+def _is_text_template_table(table_name: str) -> bool:
+    return str(table_name or "").strip().lower() in {"sys_textvorlagen", "msy_textvorlagen"}
+
+
+def _text_templates():
+    # Lazy: text_template_service importiert diesen Gateway.
+    from app.core import text_template_service
+
+    return text_template_service
 
 
 def _parse_uuid_optional(value: Any) -> Optional[uuid.UUID]:
@@ -93,13 +105,26 @@ async def update_record_central(
     )
 
     uid_obj = uid if isinstance(uid, uuid.UUID) else uuid.UUID(str(uid))
+    await enforce_immutable_fields(
+        table_name=table_name,
+        uid=uid_obj,
+        new_daten=daten,
+        system_pool=resolved_system_pool,
+        mandant_pool=resolved_mandant_pool,
+    )
+    guarded = _is_text_template_table(table_name)
+    if guarded:
+        daten = await _text_templates().guard_write(
+            table=table_name, uid=uid_obj, new_daten=daten, gcs=gcs, actor_user_uid=actor_user_uid,
+            system_pool=resolved_system_pool, mandant_pool=resolved_mandant_pool,
+        )
     resolved_actor_user_uid, resolved_actor_ip = resolve_actor_context(
         gcs=gcs,
         actor_user_uid=actor_user_uid,
         actor_ip=actor_ip,
     )
 
-    return await db.update(
+    result = await db.update(
         uid_obj,
         daten=daten,
         name=name,
@@ -108,6 +133,12 @@ async def update_record_central(
         actor_user_uid=resolved_actor_user_uid,
         actor_ip=resolved_actor_ip,
     )
+    if guarded and result is not None:
+        await _text_templates().after_write(
+            table=table_name, uid=uid_obj, daten=daten,
+            system_pool=resolved_system_pool, mandant_pool=resolved_mandant_pool,
+        )
+    return result
 
 
 async def create_record_central(
@@ -148,7 +179,14 @@ async def create_record_central(
     sec_id_obj = _parse_uuid_optional(sec_id)
     link_uid_obj = _parse_uuid_optional(link_uid)
 
-    return await db.create(
+    guarded = _is_text_template_table(table_name)
+    if guarded:
+        daten = await _text_templates().guard_write(
+            table=table_name, uid=uid_obj, new_daten=daten, gcs=gcs, actor_user_uid=actor_user_uid,
+            system_pool=resolved_system_pool, mandant_pool=resolved_mandant_pool,
+        )
+
+    created = await db.create(
         uid=uid_obj,
         daten=daten,
         name=name,
@@ -156,6 +194,12 @@ async def create_record_central(
         sec_id=sec_id_obj,
         link_uid=link_uid_obj,
     )
+    if guarded:
+        await _text_templates().after_write(
+            table=table_name, uid=uid_obj, daten=daten,
+            system_pool=resolved_system_pool, mandant_pool=resolved_mandant_pool,
+        )
+    return created
 
 
 async def delete_record_central(

@@ -251,8 +251,8 @@ Wertvertrag:
 - Der gespeicherte Fachwert im Datensatz ist aktuell als Number-String kompatibel.
 
 Normalisierung:
-- Erlaubt sind nur Ziffern `1-9` (aktueller UI-Standard).
-- `0`, Minuszeichen, Dezimaltrenner und sonstige Zeichen werden entfernt.
+- Erlaubt sind nur Ziffern `0-9` (aktueller UI-Standard).
+- Minuszeichen, Dezimaltrenner und sonstige Zeichen werden entfernt.
 - `null` und `undefined` werden als leerer String dargestellt.
 - Bei Benutzeränderung schreibt das InputControl den bereinigten Number-String zurueck.
 

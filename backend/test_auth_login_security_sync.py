@@ -87,8 +87,9 @@ def test_login_uses_refreshed_user_data_after_security_update(monkeypatch):
         monkeypatch.setattr(data_managers, "MandantDataManager", FakeMandantDataManager)
 
         form = SimpleNamespace(username="User@Test.de", password="Secret123!")
+        request = SimpleNamespace(client=SimpleNamespace(host="203.0.113.7"))
 
-        result = await auth.login(form)
+        result = await auth.login(request, form)
 
         assert result["access_token"] == "fake-token"
         assert result["user_data"]["SECURITY"]["FAILED_LOGIN_ATTEMPTS"] == 0

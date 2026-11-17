@@ -398,7 +398,7 @@ async def _resolve_main_mandant_config() -> Tuple[Optional[ConnectionConfig], Op
             host = str(mandant.get("HOST") or auth_cfg.host or "").strip()
             user = str(mandant.get("USER") or auth_cfg.user or "").strip()
             password = str(mandant.get("PASSWORD") or "").strip()
-            if not password or password in {"postgres", "Polari$55"}:
+            if not password or password == "postgres":
                 password = str(auth_cfg.password or "")
             database = str(mandant.get("DATABASE") or "").strip()
             port_raw = mandant.get("PORT") or auth_cfg.port

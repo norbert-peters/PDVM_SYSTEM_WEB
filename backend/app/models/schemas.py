@@ -77,6 +77,7 @@ class MandantSelectResponse(BaseModel):
     mandant_street: Optional[str] = None
     idle_timeout: Optional[int] = None
     idle_warning: Optional[int] = None
+    language: Optional[str] = None
     database: str
     message: str
 

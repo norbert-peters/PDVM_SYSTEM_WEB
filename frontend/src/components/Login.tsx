@@ -1,30 +1,89 @@
-import { useState, FormEvent } from 'react'
-import { authAPI, type LoginResponse } from '../api/client'
-import { PdvmDialogModal } from './common/PdvmDialogModal'
+import { useState, type FormEvent } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { authAPI, publicAPI, type FrameRuntime, type FrameRuntimeField, type LoginFramesResponse, type LoginResponse } from '../api/client'
+import { PdvmFrameForm } from './frames/PdvmFrameForm'
+import { uiText } from '../i18n/uiTexts'
+import { preferredLanguage } from '../i18n/uiLanguage'
 
 interface LoginProps {
   onLogin: (token: string, autoSelectMandantId?: string) => void
 }
 
-export default function Login({ onLogin }: LoginProps) {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  const [pwChangeOpen, setPwChangeOpen] = useState(false)
-  const [pwChangeError, setPwChangeError] = useState<string | null>(null)
-  const [pwChangeBusy, setPwChangeBusy] = useState(false)
-  const [pendingLogin, setPendingLogin] = useState<LoginResponse | null>(null)
-  const [pendingToken, setPendingToken] = useState<string | null>(null)
-  const [forgotOpen, setForgotOpen] = useState(false)
-  const [forgotBusy, setForgotBusy] = useState(false)
-  const [forgotError, setForgotError] = useState<string | null>(null)
-  const [forgotSuccess, setForgotSuccess] = useState<string | null>(null)
+type View = 'login' | 'forgot' | 'change'
+type LoginFrames = LoginFramesResponse['frames']
 
-  const demoLogin = {
-    username: 'admin@example.com',
-    password: 'Pdvm_@dmin_2026',
+const FRAMES_STALE_MS = 5 * 60 * 1000
+
+function fallbackField(gruppe: string, feld: string, type: string, label: string, configs: Record<string, any>, order: number): FrameRuntimeField {
+  return {
+    key: `${gruppe}.${feld}`, control_uid: null, tab: 1, display_order: order, type, label, tooltip: null, gruppe, feld,
+    source_path: 'root', save_path: null, table: null, read_only: false, immutable: false, immutable_after: null,
+    default: null, configs, options: [], resolution_warning: null,
+  }
+}
+
+function fallbackFrame(name: string, fields: FrameRuntimeField[]): FrameRuntime {
+  return { uid: name, name, root: { FRAME_TYPE: 'public_form' }, tabs: [{ index: 1, head: name }], fields }
+}
+
+/**
+ * Notfall-Rueckfall: Ist der oeffentliche Frame-Endpunkt nicht erreichbar oder ein Frame ungueltig, bleibt die Anmeldung
+ * moeglich (ein beschaedigter Frame darf niemanden aussperren, der ihn reparieren muesste). Gleiche Felder wie die Seed-Frames.
+ */
+function buildFallbackFrames(): LoginFrames {
+  const email = { input: { name: 'username', autocomplete: 'username' } }
+  const newPassword = { input: { autocomplete: 'new-password' }, password_input: { reveal: true, min_length: 12 } }
+  return {
+    login: fallbackFrame('Login', [
+      fallbackField('LOGIN', 'EMAIL', 'string', uiText('login.fallback.email'), email, 10),
+      fallbackField('LOGIN', 'PASSWORD', 'password_input', uiText('login.fallback.password'),
+        { input: { name: 'password', autocomplete: 'current-password' }, password_input: { reveal: true } }, 20),
+    ]),
+    forgot: fallbackFrame('Passwort vergessen', [
+      fallbackField('FORGOT', 'BENUTZER', 'string', uiText('login.fallback.benutzer'), email, 10),
+      fallbackField('FORGOT', 'EMAIL', 'string', uiText('login.fallback.storedEmail'), { input: { name: 'email', autocomplete: 'email' } }, 20),
+    ]),
+    change: fallbackFrame('Passwort ändern', [
+      fallbackField('CHANGE', 'NEW_PASSWORD', 'password_input', uiText('login.fallback.password'), newPassword, 10),
+      fallbackField('CHANGE', 'CONFIRM_PASSWORD', 'password_input', uiText('login.fallback.password'),
+        { ...newPassword, password_input: { reveal: true, min_length: 12, confirm_with: 'NEW_PASSWORD' } }, 20),
+    ]),
+  }
+}
+
+// Passwoerter stehen nur im Formularzustand bis zum Absenden; Zugriff auf Felder der Gruppen LOGIN/FORGOT/CHANGE
+function readValue(data: Record<string, any>, group: string, field: string): string {
+  return String(data?.[group]?.[field] ?? '')
+}
+
+export default function Login({ onLogin }: LoginProps) {
+  const [view, setView] = useState<View>('login')
+  const [formData, setFormData] = useState<Record<string, any>>({})
+  const [error, setError] = useState('')
+  const [info, setInfo] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [pendingLogin, setPendingLogin] = useState<LoginResponse | null>(null)
+
+  const language = preferredLanguage()
+  const framesQuery = useQuery({
+    queryKey: ['public', 'login-frames', language],
+    queryFn: () => publicAPI.getLoginFrames(language),
+    staleTime: FRAMES_STALE_MS,
+    retry: false,
+  })
+  const frames: LoginFrames | null = framesQuery.data?.frames ?? (framesQuery.isError ? buildFallbackFrames() : null)
+
+  const clearSecrets = () =>
+    setFormData((prev) => ({
+      ...prev,
+      LOGIN: { ...prev.LOGIN, PASSWORD: '' },
+      CHANGE: { ...prev.CHANGE, NEW_PASSWORD: '', CONFIRM_PASSWORD: '' },
+    }))
+
+  const switchView = (next: View) => {
+    setError('')
+    setInfo('')
+    setView(next)
   }
 
   const persistLoginData = (response: LoginResponse) => {
@@ -45,204 +104,149 @@ export default function Login({ onLogin }: LoginProps) {
     }
   }
 
-  const performLogin = async (username: string, pass: string) => {
+  const handleLogin = async (e: FormEvent) => {
+    e.preventDefault()
+    const username = readValue(formData, 'LOGIN', 'EMAIL').trim()
+    const password = readValue(formData, 'LOGIN', 'PASSWORD')
+    if (!username || !password) return
     setError('')
-    setForgotSuccess(null)
-    setLoading(true)
-
+    setInfo('')
+    setBusy(true)
     try {
-      const response = await authAPI.login({ username, password: pass })
-
+      const response = await authAPI.login({ username, password })
       if (response.password_change_required) {
         setPendingLogin(response)
-        setPendingToken(response.access_token)
-        setPwChangeError(null)
-        setPwChangeOpen(true)
+        clearSecrets()
+        switchView('change')
         return
       }
-
       persistLoginData(response)
+      clearSecrets()
       onLogin(response.access_token)
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Login failed')
+      setError(err.response?.data?.detail || uiText('login.failed'))
+      clearSecrets()
     } finally {
-      setLoading(false)
+      setBusy(false)
     }
   }
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
-    await performLogin(email, password)
+  const sendReset = async (benutzer: string, email: string) => {
+    setError('')
+    setInfo('')
+    setBusy(true)
+    try {
+      const result = await authAPI.forgotPassword({ benutzer, email })
+      if (!result.email_sent) {
+        throw new Error(result.email_error || uiText('login.forgot.failed'))
+      }
+      setFormData((prev) => ({ ...prev, FORGOT: { BENUTZER: '', EMAIL: '' } }))
+      switchView('login')
+      setInfo(uiText('login.forgot.sent'))
+    } catch (err: any) {
+      setError(err.response?.data?.detail || err.message || uiText('login.forgot.failed'))
+    } finally {
+      setBusy(false)
+    }
   }
+
+  // Der Benutzer steht meist schon im Login-Formular und wird uebernommen; die hinterlegte E-Mail-Adresse wird abgefragt
+  const startForgot = () => {
+    const known = readValue(formData, 'LOGIN', 'EMAIL').trim()
+    if (known && !readValue(formData, 'FORGOT', 'BENUTZER').trim()) {
+      setFormData((prev) => ({ ...prev, FORGOT: { ...prev.FORGOT, BENUTZER: known } }))
+    }
+    switchView('forgot')
+  }
+
+  const handleForgot = async (e: FormEvent) => {
+    e.preventDefault()
+    const benutzer = readValue(formData, 'FORGOT', 'BENUTZER').trim()
+    const email = readValue(formData, 'FORGOT', 'EMAIL').trim()
+    if (!benutzer || !email) return
+    await sendReset(benutzer, email)
+  }
+
+  const handleChange = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!pendingLogin) return
+    const newPassword = readValue(formData, 'CHANGE', 'NEW_PASSWORD')
+    const confirmPassword = readValue(formData, 'CHANGE', 'CONFIRM_PASSWORD')
+    if (newPassword !== confirmPassword) {
+      setError(uiText('form.passwordMismatch'))
+      return
+    }
+    setError('')
+    setBusy(true)
+    try {
+      const changed = await authAPI.changePassword({ new_password: newPassword, confirm_password: confirmPassword }, pendingLogin.access_token)
+      persistLoginData(pendingLogin)
+      clearSecrets()
+      // Der Server ersetzt das eingeschränkte Login-Token durch ein vollwertiges (F2)
+      onLogin(changed.access_token || pendingLogin.access_token)
+      setPendingLogin(null)
+    } catch (err: any) {
+      setError(err.response?.data?.detail || err.message || uiText('login.change.failed'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const cancelChange = () => {
+    setPendingLogin(null)
+    clearSecrets()
+    switchView('login')
+  }
+
+  const messages = (
+    <>
+      {error && <div style={styles.error} role="alert">{error}</div>}
+      {info && <div style={styles.success}>{info}</div>}
+    </>
+  )
 
   return (
     <div style={styles.container}>
-      <PdvmDialogModal
-        open={pwChangeOpen}
-        kind="form"
-        title="Passwort ändern"
-        message="Sie müssen ein neues Passwort vergeben."
-        fields={[
-          {
-            name: 'new_password',
-            label: 'Neues Passwort',
-            type: 'password',
-            required: true,
-            minLength: 12,
-            autoFocus: true,
-          },
-          {
-            name: 'confirm_password',
-            label: 'Passwort bestätigen',
-            type: 'password',
-            required: true,
-            minLength: 12,
-          },
-        ]}
-        confirmLabel="Speichern"
-        cancelLabel="Abbrechen"
-        busy={pwChangeBusy}
-        error={pwChangeError}
-        onCancel={() => {
-          setPwChangeOpen(false)
-          setPwChangeError(null)
-          setPendingLogin(null)
-          setPendingToken(null)
-        }}
-        onConfirm={async (values) => {
-          if (!pendingToken || !pendingLogin) return
-          setPwChangeBusy(true)
-          setPwChangeError(null)
-          try {
-            await authAPI.changePassword(
-              {
-                new_password: String(values?.new_password || ''),
-                confirm_password: String(values?.confirm_password || ''),
-              },
-              pendingToken
-            )
-
-            persistLoginData(pendingLogin)
-            onLogin(pendingToken)
-            setPwChangeOpen(false)
-            setPendingLogin(null)
-            setPendingToken(null)
-          } catch (err: any) {
-            setPwChangeError(err.response?.data?.detail || err.message || 'Passwortänderung fehlgeschlagen')
-          } finally {
-            setPwChangeBusy(false)
-          }
-        }}
-      />
-      <PdvmDialogModal
-        open={forgotOpen}
-        kind="form"
-        title="Passwort vergessen"
-        message="Bitte geben Sie Ihre E-Mail-Adresse ein."
-        fields={[
-          {
-            name: 'email',
-            label: 'E-Mail-Adresse',
-            type: 'text',
-            required: true,
-            autoFocus: true,
-          },
-        ]}
-        confirmLabel="Senden"
-        cancelLabel="Abbrechen"
-        busy={forgotBusy}
-        error={forgotError}
-        onCancel={() => {
-          setForgotOpen(false)
-          setForgotError(null)
-        }}
-        onConfirm={async (values) => {
-          setForgotBusy(true)
-          setForgotError(null)
-          try {
-            const targetEmail = String(values?.email || '').trim()
-            const result = await authAPI.forgotPassword({ email: targetEmail })
-            if (!result.email_sent) {
-              throw new Error(result.email_error || 'E-Mail konnte nicht gesendet werden')
-            }
-            setForgotSuccess('Ein maschinelles Passwort wurde versendet.')
-            setForgotOpen(false)
-          } catch (err: any) {
-            setForgotError(err.response?.data?.detail || err.message || 'E-Mail konnte nicht gesendet werden')
-          } finally {
-            setForgotBusy(false)
-          }
-        }}
-      />
       <div style={styles.card}>
-        <h1 style={styles.title}>PDVM System</h1>
-        <p style={styles.subtitle}>Business Management Platform</p>
-        
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <div style={styles.field}>
-            <label style={styles.label}>Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={styles.input}
-              required
-            />
-          </div>
-          
-          <div style={styles.field}>
-            <label style={styles.label}>Password</label>
-            <div style={styles.inputWrap}>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                style={styles.input}
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((prev) => !prev)}
-                style={styles.inputToggle}
-                aria-label={showPassword ? 'Passwort verbergen' : 'Passwort anzeigen'}
-                title={showPassword ? 'Passwort verbergen' : 'Passwort anzeigen'}
-              >
-                {showPassword ? '🙈' : '👁️'}
-              </button>
-            </div>
-          </div>
+        <h1 style={styles.title}>{uiText('login.title')}</h1>
+        <p style={styles.subtitle}>{uiText('login.subtitle')}</p>
 
-          <button
-            type="button"
-            onClick={() => setForgotOpen(true)}
-            style={styles.linkButton}
-          >
-            Passwort vergessen?
-          </button>
+        {!frames ? <p style={styles.loading}>{uiText('login.loading')}</p> : null}
 
-          {error && <div style={styles.error}>{error}</div>}
-          {forgotSuccess && <div style={styles.success}>{forgotSuccess}</div>}
-          
-          <button
-            type="submit"
-            disabled={loading}
-            style={styles.button}
-          >
-            {loading ? 'Logging in...' : 'Login'}
-          </button>
-          <button
-            type="button"
-            disabled={loading}
-            style={styles.demoButton}
-            onClick={async () => {
-              setEmail(demoLogin.username)
-              setPassword(demoLogin.password)
-              await performLogin(demoLogin.username, demoLogin.password)
-            }}
-          >
-            DEMO - Login
-          </button>
-        </form>
+        {frames && view === 'login' ? (
+          <form onSubmit={handleLogin} style={styles.form}>
+            <PdvmFrameForm frame={frames.login} data={formData} onChange={setFormData} disabled={busy} />
+            <button type="button" onClick={startForgot} style={styles.linkButton}>
+              {uiText('login.forgotLink')}
+            </button>
+            {messages}
+            <button type="submit" disabled={busy} style={styles.button}>
+              {busy ? uiText('login.submitBusy') : uiText('login.submit')}
+            </button>
+          </form>
+        ) : null}
+
+        {frames && view === 'forgot' ? (
+          <form onSubmit={handleForgot} style={styles.form}>
+            <h2 style={styles.heading}>{uiText('login.forgot.title')}</h2>
+            <p style={styles.hint}>{uiText('login.forgot.hint')}</p>
+            <PdvmFrameForm frame={frames.forgot} data={formData} onChange={setFormData} disabled={busy} />
+            {messages}
+            <button type="submit" disabled={busy} style={styles.button}>{uiText('login.forgot.submit')}</button>
+            <button type="button" onClick={() => switchView('login')} style={styles.linkButton}>{uiText('login.back')}</button>
+          </form>
+        ) : null}
+
+        {frames && view === 'change' ? (
+          <form onSubmit={handleChange} style={styles.form}>
+            <h2 style={styles.heading}>{uiText('login.change.title')}</h2>
+            <p style={styles.hint}>{uiText('login.change.hint')}</p>
+            <PdvmFrameForm frame={frames.change} data={formData} onChange={setFormData} disabled={busy} />
+            {messages}
+            <button type="submit" disabled={busy} style={styles.button}>{uiText('login.change.submit')}</button>
+            <button type="button" onClick={cancelChange} style={styles.linkButton}>{uiText('action.cancel')}</button>
+          </form>
+        ) : null}
       </div>
     </div>
   )
@@ -276,45 +280,25 @@ const styles = {
     color: 'var(--color-text-secondary)',
     marginBottom: '2rem',
   },
+  heading: {
+    fontSize: '1.2rem',
+    fontWeight: 600,
+    color: 'var(--color-text-primary)',
+    margin: 0,
+  },
+  hint: {
+    color: 'var(--color-text-secondary)',
+    fontSize: '0.9rem',
+    margin: 0,
+  },
+  loading: {
+    textAlign: 'center' as const,
+    color: 'var(--color-text-secondary)',
+  },
   form: {
     display: 'flex',
     flexDirection: 'column' as const,
     gap: '1rem',
-  },
-  field: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '0.5rem',
-  },
-  label: {
-    fontSize: '0.9rem',
-    fontWeight: '500',
-    color: 'var(--color-text-primary)',
-  },
-  input: {
-    padding: '0.75rem',
-    fontSize: '1rem',
-    border: '1px solid var(--color-border-medium)',
-    borderRadius: '4px',
-    outline: 'none',
-    width: '100%',
-  },
-  inputWrap: {
-    position: 'relative' as const,
-    display: 'flex',
-    alignItems: 'center',
-  },
-  inputToggle: {
-    position: 'absolute' as const,
-    right: '10px',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    border: 'none',
-    background: 'transparent',
-    cursor: 'pointer',
-    fontSize: '1rem',
-    lineHeight: 1,
-    padding: 0,
   },
   linkButton: {
     background: 'none',
@@ -335,16 +319,6 @@ const styles = {
     borderRadius: '4px',
     cursor: 'pointer',
     marginTop: '0.5rem',
-  },
-  demoButton: {
-    padding: '0.75rem',
-    fontSize: '1rem',
-    fontWeight: '500',
-    color: 'var(--color-text-on-primary)',
-    backgroundColor: 'transparent',
-    border: '1px solid var(--color-primary-500)',
-    borderRadius: '4px',
-    cursor: 'pointer',
   },
   error: {
     padding: '0.75rem',

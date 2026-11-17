@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { mandantenAPI } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
+import { rememberLanguage } from '../i18n/uiLanguage'
 import type { Mandant as SelectedMandant } from '../contexts/AuthContext'
 
 interface MandantSelectProps {
   onMandantSelected: (mandant: SelectedMandant) => void
-  onCreateNew?: () => void
 }
 
 interface Mandant {
@@ -15,7 +15,7 @@ interface Mandant {
   description: string
 }
 
-export default function MandantSelect({ onMandantSelected, onCreateNew }: MandantSelectProps) {
+export default function MandantSelect({ onMandantSelected }: MandantSelectProps) {
   const { token } = useAuth()
   const [mandanten, setMandanten] = useState<Mandant[]>([])
   const [loading, setLoading] = useState(true)
@@ -79,6 +79,9 @@ export default function MandantSelect({ onMandantSelected, onCreateNew }: Mandan
         localStorage.removeItem('idle_warning')
       }
 
+      // Sitzungssprache fuer die Anmeldemaske des naechsten Besuchs merken
+      rememberLanguage(selected?.language)
+
       // Callback aufrufen (AuthContext persistiert in localStorage)
       onMandantSelected({
         uid: selected.mandant_id ?? mandantId,
@@ -114,17 +117,6 @@ export default function MandantSelect({ onMandantSelected, onCreateNew }: Mandan
                   {mandant.name}
                 </button>
               ))}
-              
-              {onCreateNew && (
-                <div style={styles.separator}>
-                  <button 
-                    onClick={onCreateNew}
-                    style={styles.createButton}
-                  >
-                    + Neuen Mandanten anlegen
-                  </button>
-                </div>
-              )}
             </div>
           </>
         )}

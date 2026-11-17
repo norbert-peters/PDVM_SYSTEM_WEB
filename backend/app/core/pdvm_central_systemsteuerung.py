@@ -1,12 +1,12 @@
 ﻿"""
 PDVM Central Systemsteuerung
-Global Configuration System fÃ¼r Benutzer- und Mandantendaten
+Global Configuration System für Benutzer- und Mandantendaten
 
 Nach Desktop-Vorbild: pdvm_central_systemsteuerung.py
 - Verwaltet sys_systemsteuerung (Benutzereinstellungen)
 - Verwaltet sys_anwendungsdaten (Mandantendaten)
-- Session-Cache fÃ¼r Performance
-- Session-Storage: get_gcs() fÃ¼r direkten Zugriff
+- Session-Cache für Performance
+- Session-Storage: get_gcs() für direkten Zugriff
 """
 import uuid
 import json
@@ -31,7 +31,7 @@ _RESERVED_BASE_UIDS = {
 
 
 # ============================================
-# SESSION STORAGE (In-Memory fÃ¼r MVP)
+# SESSION STORAGE (In-Memory für MVP)
 # ============================================
 _gcs_sessions: Dict[str, 'PdvmCentralSystemsteuerung'] = {}
 
@@ -57,7 +57,7 @@ def get_gcs() -> Optional['PdvmCentralSystemsteuerung']:
         PdvmCentralSystemsteuerung-Instanz oder None wenn keine Session aktiv
     """
     # TODO: Session-Token aus Context holen (FastAPI Dependency)
-    # FÃ¼r MVP: Erste verfÃ¼gbare Session zurÃ¼ckgeben
+    # Für MVP: Erste verfügbare Session zurückgeben
     if _gcs_sessions:
         return next(iter(_gcs_sessions.values()))
     return None
@@ -107,11 +107,11 @@ async def create_gcs_session(
     try:
         user_guid = uuid.UUID(str(user_guid))
     except Exception:
-        raise ValueError("UngÃ¼ltige user_guid")
+        raise ValueError("Ungültige user_guid")
     try:
         mandant_guid = uuid.UUID(str(mandant_guid))
     except Exception:
-        raise ValueError("UngÃ¼ltige mandant_guid")
+        raise ValueError("Ungültige mandant_guid")
 
     # Replace any existing session with the same token (defensive)
     try:
@@ -145,7 +145,7 @@ async def create_gcs_session(
     # In Session-Store ablegen
     _gcs_sessions[session_token] = gcs
     
-    logger.info(f"âœ… GCS-Session erstellt: User={user_guid}, Mandant={mandant_guid}")
+    logger.info(f"✅ GCS-Session erstellt: User={user_guid}, Mandant={mandant_guid}")
     return gcs
 
 
@@ -165,7 +165,7 @@ def get_gcs_session(session_token: str) -> Optional['PdvmCentralSystemsteuerung'
 
     try:
         if gcs.is_idle_expired():
-            # Session abgelaufen â†’ schlieÃŸen
+            # Session abgelaufen → schließen
             try:
                 # fire-and-forget: close pools
                 import asyncio
@@ -196,7 +196,7 @@ def rotate_gcs_session_token(old_token: str, new_token: str) -> bool:
 
 async def close_gcs_session(session_token: str):
     """
-    SchlieÃŸt GCS-Session (Logout)
+    Schließt GCS-Session (Logout)
     
     Args:
         session_token: JWT-Token
@@ -210,7 +210,7 @@ async def close_gcs_session(session_token: str):
         for pool in (gcs._system_pool, gcs._mandant_pool):
             if pool and not PoolRegistry.is_shared(pool):
                 await pool.close()
-        logger.info(f"âœ… GCS-Session geschlossen: {session_token[:8]}...")
+        logger.info(f"✅ GCS-Session geschlossen: {session_token[:8]}...")
 
 
 class PdvmCentralSystemsteuerung:
@@ -218,7 +218,7 @@ class PdvmCentralSystemsteuerung:
     Global Configuration System
     Verwaltet Benutzer- und Mandantendaten in Session
     
-    Desktop-Pattern: Separate PdvmCentralDatenbank-Instanzen fÃ¼r:
+    Desktop-Pattern: Separate PdvmCentralDatenbank-Instanzen für:
     - Benutzer (aus Login, no_change)
     - Mandant (aus Login, no_change)
     - Systemsteuerung (Benutzereinstellungen)
@@ -236,7 +236,7 @@ class PdvmCentralSystemsteuerung:
         mandant_pool: Optional[Any] = None
     ):
         """
-        Initialisiert GCS fÃ¼r User und Mandant
+        Initialisiert GCS für User und Mandant
         
         Args:
             user_guid: UUID des Benutzers
@@ -244,8 +244,8 @@ class PdvmCentralSystemsteuerung:
             user_data: Komplette User-Daten aus asy_benutzer (aus Login)
             mandant_data: Komplette Mandant-Daten aus asy_mandanten (aus Login)
             stichtag: Aktueller Stichtag (default = aktuell)
-            system_pool: Connection pool fÃ¼r pdvm_system Datenbank
-            mandant_pool: Connection pool fÃ¼r mandanten Datenbank
+            system_pool: Connection pool für pdvm_system Datenbank
+            mandant_pool: Connection pool für mandanten Datenbank
         """
         self.user_guid = user_guid
         self.mandant_guid = mandant_guid
@@ -254,7 +254,7 @@ class PdvmCentralSystemsteuerung:
         self._system_pool = system_pool
         self._mandant_pool = mandant_pool
 
-        # Session-Cache: Base-Rows fÃ¼r Views (DB-Rohdaten), damit Stichtag-Wechsel nicht jedes Mal DB lesen muss.
+        # Session-Cache: Base-Rows für Views (DB-Rohdaten), damit Stichtag-Wechsel nicht jedes Mal DB lesen muss.
         # Key: (table_name, include_historisch, limit)
         self._view_base_rows_cache: Dict[tuple[str, bool, int], Any] = {}
 
@@ -308,31 +308,31 @@ class PdvmCentralSystemsteuerung:
         # 1. Benutzer-Instanz (no_save=True, Daten aus Login)
         self.benutzer = PdvmCentralDatabase(
             "asy_benutzer",
-            guid=None,  # Keine GUID â†’ kein DB-Lesen
+            guid=None,  # Keine GUID → kein DB-Lesen
             no_save=True,  # Read-only
             stichtag=stichtag,
             system_pool=system_pool,
             mandant_pool=mandant_pool
         )
         self.benutzer.set_data(user_data)  # Daten aus Login setzen
-        self.benutzer.set_guid(str(user_guid))  # GUID nachtrÃ¤glich setzen
+        self.benutzer.set_guid(str(user_guid))  # GUID nachträglich setzen
         
         # 2. Mandant-Instanz (no_save=True, Daten aus Login)
         self.mandant = PdvmCentralDatabase(
             "asy_mandanten",
-            guid=None,  # Keine GUID â†’ kein DB-Lesen
+            guid=None,  # Keine GUID → kein DB-Lesen
             no_save=True,  # Read-only
             stichtag=stichtag,
             system_pool=system_pool,
             mandant_pool=mandant_pool
         )
         self.mandant.set_data(mandant_data)  # Daten aus Login setzen
-        self.mandant.set_guid(str(mandant_guid))  # GUID nachtrÃ¤glich setzen
+        self.mandant.set_guid(str(mandant_guid))  # GUID nachträglich setzen
         
         # 3. Systemsteuerung-Instanz (Benutzereinstellungen, read/write)
         self.systemsteuerung = PdvmCentralDatabase(
             "msy_systemsteuerung",
-            guid=None,  # Keine GUID â†’ kein DB-Lesen
+            guid=None,  # Keine GUID → kein DB-Lesen
             no_save=False,  # Speicherbar
             stichtag=stichtag,
             system_pool=system_pool,
@@ -342,7 +342,7 @@ class PdvmCentralSystemsteuerung:
         # 4. Anwendungsdaten-Instanz (Mandanteneinstellungen, read/write)
         self.anwendungsdaten = PdvmCentralDatabase(
             "msy_anwendungsdaten",
-            guid=None,  # Keine GUID â†’ kein DB-Lesen
+            guid=None,  # Keine GUID → kein DB-Lesen
             no_save=False,  # Speicherbar
             stichtag=stichtag,
             system_pool=system_pool,
@@ -411,9 +411,9 @@ class PdvmCentralSystemsteuerung:
         return s in {"1", "true", "yes", "y", "on"}
 
     async def initialize_from_db(self) -> None:
-        """Lineare Initialisierung: lÃ¤dt systemsteuerung/anwendungsdaten/layout aus DB.
+        """Lineare Initialisierung: lädt systemsteuerung/anwendungsdaten/layout aus DB.
 
-        WICHTIG: Keine create_task() / parallel init. Nach RÃ¼ckkehr ist der GCS konsistent.
+        WICHTIG: Keine create_task() / parallel init. Nach Rückkehr ist der GCS konsistent.
         """
         from app.core.pdvm_datetime import now_pdvm
 
@@ -423,12 +423,12 @@ class PdvmCentralSystemsteuerung:
         try:
             user_uuid = uuid.UUID(user_guid_str)
         except Exception:
-            raise ValueError("UngÃ¼ltige user_guid")
+            raise ValueError("Ungültige user_guid")
 
         try:
             mandant_uuid = uuid.UUID(mandant_guid_str)
         except Exception:
-            raise ValueError("UngÃ¼ltige mandant_guid")
+            raise ValueError("Ungültige mandant_guid")
 
         def _apply_stichtag_to_all_instances(new_stichtag: float) -> None:
             self.stichtag = float(new_stichtag)
@@ -437,7 +437,7 @@ class PdvmCentralSystemsteuerung:
                     inst.stichtag = float(new_stichtag)
 
         async def _ensure_row_identity_via_link_uid(db: PdvmDatabase, row: Dict[str, Any], target_link_uuid: uuid.UUID, table_label: str) -> Dict[str, Any]:
-            """Stellt sicher: uid ist reine Row-ID; fachliche IdentitÃ¤t liegt in link_uid."""
+            """Stellt sicher: uid ist reine Row-ID; fachliche Identität liegt in link_uid."""
             try:
                 row_uid = row.get("uid") if isinstance(row, dict) else None
                 if row_uid is None:
@@ -449,11 +449,11 @@ class PdvmCentralSystemsteuerung:
                 new_uid = uuid.uuid4()
                 changed = await db.rekey_uid(uuid.UUID(row_uid_str), new_uid)
                 if changed:
-                    logger.info(f"ðŸ” {table_label}: Row-UID von Link-UID entkoppelt ({row_uid_str} -> {new_uid})")
+                    logger.info(f"🔁 {table_label}: Row-UID von Link-UID entkoppelt ({row_uid_str} -> {new_uid})")
                     refreshed = await db.get_by_uid(new_uid)
                     return refreshed or row
             except Exception as exc:
-                logger.warning(f"âš ï¸ {table_label}: Rekey auf Row-UID fehlgeschlagen: {exc}")
+                logger.warning(f"⚠️ {table_label}: Rekey auf Row-UID fehlgeschlagen: {exc}")
             return row
 
         # --- msy_systemsteuerung (User) ---
@@ -463,7 +463,7 @@ class PdvmCentralSystemsteuerung:
             self.systemsteuerung.set_data(row["daten"])
             self.systemsteuerung.set_guid(str(row.get("uid")))
         else:
-            logger.info(f"ðŸ“ msy_systemsteuerung fÃ¼r User {user_guid_str} nicht gefunden - erstelle mit Defaults")
+            logger.info(f"📝 msy_systemsteuerung für User {user_guid_str} nicht gefunden - erstelle mit Defaults")
             new_row_uid = str(uuid.uuid4())
             self.systemsteuerung.set_guid(new_row_uid)
             self.systemsteuerung.set_data({})
@@ -478,7 +478,7 @@ class PdvmCentralSystemsteuerung:
                 system_pool=self._system_pool,
                 mandant_pool=self._mandant_pool,
             )
-            logger.info(f"âœ… msy_systemsteuerung fÃ¼r User {user_guid_str} erstellt")
+            logger.info(f"✅ msy_systemsteuerung für User {user_guid_str} erstellt")
 
         # STICHTAG: load or initialize
         stored = None
@@ -499,9 +499,9 @@ class PdvmCentralSystemsteuerung:
             self.systemsteuerung.set_value(user_guid_str, "STICHTAG", new_st, self.stichtag)
             try:
                 await self.systemsteuerung.save_all_values()
-                logger.info(f"âœ… STICHTAG initialisiert und gespeichert: {new_st}")
+                logger.info(f"✅ STICHTAG initialisiert und gespeichert: {new_st}")
             except Exception as e:
-                logger.error(f"âŒ Fehler beim Persistieren von STICHTAG: {e}")
+                logger.error(f"❌ Fehler beim Persistieren von STICHTAG: {e}")
 
         # --- msy_anwendungsdaten (Mandant) ---
         row = await self.anwendungsdaten.db.get_by_link_uid(mandant_uuid)
@@ -510,7 +510,7 @@ class PdvmCentralSystemsteuerung:
             self.anwendungsdaten.set_data(row["daten"])
             self.anwendungsdaten.set_guid(str(row.get("uid")))
         else:
-            logger.info(f"ðŸ“ msy_anwendungsdaten fÃ¼r Mandant {mandant_guid_str} nicht gefunden - erstelle mit Defaults")
+            logger.info(f"📝 msy_anwendungsdaten für Mandant {mandant_guid_str} nicht gefunden - erstelle mit Defaults")
             new_row_uid = str(uuid.uuid4())
             self.anwendungsdaten.set_guid(new_row_uid)
             self.anwendungsdaten.set_data({})
@@ -525,7 +525,7 @@ class PdvmCentralSystemsteuerung:
                 system_pool=self._system_pool,
                 mandant_pool=self._mandant_pool,
             )
-            logger.info(f"âœ… msy_anwendungsdaten fÃ¼r Mandant {mandant_guid_str} erstellt")
+            logger.info(f"✅ msy_anwendungsdaten für Mandant {mandant_guid_str} erstellt")
 
         # --- Layout (Theme): canonical msy_layout, legacy self-heal from sys_layout ---
         theme_guid = None
@@ -582,22 +582,22 @@ class PdvmCentralSystemsteuerung:
                                     system_pool=self._system_pool,
                                     mandant_pool=self._mandant_pool,
                                 )
-                                logger.info(f"âœ… Layout-Migration: Theme {theme_guid_str} von sys_layout nach msy_layout uebernommen")
+                                logger.info(f"✅ Layout-Migration: Theme {theme_guid_str} von sys_layout nach msy_layout uebernommen")
                                 # Nach erfolgreicher Persistierung canonical row erneut laden.
                                 row = await self.layout.db.get_row(theme_uuid) or row
                             except Exception as migration_exc:
-                                logger.warning(f"âš ï¸ Layout-Migration nach msy_layout fehlgeschlagen: {migration_exc}")
+                                logger.warning(f"⚠️ Layout-Migration nach msy_layout fehlgeschlagen: {migration_exc}")
                         else:
-                            logger.warning(f"âš ï¸ Theme {theme_guid_str} weder in msy_layout noch in sys_layout gefunden")
+                            logger.warning(f"⚠️ Theme {theme_guid_str} weder in msy_layout noch in sys_layout gefunden")
                     except Exception as legacy_exc:
-                        logger.warning(f"âš ï¸ Legacy-Layout-Lookup in sys_layout fehlgeschlagen: {legacy_exc}")
+                        logger.warning(f"⚠️ Legacy-Layout-Lookup in sys_layout fehlgeschlagen: {legacy_exc}")
 
                 if row and row.get("daten"):
                     self.layout.set_data(row["daten"])
                 else:
                     self.layout.set_data({})
                 self.layout.set_guid(theme_guid_str)
-                logger.info(f"âœ… Layout geladen aus msy_layout: {theme_guid_str}")
+                logger.info(f"✅ Layout geladen aus msy_layout: {theme_guid_str}")
 
                 # Mandanten-Overlay: eigene msy_layout-Zeile (link_uid = Mandant), Kennzeichen ROOT.LAYER=OVERLAY.
                 # Zeilen ohne Kennzeichen (Paket-Kopien) werden bewusst ignoriert.
@@ -612,7 +612,7 @@ class PdvmCentralSystemsteuerung:
                 except Exception as overlay_exc:
                     logger.warning(f"âš ï¸ Layout-Overlay konnte nicht geladen werden: {overlay_exc}")
         else:
-            logger.warning("âš ï¸ Keine THEME_GUID im Mandant-CONFIG gefunden")
+            logger.warning("⚠️ Keine THEME_GUID im Mandant-CONFIG gefunden")
 
         await self._load_extra_layout_packages()
 
@@ -752,7 +752,7 @@ class PdvmCentralSystemsteuerung:
         return entry["data"] if entry and isinstance(entry["data"], dict) else {}
 
     async def preload_control_template_cache(self) -> None:
-        """LÃ¤dt nicht-persistenten Control-Template-Cache (GUID 555...) in die Session."""
+        """Lädt nicht-persistenten Control-Template-Cache (GUID 555...) in die Session."""
         try:
             template_uid = uuid.UUID("55555555-5555-5555-5555-555555555555")
             db = PdvmDatabase(
@@ -763,33 +763,33 @@ class PdvmCentralSystemsteuerung:
             row = await db.get_by_uid(template_uid)
             data = row.get("daten") if isinstance(row, dict) else {}
             self._control_template_555_cache = copy.deepcopy(data) if isinstance(data, dict) else {}
-            logger.info("âœ… GCS Control-Template-Cache geladen (555...)")
+            logger.info("✅ GCS Control-Template-Cache geladen (555...)")
         except Exception as exc:
             self._control_template_555_cache = {}
-            logger.warning(f"âš ï¸ GCS Control-Template-Cache konnte nicht geladen werden: {exc}")
+            logger.warning(f"⚠️ GCS Control-Template-Cache konnte nicht geladen werden: {exc}")
 
     def get_control_template_555_cache(self) -> Dict[str, Any]:
-        """Gibt eine sichere Kopie des nicht-persistenten 555-Template-Caches zurÃ¼ck."""
+        """Gibt eine sichere Kopie des nicht-persistenten 555-Template-Caches zurück."""
         return copy.deepcopy(self._control_template_555_cache) if isinstance(self._control_template_555_cache, dict) else {}
     
-    # === Delegierte Methoden fÃ¼r KompatibilitÃ¤t ===
+    # === Delegierte Methoden für Kompatibilität ===
     
     def get_value(self, gruppe: str, feld: str, ab_zeit: Optional[float] = None):
         """
         Delegiert an systemsteuerung.get_value()
-        FÃ¼r KompatibilitÃ¤t mit bestehender Layout-API
+        Für Kompatibilität mit bestehender Layout-API
         """
         return self.systemsteuerung.get_value(gruppe, feld, ab_zeit or self.stichtag)
     
     def set_value(self, gruppe: str, feld: str, wert: Any, ab_zeit: Optional[float] = None):
         """
         Delegiert an systemsteuerung.set_value()
-        FÃ¼r KompatibilitÃ¤t mit bestehender Layout-API
+        Für Kompatibilität mit bestehender Layout-API
         """
         self.systemsteuerung.set_value(gruppe, feld, wert, ab_zeit or self.stichtag)
     
     def set_request_context(self, actor_ip: Optional[str] = None) -> None:
-        """Setzt Request-Kontext (aktuell: Client-IP) fÃ¼r nachfolgende Saves."""
+        """Setzt Request-Kontext (aktuell: Client-IP) für nachfolgende Saves."""
         self.actor_ip = actor_ip
         self.systemsteuerung.actor_ip = actor_ip
         self.anwendungsdaten.actor_ip = actor_ip
@@ -801,7 +801,7 @@ class PdvmCentralSystemsteuerung:
     ):
         """
         Delegiert an systemsteuerung.save_all_values()
-        FÃ¼r KompatibilitÃ¤t mit GCS-API
+        Für Kompatibilität mit GCS-API
         """
         effective_actor_user_uid = actor_user_uid or str(self.user_guid)
         effective_actor_ip = actor_ip if actor_ip is not None else self.actor_ip
@@ -1130,10 +1130,6 @@ class PdvmCentralSystemsteuerung:
         cfg = after.get("CONFIG") if isinstance(after.get("CONFIG"), dict) else {}
         cfg.update(updates)
         after["CONFIG"] = cfg
-        # asy_mandanten.gilt_bis ist eine Text-Spalte; ein mitgeschriebenes SELF_GILT_BIS wuerde als datetime
-        # gebunden und scheitern. Ohne den Schluessel bleibt die Spalte unveraendert.
-        if isinstance(after.get("ROOT"), dict):
-            after["ROOT"].pop("SELF_GILT_BIS", None)
 
         await update_record_central(
             table_name="asy_mandanten",
@@ -1231,7 +1227,7 @@ class PdvmCentralSystemsteuerung:
         Returns:
             PDVM-Datum (z.B. 2025356.00000)
         """
-        # Stichtag ist in der GCS fÃ¼hrend; wird bei Init aus sys_systemsteuerung geladen.
+        # Stichtag ist in der GCS führend; wird bei Init aus sys_systemsteuerung geladen.
         return float(self.stichtag) if self.stichtag is not None else 9999365.00000
     
     def set_stichtag(self, new_stichtag: float):
@@ -1245,14 +1241,14 @@ class PdvmCentralSystemsteuerung:
         self.set_value(str(self.user_guid), "STICHTAG", float(new_stichtag), ab_zeit=self.stichtag)
         self.stichtag = float(new_stichtag)
 
-        # Cache invalidieren (Basisdaten kÃ¶nnen bleiben, aber das stichtag-projizierte Ergebnis muss neu berechnet werden).
-        # Aktuell cachen wir nur DB-Rohdaten; invalidate ist defensiv fÃ¼r zukÃ¼nftige abgeleitete Caches.
+        # Cache invalidieren (Basisdaten können bleiben, aber das stichtag-projizierte Ergebnis muss neu berechnet werden).
+        # Aktuell cachen wir nur DB-Rohdaten; invalidate ist defensiv für zukünftige abgeleitete Caches.
         try:
             self._view_base_rows_cache = self._view_base_rows_cache or {}
         except Exception:
             self._view_base_rows_cache = {}
 
-        # Stichtag Ã¼ber alle Instanzen synchronisieren
+        # Stichtag über alle Instanzen synchronisieren
         for inst in (self.benutzer, self.mandant, self.systemsteuerung, self.anwendungsdaten, self.layout):
             if inst is not None:
                 inst.stichtag = float(new_stichtag)
@@ -1261,10 +1257,10 @@ class PdvmCentralSystemsteuerung:
     
     def get_menu_toggle(self, menu_guid: str) -> int:
         """
-        Liest toggle_menu fÃ¼r spezifisches MenÃ¼ aus menu_guid Gruppe
+        Liest toggle_menu für spezifisches Menü aus menu_guid Gruppe
         
         Args:
-            menu_guid: UUID des MenÃ¼s
+            menu_guid: UUID des Menüs
         
         Returns:
             0 = ausgeblendet, 1 = eingeblendet (default)
@@ -1274,17 +1270,17 @@ class PdvmCentralSystemsteuerung:
     
     def set_menu_toggle(self, menu_guid: str, toggle: int):
         """
-        Setzt toggle_menu fÃ¼r spezifisches MenÃ¼ in menu_guid Gruppe
+        Setzt toggle_menu für spezifisches Menü in menu_guid Gruppe
         
         Args:
-            menu_guid: UUID des MenÃ¼s
+            menu_guid: UUID des Menüs
             toggle: 0 = ausblenden, 1 = einblenden
         """
         self.set_value(menu_guid, "toggle_menu", toggle, ab_zeit=self.stichtag)
     
     def get_menu_visible(self, menu_guid: str) -> bool:
         """
-        Liest menu_visible fÃ¼r spezifisches MenÃ¼ aus menu_guid Gruppe
+        Liest menu_visible für spezifisches Menü aus menu_guid Gruppe
         
         Returns:
             True = sichtbar (default), False = ausgeblendet
@@ -1293,7 +1289,7 @@ class PdvmCentralSystemsteuerung:
         return wert if wert is not None else True
     
     def set_menu_visible(self, menu_guid: str, visible: bool):
-        """Setzt menu_visible fÃ¼r spezifisches MenÃ¼ in menu_guid Gruppe"""
+        """Setzt menu_visible für spezifisches Menü in menu_guid Gruppe"""
         self.set_value(menu_guid, "menu_visible", visible, ab_zeit=self.stichtag)
     
     # === Expert Mode ===
@@ -1302,13 +1298,13 @@ class PdvmCentralSystemsteuerung:
         """
         Liest Expert-Mode aus Benutzerdaten (SETTINGS.EXPERT_MODE).
 
-        PrimÃ¤re Quelle: asy_benutzer.daten -> Gruppe SETTINGS, Feld EXPERT_MODE
+        Primäre Quelle: asy_benutzer.daten -> Gruppe SETTINGS, Feld EXPERT_MODE
         Legacy-Fallback: sys_systemsteuerung (Gruppe user_guid, Feld EXPERT_MODE)
         
         Returns:
             True = Expert Mode aktiv, False = Standard (default)
         """
-        # PrimÃ¤r: Benutzerdaten aus Login/GCS (SETTINGS.EXPERT_MODE)
+        # Primär: Benutzerdaten aus Login/GCS (SETTINGS.EXPERT_MODE)
         try:
             benutzer_data = self.benutzer.data if isinstance(self.benutzer.data, dict) else {}
             settings = benutzer_data.get("SETTINGS") if isinstance(benutzer_data.get("SETTINGS"), dict) else {}
@@ -1331,7 +1327,7 @@ class PdvmCentralSystemsteuerung:
         """Setzt expert_mode konsistent in SETTINGS.EXPERT_MODE und Legacy-Feld."""
         value = bool(expert_mode)
 
-        # PrimÃ¤r: Benutzerdaten-Struktur (wird in GCS-Instanz gehalten)
+        # Primär: Benutzerdaten-Struktur (wird in GCS-Instanz gehalten)
         try:
             if not isinstance(self.benutzer.data, dict):
                 self.benutzer.data = {}
@@ -1341,14 +1337,14 @@ class PdvmCentralSystemsteuerung:
         except Exception:
             pass
 
-        # Legacy-KompatibilitÃ¤t: bestehende Leser auf sys_systemsteuerung weiter bedienen
+        # Legacy-Kompatibilität: bestehende Leser auf sys_systemsteuerung weiter bedienen
         self.set_value(str(self.user_guid), "EXPERT_MODE", value, ab_zeit=self.stichtag)
     
     # === View-Einstellungen ===
     
     def get_view_controls(self, view_guid: str) -> Optional[Dict]:
         """
-        Liest Controls-Konfiguration fÃ¼r View aus view_guid Gruppe
+        Liest Controls-Konfiguration für View aus view_guid Gruppe
         
         Returns:
             Dict mit Control-Einstellungen oder None
@@ -1357,23 +1353,23 @@ class PdvmCentralSystemsteuerung:
         return wert
     
     def set_view_controls(self, view_guid: str, controls: Dict):
-        """Setzt Controls-Konfiguration fÃ¼r View in view_guid Gruppe"""
+        """Setzt Controls-Konfiguration für View in view_guid Gruppe"""
         self.set_value(view_guid, "controls", controls, ab_zeit=self.stichtag)
 
     def get_view_table_state(self, view_guid: str) -> Optional[Dict]:
-        """Liest Table-State (Sort/Filter) fÃ¼r View aus view_guid Gruppe."""
+        """Liest Table-State (Sort/Filter) für View aus view_guid Gruppe."""
         wert, _ = self.get_value(view_guid, "table_state", ab_zeit=self.stichtag)
         return wert
 
     def set_view_table_state(self, view_guid: str, table_state: Dict):
-        """Setzt Table-State (Sort/Filter) fÃ¼r View in view_guid Gruppe."""
+        """Setzt Table-State (Sort/Filter) für View in view_guid Gruppe."""
         self.set_value(view_guid, "table_state", table_state, ab_zeit=self.stichtag)
     
-    # === EDIT-Modus (temporÃ¤re Daten) ===
+    # === EDIT-Modus (temporäre Daten) ===
     
     def get_edit_value(self, feld: str) -> Any:
         """
-        Liest temporÃ¤ren Wert aus EDIT-Gruppe
+        Liest temporären Wert aus EDIT-Gruppe
         
         Returns:
             Wert oder None
@@ -1382,11 +1378,11 @@ class PdvmCentralSystemsteuerung:
         return wert
     
     def set_edit_value(self, feld: str, wert: Any):
-        """Schreibt temporÃ¤ren Wert in EDIT-Gruppe"""
+        """Schreibt temporären Wert in EDIT-Gruppe"""
         self.set_value("EDIT", feld, wert, ab_zeit=self.stichtag)
     
     def clear_edit_data(self):
-        """LÃ¶scht alle EDIT-Daten"""
+        """Löscht alle EDIT-Daten"""
         if "EDIT" in self.systemsteuerung.data:
             del self.systemsteuerung.data["EDIT"]
 

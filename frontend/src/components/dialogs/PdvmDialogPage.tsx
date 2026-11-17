@@ -8,7 +8,6 @@ import {
   workflowDraftsAPI,
   systemdatenAPI,
   viewsAPI,
-  usersAPI,
   type DialogRow,
   type DialogDefinitionResponse,
   type FrameDefinitionResponse,
@@ -23,6 +22,17 @@ import { PdvmViewPageContent } from '../views/PdvmViewPage'
 import { PdvmMenuEditor } from './PdvmMenuEditor'
 import { PdvmImportDataEditor, PdvmImportDataSteps } from './PdvmImportDataEditor'
 import { resolveElementFieldRuntimeContract } from './elementFieldRuntimeContract'
+import { IMMUTABLE_LOCK_HINT, isImmutableLocked } from '../frames/frameRuntime'
+import {
+  buildActionView,
+  collectFrameActionIds,
+  isActionField,
+  isInfoField,
+  useFrameActionRunner,
+  useFrameActionStates,
+  type FrameActionFieldLike,
+  type FrameActionMode,
+} from '../frames/frameActions'
 import { PdvmJsonEditor, type PdvmJsonEditorHandle, type PdvmJsonEditorMode } from '../common/PdvmJsonEditor'
 import { PdvmDialogModal, type PdvmDialogModalField } from '../common/PdvmDialogModal'
 import { PdvmDialogInfoModal, type PdvmDialogInfoItem, type PdvmDialogInfoTab } from './PdvmDialogInfoModal'
@@ -330,8 +340,14 @@ function buildFlatPicControl(params: {
 
 function normalizePicType(
   value: any
-): 'string' | 'number' | 'text' | 'dropdown' | 'multi_dropdown' | 'true_false' | 'datetime' | 'date' | 'time' | 'go_select_view' | 'action' | 'element_list' | 'group_list' | 'color' | 'css_length' | 'css_border' | 'font_family' | 'theme_preview' {
+): 'string' | 'number' | 'text' | 'text_popup' | 'dropdown' | 'multi_dropdown' | 'true_false' | 'datetime' | 'date' | 'time' | 'go_select_view' | 'action' | 'info' | 'element_list' | 'group_list' | 'color' | 'css_length' | 'css_border' | 'font_family' | 'theme_preview' | 'password' {
   const t = String(value || '').trim().toLowerCase()
+  if (t === 'password') return 'password'
+  // password_input gehoert nur in fluechtige Login-Frames (nicht gespeichert); im Dialog wird das Feld nicht dargestellt
+  // (Typ info ohne info-Konfiguration bleibt unsichtbar), damit nie ein Passwort in einen Datensatz gelangt.
+  if (t === 'password_input') return 'info'
+  if (t === 'info') return 'info'
+  if (t === 'text_popup') return 'text_popup'
   if (t === 'number' || t === 'int' || t === 'integer') return 'number'
   if (t === 'text') return 'text'
   if (t === 'dropdown') return 'dropdown'
@@ -360,7 +376,7 @@ function buildElementFieldsFromCollectionValue(value: any): Array<{ name: string
 function mapPicTypeToElementFieldType(value: any): 'string' | 'text' | 'textarea' | 'number' | 'dropdown' | 'multi_dropdown' | 'true_false' | 'go_select_view' {
   const t = normalizePicType(value)
   if (t === 'number') return 'number'
-  if (t === 'text') return 'textarea'
+  if (t === 'text' || t === 'text_popup') return 'textarea'
   if (t === 'dropdown') return 'dropdown'
   if (t === 'multi_dropdown') return 'multi_dropdown'
   if (t === 'true_false') return 'true_false'
@@ -449,60 +465,19 @@ function toBoolean(value: any): boolean {
   return !!value
 }
 
-function isApplyLikeActionControl(def: any): boolean {
-  const row = asObject(def)
-  const configs = asObject((row as any).configs)
-  const control = asObject((row as any).CONTROL)
-
-  const token = [
-    row.label,
-    row.name,
-    row.feld,
-    row.key,
-    (configs as any).action,
-    (configs as any).action_id,
-    (configs as any).action_key,
-    (configs as any).handler,
-    (configs as any).command,
-    (control as any).ACTION,
-    (control as any).ACTION_ID,
-    (control as any).ACTION_KEY,
-    (control as any).HANDLER,
-    (control as any).COMMAND,
-  ]
-    .filter((v) => v !== undefined && v !== null)
-    .map((v) => String(v).trim().toLowerCase())
-    .join(' ')
-
-  if (!token) return false
-
-  return ['apply', 'anwenden', 'release_apply', 'import_apply', 'paket angewendet'].some((kw) => token.includes(kw))
-}
-
-function buildActionToken(def: any): string {
-  const row = asObject(def)
-  const configs = asObject((row as any).configs)
-  const control = asObject((row as any).CONTROL)
-  return [
-    row.label,
-    row.name,
-    row.feld,
-    row.key,
-    (configs as any).action,
-    (configs as any).action_id,
-    (configs as any).action_key,
-    (configs as any).handler,
-    (configs as any).command,
-    (control as any).ACTION,
-    (control as any).ACTION_ID,
-    (control as any).ACTION_KEY,
-    (control as any).HANDLER,
-    (control as any).COMMAND,
-  ]
-    .filter((v) => v !== undefined && v !== null)
-    .map((v) => String(v).trim().toLowerCase())
-    .join(' ')
-}
+// Host-Aktionen des Workflow-Draft-Builders (Register im Backend: frame_action_service.WORKFLOW_HOST_ACTIONS)
+const WORKFLOW_HOST_ACTION_IDS = [
+  'workflow.validate',
+  'workflow.save',
+  'workflow.build',
+  'workflow.save_view',
+  'workflow.save_content',
+  'workflow.create_control',
+  'workflow.create_property',
+  'workflow.abort',
+  'workflow.dry_run',
+  'workflow.apply',
+]
 
 function collectWorkflowSetupPayload(datenRaw: Record<string, any> | null | undefined): Record<string, any> {
   const daten = asObject(datenRaw)
@@ -1090,7 +1065,7 @@ function buildCreateContextFieldsFromFrame(frameDaten: Record<string, any> | nul
     if (rawType === 'number') {
       modalType = 'number'
       valueType = 'number'
-    } else if (rawType === 'text') {
+    } else if (rawType === 'text' || rawType === 'text_popup') {
       modalType = 'textarea'
     } else if (rawType === 'dropdown') {
       const parsed = parseModalDropdownOptions(
@@ -2627,22 +2602,75 @@ export default function PdvmDialogPage() {
 
   const [infoModalOpen, setInfoModalOpen] = useState(false)
 
-  const [userActionInfo, setUserActionInfo] = useState<string | null>(null)
-  const [userActionError, setUserActionError] = useState<string | null>(null)
-  const [userActionBusy, setUserActionBusy] = useState(false)
-  const [resetPwConfirmOpen, setResetPwConfirmOpen] = useState(false)
-  const [lockAccountOpen, setLockAccountOpen] = useState(false)
-  const [unlockAccountOpen, setUnlockAccountOpen] = useState(false)
+  // Frame-Aktionen (Typen action/info, Regel 2.17): Rechte und Zustaende je Satz in einer Anfrage, Ausfuehrung ueber das Backend-Register
+  const frameActionMode: FrameActionMode = isDraftMode ? 'create' : 'edit'
+  const frameActionTable = String(effectiveDialogTableForDataOps || '').trim().toLowerCase() || null
+  // Lazy Lambdas: runWorkflowDraftAction ist weiter unten definiert, wird aber erst beim Klick aufgerufen
+  const workflowHostActions = useMemo(() => {
+    const entries = WORKFLOW_HOST_ACTION_IDS.map((id) => [id, () => runWorkflowDraftActionRef.current(id)] as const)
+    return Object.fromEntries(entries) as Record<string, () => void | Promise<void>>
+  }, [])
+  const frameActionIds = useMemo(() => collectFrameActionIds(uiPicDefs as FrameActionFieldLike[]), [uiPicDefs])
+  const frameActionStatesQuery = useFrameActionStates({
+    table: frameActionTable,
+    uid: selectedUid,
+    ids: frameActionIds,
+    enabled: isFieldEditor && (!isDraftMode || isWorkflowDraftBuilderDialog),
+    allowNoRecord: isWorkflowDraftBuilderDialog,
+  })
+  const frameActionRunner = useFrameActionRunner({
+    table: frameActionTable,
+    uid: selectedUid,
+    dirty: picDirty,
+    onRefresh: (refresh) => handleFrameActionRefresh(refresh),
+    hostActions: isWorkflowDraftBuilderDialog ? workflowHostActions : undefined,
+  })
+
+  // Rendert ein action/info-Control, wenn es fuer Modus, Rechte und Bedingungen sichtbar ist und zur Platzierung passt
+  const renderFrameActionControl = (d: PicDef, fieldKey: string, placement: 'field' | 'header') => {
+    const view = buildActionView(d as FrameActionFieldLike, {
+      data: (currentDaten || {}) as Record<string, any>,
+      mode: frameActionMode,
+      states: frameActionStatesQuery.data,
+    })
+    if (!view.visible || view.placement !== placement) return null
+    return (
+      <PdvmInputControl
+        key={fieldKey}
+        label={d.label || d.name || d.feld || ''}
+        tooltip={d.tooltip}
+        type={normalizePicType(d.type) === 'info' ? 'info' : 'action'}
+        value={null}
+        onChange={() => undefined}
+        actionView={{
+          enabled: view.enabled && !frameActionRunner.busy && !(isWorkflowDraftBuilderDialog && workflowDraftBusy),
+          busy: frameActionRunner.busy,
+          disabledReason: view.disabledReason,
+          onClick: () => frameActionRunner.trigger(d as FrameActionFieldLike),
+        }}
+        infoView={{ text: view.text, severity: view.severity }}
+      />
+    )
+  }
+
+  const frameActionHeaderBar = (() => {
+    const own = uiPicDefs.filter((d) => isActionField(d as FrameActionFieldLike) || isInfoField(d as FrameActionFieldLike))
+    const render = (d: PicDef) => renderFrameActionControl(d, String(d.key || `${d.gruppe}.${d.feld}`), 'header')
+    const infos = own.filter((d) => isInfoField(d as FrameActionFieldLike)).map(render).filter(Boolean)
+    const buttons = own.filter((d) => isActionField(d as FrameActionFieldLike)).map(render).filter(Boolean)
+    if (!infos.length && !buttons.length) return null
+    return (
+      <div style={{ marginBottom: 10, display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+        {infos}
+        {buttons.length ? <div style={{ marginLeft: 'auto', display: 'flex', flexWrap: 'wrap', gap: 8 }}>{buttons}</div> : null}
+      </div>
+    )
+  })()
 
   useEffect(() => {
     if (!autoLastCallError) return
     setInfoModalOpen(true)
   }, [autoLastCallError])
-
-  useEffect(() => {
-    if (!userActionInfo && !userActionError) return
-    setInfoModalOpen(true)
-  }, [userActionInfo, userActionError])
 
   useEffect(() => {
     if (!currentDaten) return
@@ -4541,44 +4569,46 @@ export default function PdvmDialogPage() {
     }
   }
 
-  const runWorkflowDraftAction = async (def: any) => {
-    const token = buildActionToken(def)
-    if (!token) return
-
+  // Host-Aktionen des Workflow-Draft-Builders (explizite IDs `workflow.*` aus CONFIGS.action.id; Rechte vom Server, Regel 2.17)
+  const runWorkflowDraftAction = async (actionId: string) => {
     setWorkflowDraftError(null)
     setWorkflowDraftStatus(null)
     setWorkflowDraftCommitReport(null)
 
     setWorkflowDraftBusy(true)
     try {
-      if (token.includes('validate')) {
-        await validateWorkflowDraft()
-        return
+      switch (actionId) {
+        case 'workflow.validate':
+          await validateWorkflowDraft()
+          return
+        case 'workflow.save':
+        case 'workflow.build':
+        case 'workflow.save_view':
+        case 'workflow.save_content':
+          if (activeModuleType === 'edit') {
+            await saveWorkflowCurrentStepSnapshot()
+          } else {
+            await saveWorkflowSetup()
+          }
+          return
+        case 'workflow.dry_run':
+          await commitWorkflowDraftToLive(true)
+          return
+        case 'workflow.apply':
+          await commitWorkflowDraftToLive(workflowDraftCommitDryRun)
+          return
+        default:
+          setWorkflowDraftStatus('Aktion ist fuer den aktuellen Ausbau noch nicht verdrahtet.')
       }
-      if (token.includes('load')) {
-        await loadWorkflowSetup()
-        return
-      }
-      if (token.includes('save') || token.includes('build')) {
-        if (activeModuleType === 'edit') {
-          await saveWorkflowCurrentStepSnapshot()
-        } else {
-          await saveWorkflowSetup()
-        }
-        return
-      }
-      if (token.includes('apply') || token.includes('commit') || token.includes('release')) {
-        const dryFromToken = token.includes('dry') || token.includes('preview')
-        await commitWorkflowDraftToLive(dryFromToken ? true : workflowDraftCommitDryRun)
-        return
-      }
-      setWorkflowDraftStatus('Aktion ist fuer den aktuellen Ausbau noch nicht verdrahtet.')
     } catch (e: any) {
       setWorkflowDraftError(String(e?.response?.data?.detail || e?.message || 'Workflow-Draft-Aktion fehlgeschlagen'))
     } finally {
       setWorkflowDraftBusy(false)
     }
   }
+
+  const runWorkflowDraftActionRef = useRef<(actionId: string) => Promise<void>>(async () => undefined)
+  runWorkflowDraftActionRef.current = runWorkflowDraftAction
 
   const isDialogNewModule = activeModuleType === 'dialog_new'
   const [dialogNewDraft, setDialogNewDraft] = useState(dialogNewDefaults)
@@ -4758,6 +4788,16 @@ export default function PdvmDialogPage() {
     })
   }
 
+  // Nach einer Frame-Aktion: Liste und/oder Datensatz neu laden (Rueckgabe `refresh` der Aktion)
+  const handleFrameActionRefresh = async (refresh: string[]) => {
+    if (refresh.includes('rows')) {
+      await queryClient.invalidateQueries({ queryKey: ['dialog', 'rows', dialogGuid, effectiveDialogTableForDataOps] })
+    }
+    if (refresh.includes('record')) {
+      await performRefreshEdit()
+    }
+  }
+
   const handleImportApplied = async () => {
     await queryClient.invalidateQueries({ queryKey: ['dialog', 'rows', dialogGuid, effectiveDialogTableForDataOps] })
     const embeddedViewGuid = String(effectiveViewGuid || '').trim()
@@ -4838,123 +4878,7 @@ export default function PdvmDialogPage() {
         }}
       />
 
-      <PdvmDialogModal
-        open={infoModalOpen && !!userActionInfo}
-        kind="info"
-        title="Hinweis"
-        message={userActionInfo || ''}
-        confirmLabel="OK"
-        busy={false}
-        onCancel={() => {
-          setInfoModalOpen(false)
-          setUserActionInfo(null)
-          setUserActionError(null)
-        }}
-        onConfirm={() => {
-          setInfoModalOpen(false)
-          setUserActionInfo(null)
-          setUserActionError(null)
-        }}
-      />
-
-      <PdvmDialogModal
-        open={infoModalOpen && !!userActionError}
-        kind="info"
-        title="Fehler"
-        message={userActionError || ''}
-        confirmLabel="OK"
-        busy={false}
-        onCancel={() => {
-          setInfoModalOpen(false)
-          setUserActionInfo(null)
-          setUserActionError(null)
-        }}
-        onConfirm={() => {
-          setInfoModalOpen(false)
-          setUserActionInfo(null)
-          setUserActionError(null)
-        }}
-      />
-
-      <PdvmDialogModal
-        open={resetPwConfirmOpen}
-        kind="confirm"
-        title="Maschinelles Passwort senden"
-        message="Ein neues maschinelles Passwort wird erzeugt und per E-Mail versendet. Fortfahren?"
-        confirmLabel="Senden"
-        cancelLabel="Abbrechen"
-        busy={userActionBusy}
-        onCancel={() => setResetPwConfirmOpen(false)}
-        onConfirm={async () => {
-          if (!selectedUid) return
-          setUserActionBusy(true)
-          setResetPwConfirmOpen(false)
-          try {
-            const res = await usersAPI.resetPassword(selectedUid)
-            if (res.email_sent) {
-              setUserActionInfo(`OTP gesendet an ${res.email}. Gültig bis ${res.expires_at}.`)
-            } else {
-              setUserActionError(`OTP erstellt, E-Mail fehlgeschlagen: ${res.email_error || 'unbekannt'}`)
-            }
-            await performRefreshEdit()
-          } catch (e: any) {
-            setUserActionError(e?.response?.data?.detail || e?.message || 'Passwort-Reset fehlgeschlagen')
-          } finally {
-            setUserActionBusy(false)
-          }
-        }}
-      />
-
-      <PdvmDialogModal
-        open={lockAccountOpen}
-        kind="form"
-        title="Account sperren"
-        message="Bitte optionalen Sperrgrund angeben."
-        fields={[{ name: 'reason', label: 'Grund', type: 'text', required: false }]}
-        confirmLabel="Sperren"
-        cancelLabel="Abbrechen"
-        busy={userActionBusy}
-        onCancel={() => setLockAccountOpen(false)}
-        onConfirm={async (values) => {
-          if (!selectedUid) return
-          setUserActionBusy(true)
-          setLockAccountOpen(false)
-          try {
-            await usersAPI.lockAccount(selectedUid, String(values?.reason || '').trim() || undefined)
-            setUserActionInfo('Account wurde gesperrt.')
-            await performRefreshEdit()
-          } catch (e: any) {
-            setUserActionError(e?.response?.data?.detail || e?.message || 'Account-Sperre fehlgeschlagen')
-          } finally {
-            setUserActionBusy(false)
-          }
-        }}
-      />
-
-      <PdvmDialogModal
-        open={unlockAccountOpen}
-        kind="confirm"
-        title="Account entsperren"
-        message="Account wirklich entsperren?"
-        confirmLabel="Entsperren"
-        cancelLabel="Abbrechen"
-        busy={userActionBusy}
-        onCancel={() => setUnlockAccountOpen(false)}
-        onConfirm={async () => {
-          if (!selectedUid) return
-          setUserActionBusy(true)
-          setUnlockAccountOpen(false)
-          try {
-            await usersAPI.unlockAccount(selectedUid)
-            setUserActionInfo('Account wurde entsperrt.')
-            await performRefreshEdit()
-          } catch (e: any) {
-            setUserActionError(e?.response?.data?.detail || e?.message || 'Account-Entsperrung fehlgeschlagen')
-          } finally {
-            setUserActionBusy(false)
-          }
-        }}
-      />
+      {frameActionRunner.element}
 
       <PdvmDialogModal
         open={discardModalOpen}
@@ -5346,7 +5270,7 @@ export default function PdvmDialogPage() {
               </button>
             ) : null}
 
-            {activeTab === viewTabIndex ? (
+            {activeTab === viewTabIndex && !defQuery.data?.meta?.create_blocked_reason ? (
               <button
                 type="button"
                 onClick={createNewRecord}
@@ -5698,47 +5622,7 @@ export default function PdvmDialogPage() {
               ) : isFieldEditor ? (
                 <>
                   <div className="pdvm-dialog__editAreaHeader">
-                    {isPicEditor && currentDaten ? (
-                      <div style={{ marginBottom: 10, display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
-                        <div style={{ fontSize: 12, opacity: 0.75 }}>
-                          Passwortwechsel erforderlich:{' '}
-                          <strong>{String(((currentDaten?.SECURITY as any) || {})?.PASSWORD_CHANGE_REQUIRED ? 'JA' : 'NEIN')}</strong>
-                        </div>
-                        <div style={{ fontSize: 12, opacity: 0.75 }}>
-                          Account gesperrt:{' '}
-                          <strong>{String(((currentDaten?.SECURITY as any) || {})?.ACCOUNT_LOCKED ? 'JA' : 'NEIN')}</strong>
-                        </div>
-                        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-                          <button
-                            type="button"
-                            className="pdvm-dialog__toolBtn"
-                            onClick={() => setResetPwConfirmOpen(true)}
-                            disabled={!selectedUid || userActionBusy}
-                          >
-                            Maschinelles Passwort senden
-                          </button>
-                          {(((currentDaten?.SECURITY as any) || {})?.ACCOUNT_LOCKED ? true : false) ? (
-                            <button
-                              type="button"
-                              className="pdvm-dialog__toolBtn"
-                              onClick={() => setUnlockAccountOpen(true)}
-                              disabled={!selectedUid || userActionBusy}
-                            >
-                              Account entsperren
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              className="pdvm-dialog__toolBtn"
-                              onClick={() => setLockAccountOpen(true)}
-                              disabled={!selectedUid || userActionBusy}
-                            >
-                              Account sperren
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ) : null}
+                    {frameActionHeaderBar}
                     {isControlEditor && activeControlGroup ? (
                       <div style={{ marginTop: 8 }}>
                         <button
@@ -5813,6 +5697,12 @@ export default function PdvmDialogPage() {
 
                           const current = picDraft ? picDraft : currentDaten || {}
                           const rawValue = getControlValueForRender(current as Record<string, any>, gruppe, feld, d.type, d.source_path)
+                          // Sperre unveraenderlicher Felder richtet sich nach dem gespeicherten Wert, nicht nach dem Entwurf.
+                          const savedValue = getControlValueForRender((currentDaten || {}) as Record<string, any>, gruppe, feld, d.type, d.source_path)
+                          const immutableLocked = isImmutableLocked(!!(d as any).immutable, isDraftMode ? 'create' : 'edit', savedValue, {
+                            after: (d as any).immutable_after,
+                            data: (currentDaten || {}) as Record<string, any>,
+                          })
                           const type = normalizePicType(d.type)
                           const fieldKey = String(d.key || `${gruppe}.${feld}`)
                           const validationKey = `${gruppe}.${feld}`
@@ -5831,33 +5721,8 @@ export default function PdvmDialogPage() {
                             updateMutation.reset()
                           }
 
-                          if (type === 'action') {
-                                    const blockedApplyAction = blockApplyForRole && isApplyLikeActionControl(d)
-                                    const actionDisabled = !!d.read_only || blockedApplyAction || (isWorkflowDraftBuilderDialog && workflowDraftBusy)
-                                    const actionTitle = blockedApplyAction
-                                      ? 'Apply ist fuer Ihre Rolle nicht freigegeben (nur Admin)'
-                                      : (d.tooltip || undefined)
-                            return (
-                                      <div key={fieldKey} className="pdvm-pic" title={actionTitle}>
-                                <div className="pdvm-pic__labelRow">
-                                  <label className="pdvm-pic__label">{d.label || d.name || feld}</label>
-                                </div>
-                                <div className="pdvm-pic__control">
-                                          <button
-                                            type="button"
-                                            className="pdvm-dialog__toolBtn"
-                                            disabled={actionDisabled}
-                                            onClick={() => {
-                                              if (isWorkflowDraftBuilderDialog) {
-                                                runWorkflowDraftAction(d)
-                                              }
-                                            }}
-                                          >
-                                    {d.label || d.name || feld}
-                                  </button>
-                                </div>
-                              </div>
-                            )
+                          if (type === 'info' || type === 'action') {
+                            return renderFrameActionControl(d, fieldKey, 'field')
                           }
 
                           return (
@@ -5868,7 +5733,8 @@ export default function PdvmDialogPage() {
                               type={type === 'multi_dropdown' ? 'multi_dropdown' : (type as any)}
                               value={rawValue}
                               onChange={onChange}
-                              readOnly={!!d.read_only || !!dropdownFieldReadOnlyByFieldKey[fieldKey]}
+                              readOnly={!!d.read_only || immutableLocked || !!dropdownFieldReadOnlyByFieldKey[fieldKey]}
+                              readOnlyHint={immutableLocked ? IMMUTABLE_LOCK_HINT : undefined}
                               options={options}
                               resolvedConfigs={asObject((d as any).configs)}
                               goSelectSourceContext={current as Record<string, any>}
@@ -6240,6 +6106,7 @@ export default function PdvmDialogPage() {
                         </div>
                       ) : isFieldEditor ? (
                         <div className="pdvm-dialog__editUser">
+                          {frameActionHeaderBar}
                           {effectivePicTabs.items.length > 1 ? (
                             <div className="pdvm-tabs pdvm-tabs--sticky pdvm-dialog__editUserTabs">
                               <div className="pdvm-tabs__bar">
@@ -6283,6 +6150,12 @@ export default function PdvmDialogPage() {
 
                                   const current = picDraft ? picDraft : currentDaten || {}
                                   const rawValue = getControlValueForRender(current as Record<string, any>, gruppe, feld, d.type, d.source_path)
+                                  // Sperre unveraenderlicher Felder richtet sich nach dem gespeicherten Wert, nicht nach dem Entwurf.
+                                  const savedValue = getControlValueForRender((currentDaten || {}) as Record<string, any>, gruppe, feld, d.type, d.source_path)
+                                  const immutableLocked = isImmutableLocked(!!(d as any).immutable, isDraftMode ? 'create' : 'edit', savedValue, {
+                                    after: (d as any).immutable_after,
+                                    data: (currentDaten || {}) as Record<string, any>,
+                                  })
                                   const type = normalizePicType(d.type)
                                   const fieldKey = String(d.key || `${gruppe}.${feld}`)
                                   const validationKey = `${gruppe}.${feld}`
@@ -6301,33 +6174,8 @@ export default function PdvmDialogPage() {
                                     updateMutation.reset()
                                   }
 
-                                  if (type === 'action') {
-                                    const blockedApplyAction = blockApplyForRole && isApplyLikeActionControl(d)
-                                    const actionDisabled = !!d.read_only || blockedApplyAction || (isWorkflowDraftBuilderDialog && workflowDraftBusy)
-                                    const actionTitle = blockedApplyAction
-                                      ? 'Apply ist fuer Ihre Rolle nicht freigegeben (nur Admin)'
-                                      : (d.tooltip || undefined)
-                                    return (
-                                      <div key={fieldKey} className="pdvm-pic" title={actionTitle}>
-                                        <div className="pdvm-pic__labelRow">
-                                          <label className="pdvm-pic__label">{d.label || d.name || feld}</label>
-                                        </div>
-                                        <div className="pdvm-pic__control">
-                                          <button
-                                            type="button"
-                                            className="pdvm-dialog__toolBtn"
-                                            disabled={actionDisabled}
-                                            onClick={() => {
-                                              if (isWorkflowDraftBuilderDialog) {
-                                                runWorkflowDraftAction(d)
-                                              }
-                                            }}
-                                          >
-                                            {d.label || d.name || feld}
-                                          </button>
-                                        </div>
-                                      </div>
-                                    )
+                                  if (type === 'info' || type === 'action') {
+                                    return renderFrameActionControl(d, fieldKey, 'field')
                                   }
 
                                   return (
@@ -6338,7 +6186,8 @@ export default function PdvmDialogPage() {
                                       type={type === 'multi_dropdown' ? 'multi_dropdown' : (type as any)}
                                       value={rawValue}
                                       onChange={onChange}
-                                      readOnly={!!d.read_only || !!dropdownFieldReadOnlyByFieldKey[fieldKey]}
+                                      readOnly={!!d.read_only || immutableLocked || !!dropdownFieldReadOnlyByFieldKey[fieldKey]}
+                                      readOnlyHint={immutableLocked ? IMMUTABLE_LOCK_HINT : undefined}
                                       options={options}
                                       resolvedConfigs={asObject((d as any).configs)}
                                       goSelectSourceContext={current as Record<string, any>}

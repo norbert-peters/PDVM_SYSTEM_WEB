@@ -131,7 +131,7 @@ Zentrale, eindeutige Control-Definition mit Override-Möglichkeit in View/Frame.
     "UPPER_CASE": false,
     "SORTABLE": true,
     "READ_ONLY": false,
-    "HISTORICAL": false,
+    "IMMUTABLE": false,
     "SEARCHABLE": true,
     "EXPERT_MODE": true,
     "FILTER_TYPE": "contains",

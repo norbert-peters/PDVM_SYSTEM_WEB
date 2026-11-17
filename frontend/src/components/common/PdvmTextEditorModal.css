@@ -1,0 +1,105 @@
+/* Grosses Text-Fenster (PdvmTextEditorModal) */
+
+/* Overlay deckt das Browserfenster ab; das Fenster zentriert per margin:auto und bleibt bei Platzmangel oben buendig
+   (align-items:center wuerde den Ueberstand oben und unten abschneiden). */
+.pdvm-texteditor__overlay {
+  align-items: flex-start;
+  justify-content: center;
+  overflow: auto;
+}
+
+.pdvm-modal.pdvm-texteditor {
+  width: min(960px, 100%);
+  height: min(80vh, 760px);
+  height: min(80dvh, 760px);
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  flex: 0 0 auto;
+}
+
+.pdvm-texteditor__badge {
+  font-size: 12px;
+  opacity: 0.8;
+  font-style: italic;
+}
+
+.pdvm-texteditor__tabs {
+  display: flex;
+  gap: 4px;
+  padding: 6px 14px 0;
+  border-bottom: 1px solid var(--block-dialog-modal-divider-color, var(--color-divider));
+}
+
+.pdvm-texteditor__tab {
+  padding: 6px 14px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: var(--border-radius-md) var(--border-radius-md) 0 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.pdvm-texteditor__tab--active {
+  border-color: var(--color-border-medium);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+  font-weight: 700;
+}
+
+.pdvm-texteditor__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  padding: 14px;
+}
+
+.pdvm-texteditor__area,
+.pdvm-texteditor__preview {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--color-border-medium);
+}
+
+.pdvm-texteditor__area {
+  resize: none;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+}
+
+.pdvm-texteditor__area--mono {
+  font-family: var(--font-mono, ui-monospace, Consolas, monospace);
+  font-size: 13px;
+}
+
+.pdvm-texteditor__area:focus {
+  outline: none;
+  border-color: var(--state-focus-border);
+  box-shadow: 0 0 0 3px var(--state-focus-ring);
+}
+
+.pdvm-texteditor__area[readonly] {
+  background: var(--block-pic-std-readonly-bg, var(--color-background-secondary));
+}
+
+.pdvm-texteditor__preview {
+  background: var(--color-background-secondary);
+}
+
+.pdvm-texteditor__footer {
+  align-items: center;
+}
+
+.pdvm-texteditor__stats {
+  margin-right: auto;
+  font-size: 12px;
+  opacity: 0.75;
+}

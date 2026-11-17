@@ -28,7 +28,8 @@
 - `SMTP_HOST` (string)
 - `SMTP_PORT` (int)
 - `SMTP_USER` (string)
-- `SMTP_PASS` (string, verschlüsselt/secret)
+- `CREDENTIAL` (string) – Name des Zugangsdatensatzes im Credential-Store (`.env` oder verschlüsselt in `asy_credentials`); liefert das SMTP-Passwort (und den Benutzer, falls `SMTP_USER` leer ist). Im Mandanten-Frame ist das Feld ein Control vom Typ `password` („SMTP-Passwort“)
+- `SMTP_PASS` (string) – **entfernt** (2026-11-14 überführt, Regel 2.15); `save` lehnt das Feld ab. Die Konfiguration wird beim Versand frisch aus `asy_mandanten` gelesen
 - `SMTP_TLS` (bool)
 - `SMTP_SSL` (bool)
 - `REPLY_TO` (string)
@@ -69,7 +70,7 @@
    - `SECURITY.PASSWORD_RESET_EXPIRES_AT = now + 120 Minuten`
    - `SECURITY.PASSWORD_RESET_TOKEN_HASH = <bcrypt>`
    - `SECURITY.PASSWORD_RESET_SEND_*` (Rate-Limit)
-5. Versende E-Mail an den Benutzer mit OTP.
+5. Versende E-Mail an den Benutzer mit OTP. Betreff und Text kommen aus der Textvorlage `PASSWORD_RESET` (Sprache des Benutzers, nur freigegebene Sprachfassungen, siehe [PDVM_TEXTVORLAGEN_SPEC_V1.md](./PDVM_TEXTVORLAGEN_SPEC_V1.md)); ist keine freigegebene Vorlage verfügbar, bricht der Ablauf ab, bevor das Passwort geändert wird.
 
 ### 3.2 Login mit OTP
 1. Benutzer meldet sich mit OTP an.
@@ -116,14 +117,16 @@
 - Neue Services ausschließlich über `PdvmCentralDatabase` (Rule 1.1).
 - **sys_benutzer**: Spalten-Update (`passwort`) über PdvmDatabase, JSONB über PdvmCentralDatabase.
 
-**Empfohlene Endpoints:**
-- `POST /api/users/{uid}/password-reset` → OTP erzeugen + Email senden
+**Endpoints:**
+- Aktionen `user.password_reset` (OTP erzeugen + E-Mail senden), `user.lock` und `user.unlock` über `POST /api/frame-actions/{id}/run` (Rolle `admin`/`superadmin`, nur Benutzer des Sitzungsmandanten; siehe `PDVM_FRAME_ACTIONS_SPEC_V1.md`). Die früheren Endpunkte `/api/users/{uid}/…` sind entfernt.
+- **Konto bei „Passwort vergessen“:** Eingegeben werden der **Benutzer** (Anmeldename, eindeutig; die Maske übernimmt ihn aus dem Login-Feld, sonst wird er abgefragt) und die dort **hinterlegte E-Mail-Adresse** (`USER.EMAIL`, Groß-/Kleinschreibung egal). Nur wenn beide zum selben Konto gehören, läuft derselbe Vorgang wie bei der Aktion „Maschinelles Passwort setzen“ (`issue_password_reset`: Passwort erzeugen, per Mail senden, `PASSWORD_CHANGE_REQUIRED` setzen). Request: `{benutzer, email}`. Bei unbekanntem Benutzer, fehlender hinterlegter Adresse oder abweichender Adresse wird nichts versendet (Grund nur im Log); die Antwort bleibt gleich. Die Mail geht an die hinterlegte `USER.EMAIL`.
+- **Mandant bei „Passwort vergessen“ (ohne Sitzung):** `issue_password_reset(gcs=None)` bestimmt den Mandanten aus dem Benutzersatz: `MANDANTEN.DEFAULT`, dann `MANDANTEN.LIST`; gewählt wird der erste zugeordnete Mandant mit gesetztem `SEND_EMAIL.SMTP_HOST`. Daraus kommen SMTP-Konfiguration, `CONFIG.DEFAULT_LANGUAGE` und (sofern die Mandanten-DB erreichbar ist) die aktive Textvorlagenkopie, sonst gilt die Systemvorlage. Hat kein zugeordneter Mandant einen SMTP-Host, bricht der Reset vor jeder Änderung am Benutzer ab (Fehler im Log). Es wird nie ein nicht zugeordneter Mandant benutzt (früher: erster Mandant mit nicht-leerer `SEND_EMAIL`-Gruppe, dadurch kam keine Mail an). Mit Sitzung (Aktion `user.password_reset`) gilt der Session-Mandant.
 - `POST /api/auth/password-change` → neues Passwort setzen (Current User)
-- `POST /api/users/{uid}/lock` / `unlock`
+- Seit 2026-11-16 (Login-Frame-Spec F2/F3): Bei `PASSWORD_CHANGE_REQUIRED` stellt `POST /api/auth/login` ein eingeschränktes Token aus (Claim `pwc`, 15 Minuten), das nur `/auth/password-change` und `/auth/logout` erlaubt; `password-change` liefert danach ein vollwertiges Token. Anmeldung und `POST /api/auth/forgot-password` antworten einheitlich (keine Benutzer-Aufzählung); die Sperre (`ACCOUNT_LOCKED`) wird nur nach korrektem Passwort gemeldet. Begrenzung je IP: 20 Fehlversuche in 5 Minuten (Anmeldung), 5 Anfragen in 15 Minuten („Passwort vergessen“; Versand im Hintergrund).
 
 ### 6.2 Frontend (React)
-- Benutzer-Edit: Button „Maschinelles Passwort senden“
-- Anzeige: `PASSWORD_CHANGE_REQUIRED`, `ACCOUNT_LOCKED`
+- Benutzer-Edit: Button „Maschinelles Passwort senden“ sowie „Account sperren/entsperren“ als Frame-Controls vom Typ `action` (Frame `Benutzer Edit`, Seed `seed_frame_actions_v1.py`)
+- Anzeige: `PASSWORD_CHANGE_REQUIRED`, `ACCOUNT_LOCKED` als `info`-Controls
 - Kein direkter SMTP/Email-Call im Frontend (Rule 2.3)
 
 ---

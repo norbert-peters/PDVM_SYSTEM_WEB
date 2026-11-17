@@ -4,7 +4,7 @@ JWT tokens, password hashing
 """
 from datetime import datetime, timedelta
 import uuid
-from typing import Optional, Set
+from typing import Any, Optional, Set
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, Request, status
@@ -49,6 +49,15 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     
     return encoded_jwt
 
+PASSWORD_CHANGE_PATHS = ("/auth/password-change", "/auth/logout")
+
+
+def is_password_change_path(path: str) -> bool:
+    """Endpunkte, die ein Token mit ausstehendem Passwortwechsel (Claim `pwc`) benutzen darf."""
+    normalized = str(path or "").rstrip("/")
+    return any(normalized.endswith(allowed) for allowed in PASSWORD_CHANGE_PATHS)
+
+
 async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)) -> dict:
     """
     Validate JWT token and return user data from token payload.
@@ -81,10 +90,19 @@ async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)
             "name": payload.get("name"),
             "user_data": payload.get("user_data", {}),  # Vollständige JSONB-Daten (MEINEAPPS, etc.)
             "token": token,  # JWT-Token für GCS-Session-Lookup
+            "pwc": payload.get("pwc") is True,  # Passwortwechsel ausstehend: Token ist eingeschränkt (siehe unten)
             "client_ip": request.client.host if request and request.client else None,
             "user_agent": request.headers.get("user-agent") if request else None,
         }
-        
+
+        # Ausstehender Passwortwechsel (maschinelles Passwort): das Token erlaubt nur den Wechsel und die Abmeldung.
+        # Das Frontend erzwingt den Wechsel nicht allein (Login-Frame-Spec F2); danach stellt der Server ein neues Token aus.
+        if user_data["pwc"] and not is_password_change_path(request.url.path if request else ""):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Passwortänderung erforderlich",
+            )
+
         return user_data
     
     except JWTError:
@@ -185,12 +203,36 @@ def has_admin_or_develop_rights(current_user: dict) -> bool:
     return has_admin_rights(current_user) or has_develop_rights(current_user)
 
 
+def has_superadmin_rights(current_user: dict) -> bool:
+    """Rolle 'superadmin' (asy_benutzer.PERMISSIONS.ROLES): darf Mandanten anlegen und deren Datenbank aufbauen."""
+    return "superadmin" in _normalized_security_roles(current_user)
+
+
 def has_overlay_rights(current_user: dict) -> bool:
     """Rolle 'overlay' (asy_benutzer.PERMISSIONS.ROLES): darf Mandanten-Overlays/Theme-Einstellungen aendern.
 
     Bewusst unabhaengig von 'admin': Die Rolle wird ausdruecklich vergeben.
     """
     return "overlay" in _normalized_security_roles(current_user)
+
+
+def has_vorlagen_rights(current_user: dict) -> bool:
+    """Rolle 'vorlagen' (asy_benutzer.PERMISSIONS.ROLES): pflegt die Systemvorlagen (sys_textvorlagen).
+
+    Wie 'overlay' unabhaengig von 'admin' und ausdruecklich vergeben.
+    """
+    return "vorlagen" in _normalized_security_roles(current_user)
+
+
+def normalized_roles(user_data: Any) -> Set[str]:
+    """Normalisierte Rollen aus Benutzerdaten (z. B. gcs.benutzer.data), gleiche Regeln wie bei den API-Guards."""
+    return _normalized_security_roles({"user_data": user_data if isinstance(user_data, dict) else {}})
+
+
+def session_has_admin_rights(gcs: Any) -> bool:
+    """Admin-Check anhand der Benutzerdaten der GCS-Session (Mandanten-Session, keine JWT-Nutzdaten)."""
+    benutzer = getattr(gcs, "benutzer", None)
+    return has_admin_rights({"user_data": getattr(benutzer, "data", None)})
 
 
 async def require_overlay_user(current_user: dict = Depends(get_current_user)) -> dict:
@@ -201,6 +243,17 @@ async def require_overlay_user(current_user: dict = Depends(get_current_user)) -
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
         detail="Rolle 'overlay' erforderlich",
+    )
+
+
+async def require_superadmin_user(current_user: dict = Depends(get_current_user)) -> dict:
+    """Dependency: erlaubt nur Benutzer mit der Rolle 'superadmin' (Mandanten anlegen/aufbauen)."""
+    if has_superadmin_rights(current_user):
+        return current_user
+
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Rolle 'superadmin' erforderlich",
     )
 
 

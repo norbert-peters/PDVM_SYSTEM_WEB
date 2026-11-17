@@ -8,9 +8,23 @@
   ],
   "in_scope_tables": [
     "sys_dropdowndaten",
-    "sys_beschreibungen"
+    "sys_beschreibungen",
+    "sys_textvorlagen",
+    "msy_textvorlagen"
   ],
   "assignments": {
+    "sys_textvorlagen": {
+      "mode": "MANUAL",
+      "decision_locked": false,
+      "review_rule": "Jede inhaltliche Aenderung an einer Sprachfassung setzt den Status auf review; Freigabe (approved) nur durch die Rolle 'vorlagen'.",
+      "review_required": true
+    },
+    "msy_textvorlagen": {
+      "mode": "MANUAL",
+      "decision_locked": false,
+      "review_rule": "Jede inhaltliche Aenderung an einer Sprachfassung setzt den Status auf review; Freigabe (approved) durch Mandanten-Administratoren.",
+      "review_required": true
+    },
     "sys_dropdowndaten": {
       "mode": "MANUAL",
       "decision_locked": true,

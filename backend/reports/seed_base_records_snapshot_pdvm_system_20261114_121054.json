@@ -1,0 +1,54 @@
+[
+ {
+  "table": "dev_workflow_draft",
+  "uid": "66666666-6666-6666-6666-666666666666",
+  "new_uid": null,
+  "existed": true,
+  "link_uid": "66666666-6666-6666-6666-666666666666",
+  "daten_before": {
+   "ROOT": {
+    "TITLE": "Workflow Draft Template",
+    "STATUS": "template",
+    "REVISION": 1,
+    "SELF_GUID": "66666666-6666-6666-6666-666666666666",
+    "SELF_NAME": "WORKFLOW_DRAFT_TEMPLATE_6666",
+    "DIALOG_TYPE": "work",
+    "IS_TEMPLATE": true,
+    "SELF_GILT_BIS": "9999365.99999",
+    "SELF_LINK_UID": "66666666-6666-6666-6666-666666666666",
+    "WORKFLOW_TYPE": "work",
+    "SELF_CREATED_AT": "2026132.63788",
+    "SELF_MODIFIED_AT": "2026315.80466"
+   },
+   "TEMPLATES": {
+    "DRAFT_DB": {
+     "_META": {
+      "SETUP": {
+       "DESCRIPTION": "",
+       "DIALOG_TYPE": "work",
+       "TARGET_TABLE": "sys_dialogdaten",
+       "WORKFLOW_NAME": ""
+      },
+      "STATE": {
+       "STATUS": "draft",
+       "MAX_TAB": 1,
+       "ACTIVE_TAB": 1
+      },
+      "WORKFLOW": {
+       "DRAFT_GUID": "",
+       "UPDATED_AT": "",
+       "DIALOG_TYPE": "work",
+       "TARGET_TABLE": "sys_dialogdaten",
+       "WORKFLOW_NAME": "",
+       "WORKFLOW_TYPE": "work"
+      }
+     },
+     "SYS_VIEWDATEN": {},
+     "SYS_FRAMEDATEN": {},
+     "SYS_DIALOGDATEN": {}
+    }
+   }
+  },
+  "db": "pdvm_system"
+ }
+]

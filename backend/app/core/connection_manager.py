@@ -13,33 +13,42 @@ import json
 from .config import settings
 from .database import DatabasePool
 import logging
-from urllib.parse import urlparse, unquote
+from urllib.parse import urlparse, unquote, quote
+from .credential_store import Credential, DEFAULT_CREDENTIAL, get_credential
 
 logger = logging.getLogger(__name__)
 
 
 class ConnectionConfig:
     """Dataclass für Connection-Parameter"""
-    def __init__(self, host: str, port: int, user: str, password: str, database: str):
+    def __init__(self, host: str, port: int, user: str, password: str, database: str, ssl: bool = False):
         self.host = host
         self.port = port
         self.user = user
         self.password = password
         self.database = database
-    
+        self.ssl = ssl
+
+    def __repr__(self) -> str:  # Passwort nie in Logs oder Tracebacks
+        return f"ConnectionConfig({self.user}@{self.host}:{self.port}/{self.database})"
+
     def to_url(self) -> str:
-        """Baut PostgreSQL Connection URL"""
-        return f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
-    
+        """Baut PostgreSQL Connection URL (Benutzer und Passwort URL-kodiert)"""
+        url = (
+            f"postgresql://{quote(str(self.user), safe='')}:{quote(str(self.password), safe='')}"
+            f"@{self.host}:{self.port}/{self.database}"
+        )
+        return f"{url}?sslmode=require" if self.ssl else url
+
     def to_dict(self) -> Dict[str, any]:
-        """Gibt Connection-Parameter als Dict zurück (mit SSL disabled für PostgreSQL 18)"""
+        """Gibt Connection-Parameter als Dict zurück (SSL nur, wenn der Credential es verlangt)"""
         return {
             "host": self.host,
             "port": self.port,
             "user": self.user,
             "password": self.password,
             "database": self.database,
-            "ssl": False  # PostgreSQL 18 Windows: SSL deaktivieren
+            "ssl": "require" if self.ssl else False  # PostgreSQL 18 Windows: SSL standardmaessig deaktiviert
         }
 
 
@@ -68,11 +77,7 @@ class ConnectionManager:
         return {}
 
     @staticmethod
-    async def get_auth_config() -> ConnectionConfig:
-        """
-        AUTH-DB ist die einzige fix konfigurierte Datenbank.
-        Diese wird für Login/Token-Validierung verwendet.
-        """
+    def _auth_config_sync() -> ConnectionConfig:
         parsed = urlparse(settings.DATABASE_URL_AUTH)
 
         return ConnectionConfig(
@@ -82,6 +87,113 @@ class ConnectionManager:
             password=unquote(parsed.password or ""),
             database=(parsed.path or "/auth").lstrip("/")
         )
+
+    @staticmethod
+    async def get_auth_config() -> ConnectionConfig:
+        """
+        AUTH-DB ist die einzige fix konfigurierte Datenbank.
+        Diese wird für Login/Token-Validierung verwendet.
+        """
+        return ConnectionManager._auth_config_sync()
+
+    @staticmethod
+    def _is_local(host: str) -> bool:
+        return host.strip().lower() in {"localhost", "127.0.0.1", "::1"}
+
+    @staticmethod
+    def same_instance(a: ConnectionConfig, b: ConnectionConfig) -> bool:
+        """True, wenn beide Konfigurationen auf dieselbe PostgreSQL-Instanz zeigen (Host und Port)."""
+        if int(a.port) != int(b.port):
+            return False
+        ha, hb = a.host.strip().lower(), b.host.strip().lower()
+        return ha == hb or (ConnectionManager._is_local(ha) and ConnectionManager._is_local(hb))
+
+    @staticmethod
+    def _resolve_connection(
+        *,
+        host: str,
+        port: int,
+        user_field: Optional[str],
+        credential_name: Optional[str],
+        legacy_password: Optional[str],
+        database: str,
+        auth: ConnectionConfig,
+        label: str,
+    ) -> ConnectionConfig:
+        """
+        Zugangsdaten je Verbindung (Spezifikation PDVM_DB_VERBINDUNGEN_UND_ZUGANGSDATEN_SPEC_V1, 3.2):
+        1. genannter Credential, 2. Altwert MANDANT.PASSWORD (Uebergang), 3. Credential 'default',
+        4. AUTH-Zugangsdaten, aber nur auf derselben Instanz wie die AUTH-DB.
+        """
+        target = ConnectionConfig(host, port, user_field or "", "", database)
+        user = user_field
+        password: Optional[str] = None
+        ssl = False
+
+        if credential_name:
+            cred = get_credential(credential_name)
+            if cred is None:
+                raise ValueError(f"{label}: Credential '{credential_name}' ist nicht konfiguriert (PDVM_DB_CREDENTIALS)")
+            password, ssl, user = cred.password, cred.ssl, user or cred.user
+        elif legacy_password and legacy_password != "postgres":
+            logger.warning("⚠️ %s: MANDANT.PASSWORD ist veraltet; bitte CREDENTIAL verwenden oder das Feld leeren", label)
+            password = legacy_password
+        else:
+            cred = get_credential(DEFAULT_CREDENTIAL)
+            if cred is not None:
+                password, ssl, user = cred.password, cred.ssl, user or cred.user
+            elif ConnectionManager.same_instance(target, auth):
+                password, user = auth.password, user or auth.user
+            else:
+                raise ValueError(
+                    f"{label}: keine Zugangsdaten fuer {host}:{port} (CREDENTIAL oder Credential 'default' fehlt)"
+                )
+
+        return ConnectionConfig(host, port, user or auth.user, password, database, ssl=ssl)
+
+    @staticmethod
+    def resolve_mandant_connections(
+        mandant_info: Dict[str, object],
+        auth_config: Optional[ConnectionConfig] = None,
+        fallback_database: Optional[str] = None,
+    ) -> Tuple[ConnectionConfig, ConnectionConfig]:
+        """
+        Baut (system_config, mandant_config) aus asy_mandanten.daten.MANDANT.
+
+        Adressen: HOST/PORT/USER (Standard: AUTH-Instanz) fuer die Mandanten-DB; SYSTEM_HOST/SYSTEM_PORT/SYSTEM_USER
+        fuer die System-DB (Standard: Mandanten-DB). Zugangsdaten: CREDENTIAL bzw. SYSTEM_CREDENTIAL (Standard: CREDENTIAL).
+        Das Passwort steht nicht im Mandantensatz (Altfeld PASSWORD gilt nur im Uebergang).
+        """
+        info = mandant_info if isinstance(mandant_info, dict) else {}
+        auth = auth_config or ConnectionManager._auth_config_sync()
+
+        def text(key: str) -> Optional[str]:
+            value = info.get(key)
+            return str(value).strip() if value not in (None, "") else None
+
+        host = text("HOST") or auth.host
+        port = int(text("PORT") or auth.port)
+        database = text("DATABASE") or fallback_database or ""
+        credential = text("CREDENTIAL")
+
+        mandant_config = ConnectionManager._resolve_connection(
+            host=host, port=port, user_field=text("USER"), credential_name=credential,
+            legacy_password=text("PASSWORD"), database=database, auth=auth, label="Mandanten-DB",
+        )
+
+        system_host = text("SYSTEM_HOST") or host
+        system_port = int(text("SYSTEM_PORT") or port)
+        system_db = text("SYSTEM_DB") or text("SYSTEM_DATABASE") or "pdvm_system"
+        probe = ConnectionConfig(system_host, system_port, "", "", system_db)
+        shares_address = ConnectionManager.same_instance(probe, mandant_config)
+        system_config = ConnectionManager._resolve_connection(
+            host=system_host, port=system_port,
+            user_field=text("SYSTEM_USER") or (mandant_config.user if shares_address else None),
+            credential_name=text("SYSTEM_CREDENTIAL") or credential,
+            legacy_password=text("PASSWORD") if shares_address else None,
+            database=system_db, auth=auth, label="System-DB",
+        )
+        return system_config, mandant_config
     
     @staticmethod
     async def get_mandant_config(mandant_id: str) -> Tuple[ConnectionConfig, ConnectionConfig]:
@@ -115,50 +227,17 @@ class ConnectionManager:
             
             daten = ConnectionManager._normalize_mandant_daten(mandant['daten'])
             mandant_info = daten.get('MANDANT', {})
-            
-            # Extrahiere Connection-Parameter
-            host = mandant_info.get('HOST')
-            port = mandant_info.get('PORT')
-            user = mandant_info.get('USER')
-            password = mandant_info.get('PASSWORD')
-            database = mandant_info.get('DATABASE')
-            system_db = (
-                mandant_info.get('SYSTEM_DB')
-                or mandant_info.get('SYSTEM_DATABASE')
-                or 'pdvm_system'
-            )
-            
-            # Validierung
-            missing = []
-            if not host: missing.append('HOST')
-            if not port: missing.append('PORT')
-            if not user: missing.append('USER')
-            if not password: missing.append('PASSWORD')
-            if not database: missing.append('DATABASE')
-            
-            if missing:
-                raise ValueError(f"Mandant '{mandant_id}' hat fehlende Connection-Daten: {', '.join(missing)}")
-            
-            # Baue Connection-Configs
-            system_config = ConnectionConfig(
-                host=host,
-                port=int(port),
-                user=user,
-                password=password,
-                database=system_db
-            )
-            
-            mandant_config = ConnectionConfig(
-                host=host,
-                port=int(port),
-                user=user,
-                password=password,
-                database=database
-            )
-            
+
+            from app.core.credential_service import ensure_fresh
+            await ensure_fresh()
+            system_config, mandant_config = ConnectionManager.resolve_mandant_connections(mandant_info, auth_config)
+            if not mandant_config.database:
+                raise ValueError(f"Mandant '{mandant_id}' hat fehlende Connection-Daten: DATABASE")
+
             logger.info(f"✅ Connection-Config für Mandant '{mandant_id}' geladen: "
-                       f"System={system_db}, Mandant={database}, Host={host}:{port}")
-            
+                       f"System={system_config.database}@{system_config.host}:{system_config.port}, "
+                       f"Mandant={mandant_config.database}@{mandant_config.host}:{mandant_config.port}")
+
             return system_config, mandant_config
             
         finally:

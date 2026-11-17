@@ -20,7 +20,7 @@ from typing import Any, Dict, Iterable, Optional, Tuple
 import asyncpg
 
 
-DEFAULT_DB_URL = os.getenv("DATABASE_URL") or os.getenv("PDVM_SYSTEM_DATABASE_URL") or "postgresql://postgres:Polari$55@localhost:5432/pdvm_system"
+DEFAULT_DB_URL = os.getenv("DATABASE_URL") or os.getenv("PDVM_SYSTEM_DATABASE_URL")
 
 BASE_UIDS = {
     "000": uuid.UUID("00000000-0000-0000-0000-000000000000"),
@@ -344,6 +344,8 @@ async def _migrate_view_keys(conn: asyncpg.Connection) -> ViewMigrationStats:
 
 
 async def run() -> None:
+    if not DEFAULT_DB_URL:
+        raise SystemExit("Umgebungsvariable PDVM_SYSTEM_DATABASE_URL (oder DATABASE_URL) fehlt")
     conn = await asyncpg.connect(DEFAULT_DB_URL)
     try:
         print("=" * 80)

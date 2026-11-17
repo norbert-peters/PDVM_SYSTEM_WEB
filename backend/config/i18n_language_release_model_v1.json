@@ -4,7 +4,9 @@
   "notes": "Punkt 9: minimales Freigabemodell je Sprache fuer produktive Verwendung.",
   "in_scope_tables": [
     "sys_dropdowndaten",
-    "sys_beschreibungen"
+    "sys_beschreibungen",
+    "sys_textvorlagen",
+    "msy_textvorlagen"
   ],
   "required_release_fields": [
     "version",

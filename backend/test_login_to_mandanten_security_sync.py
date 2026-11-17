@@ -154,6 +154,12 @@ def test_login_to_mandanten_select_passes_refreshed_security_to_gcs(monkeypatch)
     monkeypatch.setattr(auth, "UserManager", FakeUserManager)
     monkeypatch.setattr(mandanten, "MandantDataManager", FakeMandantDataManager)
 
+    async def fake_load_user_daten(_user_uid):
+        # Die Mandanten-Zulassung wird frisch aus dem Benutzersatz gelesen (mandant_access)
+        return refreshed_user["daten"]
+
+    monkeypatch.setattr(mandanten, "load_user_daten", fake_load_user_daten)
+
     import app.core.data_managers as data_managers
 
     monkeypatch.setattr(data_managers, "MandantDataManager", FakeMandantDataManager)

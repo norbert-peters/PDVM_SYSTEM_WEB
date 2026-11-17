@@ -7,8 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import DatabasePool
 from app.core.error_handlers import register_error_handlers
-from app.api import auth, tables, admin, mandanten, menu, gcs, layout, views, dialogs, users, releases, workflow_drafts
-from app.api import systemdaten, lookups, menu_editor, import_data, control_dict
+from app.api import auth, tables, admin, mandanten, menu, gcs, layout, views, dialogs, releases, workflow_drafts
+from app.api import systemdaten, lookups, menu_editor, import_data, control_dict, frames, credentials, frame_actions, public_frames
 
 app = FastAPI(
     title="PDVM System API",
@@ -37,6 +37,9 @@ async def startup():
             f"ROOT={auth_stats['root_self_synced']}, "
             f"neue link_uid-Spalten={auth_stats['link_uid_columns_added']}"
         )
+
+        from app.core.credential_service import refresh_credentials
+        print(f"🔑 Gespeicherte Zugangsdaten geladen: {await refresh_credentials()}")
         
         print("🔧 Starte System-Datenbank-Wartung...")
         
@@ -94,8 +97,11 @@ app.include_router(admin.router, prefix="/api/admin", tags=["Administration"])
 app.include_router(layout.router, prefix="/api/layout", tags=["Layout"])
 app.include_router(views.router, prefix="/api/views", tags=["Views"])
 app.include_router(dialogs.router, prefix="/api/dialogs", tags=["Dialogs"])
+app.include_router(frames.router, prefix="/api/frames", tags=["Frames"])
+app.include_router(public_frames.router, prefix="/api/public", tags=["Public"])
+app.include_router(credentials.router, prefix="/api/credentials", tags=["Credentials"])
+app.include_router(frame_actions.router, prefix="/api/frame-actions", tags=["FrameActions"])
 app.include_router(import_data.router, prefix="/api/import", tags=["ImportData"])
-app.include_router(users.router, prefix="/api/users", tags=["Users"])
 app.include_router(control_dict.router, prefix="/api/control", tags=["ControlDict"])
 app.include_router(releases.router, prefix="/api/releases", tags=["Releases"])
 app.include_router(workflow_drafts.router, prefix="/api/workflow-drafts", tags=["WorkflowDrafts"])
